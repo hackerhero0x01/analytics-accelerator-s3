@@ -1,0 +1,19 @@
+.gradle/
+.idea/
+/build
+/buildSrc/build/
+/wrapper/
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+
+#Ignore junk and IDE files
+.DS_Store
+.gitattributes
+*.iml
+.vscode/
+
+.
