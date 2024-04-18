@@ -54,6 +54,8 @@ jobs:
           min-coverage-overall: 95
           min-coverage-changed-files: 95
           title: "Code coverage"
+          debug_mode: true
+          continue-on-error: false
 
       - name: Get the Coverage info
         run: |
