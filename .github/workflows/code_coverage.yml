@@ -35,8 +35,15 @@ jobs:
         with:
           gradle-version: 8.7
 
-      - name: Run Test Coverage
+      - name: Run  Coverage
         run: ./gradlew jacocoTestReport
+
+      - name: Upload Report
+        uses: 'actions/upload-artifact@v4'
+        with:
+          name: report.xml
+          path: ${{ github.workspace }}/**/build/reports/codeCoverage/test/jacocoTestReport.xml
+
       - name: Add coverage
         id: jacoco
         uses: madrapps/jacoco-report@v1.6.1
@@ -46,3 +53,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 95
           min-coverage-changed-files: 95
+
+      - name: Get the Coverage info
+        run: |
+          echo "Total coverage ${{ steps.jacoco.outputs.coverage-overall }}"
+          echo "Changed Files coverage ${{ steps.jacoco.outputs.coverage-changed-files }}"
