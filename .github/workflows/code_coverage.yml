@@ -12,16 +12,16 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    
+permissions:
+  contents: write
+  pull-requests: write
+  repository-projects: write
+  issues: write
 
 jobs:
   code_coverage:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      repository-projects: write
-      issues: write
-
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 8
