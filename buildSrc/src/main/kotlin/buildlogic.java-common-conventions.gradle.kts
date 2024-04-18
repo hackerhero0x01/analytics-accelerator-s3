@@ -53,7 +53,7 @@ tasks.jacocoTestCoverageVerification {
 
 tasks.jacocoTestReport {
     reports {
-        xml.required = false
+        xml.required = true
         csv.required = false
     }
 
