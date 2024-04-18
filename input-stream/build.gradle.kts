@@ -4,8 +4,29 @@
 
 plugins {
     id("buildlogic.java-library-conventions")
+    id("jacoco")
 }
 
 dependencies {
     api(project(":object-client"))
 }
+
+tasks.test {
+    // Report is generated and verification is run after tests
+    finalizedBy(tasks.jacocoTestReport, tasks.jacocoTestCoverageVerification)
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.95".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test) // tests are required to run before generating the report
+}
+
