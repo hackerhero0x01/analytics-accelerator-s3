@@ -48,10 +48,6 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
-tasks.compileJava {
-    dependsOn("spotlessApply")
-}
-
 tasks.test {
     // Report is generated and verification is run after tests
     finalizedBy(tasks.jacocoTestReport, tasks.jacocoTestCoverageVerification)
