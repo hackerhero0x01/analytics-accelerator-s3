@@ -14,7 +14,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  code_coverage:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
