@@ -12,11 +12,23 @@ plugins {
 
     // Code coverage
     jacoco
+
+    // Formatting
+    id("com.diffplug.spotless")
 }
 
 jacoco {
     toolVersion = codeCoverageToolVersion
     reportsDirectory = layout.buildDirectory.dir(codeCoverageReports)
+}
+
+spotless {
+    java {
+        importOrder()
+        removeUnusedImports()
+        googleJavaFormat()
+        formatAnnotations()
+    }
 }
 
 repositories {
