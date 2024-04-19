@@ -8,9 +8,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
-/**
- * Object client, based on AWS SDK v2
- */
+/** Object client, based on AWS SDK v2 */
 public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
 
   private final S3AsyncClient s3AsyncClient;
@@ -18,9 +16,9 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
   /**
    * Create an instance of a S3 client for interaction with Amazon S3 compatible object stores.
    *
-   * @param s3AsyncClient Underlying client to be used for making requests to S3.
-   *                      Useful for applications that need to configure the S3 Client.
-   *                      If no client is provided, an instance of the S3 CRT client is created.
+   * @param s3AsyncClient Underlying client to be used for making requests to S3. Useful for
+   *     applications that need to configure the S3 Client. If no client is provided, an instance of
+   *     the S3 CRT client is created.
    */
   public S3SdkObjectClient(S3AsyncClient s3AsyncClient) {
 
@@ -29,7 +27,6 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
     } else {
       this.s3AsyncClient = S3AsyncClient.crtBuilder().build();
     }
-
   }
 
   @Override
@@ -44,8 +41,8 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
 
   @Override
   public ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest getObjectRequest) {
-    return s3AsyncClient.getObject(getObjectRequest,
-        AsyncResponseTransformer.toBlockingInputStream()).join();
+    return s3AsyncClient
+        .getObject(getObjectRequest, AsyncResponseTransformer.toBlockingInputStream())
+        .join();
   }
-
 }

@@ -6,9 +6,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
-/**
- * Represents APIs of an Amazon S3 compatible object store
- */
+/** Represents APIs of an Amazon S3 compatible object store */
 public interface ObjectClient {
 
   /**
@@ -26,6 +24,4 @@ public interface ObjectClient {
    * @return ResponseInputStream<GetObjectResponse>
    */
   ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest getObjectRequest);
-
 }
-
