@@ -9,9 +9,20 @@ plugins {
 dependencies {
     api(project(":object-client"))
 
+    implementation(libs.guava)
+    implementation(libs.s3)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.junit.jupiter)
+    testImplementation(libs.s3mock.testcontainers)
+    testImplementation(libs.sdk.url.connection.client)
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.netty.nio.client)
     testRuntimeOnly(libs.junit.jupiter.launcher)
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
