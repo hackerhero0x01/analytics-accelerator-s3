@@ -39,8 +39,7 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
 
   @Override
   public HeadObjectResponse headObject(HeadObjectRequest headObjectRequest) {
-    HeadObjectResponse hr = s3AsyncClient.headObject(headObjectRequest).join();
-    return hr;
+    return s3AsyncClient.headObject(headObjectRequest).join();
   }
 
   @Override

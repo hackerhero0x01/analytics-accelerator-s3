@@ -14,6 +14,5 @@ dependencies {
     testRuntimeOnly(libs.junit.jupiter.launcher)
     implementation(platform("software.amazon.awssdk:bom:2.25.31"))
     implementation("software.amazon.awssdk:s3")
-    implementation(platform("software.amazon.awssdk.crt:aws-crt:0.29.10"))
-
+    implementation("software.amazon.awssdk.crt:aws-crt:0.29.10")
 }
