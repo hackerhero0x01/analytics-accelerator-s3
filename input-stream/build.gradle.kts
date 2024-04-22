@@ -23,8 +23,23 @@ dependencies {
     testRuntimeOnly(libs.junit.jupiter.launcher)
 }
 
-java {
-    toolchain {
+tasks.withType<JavaCompile>().configureEach {
+}
+
+tasks.compileJava {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+tasks.compileTestJava {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.test {
+    javaLauncher = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
