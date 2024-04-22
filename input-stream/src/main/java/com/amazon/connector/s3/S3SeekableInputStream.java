@@ -7,7 +7,13 @@ import java.io.InputStream;
 import java.util.Objects;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
-/** High throughput stream used to read data from Amazon S3. */
+/**
+ * High throughput seekable stream used to read data from Amazon S3.
+ *
+ * <p>Don't share between threads. The current implementation is not thread safe in that calling
+ * seek(...) will modify the position of the stream and the behaviour of calling seek() and read()
+ * concurrently from two different threads is undefined.
+ */
 public class S3SeekableInputStream extends SeekableInputStream {
   private final ObjectClient objectClient;
   private final S3URI uri;
@@ -19,6 +25,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * Creates a new instance of {@link S3SeekableInputStream}.
    *
    * @param objectClient an instance of {@link ObjectClient}.
+   * @param uri location of the S3 object this stream is fetching data from
    */
   public S3SeekableInputStream(ObjectClient objectClient, S3URI uri) throws IOException {
     Preconditions.checkNotNull(objectClient, "objectClient must not be null");

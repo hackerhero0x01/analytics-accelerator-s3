@@ -15,6 +15,7 @@ plugins {
 
     // Formatting
     id("com.diffplug.spotless")
+    checkstyle
 }
 
 jacoco {
