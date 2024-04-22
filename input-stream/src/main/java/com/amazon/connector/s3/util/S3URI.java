@@ -18,7 +18,7 @@ public class S3URI {
   /** Given a bucket and a key, creates an S3URI object. */
   public static S3URI of(String bucket, String key) {
     Preconditions.checkNotNull(bucket, "bucket must be non-null");
-    Preconditions.checkNotNull(bucket, "key must be non-null");
+    Preconditions.checkNotNull(key, "key must be non-null");
 
     return new S3URI(bucket, key);
   }
