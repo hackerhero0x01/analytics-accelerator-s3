@@ -6,21 +6,24 @@ guava = "32.1.2-jre"
 s3 = "2.25.31"
 s3mock = "3.6.0"
 testcontainers = "1.19.7"
-sdk-url-connection-client = "2.25.31"
-netty-nio-client = "2.25.31"
 crt = "0.29.10"
+lombok = "1.18.32"
 
 [libraries]
+# S3-related dependencies
 s3 = { module = "software.amazon.awssdk:s3", version.ref = "s3" }
+sdk-url-connection-client = { module = "software.amazon.awssdk:url-connection-client", version.ref = "s3" }
+sdk-bom = { group = "software.amazon.awssdk", name = "bom", version.ref = "s3" }
 crt = { module = "software.amazon.awssdk.crt:aws-crt", version.ref = "crt" }
+netty-nio-client = { module = "software.amazon.awssdk:netty-nio-client", version.ref = "s3" }
+
 guava = { module = "com.google.guava:guava", version.ref = "guava" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-jupiter-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+mockito-inline = { module = "org.mockito:mockito-inline", version.ref = "mockito" }
 mockito-junit-jupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
 spotless = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 s3mock-testcontainers = { module = "com.adobe.testing:s3mock-testcontainers", version.ref = "s3mock" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
-sdk-url-connection-client = { module = "software.amazon.awssdk:url-connection-client", version.ref = "sdk-url-connection-client" }
-netty-nio-client = { module = "software.amazon.awssdk:netty-nio-client", version.ref = "netty-nio-client" }
-sdk-bom = { group = "software.amazon.awssdk", name = "bom", version = "2.25.31" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }

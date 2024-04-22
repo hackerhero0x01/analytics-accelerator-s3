@@ -4,6 +4,7 @@
 
 plugins {
     id("buildlogic.java-library-conventions")
+    id("io.freefair.lombok") version "8.6"
 }
 
 dependencies {
@@ -13,6 +14,7 @@ dependencies {
     implementation(libs.s3)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.inline)
     testImplementation(libs.mockito.junit.jupiter)
     testImplementation(libs.s3mock.testcontainers)
     testImplementation(libs.sdk.url.connection.client)

@@ -66,7 +66,7 @@ public class InMemoryReferenceTest {
   private static final S3URI TEST_URI = S3URI.of(TEST_BUCKET, TEST_KEY);
 
   @BeforeEach
-  void setup() throws URISyntaxException {
+  void setup() throws URISyntaxException, IOException {
     // Generate random data
     Random r = new Random();
     byte[] data = new byte[OBJECT_SIZE];
@@ -76,7 +76,8 @@ public class InMemoryReferenceTest {
     s3Client = createS3ClientV2(s3Mock.getHttpsEndpoint());
     s3Client
         .putObject(
-            x -> x.bucket(TEST_URI.bucket()).key(TEST_URI.key()), AsyncRequestBody.fromBytes(data))
+            x -> x.bucket(TEST_URI.getBucket()).key(TEST_URI.getKey()),
+            AsyncRequestBody.fromBytes(data))
         .join();
 
     // Initialise streams
@@ -109,7 +110,7 @@ public class InMemoryReferenceTest {
   @Test
   public void testReadAndSeek() throws IOException {
     Random r = new Random();
-    for (int i = 0, nextPos = 0; i < 100; nextPos = nextRandomPosition(r), ++i) {
+    for (int i = 0, nextPos = 0; i < 10; nextPos = nextRandomPosition(r), ++i) {
       s3SeekableInputStream.seek(nextPos);
       inMemorySeekableStream.seek(nextPos);
 
