@@ -7,6 +7,8 @@ import java.io.InputStream;
  * A SeekableInputStream is like a conventional InputStream but equipped with two additional
  * operations: 'seek' and 'getPos'. Typically, seekable streams are used for random data access
  * (i.e, data access that is not strictly sequential or requires backwards seeks).
+ *
+ * Implementations should implement 'close' to release resources.
  */
 public abstract class SeekableInputStream extends InputStream {
 
