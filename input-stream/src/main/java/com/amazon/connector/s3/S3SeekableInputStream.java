@@ -11,8 +11,9 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
  * High throughput seekable stream used to read data from Amazon S3.
  *
  * <p>Don't share between threads. The current implementation is not thread safe in that calling
- * seek(...) will modify the position of the stream and the behaviour of calling seek() and read()
- * concurrently from two different threads is undefined.
+ * {@link #seek(long) seek} will modify the position of the stream and the behaviour of calling
+ * {@link #seek(long) seek} and {@link #read() read} concurrently from two different threads is
+ * undefined.
  */
 public class S3SeekableInputStream extends SeekableInputStream {
   private final ObjectClient objectClient;
