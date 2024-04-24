@@ -1,27 +1,28 @@
 package com.amazon.connector.s3;
 
-import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import com.amazon.connector.s3.object.ObjectContent;
+import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.request.GetRequest;
+import com.amazon.connector.s3.request.HeadRequest;
+import java.io.Closeable;
+import java.util.concurrent.CompletableFuture;
 
 /** Represents APIs of an Amazon S3 compatible object store */
-public interface ObjectClient {
+public interface ObjectClient extends Closeable {
 
   /**
-   * Make a headObject request to S3.
+   * Make a headObject request to the object store.
    *
-   * @param headObjectRequest HeadObjectRequest
+   * @param headRequest The HEAD request to be sent
    * @return HeadObjectResponse
    */
-  HeadObjectResponse headObject(HeadObjectRequest headObjectRequest);
+  CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest);
 
   /**
-   * Make a getObject request to S3.
+   * Make a getObject request to the object store.
    *
-   * @param getObjectRequest GetObjectRequest
+   * @param getRequest The GET request to be sent
    * @return ResponseInputStream<GetObjectResponse>
    */
-  ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest getObjectRequest);
+  CompletableFuture<ObjectContent> getObject(GetRequest getRequest);
 }

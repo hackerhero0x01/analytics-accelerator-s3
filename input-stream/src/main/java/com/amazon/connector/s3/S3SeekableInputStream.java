@@ -1,11 +1,8 @@
 package com.amazon.connector.s3;
 
-import com.amazon.connector.s3.util.S3URI;
+import com.amazon.connector.s3.blockmanager.BlockManager;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Objects;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 /**
  * High throughput seekable stream used to read data from Amazon S3.
@@ -16,49 +13,40 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
  * undefined.
  */
 public class S3SeekableInputStream extends SeekableInputStream {
-  private final ObjectClient objectClient;
-  private final S3URI uri;
 
+  private final BlockManager blockManager;
   private long position;
-  private InputStream stream;
 
   /**
    * Creates a new instance of {@link S3SeekableInputStream}.
    *
-   * @param objectClient an instance of {@link ObjectClient}.
-   * @param uri location of the S3 object this stream is fetching data from
+   * @param blockManager an instance of {@link BlockManager}.
    */
-  public S3SeekableInputStream(ObjectClient objectClient, S3URI uri) throws IOException {
-    Preconditions.checkNotNull(objectClient, "objectClient must not be null");
-    Preconditions.checkNotNull(uri, "S3 URI must not be null");
+  public S3SeekableInputStream(BlockManager blockManager) throws IOException {
+    Preconditions.checkNotNull(blockManager, "BlockManager must not be null");
 
-    this.objectClient = objectClient;
-    this.uri = uri;
-
+    this.blockManager = blockManager;
     this.position = 0;
-    requestBytes(position);
   }
 
   @Override
   public int read() throws IOException {
-    int byteRead = stream.read();
-
-    if (byteRead < 0) {
+    if (this.position >= contentLength()) {
       return -1;
     }
 
+    int byteRead = this.blockManager.readByte(this.position);
     this.position++;
     return byteRead;
   }
 
   @Override
-  public void seek(long pos) throws IOException {
-    try {
-      requestBytes(pos);
-      this.position = pos;
-    } catch (Exception e) {
-      throw new IOException(String.format("Unable to seek to position %s", pos));
-    }
+  public void seek(long pos) {
+    Preconditions.checkState(pos >= 0, "position must be non-negative");
+    Preconditions.checkState(
+        pos < contentLength(), "zero-indexed position must be less than the object size");
+
+    this.position = pos;
   }
 
   @Override
@@ -69,20 +57,10 @@ public class S3SeekableInputStream extends SeekableInputStream {
   @Override
   public void close() throws IOException {
     super.close();
-    this.stream.close();
+    this.blockManager.close();
   }
 
-  private void requestBytes(long pos) throws IOException {
-    if (Objects.nonNull(this.stream)) {
-      this.stream.close();
-    }
-
-    this.stream =
-        this.objectClient.getObject(
-            GetObjectRequest.builder()
-                .bucket(uri.getBucket())
-                .key(uri.getKey())
-                .range(String.format("bytes=%s-", pos))
-                .build());
+  private long contentLength() {
+    return this.blockManager.getMetadata().join().getContentLength();
   }
 }

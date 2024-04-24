@@ -8,10 +8,10 @@ import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.S3SdkObjectClient;
 import com.amazon.connector.s3.S3SeekableInputStream;
+import com.amazon.connector.s3.blockmanager.BlockManager;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +26,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.utils.AttributeMap;
+import software.amazon.awssdk.utils.IoUtils;
 
 @Testcontainers
 public class InMemoryReferenceTest {
@@ -41,6 +42,7 @@ public class InMemoryReferenceTest {
 
   private S3AsyncClient s3Client;
   private ObjectClient objectClient;
+  private BlockManager blockManager;
   private S3SeekableInputStream s3SeekableInputStream;
   private InMemorySeekableStream inMemorySeekableStream;
 
@@ -60,13 +62,15 @@ public class InMemoryReferenceTest {
         .build();
   }
 
-  private static final int OBJECT_SIZE = 1024 * 1024;
+  // 24 MB -- should force seekable streams to use more than a single IOBlock
+  private static final int OBJECT_SIZE = 24 * 1024 * 1024;
+
   private static final String TEST_KEY = "key";
   private static final String TEST_BUCKET = "bucket";
   private static final S3URI TEST_URI = S3URI.of(TEST_BUCKET, TEST_KEY);
 
   @BeforeEach
-  void setup() throws URISyntaxException, IOException {
+  void setup() throws IOException {
     // Generate random data
     Random r = new Random();
     byte[] data = new byte[OBJECT_SIZE];
@@ -82,7 +86,8 @@ public class InMemoryReferenceTest {
 
     // Initialise streams
     objectClient = new S3SdkObjectClient(s3Client);
-    s3SeekableInputStream = new S3SeekableInputStream(objectClient, TEST_URI);
+    blockManager = new BlockManager(objectClient, TEST_URI);
+    s3SeekableInputStream = new S3SeekableInputStream(blockManager);
     inMemorySeekableStream = new InMemorySeekableStream(data);
   }
 
@@ -117,12 +122,20 @@ public class InMemoryReferenceTest {
       assertEquals(
           s3SeekableInputStream.getPos(),
           inMemorySeekableStream.getPos(),
-          "positions should match");
+          String.format("positions do not match after seeking to %s", nextPos));
       assertEquals(
           s3SeekableInputStream.read(),
           inMemorySeekableStream.read(),
-          "returned data should match");
+          String.format("returned data does not match after seeking to %s", nextPos));
     }
+  }
+
+  @Test
+  public void testFullRead() throws IOException {
+    String seekableFullRead = IoUtils.toUtf8String(s3SeekableInputStream);
+    String inMemoryFullRead = IoUtils.toUtf8String(inMemorySeekableStream);
+
+    assertEquals(seekableFullRead, inMemoryFullRead);
   }
 
   private int nextRandomPosition(Random r) {

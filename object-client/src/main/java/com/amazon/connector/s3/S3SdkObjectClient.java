@@ -1,12 +1,15 @@
 package com.amazon.connector.s3;
 
-import software.amazon.awssdk.core.ResponseInputStream;
+import com.amazon.connector.s3.object.ObjectContent;
+import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.request.GetRequest;
+import com.amazon.connector.s3.request.HeadRequest;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 /** Object client, based on AWS SDK v2 */
 public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
@@ -35,14 +38,32 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
   }
 
   @Override
-  public HeadObjectResponse headObject(HeadObjectRequest headObjectRequest) {
-    return s3AsyncClient.headObject(headObjectRequest).join();
+  public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
+    return s3AsyncClient
+        .headObject(
+            HeadObjectRequest.builder()
+                .bucket(headRequest.getBucket())
+                .key(headRequest.getKey())
+                .build())
+        .thenApply(
+            headObjectResponse ->
+                ObjectMetadata.builder().contentLength(headObjectResponse.contentLength()).build());
   }
 
   @Override
-  public ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest getObjectRequest) {
+  public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
+    GetObjectRequest.Builder builder =
+        GetObjectRequest.builder().bucket(getRequest.getBucket()).key(getRequest.getKey());
+
+    if (Objects.nonNull(getRequest.getRange())) {
+      builder.range(
+          String.format(
+              "bytes=%s-%s", getRequest.getRange().getStart(), getRequest.getRange().getEnd()));
+    }
+
     return s3AsyncClient
-        .getObject(getObjectRequest, AsyncResponseTransformer.toBlockingInputStream())
-        .join();
+        .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
+        .thenApply(
+            responseInputStream -> ObjectContent.builder().stream(responseInputStream).build());
   }
 }

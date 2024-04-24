@@ -8,6 +8,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.request.GetRequest;
+import com.amazon.connector.s3.request.HeadRequest;
+import com.amazon.connector.s3.request.Range;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,7 +33,9 @@ public class S3SdkObjectClientTest {
     s3AsyncClient = mock(S3AsyncClient.class);
 
     when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
-        .thenReturn(CompletableFuture.completedFuture(HeadObjectResponse.builder().build()));
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                HeadObjectResponse.builder().contentLength(42L).build()));
 
     when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
         .thenReturn(
@@ -57,21 +63,35 @@ public class S3SdkObjectClientTest {
   void testHeadObject() {
     S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
     assertEquals(
-        client.headObject(HeadObjectRequest.builder().build()),
-        HeadObjectResponse.builder().build());
+        client.headObject(HeadRequest.builder().bucket("bucket").key("key").build()).join(),
+        ObjectMetadata.builder().contentLength(42).build());
   }
 
   @Test
   void testGetObject() {
     S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
     assertInstanceOf(
-        ResponseInputStream.class, client.getObject(GetObjectRequest.builder().build()));
+        CompletableFuture.class,
+        client.getObject(GetRequest.builder().bucket("bucket").key("key").build()));
+  }
+
+  @Test
+  void testGetObjectWithRange() {
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+    assertInstanceOf(
+        CompletableFuture.class,
+        client.getObject(
+            GetRequest.builder()
+                .bucket("bucket")
+                .key("key")
+                .range(Range.builder().start(0).end(20).build())
+                .build()));
   }
 
   @Test
   void testObjectClientClose() {
     try (S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient)) {
-      client.headObject(HeadObjectRequest.builder().build());
+      client.headObject(HeadRequest.builder().bucket("bucket").key("key").build());
     }
     verify(s3AsyncClient, times(1)).close();
   }
