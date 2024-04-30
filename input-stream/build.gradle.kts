@@ -5,6 +5,7 @@
 plugins {
     id("buildlogic.java-library-conventions")
     id("io.freefair.lombok") version "8.6"
+    id("me.champeau.jmh") version "0.7.2"
 }
 
 dependencies {
@@ -42,4 +43,13 @@ tasks.test {
     javaLauncher = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(17)
     }
+}
+
+jmh {
+    jmhVersion = "1.37"
+    failOnError = true
+    forceGC = true
+    includeTests = false
+    resultFormat = "JSON"
+    zip64 = true
 }
