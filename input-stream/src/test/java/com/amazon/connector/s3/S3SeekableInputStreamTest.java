@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.blockmanager.BlockManager;
+import com.amazon.connector.s3.util.S3URI;
+import java.io.EOFException;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.utils.IoUtils;
@@ -19,11 +21,23 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   }
 
   @Test
+  void testDefaultConstructor() throws IOException {
+    S3SeekableInputStream inputStream = new S3SeekableInputStream(S3URI.of("bucket", "key"));
+    assertNotNull(inputStream);
+  }
+
+  @Test
   void testConstructorThrowsOnNullArgument() {
     assertThrows(
         NullPointerException.class,
         () -> {
-          new S3SeekableInputStream(null);
+          new S3SeekableInputStream((S3URI) null);
+        });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new S3SeekableInputStream((BlockManager) null);
         });
   }
 
@@ -84,6 +98,28 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Then: first read returns the last byte and the next read returns -1
     assertEquals(48, stream.read());
     assertEquals(-1, stream.read());
+  }
+
+  @Test
+  void testSeekAfterEnd() throws IOException {
+    // Given
+    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+
+    // When: we seek past EOF we get EOFException
+    assertThrows(EOFException.class, () -> stream.seek(TEST_DATA.length() + 1));
+  }
+
+  @Test
+  void testReadOnEmptyObject() throws IOException {
+    // Given
+    S3SeekableInputStream stream =
+        new S3SeekableInputStream(new BlockManager(new FakeObjectClient(""), TEST_OBJECT));
+
+    // When: we read a byte from the empty object
+    int readByte = stream.read();
+
+    // Then: read returns -1
+    assertEquals(-1, readByte);
   }
 
   @Test

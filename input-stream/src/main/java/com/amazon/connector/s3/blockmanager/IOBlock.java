@@ -10,7 +10,7 @@ import lombok.NonNull;
 class IOBlock implements Closeable {
   private final long start;
   private final long end;
-  private long position;
+  private long positionInCurrentBuffer;
   private CompletableFuture<ObjectContent> content;
   private final byte[] blockContent;
 
@@ -21,14 +21,14 @@ class IOBlock implements Closeable {
 
     this.start = start;
     this.end = end;
-    this.position = start;
+    this.positionInCurrentBuffer = start;
     this.content = objectContent;
 
     this.blockContent = new byte[(int) size()];
   }
 
   public int getByte(long pos) throws IOException {
-    if (pos < position) {
+    if (pos < positionInCurrentBuffer) {
       return Byte.toUnsignedInt(this.blockContent[positionToOffset(pos)]);
     }
 
@@ -37,22 +37,23 @@ class IOBlock implements Closeable {
 
   private int readByte(long pos) throws IOException {
     Preconditions.checkState(
-        position <= pos,
+        positionInCurrentBuffer <= pos,
         String.format(
             "byte at position %s was fetched already and should have been served via 'getByte'",
             pos));
     Preconditions.checkState(pos <= end, "pos must be less than end");
 
-    for (; position <= pos; ++position) {
+    for (; positionInCurrentBuffer <= pos; ++positionInCurrentBuffer) {
       int byteRead = this.content.join().getStream().read();
 
       if (byteRead < 0) {
         throw new IOException(
             String.format(
-                "Premature end of file. Did not expect to read -1 at position %s", position));
+                "Premature end of file. Did not expect to read -1 at position %s",
+                positionInCurrentBuffer));
       }
 
-      this.blockContent[positionToOffset(position)] = (byte) byteRead;
+      this.blockContent[positionToOffset(positionInCurrentBuffer)] = (byte) byteRead;
     }
 
     return Byte.toUnsignedInt(this.blockContent[positionToOffset(pos)]);

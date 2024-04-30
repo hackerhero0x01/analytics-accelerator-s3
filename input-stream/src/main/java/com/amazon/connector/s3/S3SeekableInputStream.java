@@ -1,8 +1,11 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.blockmanager.BlockManager;
+import com.amazon.connector.s3.util.S3URI;
 import com.google.common.base.Preconditions;
+import java.io.EOFException;
 import java.io.IOException;
+import lombok.NonNull;
 
 /**
  * High throughput seekable stream used to read data from Amazon S3.
@@ -18,13 +21,22 @@ public class S3SeekableInputStream extends SeekableInputStream {
   private long position;
 
   /**
-   * Creates a new instance of {@link S3SeekableInputStream}.
+   * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
+   * initialises the stream with sensible defaults.
    *
-   * @param blockManager an instance of {@link BlockManager}.
+   * @param s3URI the object's S3 URI
    */
-  public S3SeekableInputStream(BlockManager blockManager) throws IOException {
-    Preconditions.checkNotNull(blockManager, "BlockManager must not be null");
+  public S3SeekableInputStream(@NonNull S3URI s3URI) {
+    this(new BlockManager(new S3SdkObjectClient(null), s3URI));
+  }
 
+  /**
+   * Given a Block Manager, creates a new instance of {@link S3SeekableInputStream}. This version of
+   * the constructor is useful for testing as it allows dependency injection.
+   *
+   * @param blockManager already initialised Block Manager
+   */
+  public S3SeekableInputStream(@NonNull BlockManager blockManager) {
     this.blockManager = blockManager;
     this.position = 0;
   }
@@ -41,10 +53,12 @@ public class S3SeekableInputStream extends SeekableInputStream {
   }
 
   @Override
-  public void seek(long pos) {
+  public void seek(long pos) throws IOException {
     Preconditions.checkState(pos >= 0, "position must be non-negative");
-    Preconditions.checkState(
-        pos < contentLength(), "zero-indexed position must be less than the object size");
+
+    if (pos >= contentLength()) {
+      throw new EOFException("zero-indexed seek position must be less than the object size");
+    }
 
     this.position = pos;
   }

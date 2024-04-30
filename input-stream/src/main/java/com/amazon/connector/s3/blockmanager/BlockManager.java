@@ -22,8 +22,9 @@ import lombok.NonNull;
  * it is holding.
  */
 public class BlockManager implements AutoCloseable {
-  private static final int MAX_BLOCKS_TO_KEEP_AROUND = 10;
-  private static final long EIGHT_MB_CHUNK_IN_BYTES = 8 * 1024 * 1024;
+  private static final int MAX_BLOCK_COUNT = 10;
+  private static final long EIGHT_MB_IN_BYTES = 8 * 1024 * 1024;
+  private static final long DEFAULT_BLOCK_SIZE = EIGHT_MB_IN_BYTES;
 
   @Getter private final CompletableFuture<ObjectMetadata> metadata;
   private final AutoClosingCircularBuffer<IOBlock> ioBlocks;
@@ -44,7 +45,7 @@ public class BlockManager implements AutoCloseable {
         objectClient.headObject(
             HeadRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build());
 
-    this.ioBlocks = new AutoClosingCircularBuffer<>(MAX_BLOCKS_TO_KEEP_AROUND);
+    this.ioBlocks = new AutoClosingCircularBuffer<>(MAX_BLOCK_COUNT);
   }
 
   /**
@@ -66,7 +67,7 @@ public class BlockManager implements AutoCloseable {
   }
 
   private IOBlock createBlockStartingAt(long start) {
-    long end = Math.min(start + EIGHT_MB_CHUNK_IN_BYTES, getLastObjectByte());
+    long end = Math.min(start + DEFAULT_BLOCK_SIZE, getLastObjectByte());
 
     CompletableFuture<ObjectContent> objectContent =
         this.objectClient.getObject(
