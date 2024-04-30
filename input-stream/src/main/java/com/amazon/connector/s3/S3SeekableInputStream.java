@@ -54,6 +54,8 @@ public class S3SeekableInputStream extends SeekableInputStream {
 
   @Override
   public void seek(long pos) throws IOException {
+    // TODO: https://app.asana.com/0/1206885953994785/1207207312934251/f
+    // S3A throws an EOFException here, S3FileIO does IllegalArgumentException
     Preconditions.checkState(pos >= 0, "position must be non-negative");
 
     if (pos >= contentLength()) {
