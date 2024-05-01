@@ -37,7 +37,8 @@ public class SequentialReadBenchmark {
         "random-1mb.txt",
         "random-4mb.txt",
         "random-16mb.txt",
-        // For now, these objects are not feasible to fetch with S3SeekableStream
+        // TODO: Extend this parameter to bigger objects once we improve performance
+        // https://app.asana.com/0/1206885953994785/1207212328457565/f
         // "random-64mb.txt",
         // "random-128mb.txt",
         // "random-256mb.txt"

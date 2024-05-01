@@ -86,32 +86,32 @@ public class BenchmarkData {
               .keyName("random-1mb.txt")
               .size(1 * Constants.ONE_MB_IN_BYTES)
               .build(),
-          BenchmarkObject.builder()
-              .keyName("random-4mb.txt")
-              .size(4 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-16mb.txt")
-              .size(16 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-64mb.txt")
-              .size(64 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-128mb.txt")
-              .size(128 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-256mb.txt")
-              .size(256 * Constants.ONE_MB_IN_BYTES)
-              .build());
+            BenchmarkObject.builder()
+                .keyName("random-4mb.txt")
+                .size(4 * Constants.ONE_MB_IN_BYTES)
+                .build(),
+            BenchmarkObject.builder()
+                .keyName("random-16mb.txt")
+                .size(16 * Constants.ONE_MB_IN_BYTES)
+                .build(),
+            BenchmarkObject.builder()
+                .keyName("random-64mb.txt")
+                .size(64 * Constants.ONE_MB_IN_BYTES)
+                .build(),
+            BenchmarkObject.builder()
+                .keyName("random-128mb.txt")
+                .size(128 * Constants.ONE_MB_IN_BYTES)
+                .build(),
+            BenchmarkObject.builder()
+                .keyName("random-256mb.txt")
+                .size(256 * Constants.ONE_MB_IN_BYTES)
+                .build());
 
   /** Returns a benchmark object by name. */
   public static BenchmarkObject getBenchMarkObjectByName(String name) {
     return BENCHMARK_OBJECTS.stream()
         .filter(o -> o.getKeyName().equals(name))
         .findFirst()
-        .orElseThrow(() -> new RuntimeException("Cannot find benchmark object"));
+        .orElseThrow(() -> new RuntimeException("Cannot find benchmark object with name " + name));
   }
 }
