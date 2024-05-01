@@ -43,13 +43,13 @@ public class S3SeekableInputStream extends SeekableInputStream {
 
   @Override
   public int read() throws IOException {
-    if (this.position >= contentLength()) {
-      return -1;
-    }
+    throw new RuntimeException("Not implemented");
+  }
 
-    int byteRead = this.blockManager.readByte(this.position);
-    this.position++;
-    return byteRead;
+  @Override
+  // Suppose nothing blocks
+  public int read(byte[] buf, int off, int len) {
+    return this.blockManager.read(this.position, buf, off, len);
   }
 
   @Override

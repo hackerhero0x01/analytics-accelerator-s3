@@ -1,62 +1,57 @@
 package com.amazon.connector.s3.blockmanager;
 
-import com.amazon.connector.s3.object.ObjectContent;
 import com.google.common.base.Preconditions;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.NonNull;
+import software.amazon.awssdk.core.async.ResponsePublisher;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 class IOBlock implements Closeable {
   private final long start;
   private final long end;
-  private long positionInCurrentBuffer;
-  private CompletableFuture<ObjectContent> content;
+  private final AtomicLong limit;
+
+  private CompletableFuture<ResponsePublisher<GetObjectResponse>> content;
   private final byte[] blockContent;
 
-  public IOBlock(long start, long end, @NonNull CompletableFuture<ObjectContent> objectContent) {
+  public IOBlock(long start, long end, @NonNull CompletableFuture<ResponsePublisher<GetObjectResponse>> objectContent) {
     Preconditions.checkState(start >= 0, "start must be non-negative");
     Preconditions.checkState(end >= 0, "end must be non-negative");
     Preconditions.checkState(start <= end, "start must not be bigger than end");
 
     this.start = start;
     this.end = end;
-    this.positionInCurrentBuffer = start;
+    this.limit = new AtomicLong(start);
     this.content = objectContent;
 
     this.blockContent = new byte[(int) size()];
+
+    // Ask for the whole range and keep filling the buffer as bytes become available
+    this.content.thenAccept(responsePublisher -> {
+      responsePublisher.subscribe(byteBuffer -> {
+        byte[] b = byteBuffer.array();
+
+        long oldLimit = this.limit.get();
+        long nextByteToFill = oldLimit;
+        for (int i = 0; i < b.length; ++i, ++nextByteToFill) {
+          this.blockContent[positionToOffset(nextByteToFill)] = b[i];
+        }
+        this.limit.compareAndSet(oldLimit, nextByteToFill);
+      });
+    });
   }
 
-  public int getByte(long pos) throws IOException {
-    if (pos < positionInCurrentBuffer) {
-      return Byte.toUnsignedInt(this.blockContent[positionToOffset(pos)]);
+  public int read(long start, byte[] buf, int off, int len) {
+    int available = (int) (this.limit.get() - start);
+
+    int bytesRead = 0;
+    for (int i = off; bytesRead < Math.min(available, len); ++i, bytesRead++) {
+      buf[i] = this.blockContent[positionToOffset(start + i)];
     }
-
-    return readByte(pos);
-  }
-
-  private int readByte(long pos) throws IOException {
-    Preconditions.checkState(
-        positionInCurrentBuffer <= pos,
-        String.format(
-            "byte at position %s was fetched already and should have been served via 'getByte'",
-            pos));
-    Preconditions.checkState(pos <= end, "pos must be less than end");
-
-    for (; positionInCurrentBuffer <= pos; ++positionInCurrentBuffer) {
-      int byteRead = this.content.join().getStream().read();
-
-      if (byteRead < 0) {
-        throw new IOException(
-            String.format(
-                "Premature end of file. Did not expect to read -1 at position %s",
-                positionInCurrentBuffer));
-      }
-
-      this.blockContent[positionToOffset(positionInCurrentBuffer)] = (byte) byteRead;
-    }
-
-    return Byte.toUnsignedInt(this.blockContent[positionToOffset(pos)]);
+    return bytesRead;
   }
 
   public boolean contains(long pos) {
@@ -74,6 +69,6 @@ class IOBlock implements Closeable {
 
   @Override
   public void close() throws IOException {
-    this.content.join().getStream().close();
+    // is this a noop?
   }
 }

@@ -12,6 +12,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
 import lombok.NonNull;
+import software.amazon.awssdk.core.async.ResponsePublisher;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 /**
  * A block manager in charge of fetching bytes from an object store. Currently: - Block Manager
@@ -48,14 +50,8 @@ public class BlockManager implements AutoCloseable {
     this.ioBlocks = new AutoClosingCircularBuffer<>(MAX_BLOCK_COUNT);
   }
 
-  /**
-   * Reads a byte from the underlying object
-   *
-   * @param pos The position to read
-   * @return an unsigned int representing the byte that was read
-   */
-  public int readByte(long pos) throws IOException {
-    return getBlockForPosition(pos).getByte(pos);
+  public int read(long pos, byte[] buf, int off, int len) {
+    return getBlockForPosition(pos).read(pos, buf, off, len);
   }
 
   private IOBlock getBlockForPosition(long pos) {
@@ -69,8 +65,8 @@ public class BlockManager implements AutoCloseable {
   private IOBlock createBlockStartingAt(long start) {
     long end = Math.min(start + DEFAULT_BLOCK_SIZE, getLastObjectByte());
 
-    CompletableFuture<ObjectContent> objectContent =
-        this.objectClient.getObject(
+    CompletableFuture<ResponsePublisher<GetObjectResponse>> objectContent =
+        this.objectClient.getObject2(
             GetRequest.builder()
                 .bucket(s3URI.getBucket())
                 .key(s3URI.getKey())
