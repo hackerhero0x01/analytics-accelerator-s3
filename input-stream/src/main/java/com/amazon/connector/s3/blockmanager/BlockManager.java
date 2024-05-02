@@ -8,8 +8,10 @@ import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -58,15 +60,47 @@ public class BlockManager implements AutoCloseable {
     return getBlockForPosition(pos).getByte(pos);
   }
 
-  private IOBlock getBlockForPosition(long pos) {
-    return lookupBlockForPosition(pos).orElseGet(() -> createBlockStartingAt(pos));
+  public int readIntoBuffer(byte[] buffer, int offset, int len, long pos) {
+
+    int numBytesRead = 0;
+    int numBytesRemaining = len;
+    long nextReadPos = pos;
+
+    while (numBytesRemaining > 0) {
+      IOBlock ioBlock = getBlockForPosition(nextReadPos);
+      // only need to set position in buffer for the first block, as this is the only time current
+      // read pos may not align with buffer starting pos.
+      if (nextReadPos == pos) {
+        ioBlock.setPositionInBuffer(nextReadPos);
+      }
+      ByteBuffer blockData = ioBlock.getBlockContent();
+
+      int numBytesToRead = Math.min(blockData.remaining(), numBytesRemaining);
+      blockData.get(buffer, offset, numBytesToRead);
+      nextReadPos += numBytesToRead;
+      numBytesRemaining -= numBytesToRead;
+      numBytesRead += numBytesToRead;
+    }
+
+    return numBytesRead;
+  }
+
+
+  private IOBlock getBlockForPosition(long pos)  {
+    return lookupBlockForPosition(pos).orElseGet(() -> {
+      try {
+        return createBlockStartingAt(pos);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   private Optional<IOBlock> lookupBlockForPosition(long pos) {
     return ioBlocks.stream().filter(ioBlock -> ioBlock.contains(pos)).findFirst();
   }
 
-  private IOBlock createBlockStartingAt(long start) {
+  private IOBlock createBlockStartingAt(long start) throws IOException {
     long end = Math.min(start + DEFAULT_BLOCK_SIZE, getLastObjectByte());
 
     CompletableFuture<ObjectContent> objectContent =

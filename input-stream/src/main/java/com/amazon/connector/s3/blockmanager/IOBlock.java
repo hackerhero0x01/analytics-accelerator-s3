@@ -3,7 +3,10 @@ package com.amazon.connector.s3.blockmanager;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.google.common.base.Preconditions;
 import java.io.Closeable;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 
@@ -12,9 +15,13 @@ class IOBlock implements Closeable {
   private final long end;
   private long positionInCurrentBuffer;
   private CompletableFuture<ObjectContent> content;
-  private final byte[] blockContent;
+  private final ByteBuffer blockContent;
+  private final int bufferSize;
+  private static final int ONE_MB = 1024*1024;
+  private static final int READ_BUFFER_SIZE = ONE_MB;
 
-  public IOBlock(long start, long end, @NonNull CompletableFuture<ObjectContent> objectContent) {
+  public IOBlock(long start, long end, @NonNull CompletableFuture<ObjectContent> objectContent)
+      throws IOException {
     Preconditions.checkState(start >= 0, "start must be non-negative");
     Preconditions.checkState(end >= 0, "end must be non-negative");
     Preconditions.checkState(start <= end, "start must not be bigger than end");
@@ -23,40 +30,49 @@ class IOBlock implements Closeable {
     this.end = end;
     this.positionInCurrentBuffer = start;
     this.content = objectContent;
+    this.bufferSize = (int) size();
+    this.blockContent = ByteBuffer.allocate(this.bufferSize);
 
-    this.blockContent = new byte[(int) size()];
+    readIntoBuffer();
   }
 
-  public int getByte(long pos) throws IOException {
-    if (pos < positionInCurrentBuffer) {
-      return Byte.toUnsignedInt(this.blockContent[positionToOffset(pos)]);
-    }
-
-    return readByte(pos);
+  public int getByte(long pos) {
+    blockContent.position(positionToOffset(pos));
+    return blockContent.get() & 0xff;
   }
 
-  private int readByte(long pos) throws IOException {
-    Preconditions.checkState(
-        positionInCurrentBuffer <= pos,
-        String.format(
-            "byte at position %s was fetched already and should have been served via 'getByte'",
-            pos));
-    Preconditions.checkState(pos <= end, "pos must be less than end");
+  public ByteBuffer getBlockContent() {
+    return blockContent;
+  }
 
-    for (; positionInCurrentBuffer <= pos; ++positionInCurrentBuffer) {
-      int byteRead = this.content.join().getStream().read();
+  public void setPositionInBuffer(long pos) {
+    blockContent.position(positionToOffset(pos));
+  }
 
-      if (byteRead < 0) {
-        throw new IOException(
-            String.format(
-                "Premature end of file. Did not expect to read -1 at position %s",
-                positionInCurrentBuffer));
+  private void readIntoBuffer() throws IOException {
+
+    int numBytesToRead;
+    int numBytesRemaining = this.bufferSize;
+    int bytesRead;
+    byte[] buffer = new byte[ONE_MB];
+
+    try (InputStream inputStream = this.content.join().getStream()) {
+      while (numBytesRemaining > 0) {
+        numBytesToRead = Math.min(READ_BUFFER_SIZE, numBytesRemaining);
+        bytesRead = inputStream.read(buffer, 0, numBytesToRead);
+
+        if (bytesRead < 0) {
+          String message =
+              String.format("Unexpected end of stream: numRemainingBytes = %d", numBytesRemaining);
+          throw new EOFException(message);
+        }
+
+        if (bytesRead > 0) {
+          numBytesRemaining -= bytesRead;
+          blockContent.put(buffer, 0, bytesRead);
+        }
       }
-
-      this.blockContent[positionToOffset(positionInCurrentBuffer)] = (byte) byteRead;
     }
-
-    return Byte.toUnsignedInt(this.blockContent[positionToOffset(pos)]);
   }
 
   public boolean contains(long pos) {

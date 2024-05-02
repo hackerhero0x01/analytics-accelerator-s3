@@ -53,6 +53,17 @@ public class S3SeekableInputStream extends SeekableInputStream {
   }
 
   @Override
+  public int read(byte[] buffer, int offset, int len) {
+    if (this.position >= contentLength()) {
+      return -1;
+    }
+
+    int numBytesRead = this.blockManager.readIntoBuffer(buffer, offset, len, position);
+    this.position += numBytesRead;
+    return numBytesRead;
+  }
+
+  @Override
   public void seek(long pos) throws IOException {
     // TODO: https://app.asana.com/0/1206885953994785/1207207312934251/f
     // S3A throws an EOFException here, S3FileIO does IllegalArgumentException
