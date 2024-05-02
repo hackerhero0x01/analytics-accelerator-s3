@@ -2,6 +2,7 @@ package com.amazon.connector.s3.reference;
 
 import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static software.amazon.awssdk.http.SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
@@ -12,6 +13,7 @@ import com.amazon.connector.s3.blockmanager.BlockManager;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,8 +64,9 @@ public class InMemoryReferenceTest {
         .build();
   }
 
+  private static final int ONE_MB = 1024 * 1024;
   // 24 MB -- should force seekable streams to use more than a single IOBlock
-  private static final int OBJECT_SIZE = 24 * 1024 * 1024;
+  private static final int OBJECT_SIZE = 24 * ONE_MB;
 
   private static final String TEST_KEY = "key";
   private static final String TEST_BUCKET = "bucket";
@@ -86,7 +89,7 @@ public class InMemoryReferenceTest {
 
     // Initialise streams
     objectClient = new S3SdkObjectClient(s3Client);
-    blockManager = new BlockManager(objectClient, TEST_URI);
+    blockManager = new BlockManager(objectClient, TEST_URI, 0);
     s3SeekableInputStream = new S3SeekableInputStream(blockManager);
     inMemorySeekableStream = new InMemorySeekableStream(data);
   }
@@ -128,6 +131,30 @@ public class InMemoryReferenceTest {
           inMemorySeekableStream.read(),
           String.format("returned data does not match after seeking to %s", nextPos));
     }
+  }
+
+  @Test
+  public void testReadWithBuffer() throws IOException {
+
+    byte[] s3SeekableBuffer = new byte[14 * ONE_MB];
+    byte[] inMemorySeekableBuffer = new byte[14 * ONE_MB];
+
+    s3SeekableInputStream.read(s3SeekableBuffer, 0, 14 * ONE_MB);
+    inMemorySeekableStream.read(inMemorySeekableBuffer, 0, 14 * ONE_MB);
+
+    assertEquals(
+        s3SeekableInputStream.getPos(),
+        inMemorySeekableStream.getPos(),
+        String.format("positions do not match after reading to"));
+
+    // Check that the next 80 bytes are equal after the initial read.
+    byte[] s3SeekableBufferSmall = new byte[100];
+    byte[] inMemorySeekableBufferSmall = new byte[100];
+
+    s3SeekableInputStream.read(s3SeekableBufferSmall, 5, 80);
+    inMemorySeekableStream.read(inMemorySeekableBufferSmall, 5, 80);
+
+    assertTrue(Arrays.equals(s3SeekableBufferSmall, inMemorySeekableBufferSmall));
   }
 
   @Test

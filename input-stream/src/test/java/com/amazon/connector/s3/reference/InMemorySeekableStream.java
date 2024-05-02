@@ -1,12 +1,14 @@
 package com.amazon.connector.s3.reference;
 
 import com.amazon.connector.s3.SeekableInputStream;
+import java.nio.ByteBuffer;
 import org.junit.platform.commons.util.Preconditions;
 
 public class InMemorySeekableStream extends SeekableInputStream {
 
-  private byte[] data;
+  private ByteBuffer data;
   private long position;
+  private int contentLength;
 
   /**
    * Creates an in memory seekable stream backed by a byte buffer.
@@ -14,7 +16,8 @@ public class InMemorySeekableStream extends SeekableInputStream {
    * @param data the underlying byte buffer where data will be fetched from
    */
   public InMemorySeekableStream(byte[] data) {
-    this.data = data;
+    this.data = ByteBuffer.wrap(data);
+    this.contentLength = data.length;
   }
 
   @Override
@@ -30,10 +33,25 @@ public class InMemorySeekableStream extends SeekableInputStream {
 
   @Override
   public int read() {
-    if (this.position >= this.data.length) {
+    if (this.position >= this.contentLength) {
+      return -1;
+    }
+    data.position((int) this.position);
+    this.position++;
+
+    return Byte.toUnsignedInt(this.data.get());
+  }
+
+  @Override
+  public int read(byte[] buffer, int offset, int len) {
+    if (this.position >= this.contentLength) {
       return -1;
     }
 
-    return Byte.toUnsignedInt(data[(int) position++]);
+    data.position((int) this.position);
+    data.get(buffer, offset, len);
+    this.position += len;
+
+    return len;
   }
 }

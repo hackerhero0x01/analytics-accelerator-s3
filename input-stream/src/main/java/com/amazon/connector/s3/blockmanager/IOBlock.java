@@ -17,7 +17,7 @@ class IOBlock implements Closeable {
   private CompletableFuture<ObjectContent> content;
   private final ByteBuffer blockContent;
   private final int bufferSize;
-  private static final int ONE_MB = 1024*1024;
+  private static final int ONE_MB = 1024 * 1024;
   private static final int READ_BUFFER_SIZE = ONE_MB;
 
   public IOBlock(long start, long end, @NonNull CompletableFuture<ObjectContent> objectContent)
@@ -38,7 +38,7 @@ class IOBlock implements Closeable {
 
   public int getByte(long pos) {
     blockContent.position(positionToOffset(pos));
-    return blockContent.get() & 0xff;
+    return Byte.toUnsignedInt(blockContent.get());
   }
 
   public ByteBuffer getBlockContent() {

@@ -3,12 +3,15 @@ package com.amazon.connector.s3;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.blockmanager.BlockManager;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.EOFException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.utils.IoUtils;
 
@@ -113,7 +116,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testReadOnEmptyObject() throws IOException {
     // Given
     S3SeekableInputStream stream =
-        new S3SeekableInputStream(new BlockManager(new FakeObjectClient(""), TEST_OBJECT));
+        new S3SeekableInputStream(new BlockManager(new FakeObjectClient(""), TEST_OBJECT, 0));
 
     // When: we read a byte from the empty object
     int readByte = stream.read();
@@ -146,5 +149,83 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
     // Then
     verify(blockManager, times(1)).close();
+  }
+
+  @Test
+  void testReadWithBuffer() {
+    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+
+    byte[] buffer = new byte[TEST_DATA.length()];
+    assertEquals(20, stream.read(buffer, 0, TEST_DATA.length()));
+    assertTrue(Arrays.equals(buffer, TEST_DATA.getBytes()));
+    assertEquals(stream.getPos(), TEST_DATA.length());
+
+    // All data has been read, and pos is current at EOF. Next read should return -1.
+    assertEquals(-1, stream.read(buffer, 0, TEST_DATA.length()));
+  }
+
+  @Test
+  void testReadWithBufferAndSmallBlockSize() {
+    // Use a smaller block size to ensure the logic to read across multiple IOBlocks is working.
+    S3SeekableInputStream stream =
+        new S3SeekableInputStream(
+            new BlockManager(new FakeObjectClient(TEST_DATA), TEST_OBJECT, 5));
+
+    byte[] buffer = new byte[TEST_DATA.length()];
+
+    assertEquals(20, stream.read(buffer, 0, TEST_DATA.length()));
+    assertTrue(Arrays.equals(buffer, TEST_DATA.getBytes()));
+    assertEquals(stream.getPos(), TEST_DATA.length());
+
+    // All data has been read, and pos is current at EOF. Next read should return -1.
+    assertEquals(-1, stream.read(buffer, 0, TEST_DATA.length()));
+  }
+
+  @Test
+  void testReadWithBufferAndSeeks() throws IOException {
+    // Use a smaller block size to ensure the logic to read across multiple IOBlocks is working.
+    S3SeekableInputStream stream =
+        new S3SeekableInputStream(
+            new BlockManager(new FakeObjectClient(TEST_DATA), TEST_OBJECT, 5));
+
+    byte[] buffer = new byte[11];
+
+    // Read from pos 0, check pos after read is correct
+    stream.read(new byte[3], 0, 3);
+    assertEquals(stream.getPos(), 3);
+
+    byte[] expectedResult =
+        ByteBuffer.wrap(new byte[11])
+            .put(new byte[3])
+            .put(TEST_DATA.substring(3, 11).getBytes())
+            .array();
+
+    assertEquals(8, stream.read(buffer, 3, 8));
+    assertTrue(Arrays.equals(buffer, expectedResult));
+    assertEquals(stream.getPos(), 11);
+    assertEquals(stream.read(), TEST_DATA.getBytes()[11]);
+
+    // Check things still work after a backward seek
+    stream.seek(4);
+    byte[] readBuffer = new byte[7];
+    assertEquals(7, stream.read(readBuffer, 0, 7));
+    assertEquals(11, stream.getPos());
+    assertTrue(Arrays.equals(readBuffer, TEST_DATA.substring(4, 11).getBytes()));
+  }
+
+  @Test
+  void testReadWithBufferOutOfBounds() throws IOException {
+    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+
+    // Read beyond EOF, expect -1.
+    assertEquals(-1, stream.read(new byte[20], 0, TEST_DATA.length() + 20));
+    // Position should not have moved
+    assertEquals(0, stream.getPos());
+
+    // Read beyond EOF after a seek, expect -1.
+    stream.seek(18);
+    assertEquals(-1, stream.read(new byte[20], 0, TEST_DATA.length() + 20));
+    // Position should not have moved
+    assertEquals(18, stream.getPos());
   }
 }

@@ -27,7 +27,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param s3URI the object's S3 URI
    */
   public S3SeekableInputStream(@NonNull S3URI s3URI) {
-    this(new BlockManager(new S3SdkObjectClient(null), s3URI));
+    this(new BlockManager(new S3SdkObjectClient(null), s3URI, 0));
   }
 
   /**
@@ -59,7 +59,11 @@ public class S3SeekableInputStream extends SeekableInputStream {
     }
 
     int numBytesRead = this.blockManager.readIntoBuffer(buffer, offset, len, position);
-    this.position += numBytesRead;
+
+    if (numBytesRead > 0) {
+      this.position += numBytesRead;
+    }
+
     return numBytesRead;
   }
 

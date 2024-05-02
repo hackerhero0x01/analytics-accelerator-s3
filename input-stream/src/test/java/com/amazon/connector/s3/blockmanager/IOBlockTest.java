@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 public class IOBlockTest {
 
   @Test
-  void testConstructor() {
+  void testConstructor() throws IOException {
     CompletableFuture<ObjectContent> mockContent =
         CompletableFuture.completedFuture(mock(ObjectContent.class));
 
@@ -56,7 +56,7 @@ public class IOBlockTest {
   }
 
   @Test
-  void testContains() {
+  void testContains() throws IOException {
     // Given
     CompletableFuture<ObjectContent> mockContent =
         CompletableFuture.completedFuture(mock(ObjectContent.class));
@@ -79,17 +79,12 @@ public class IOBlockTest {
     ObjectContent content =
         ObjectContent.builder().stream(new ByteArrayInputStream(new byte[streamLength])).build();
     int ioBlockLength = 2 * streamLength;
-    IOBlock ioBlock = new IOBlock(0, ioBlockLength, CompletableFuture.completedFuture(content));
 
-    // When: we read the block --> Then: IOException is thrown
     Exception e =
         assertThrows(
             IOException.class,
-            () -> {
-              for (int i = 0; i < 2 * ioBlockLength; ++i) {
-                ioBlock.getByte((long) i);
-              }
-            });
-    assertTrue(e.getMessage().contains("Premature end of file"));
+            () -> new IOBlock(0, ioBlockLength, CompletableFuture.completedFuture(content)));
+
+    assertTrue(e.getMessage().contains("Unexpected end of stream"));
   }
 }
