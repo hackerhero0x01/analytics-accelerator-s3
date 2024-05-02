@@ -16,7 +16,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
   void testConstructor() throws IOException {
-    S3SeekableInputStream inputStream = new S3SeekableInputStream(fakeBlockManager);
+    S3SeekableInputStream inputStream = new S3SeekableInputStream(getFakeBlockManager());
     assertNotNull(inputStream);
   }
 
@@ -44,7 +44,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testInitialGetPosition() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+    S3SeekableInputStream stream = new S3SeekableInputStream(getFakeBlockManager());
 
     // When: nothing
     // Then: stream position is at 0
@@ -54,7 +54,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testReadAdvancesPosition() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+    S3SeekableInputStream stream = new S3SeekableInputStream(getFakeBlockManager());
 
     // When: read() is called
     stream.read();
@@ -66,7 +66,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testSeek() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+    S3SeekableInputStream stream = new S3SeekableInputStream(getFakeBlockManager());
 
     // When
     stream.seek(13);
@@ -78,7 +78,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testFullRead() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+    S3SeekableInputStream stream = new S3SeekableInputStream(getFakeBlockManager());
 
     // When: all data is requested
     String dataReadOut = IoUtils.toUtf8String(stream);
@@ -87,10 +87,9 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     assertEquals(TEST_DATA, dataReadOut);
   }
 
-  @Test
   void testSeekToVeryEnd() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+    S3SeekableInputStream stream = new S3SeekableInputStream(getFakeBlockManager());
 
     // When: we seek to the last byte
     stream.seek(TEST_DATA.length() - 1);
@@ -103,7 +102,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testSeekAfterEnd() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+    S3SeekableInputStream stream = new S3SeekableInputStream(getFakeBlockManager());
 
     // When: we seek past EOF we get EOFException
     assertThrows(EOFException.class, () -> stream.seek(TEST_DATA.length() + 1));
@@ -125,7 +124,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testInvalidSeek() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+    S3SeekableInputStream stream = new S3SeekableInputStream(getFakeBlockManager());
 
     // When: seek is to an invalid position then exception is thrown
     assertThrows(Exception.class, () -> stream.seek(TEST_DATA.length()));

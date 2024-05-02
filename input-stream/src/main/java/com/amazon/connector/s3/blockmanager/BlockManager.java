@@ -54,16 +54,10 @@ public class BlockManager implements AutoCloseable {
     int bytesRead = ioBlock.read(pos, buf, off, len);
 
     if (ioBlock.shouldPrefetch()) {
-      System.out.println("PREFETCHING IS HAPPENING!");
       ioBlock.takePrefetchToken();
 
       long prefetchStart = ioBlock.getEnd() + 1;
-      long prefetchEnd = prefetchStart + 8 * ioBlock.size();
-
-      prefetchStart = Math.min(getLastObjectByte(), prefetchStart);
-      prefetchEnd = Math.min(getLastObjectByte(), prefetchEnd);
-
-      createBlockStartingAt(prefetchStart, prefetchEnd);
+      createBlockStartingAt(prefetchStart, DEFAULT_BLOCK_SIZE);
     }
 
     return bytesRead;

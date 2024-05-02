@@ -12,6 +12,7 @@ import com.amazon.connector.s3.blockmanager.BlockManager;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
@@ -120,12 +121,41 @@ public class InMemoryReferenceTest {
       inMemorySeekableStream.seek(nextPos);
 
       assertEquals(
-          s3SeekableInputStream.getPos(),
           inMemorySeekableStream.getPos(),
+          s3SeekableInputStream.getPos(),
           String.format("positions do not match after seeking to %s", nextPos));
+
       assertEquals(
-          s3SeekableInputStream.read(),
           inMemorySeekableStream.read(),
+          s3SeekableInputStream.read(),
+          String.format("returned data does not match after seeking to %s", nextPos));
+    }
+  }
+
+  @Test
+  public void testReadBufferAndSeek() throws IOException {
+    Random r = new Random();
+    for (int i = 0, nextPos = 0; i < 10; nextPos = nextRandomPosition(r), ++i) {
+      s3SeekableInputStream.seek(nextPos);
+      inMemorySeekableStream.seek(nextPos);
+
+      int len = 50;
+      byte[] bufInMemory = new byte[len];
+      byte[] bufSeekable = new byte[len];
+
+      assertEquals(
+          inMemorySeekableStream.getPos(),
+          s3SeekableInputStream.getPos(),
+          String.format("positions do not match after seeking to %s", nextPos));
+
+      assertEquals(
+          inMemorySeekableStream.read(bufInMemory, 0, len),
+          s3SeekableInputStream.read(bufSeekable, 0, len),
+          String.format("returned data does not match after seeking to %s", nextPos));
+
+      assertEquals(
+          new String(bufInMemory, StandardCharsets.UTF_8),
+          new String(bufSeekable, StandardCharsets.UTF_8),
           String.format("returned data does not match after seeking to %s", nextPos));
     }
   }
@@ -139,6 +169,10 @@ public class InMemoryReferenceTest {
   }
 
   private int nextRandomPosition(Random r) {
+    return Math.abs(r.nextInt()) % OBJECT_SIZE;
+  }
+
+  private int nextRandomSize(Random r) {
     return Math.abs(r.nextInt()) % OBJECT_SIZE;
   }
 }

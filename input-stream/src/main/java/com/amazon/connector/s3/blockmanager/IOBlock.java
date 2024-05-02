@@ -12,7 +12,7 @@ import lombok.NonNull;
 class IOBlock implements Closeable {
   private final long start;
   @Getter private final long end;
-  private long maxRead = 0;
+  private long numBytesRead = 0;
 
   // is a prediction token still available?
   private boolean prefetchToken = true;
@@ -28,7 +28,7 @@ class IOBlock implements Closeable {
 
     this.start = start;
     this.end = end;
-    this.limit = new AtomicLong(start);
+    this.limit = new AtomicLong(start); // points to the first byte NOT YET fetched
     this.content = objectContent;
 
     this.blockContent = new byte[(int) size()];
@@ -40,18 +40,14 @@ class IOBlock implements Closeable {
               .getPublisher()
               .subscribe(
                   byteBuffer -> {
-                    //                    System.out.println(
-                    //                        String.format(
-                    //                            "BYTEBUFFER WAS RECEIVED! LENGTH=%s",
-                    // byteBuffer.array().length));
-                    byte[] b = byteBuffer.array();
-
                     long oldLimit = this.limit.get();
                     long nextByteToFill = oldLimit;
-                    for (int i = 0; i < b.length; ++i, ++nextByteToFill) {
-                      this.blockContent[positionToOffset(nextByteToFill)] = b[i];
+
+                    while (byteBuffer.remaining() > 0) {
+                      this.blockContent[positionToOffset(nextByteToFill)] = byteBuffer.get();
+                      ++nextByteToFill;
                     }
-                    maxRead = Math.max(maxRead, oldLimit);
+
                     this.limit.compareAndSet(oldLimit, nextByteToFill);
                   });
         });
@@ -64,10 +60,11 @@ class IOBlock implements Closeable {
     }
 
     int bytesRead = 0;
-    for (int i = off; bytesRead < Math.min(available, len); ++i, bytesRead++) {
-      buf[i] = this.blockContent[positionToOffset(start + i)];
+    for (; bytesRead < Math.min(available, len); bytesRead++) {
+      buf[off + bytesRead] = this.blockContent[positionToOffset(start + bytesRead)];
     }
-    // System.out.println("bytesread=" + bytesRead + " start=" + start);
+
+    numBytesRead += bytesRead;
     return bytesRead;
   }
 
@@ -90,7 +87,7 @@ class IOBlock implements Closeable {
   }
 
   public int getUtilisation() {
-    return (int) (100 * (maxRead - start) / size());
+    return (int) (100 * numBytesRead / size());
   }
 
   public boolean shouldPrefetch() {
