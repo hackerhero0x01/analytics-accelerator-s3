@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.object;
 
+import java.nio.ByteBuffer;
 import lombok.Builder;
 import lombok.Data;
 import software.amazon.awssdk.core.async.SdkPublisher;
@@ -8,5 +9,5 @@ import software.amazon.awssdk.core.async.SdkPublisher;
 @Data
 @Builder
 public class ObjectContent2 {
-    SdkPublisher publisher;
+  SdkPublisher<ByteBuffer> publisher;
 }

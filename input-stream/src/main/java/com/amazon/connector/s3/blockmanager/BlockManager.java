@@ -1,7 +1,7 @@
 package com.amazon.connector.s3.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.object.ObjectContent;
+import com.amazon.connector.s3.object.ObjectContent2;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
@@ -12,8 +12,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
 import lombok.NonNull;
-import software.amazon.awssdk.core.async.ResponsePublisher;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 /**
  * A block manager in charge of fetching bytes from an object store. Currently: - Block Manager
@@ -50,22 +48,40 @@ public class BlockManager implements AutoCloseable {
     this.ioBlocks = new AutoClosingCircularBuffer<>(MAX_BLOCK_COUNT);
   }
 
+  /** JDoc comment */
   public int read(long pos, byte[] buf, int off, int len) {
-    return getBlockForPosition(pos).read(pos, buf, off, len);
+    IOBlock ioBlock = getBlockForPosition(pos);
+    int bytesRead = ioBlock.read(pos, buf, off, len);
+
+    if (ioBlock.shouldPrefetch()) {
+      System.out.println("PREFETCHING IS HAPPENING!");
+      ioBlock.takePrefetchToken();
+
+      long prefetchStart = ioBlock.getEnd() + 1;
+      long prefetchEnd = prefetchStart + 8 * ioBlock.size();
+
+      prefetchStart = Math.min(getLastObjectByte(), prefetchStart);
+      prefetchEnd = Math.min(getLastObjectByte(), prefetchEnd);
+
+      createBlockStartingAt(prefetchStart, prefetchEnd);
+    }
+
+    return bytesRead;
   }
 
   private IOBlock getBlockForPosition(long pos) {
-    return lookupBlockForPosition(pos).orElseGet(() -> createBlockStartingAt(pos));
+    return lookupBlockForPosition(pos)
+        .orElseGet(() -> createBlockStartingAt(pos, DEFAULT_BLOCK_SIZE));
   }
 
   private Optional<IOBlock> lookupBlockForPosition(long pos) {
     return ioBlocks.stream().filter(ioBlock -> ioBlock.contains(pos)).findFirst();
   }
 
-  private IOBlock createBlockStartingAt(long start) {
-    long end = Math.min(start + DEFAULT_BLOCK_SIZE, getLastObjectByte());
+  private IOBlock createBlockStartingAt(long start, long size) {
+    long end = Math.min(start + size, getLastObjectByte());
 
-    CompletableFuture<ResponsePublisher<GetObjectResponse>> objectContent =
+    CompletableFuture<ObjectContent2> objectContent =
         this.objectClient.getObject2(
             GetRequest.builder()
                 .bucket(s3URI.getBucket())

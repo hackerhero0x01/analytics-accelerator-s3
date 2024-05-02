@@ -2,6 +2,7 @@ package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.blockmanager.BlockManager;
 import com.amazon.connector.s3.object.ObjectContent;
+import com.amazon.connector.s3.object.ObjectContent2;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
@@ -9,10 +10,13 @@ import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.core.async.SdkPublisher;
 
 public class S3SeekableInputStreamTestBase {
 
@@ -48,11 +52,12 @@ public class S3SeekableInputStreamTestBase {
     }
 
     @Override
-    public void close() {
-      // noop
+    public CompletableFuture<ObjectContent2> getObject2(GetRequest getRequest) {
+      return CompletableFuture.completedFuture(
+          ObjectContent2.builder().publisher(getTestPublisher(getRequest.getRange())).build());
     }
 
-    private InputStream getTestInputStream(Range range) {
+    private byte[] getRequestedRange(Range range) {
       byte[] requestedRange;
       if (Objects.isNull(range)) {
         requestedRange = this.content.getBytes(StandardCharsets.UTF_8);
@@ -61,7 +66,22 @@ public class S3SeekableInputStreamTestBase {
         requestedRange = Arrays.copyOfRange(data, (int) range.getStart(), (int) range.getEnd() + 1);
       }
 
+      return requestedRange;
+    }
+
+    private InputStream getTestInputStream(Range range) {
+      byte[] requestedRange = getRequestedRange(range);
       return new ByteArrayInputStream(requestedRange);
+    }
+
+    private SdkPublisher<ByteBuffer> getTestPublisher(Range range) {
+      byte[] requestedRange = getRequestedRange(range);
+      return AsyncRequestBody.fromBytes(requestedRange);
+    }
+
+    @Override
+    public void close() {
+      // noop
     }
   }
 }

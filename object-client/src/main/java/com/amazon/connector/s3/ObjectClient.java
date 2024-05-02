@@ -1,13 +1,12 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.object.ObjectContent;
+import com.amazon.connector.s3.object.ObjectContent2;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
-import software.amazon.awssdk.core.async.ResponsePublisher;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 /** Represents APIs of an Amazon S3 compatible object store */
 public interface ObjectClient extends Closeable {
@@ -28,5 +27,6 @@ public interface ObjectClient extends Closeable {
    */
   CompletableFuture<ObjectContent> getObject(GetRequest getRequest);
 
-
-  CompletableFuture<ResponsePublisher<GetObjectResponse>> getObject2(GetRequest getRequest);
+  /** JDoc comment */
+  CompletableFuture<ObjectContent2> getObject2(GetRequest getRequest);
+}

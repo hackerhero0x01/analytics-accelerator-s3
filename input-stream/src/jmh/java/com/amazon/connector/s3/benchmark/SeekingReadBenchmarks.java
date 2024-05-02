@@ -39,13 +39,13 @@ public class SeekingReadBenchmarks {
 
   @Param(
       value = {
-        "random-1mb.txt",
-        "random-4mb.txt",
-        "random-16mb.txt",
+        // "random-1mb.txt",
+        // "random-4mb.txt",
+        // "random-16mb.txt",
         // TODO: Extend this parameter to bigger objects once we improve performance
         // https://app.asana.com/0/1206885953994785/1207212328457565/f
         // "random-64mb.txt",
-        // "random-128mb.txt",
+        "random-128mb.txt",
         // "random-256mb.txt"
       })
   private String key;

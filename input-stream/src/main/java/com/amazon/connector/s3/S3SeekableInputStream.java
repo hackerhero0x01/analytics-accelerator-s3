@@ -47,9 +47,21 @@ public class S3SeekableInputStream extends SeekableInputStream {
   }
 
   @Override
+  public int read(byte[] buf) {
+    return read(buf, 0, buf.length);
+  }
+
+  @Override
   // Suppose nothing blocks
   public int read(byte[] buf, int off, int len) {
-    return this.blockManager.read(this.position, buf, off, len);
+    if (position < 0 || position >= contentLength()) {
+      return -1;
+    }
+
+    int bytesRead = this.blockManager.read(this.position, buf, off, len);
+    position += bytesRead;
+    // System.out.println("POSITION=" + position);
+    return bytesRead;
   }
 
   @Override

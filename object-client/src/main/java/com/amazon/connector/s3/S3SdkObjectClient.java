@@ -1,16 +1,15 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.object.ObjectContent;
+import com.amazon.connector.s3.object.ObjectContent2;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
-import software.amazon.awssdk.core.async.ResponsePublisher;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 
 /** Object client, based on AWS SDK v2 */
@@ -69,16 +68,20 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
             responseInputStream -> ObjectContent.builder().stream(responseInputStream).build());
   }
 
-  public CompletableFuture<ResponsePublisher<GetObjectResponse>> getObject2(GetRequest getRequest) {
+  @Override
+  public CompletableFuture<ObjectContent2> getObject2(GetRequest getRequest) {
     GetObjectRequest.Builder builder =
-            GetObjectRequest.builder().bucket(getRequest.getBucket()).key(getRequest.getKey());
+        GetObjectRequest.builder().bucket(getRequest.getBucket()).key(getRequest.getKey());
 
     if (Objects.nonNull(getRequest.getRange())) {
       builder.range(
-              String.format(
-                      "bytes=%s-%s", getRequest.getRange().getStart(), getRequest.getRange().getEnd()));
+          String.format(
+              "bytes=%s-%s", getRequest.getRange().getStart(), getRequest.getRange().getEnd()));
     }
 
-    return s3AsyncClient.getObject(builder.build(), AsyncResponseTransformer.toPublisher());
+    return s3AsyncClient
+        .getObject(builder.build(), AsyncResponseTransformer.toPublisher())
+        .thenApply(
+            responsePublisher -> ObjectContent2.builder().publisher(responsePublisher).build());
   }
 }
