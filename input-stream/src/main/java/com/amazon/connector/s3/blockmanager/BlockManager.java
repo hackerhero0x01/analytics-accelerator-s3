@@ -57,7 +57,9 @@ public class BlockManager implements AutoCloseable {
       ioBlock.takePrefetchToken();
 
       long prefetchStart = ioBlock.getEnd() + 1;
-      createBlockStartingAt(prefetchStart, DEFAULT_BLOCK_SIZE);
+      if (prefetchStart <= getLastObjectByte()) { // a corner case but it completely crashes CRT
+        createBlockStartingAt(prefetchStart, DEFAULT_BLOCK_SIZE);
+      }
     }
 
     return bytesRead;
@@ -75,6 +77,7 @@ public class BlockManager implements AutoCloseable {
   private IOBlock createBlockStartingAt(long start, long size) {
     long end = Math.min(start + size, getLastObjectByte());
 
+    System.out.println("GOAT: bytes=" + start + "-" + end);
     CompletableFuture<ObjectContent2> objectContent =
         this.objectClient.getObject2(
             GetRequest.builder()
