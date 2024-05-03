@@ -217,15 +217,14 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testReadWithBufferOutOfBounds() throws IOException {
     S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
 
-    // Read beyond EOF, expect -1.
-    assertEquals(-1, stream.read(new byte[20], 0, TEST_DATA.length() + 20));
-    // Position should not have moved
-    assertEquals(0, stream.getPos());
+    // Read beyond EOF, expect all bytes to be read and pos to be EOF.
+    assertEquals(TEST_DATA.length(), stream.read(new byte[20], 0, TEST_DATA.length() + 20));
+    assertEquals(20, stream.getPos());
 
-    // Read beyond EOF after a seek, expect -1.
+    // Read beyond EOF after a seek, expect only num bytes read to be equal to that left in the
+    // stream, and pos to be EOF.
     stream.seek(18);
-    assertEquals(-1, stream.read(new byte[20], 0, TEST_DATA.length() + 20));
-    // Position should not have moved
-    assertEquals(18, stream.getPos());
+    assertEquals(2, stream.read(new byte[20], 0, TEST_DATA.length() + 20));
+    assertEquals(20, stream.getPos());
   }
 }

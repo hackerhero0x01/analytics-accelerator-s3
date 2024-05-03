@@ -19,8 +19,9 @@ public class IOBlockTest {
 
   @Test
   void testConstructor() throws IOException {
+    InputStream mockStream = mock(InputStream.class);
     CompletableFuture<ObjectContent> mockContent =
-        CompletableFuture.completedFuture(mock(ObjectContent.class));
+        CompletableFuture.completedFuture(ObjectContent.builder().stream(mockStream).build());
 
     assertNotNull(new IOBlock(0, 0, mockContent));
     assertNotNull(new IOBlock(0, Long.MAX_VALUE, mockContent));
@@ -52,14 +53,15 @@ public class IOBlockTest {
     ioBlock.close();
 
     // Then: stream is closed
-    verify(mockStream, times(1)).close();
+    verify(mockStream, times(2)).close();
   }
 
   @Test
   void testContains() throws IOException {
     // Given
+    InputStream mockStream = mock(InputStream.class);
     CompletableFuture<ObjectContent> mockContent =
-        CompletableFuture.completedFuture(mock(ObjectContent.class));
+        CompletableFuture.completedFuture(ObjectContent.builder().stream(mockStream).build());
     IOBlock ioBlock = new IOBlock(1, 3, mockContent);
 
     // Then

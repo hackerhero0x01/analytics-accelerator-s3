@@ -71,6 +71,10 @@ class IOBlock implements Closeable {
           numBytesRemaining -= bytesRead;
           blockContent.put(buffer, 0, bytesRead);
         }
+
+        if (bytesRead == 0) {
+          return;
+        }
       }
     }
   }

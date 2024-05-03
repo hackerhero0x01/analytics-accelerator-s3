@@ -85,7 +85,7 @@ public class BlockManager implements AutoCloseable {
 
       // Reached EOF
       if (nextReadPos > getLastObjectByte()) {
-        return -1;
+        return numBytesRead;
       }
 
       IOBlock ioBlock = getBlockForPosition(nextReadPos);
