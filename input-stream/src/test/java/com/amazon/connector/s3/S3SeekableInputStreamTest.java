@@ -263,7 +263,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Given: seekable stream
     S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
 
-    // When: 1) we are reading from the stream, 2) reading the tail of the stream, 3) reading more from the stream
+    // When: 1) we are reading from the stream, 2) reading the tail of the stream, 3) reading more
+    // from the stream
     byte[] one = new byte[5];
     byte[] two = new byte[11];
     byte[] three = new byte[5];

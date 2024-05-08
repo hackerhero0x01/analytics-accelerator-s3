@@ -13,6 +13,7 @@ import com.amazon.connector.s3.blockmanager.BlockManager;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
@@ -163,6 +164,47 @@ public class InMemoryReferenceTest {
     String inMemoryFullRead = IoUtils.toUtf8String(inMemorySeekableStream);
 
     assertEquals(seekableFullRead, inMemoryFullRead);
+  }
+
+  @Test
+  public void testTailReads() throws IOException {
+    Random r = new Random();
+    for (int i = 0, nextPos = 0; i < 10; nextPos = nextRandomPosition(r), ++i) {
+      s3SeekableInputStream.seek(nextPos);
+      inMemorySeekableStream.seek(nextPos);
+
+      assertEquals(
+          s3SeekableInputStream.getPos(),
+          inMemorySeekableStream.getPos(),
+          String.format("positions do not match after seeking to %s", nextPos));
+
+      int n = nextRandomSize(r);
+      byte[] b1 = new byte[n];
+      byte[] b2 = new byte[n];
+
+      assertEquals(
+          s3SeekableInputStream.readTail(b1, 0, n),
+          inMemorySeekableStream.readTail(b2, 0, n),
+          "number of bytes read from tail should be the same");
+
+      assertEquals(
+          byteBufToString(b1),
+          byteBufToString(b2),
+          String.format("returned data does not match after requesting %s bytes from tail", n));
+
+      assertEquals(
+          s3SeekableInputStream.read(),
+          inMemorySeekableStream.read(),
+          String.format("read() calls followed by a readTail do not return the same data"));
+    }
+  }
+
+  private String byteBufToString(byte[] b) {
+    return new String(b, StandardCharsets.UTF_8);
+  }
+
+  private int nextRandomSize(Random r) {
+    return Math.abs(r.nextInt()) % OBJECT_SIZE;
   }
 
   private int nextRandomPosition(Random r) {
