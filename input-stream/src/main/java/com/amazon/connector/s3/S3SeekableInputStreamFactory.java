@@ -3,6 +3,7 @@ package com.amazon.connector.s3;
 import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
 import com.amazon.connector.s3.util.S3URI;
 import lombok.NonNull;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 /**
  * Initialises resources to prepare for reading from S3. Resources initialised in this class are
@@ -24,8 +25,16 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   public S3SeekableInputStreamFactory(
       @NonNull S3SeekableInputStreamBuilder s3SeekableInputStreamBuilder) {
-    this.s3SdkObjectClient =
-        new S3SdkObjectClient(s3SeekableInputStreamBuilder.getWrappedAsyncClient());
+
+    S3AsyncClient s3AsyncClient = s3SeekableInputStreamBuilder.getWrappedAsyncClient();
+
+    // If no wrapped client is provided, defaults to using the S3 CRT client.
+    if (s3AsyncClient != null) {
+      this.s3SdkObjectClient =
+          new S3SdkObjectClient(s3SeekableInputStreamBuilder.getWrappedAsyncClient());
+    } else {
+      this.s3SdkObjectClient = new S3SdkObjectClient();
+    }
   }
 
   /***

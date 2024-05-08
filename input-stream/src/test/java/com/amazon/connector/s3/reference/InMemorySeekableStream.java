@@ -65,6 +65,12 @@ public class InMemorySeekableStream extends SeekableInputStream {
     }
 
     data.position((int) this.position);
+
+    // Only ever ask till end of byte buffer to prevent BufferUnderFlowExceptions.
+    if (this.position + len >= this.contentLength) {
+      len = (int) (this.contentLength - this.position);
+    }
+
     data.get(buffer, offset, len);
     this.position += len;
 

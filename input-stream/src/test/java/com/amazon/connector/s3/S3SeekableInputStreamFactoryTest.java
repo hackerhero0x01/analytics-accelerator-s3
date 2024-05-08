@@ -9,14 +9,22 @@ import static org.mockito.Mockito.verify;
 import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
 import com.amazon.connector.s3.util.S3URI;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 public class S3SeekableInputStreamFactoryTest {
 
   @Test
   void testConstructor() {
-    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+    S3SeekableInputStreamFactory inputStreamFactory =
         new S3SeekableInputStreamFactory(S3SeekableInputStreamBuilder.builder().build());
-    assertNotNull(s3SeekableInputStreamFactory);
+    assertNotNull(inputStreamFactory);
+
+    S3SeekableInputStreamFactory inputStreamFactoryWrappedClient =
+        new S3SeekableInputStreamFactory(
+            S3SeekableInputStreamBuilder.builder()
+                .wrappedAsyncClient(S3AsyncClient.create())
+                .build());
+    assertNotNull(inputStreamFactoryWrappedClient);
   }
 
   @Test

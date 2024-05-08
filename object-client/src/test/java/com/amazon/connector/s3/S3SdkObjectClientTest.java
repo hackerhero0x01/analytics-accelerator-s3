@@ -48,15 +48,24 @@ public class S3SdkObjectClientTest {
   }
 
   @Test
+  void testDefaultConstructor() {
+    S3SdkObjectClient client = new S3SdkObjectClient();
+    assertNotNull(client);
+  }
+
+  @Test
   void testConstructorWithWrappedClient() {
     S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
     assertNotNull(client);
   }
 
   @Test
-  void testConstructorWithDefaultClient() {
-    S3SdkObjectClient client = new S3SdkObjectClient(null);
-    assertNotNull(client);
+  void testConstructorThrowsOnNullArgument() {
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new S3SdkObjectClient(null);
+        });
   }
 
   @Test

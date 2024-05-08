@@ -6,6 +6,7 @@ import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import lombok.NonNull;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -18,20 +19,20 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
   private S3AsyncClient s3AsyncClient = null;
 
   /**
+   * Create an instance of a S3 client for interaction with Amazon S3. This version of the
+   * constructor uses will use CRT as the S3 client.
+   */
+  S3SdkObjectClient() {
+    this(S3AsyncClient.crtBuilder().maxConcurrency(300).build());
+  }
+
+  /**
    * Create an instance of a S3 client for interaction with Amazon S3 compatible object stores.
    *
-   * @param s3AsyncClient Underlying client to be used for making requests to S3. Useful for
-   *     applications that need to configure the S3 Client. If no client is provided, an instance of
-   *     the S3 CRT client is created.
+   * @param s3AsyncClient Underlying client to be used for making requests to S3.
    */
-  public S3SdkObjectClient(S3AsyncClient s3AsyncClient) {
-    if (this.s3AsyncClient == null) {
-      if (s3AsyncClient != null) {
-        this.s3AsyncClient = s3AsyncClient;
-      } else {
-        this.s3AsyncClient = S3AsyncClient.crtBuilder().maxConcurrency(300).build();
-      }
-    }
+  public S3SdkObjectClient(@NonNull S3AsyncClient s3AsyncClient) {
+    this.s3AsyncClient = s3AsyncClient;
   }
 
   @Override

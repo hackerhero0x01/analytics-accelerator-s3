@@ -52,6 +52,7 @@ public class BlockManager implements AutoCloseable {
         objectClient.headObject(
             HeadRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build());
 
+    // If block size <= 0, the block manager will default to using DEFAULT_BLOCK_SIZE.
     if (blockSize > 0) {
       this.blockSize = blockSize;
     }
@@ -70,7 +71,7 @@ public class BlockManager implements AutoCloseable {
   }
 
   /**
-   * Reads request data ito the provided buffer
+   * Reads request data into the provided buffer
    *
    * @param buffer buffer to read data into
    * @param offset start position in buffer at which data is written
@@ -97,6 +98,8 @@ public class BlockManager implements AutoCloseable {
       ioBlock.setPositionInBuffer(nextReadPos);
       ByteBuffer blockData = ioBlock.getBlockContent();
 
+      // TODO: https://app.asana.com/0/1206885953994785/1207272185469589 - This logic can be moved
+      // down to IOBlock.
       int numBytesToRead = Math.min(blockData.remaining(), numBytesRemaining);
       blockData.get(buffer, nextReadOffset, numBytesToRead);
       nextReadOffset += numBytesToRead;
