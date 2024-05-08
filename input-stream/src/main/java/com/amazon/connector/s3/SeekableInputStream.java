@@ -27,4 +27,15 @@ public abstract class SeekableInputStream extends InputStream {
    * @return the position in the stream
    */
   public abstract long getPos();
+
+  /**
+   * Reads the last n bytes from the stream into a byte buffer. Blocks until end of stream is
+   * reached.
+   *
+   * @param buf the byte buffer to read into
+   * @param off the offset in the byte buffer we start reading into
+   * @param n the number of bytes to read; the n-th byte should be the last byte of the stream.
+   * @return the number of bytes read
+   */
+  public abstract int readTail(byte[] buf, int off, int n);
 }
