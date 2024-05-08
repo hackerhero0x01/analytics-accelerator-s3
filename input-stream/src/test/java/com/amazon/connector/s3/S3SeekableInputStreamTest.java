@@ -26,7 +26,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
   void testDefaultConstructor() throws IOException {
-    S3SeekableInputStream inputStream = new S3SeekableInputStream(S3URI.of("bucket", "key"));
+    S3SeekableInputStream inputStream =
+        new S3SeekableInputStream(fakeObjectClient, S3URI.of("bucket", "key"));
     assertNotNull(inputStream);
   }
 
@@ -35,7 +36,13 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     assertThrows(
         NullPointerException.class,
         () -> {
-          new S3SeekableInputStream((S3URI) null);
+          new S3SeekableInputStream(fakeObjectClient, (S3URI) null);
+        });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new S3SeekableInputStream(null, S3URI.of("bucket", "key"));
         });
 
     assertThrows(

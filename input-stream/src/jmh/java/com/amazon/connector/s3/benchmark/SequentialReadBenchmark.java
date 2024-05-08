@@ -1,7 +1,9 @@
 package com.amazon.connector.s3.benchmark;
 
 import com.amazon.connector.s3.S3SeekableInputStream;
+import com.amazon.connector.s3.S3SeekableInputStreamFactory;
 import com.amazon.connector.s3.datagen.Constants;
+import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -31,6 +33,9 @@ import software.amazon.awssdk.utils.IoUtils;
 @Measurement(iterations = 15)
 @BenchmarkMode(Mode.SingleShotTime)
 public class SequentialReadBenchmark {
+
+  private static final S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+      new S3SeekableInputStreamFactory(S3SeekableInputStreamBuilder.builder().build());
 
   @Param(
       value = {
@@ -68,7 +73,7 @@ public class SequentialReadBenchmark {
   @Benchmark
   public void testSequentialRead__withSeekableStream() throws IOException {
     S3SeekableInputStream stream =
-        new S3SeekableInputStream(
+        s3SeekableInputStreamFactory.createStream(
             S3URI.of(Constants.BENCHMARK_BUCKET, Constants.BENCHMARK_DATA_PREFIX_SEQUENTIAL + key));
 
     String content = IoUtils.toUtf8String(stream);

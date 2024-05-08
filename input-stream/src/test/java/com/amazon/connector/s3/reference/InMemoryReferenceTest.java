@@ -6,10 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static software.amazon.awssdk.http.SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
-import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.S3SdkObjectClient;
 import com.amazon.connector.s3.S3SeekableInputStream;
-import com.amazon.connector.s3.blockmanager.BlockManager;
+import com.amazon.connector.s3.S3SeekableInputStreamFactory;
+import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.net.URI;
@@ -44,8 +43,6 @@ public class InMemoryReferenceTest {
           .withInitialBuckets(String.join(",", INITIAL_BUCKET_NAMES));
 
   private S3AsyncClient s3Client;
-  private ObjectClient objectClient;
-  private BlockManager blockManager;
   private S3SeekableInputStream s3SeekableInputStream;
   private InMemorySeekableStream inMemorySeekableStream;
 
@@ -72,6 +69,7 @@ public class InMemoryReferenceTest {
   private static final String TEST_KEY = "key";
   private static final String TEST_BUCKET = "bucket";
   private static final S3URI TEST_URI = S3URI.of(TEST_BUCKET, TEST_KEY);
+  private static S3SeekableInputStreamFactory s3SeekableInputStreamFactory;
 
   @BeforeEach
   void setup() throws IOException {
@@ -89,9 +87,10 @@ public class InMemoryReferenceTest {
         .join();
 
     // Initialise streams
-    objectClient = new S3SdkObjectClient(s3Client);
-    blockManager = new BlockManager(objectClient, TEST_URI, 0);
-    s3SeekableInputStream = new S3SeekableInputStream(blockManager);
+    s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            S3SeekableInputStreamBuilder.builder().wrappedAsyncClient(s3Client).build());
+    s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(TEST_URI);
     inMemorySeekableStream = new InMemorySeekableStream(data);
   }
 

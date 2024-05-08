@@ -40,7 +40,7 @@ public class BlockManagerTest {
     // When: close is called
     blockManager.close();
 
-    // Then: objectClient is also closed
-    verify(objectClient, times(1)).close();
+    // Object client is not closed, as we want to share the client b/w streams.
+    verify(objectClient, times(0)).close();
   }
 }
