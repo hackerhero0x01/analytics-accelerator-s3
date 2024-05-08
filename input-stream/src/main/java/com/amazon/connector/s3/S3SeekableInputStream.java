@@ -26,8 +26,8 @@ public class S3SeekableInputStream extends SeekableInputStream {
    *
    * @param s3URI the object's S3 URI
    */
-  public S3SeekableInputStream(@NonNull S3URI s3URI) {
-    this(new BlockManager(new S3SdkObjectClient(null), s3URI, 0));
+  public S3SeekableInputStream(@NonNull S3SdkObjectClient s3SdkObjectClient, @NonNull S3URI s3URI) {
+    this(new BlockManager(s3SdkObjectClient, s3URI, 0));
   }
 
   /**

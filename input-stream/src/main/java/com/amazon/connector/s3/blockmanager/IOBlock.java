@@ -1,5 +1,7 @@
 package com.amazon.connector.s3.blockmanager;
 
+import static com.amazon.connector.s3.util.Constants.ONE_KB;
+
 import com.amazon.connector.s3.object.ObjectContent;
 import com.google.common.base.Preconditions;
 import java.io.Closeable;
@@ -19,8 +21,7 @@ class IOBlock implements Closeable {
   @Getter private final ByteBuffer blockContent;
 
   private final int bufferSize;
-  private static final int ONE_MB = 1024 * 1024;
-  private static final int READ_BUFFER_SIZE = ONE_MB;
+  private static final int READ_BUFFER_SIZE = 64 * ONE_KB;
 
   public IOBlock(long start, long end, @NonNull CompletableFuture<ObjectContent> objectContent)
       throws IOException {
@@ -51,7 +52,7 @@ class IOBlock implements Closeable {
     int numBytesToRead;
     int numBytesRemaining = this.bufferSize;
     int bytesRead;
-    byte[] buffer = new byte[ONE_MB];
+    byte[] buffer = new byte[READ_BUFFER_SIZE];
 
     try (InputStream inputStream = this.content.join().getStream()) {
       while (numBytesRemaining > 0) {
