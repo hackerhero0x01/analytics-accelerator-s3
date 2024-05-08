@@ -37,7 +37,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     }
   }
 
-  /***
+  /**
    * Given an object client, creates a new instance of {@link S3SeekableInputStreamFactory}. This
    * version of the constructor is for testing purposes only and to allow for dependency injection.
    *
