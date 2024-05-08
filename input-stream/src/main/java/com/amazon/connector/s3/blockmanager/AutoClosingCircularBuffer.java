@@ -30,7 +30,7 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
 
   /**
    * Adds an element to the buffer, potentially replacing another element if the maximum capacity
-   * has been reached. Calls 'close' on elements before eviciting them.
+   * has been reached. Calls 'close' on elements before evicting them.
    *
    * @param element The new element to add to the buffer.
    */

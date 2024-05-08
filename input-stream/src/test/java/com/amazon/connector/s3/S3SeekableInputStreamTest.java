@@ -257,4 +257,28 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     assertEquals(11, numBytesRead);
     assertEquals("12345678910", new String(buf, StandardCharsets.UTF_8));
   }
+
+  @Test
+  void testReadTailDoesNotAlterPosition() {
+    // Given: seekable stream
+    S3SeekableInputStream stream = new S3SeekableInputStream(fakeBlockManager);
+
+    // When: 1) we are reading from the stream, 2) reading the tail of the stream, 3) reading more from the stream
+    byte[] one = new byte[5];
+    byte[] two = new byte[11];
+    byte[] three = new byte[5];
+
+    int numBytesRead1 = stream.read(one, 0, one.length);
+    int numBytesRead2 = stream.readTail(two, 0, two.length);
+    int numBytesRead3 = stream.read(three, 0, three.length);
+
+    // Then: read #2 did not alter the position and reads #1 and #3 return subsequent bytes
+    assertEquals(5, numBytesRead1);
+    assertEquals(11, numBytesRead2);
+    assertEquals(5, numBytesRead3);
+
+    assertEquals("test-", new String(one, StandardCharsets.UTF_8));
+    assertEquals("data1", new String(three, StandardCharsets.UTF_8));
+    assertEquals("12345678910", new String(two, StandardCharsets.UTF_8));
+  }
 }
