@@ -87,7 +87,7 @@ public class InMemoryReferenceTest {
 
     // Initialise streams
     objectClient = new S3SdkObjectClient(s3Client);
-    blockManager = new BlockManager(objectClient, TEST_URI);
+    blockManager = new BlockManager(objectClient, TEST_URI, false, false);
     s3SeekableInputStream = new S3SeekableInputStream(blockManager);
     inMemorySeekableStream = new InMemorySeekableStream(data);
   }

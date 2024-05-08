@@ -27,7 +27,20 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param s3URI the object's S3 URI
    */
   public S3SeekableInputStream(@NonNull S3URI s3URI) {
-    this(new BlockManager(new S3SdkObjectClient(null), s3URI));
+    this(new BlockManager(new S3SdkObjectClient(null), s3URI, true, true));
+  }
+
+  /**
+   * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
+   * initialises the stream with sensible defaults.
+   *
+   * @param s3URI the object's S3 URI
+   */
+  public S3SeekableInputStream(
+      @NonNull S3URI s3URI, boolean isTailPrefetchEnabled, boolean isSmallReadEnabled) {
+    this(
+        new BlockManager(
+            new S3SdkObjectClient(null), s3URI, isTailPrefetchEnabled, isSmallReadEnabled));
   }
 
   /**

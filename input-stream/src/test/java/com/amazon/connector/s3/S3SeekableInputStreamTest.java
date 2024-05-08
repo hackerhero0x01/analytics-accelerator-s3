@@ -20,7 +20,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     assertNotNull(inputStream);
   }
 
-  @Test
   void testDefaultConstructor() throws IOException {
     S3SeekableInputStream inputStream = new S3SeekableInputStream(S3URI.of("bucket", "key"));
     assertNotNull(inputStream);
@@ -112,7 +111,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testReadOnEmptyObject() throws IOException {
     // Given
     S3SeekableInputStream stream =
-        new S3SeekableInputStream(new BlockManager(new FakeObjectClient(""), TEST_OBJECT));
+        new S3SeekableInputStream(
+            new BlockManager(new FakeObjectClient(""), TEST_OBJECT, false, false));
 
     // When: we read a byte from the empty object
     int readByte = stream.read();

@@ -24,7 +24,7 @@ public class S3SeekableInputStreamTestBase {
   protected static final S3URI TEST_OBJECT = S3URI.of("bucket", "key");
 
   protected BlockManager getFakeBlockManager() {
-    return new BlockManager(new FakeObjectClient(TEST_DATA), TEST_OBJECT);
+    return new BlockManager(new FakeObjectClient(TEST_DATA), TEST_OBJECT, false, false);
   }
 
   protected class FakeObjectClient implements ObjectClient {

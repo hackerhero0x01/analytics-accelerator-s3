@@ -22,9 +22,10 @@ import lombok.NonNull;
  * it is holding.
  */
 public class BlockManager implements AutoCloseable {
-  private static final int MAX_BLOCK_COUNT = 10;
-  private static final long EIGHT_MB_IN_BYTES = 8 * 1024 * 1024;
-  private static final long DEFAULT_BLOCK_SIZE = EIGHT_MB_IN_BYTES;
+  private static final int MAX_BLOCK_COUNT = 50;
+  private static final long ONE_MB_IN_BYTES = 1024 * 1024;
+  private static final long FOUR_MB_IN_BYTES = 4 * ONE_MB_IN_BYTES;
+  private static final long DEFAULT_BLOCK_SIZE = FOUR_MB_IN_BYTES;
 
   @Getter private final CompletableFuture<ObjectMetadata> metadata;
   private final AutoClosingCircularBuffer<IOBlock> ioBlocks;
@@ -38,7 +39,11 @@ public class BlockManager implements AutoCloseable {
    * @param objectClient the Object Client to use to fetch the data
    * @param s3URI the location of the object
    */
-  public BlockManager(@NonNull ObjectClient objectClient, @NonNull S3URI s3URI) {
+  public BlockManager(
+      @NonNull ObjectClient objectClient,
+      @NonNull S3URI s3URI,
+      boolean isTailPrefetchEnabled,
+      boolean isSmallReadEnabled) {
     this.objectClient = objectClient;
     this.s3URI = s3URI;
     this.metadata =
@@ -46,6 +51,26 @@ public class BlockManager implements AutoCloseable {
             HeadRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build());
 
     this.ioBlocks = new AutoClosingCircularBuffer<>(MAX_BLOCK_COUNT);
+
+    // Tail preread
+    if (isTailPrefetchEnabled && s3URI.getKey().endsWith("parquet")) {
+      System.out.println("TAIL PREREAD IS TRIGGERED contentLength=" + toMB(contentLength()) + "MB");
+      long start = Math.max(getLastObjectByte() - ONE_MB_IN_BYTES + 1, 0);
+
+      // ensure we have the block for this range
+      createBlockStartingAt(start, DEFAULT_BLOCK_SIZE);
+    }
+
+    // Small object preread
+    if (isSmallReadEnabled && contentLength() < DEFAULT_BLOCK_SIZE) {
+      System.out.println(
+          "SMALL OBJECT PREREAD IS TRIGGERED contentLength=" + toMB(contentLength()) + "MB");
+      createBlockStartingAt(0, DEFAULT_BLOCK_SIZE);
+    }
+  }
+
+  private long contentLength() {
+    return this.metadata.join().getContentLength();
   }
 
   /** JDoc comment */
@@ -53,12 +78,20 @@ public class BlockManager implements AutoCloseable {
     IOBlock ioBlock = getBlockForPosition(pos);
     int bytesRead = ioBlock.read(pos, buf, off, len);
 
+    // PREFETCHING
     if (ioBlock.shouldPrefetch()) {
       ioBlock.takePrefetchToken();
 
       long prefetchStart = ioBlock.getEnd() + 1;
+      long prefetchSize = Math.min(2 * ioBlock.size(), 12 * ONE_MB_IN_BYTES);
+
       if (prefetchStart <= getLastObjectByte()) { // a corner case but it completely crashes CRT
-        createBlockStartingAt(prefetchStart, DEFAULT_BLOCK_SIZE);
+        System.out.println(
+            "prefetching is happening prefetchStart="
+                + prefetchStart
+                + " prefetchSize="
+                + prefetchSize);
+        createBlockStartingAt(prefetchStart, prefetchSize);
       }
     }
 
@@ -74,10 +107,19 @@ public class BlockManager implements AutoCloseable {
     return ioBlocks.stream().filter(ioBlock -> ioBlock.contains(pos)).findFirst();
   }
 
+  private long toMB(long start, long end) {
+    return (end - start) / ONE_MB_IN_BYTES;
+  }
+
+  private long toMB(long s) {
+    return s / ONE_MB_IN_BYTES;
+  }
+
   private IOBlock createBlockStartingAt(long start, long size) {
     long end = Math.min(start + size, getLastObjectByte());
 
-    System.out.println("GOAT: bytes=" + start + "-" + end);
+    System.out.println(
+        "creating block: bytes=" + start + "-" + end + " size=" + toMB(start, end) + "MB");
     CompletableFuture<ObjectContent2> objectContent =
         this.objectClient.getObject2(
             GetRequest.builder()
@@ -92,7 +134,11 @@ public class BlockManager implements AutoCloseable {
   }
 
   private long getLastObjectByte() {
-    return this.metadata.join().getContentLength() - 1;
+    if (contentLength() == 0) {
+      return 0;
+    }
+
+    return contentLength() - 1;
   }
 
   @Override
