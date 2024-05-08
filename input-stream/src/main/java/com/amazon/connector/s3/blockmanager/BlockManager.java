@@ -7,6 +7,7 @@ import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -104,6 +105,16 @@ public class BlockManager implements AutoCloseable {
     return numBytesRead;
   }
 
+  /** Reads the last n bytes from the object. */
+  public int readTail(byte[] buf, int off, int n) {
+    Preconditions.checkArgument(0 <= n, "must request a non-negative number of bytes from tail");
+    Preconditions.checkArgument(
+        n <= contentLength(), "cannot request more bytes from tail than total number of bytes");
+
+    long start = contentLength() - n;
+    return readIntoBuffer(buf, off, n, start);
+  }
+
   private IOBlock getBlockForPosition(long pos) {
     return lookupBlockForPosition(pos)
         .orElseGet(
@@ -136,8 +147,12 @@ public class BlockManager implements AutoCloseable {
     return ioBlock;
   }
 
+  private long contentLength() {
+    return this.metadata.join().getContentLength();
+  }
+
   private long getLastObjectByte() {
-    return this.metadata.join().getContentLength() - 1;
+    return contentLength() - 1;
   }
 
   @Override

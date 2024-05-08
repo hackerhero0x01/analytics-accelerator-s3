@@ -43,6 +43,8 @@ tasks.test {
     javaLauncher = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(17)
     }
+
+    environment("AWS_REGION", "eu-west-1")
 }
 
 jmh {

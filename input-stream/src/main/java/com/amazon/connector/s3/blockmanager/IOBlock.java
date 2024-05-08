@@ -8,14 +8,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+import lombok.Getter;
 import lombok.NonNull;
 
 class IOBlock implements Closeable {
   private final long start;
   private final long end;
-  private long positionInCurrentBuffer;
   private CompletableFuture<ObjectContent> content;
-  private final ByteBuffer blockContent;
+
+  @Getter private final ByteBuffer blockContent;
+
   private final int bufferSize;
   private static final int ONE_MB = 1024 * 1024;
   private static final int READ_BUFFER_SIZE = ONE_MB;
@@ -28,7 +30,6 @@ class IOBlock implements Closeable {
 
     this.start = start;
     this.end = end;
-    this.positionInCurrentBuffer = start;
     this.content = objectContent;
     this.bufferSize = (int) size();
     this.blockContent = ByteBuffer.allocate(this.bufferSize);
@@ -39,10 +40,6 @@ class IOBlock implements Closeable {
   public int getByte(long pos) {
     blockContent.position(positionToOffset(pos));
     return Byte.toUnsignedInt(blockContent.get());
-  }
-
-  public ByteBuffer getBlockContent() {
-    return blockContent;
   }
 
   public void setPositionInBuffer(long pos) {

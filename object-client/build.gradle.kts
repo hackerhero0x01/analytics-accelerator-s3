@@ -18,3 +18,7 @@ dependencies {
     testImplementation(libs.mockito.junit.jupiter)
     testRuntimeOnly(libs.junit.jupiter.launcher)
 }
+
+tasks.test {
+    environment("AWS_REGION", "eu-west-1")
+}

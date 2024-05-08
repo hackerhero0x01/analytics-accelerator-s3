@@ -71,7 +71,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
   public void seek(long pos) throws IOException {
     // TODO: https://app.asana.com/0/1206885953994785/1207207312934251/f
     // S3A throws an EOFException here, S3FileIO does IllegalArgumentException
-    Preconditions.checkState(pos >= 0, "position must be non-negative");
+    Preconditions.checkArgument(pos >= 0, "position must be non-negative");
 
     if (pos >= contentLength()) {
       throw new EOFException("zero-indexed seek position must be less than the object size");
@@ -83,6 +83,11 @@ public class S3SeekableInputStream extends SeekableInputStream {
   @Override
   public long getPos() {
     return this.position;
+  }
+
+  @Override
+  public int readTail(byte[] buf, int off, int n) {
+    return blockManager.readTail(buf, off, n);
   }
 
   @Override

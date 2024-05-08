@@ -32,6 +32,22 @@ public class InMemorySeekableStream extends SeekableInputStream {
   }
 
   @Override
+  public int readTail(byte[] buf, int off, int n) {
+    // Save position of stream
+    long prevPosition = this.position;
+
+    long tailStart = contentLength - n;
+    data.position((int) tailStart);
+    data.get(buf, off, n);
+
+    // Reset position
+    this.position = prevPosition;
+    data.position((int) this.position);
+
+    return n;
+  }
+
+  @Override
   public int read() {
     if (this.position >= this.contentLength) {
       return -1;
