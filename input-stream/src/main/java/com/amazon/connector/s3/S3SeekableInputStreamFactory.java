@@ -1,6 +1,6 @@
 package com.amazon.connector.s3;
 
-import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
+import com.amazon.connector.s3.util.S3SeekableInputStreamConfig;
 import com.amazon.connector.s3.util.S3URI;
 import lombok.NonNull;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -21,17 +21,17 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * create instances of the input stream to allow for sharing resources such as the object client
    * between streams.
    *
-   * @param s3SeekableInputStreamBuilder s3SeekableInputStreamBuilder
+   * @param s3SeekableInputStreamConfig s3SeekableInputStreamConfig
    */
   public S3SeekableInputStreamFactory(
-      @NonNull S3SeekableInputStreamBuilder s3SeekableInputStreamBuilder) {
+      @NonNull S3SeekableInputStreamConfig s3SeekableInputStreamConfig) {
 
-    S3AsyncClient s3AsyncClient = s3SeekableInputStreamBuilder.getWrappedAsyncClient();
+    S3AsyncClient s3AsyncClient = s3SeekableInputStreamConfig.getWrappedAsyncClient();
 
     // If no wrapped client is provided, defaults to using the S3 CRT client.
     if (s3AsyncClient != null) {
       this.s3SdkObjectClient =
-          new S3SdkObjectClient(s3SeekableInputStreamBuilder.getWrappedAsyncClient());
+          new S3SdkObjectClient(s3SeekableInputStreamConfig.getWrappedAsyncClient());
     } else {
       this.s3SdkObjectClient = new S3SdkObjectClient();
     }

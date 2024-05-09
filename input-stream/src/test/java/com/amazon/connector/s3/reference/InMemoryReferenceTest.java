@@ -7,7 +7,7 @@ import static software.amazon.awssdk.http.SdkHttpConfigurationOption.TRUST_ALL_C
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
 import com.amazon.connector.s3.S3SeekableInputStream;
 import com.amazon.connector.s3.S3SeekableInputStreamFactory;
-import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
+import com.amazon.connector.s3.util.S3SeekableInputStreamConfig;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.net.URI;
@@ -87,7 +87,7 @@ public class InMemoryReferenceTest {
     // Initialise streams
     s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(
-            S3SeekableInputStreamBuilder.builder().wrappedAsyncClient(s3Client).build());
+            S3SeekableInputStreamConfig.builder().wrappedAsyncClient(s3Client).build());
     s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(TEST_URI);
     inMemorySeekableStream = new InMemorySeekableStream(data);
   }

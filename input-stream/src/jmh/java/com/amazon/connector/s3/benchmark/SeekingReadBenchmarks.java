@@ -5,7 +5,7 @@ import com.amazon.connector.s3.S3SeekableInputStreamFactory;
 import com.amazon.connector.s3.datagen.BenchmarkData;
 import com.amazon.connector.s3.datagen.BenchmarkData.Read;
 import com.amazon.connector.s3.datagen.Constants;
-import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
+import com.amazon.connector.s3.util.S3SeekableInputStreamConfig;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +39,7 @@ public class SeekingReadBenchmarks {
 
   private static final S3AsyncClient client = S3AsyncClient.create();
   private static final S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
-      new S3SeekableInputStreamFactory(S3SeekableInputStreamBuilder.builder().build());
+      new S3SeekableInputStreamFactory(S3SeekableInputStreamConfig.builder().build());
 
   @Param(
       value = {

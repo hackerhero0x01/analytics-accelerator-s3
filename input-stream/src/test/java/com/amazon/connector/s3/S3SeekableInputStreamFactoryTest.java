@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
+import com.amazon.connector.s3.util.S3SeekableInputStreamConfig;
 import com.amazon.connector.s3.util.S3URI;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -15,15 +15,16 @@ public class S3SeekableInputStreamFactoryTest {
 
   @Test
   void testConstructor() {
+
+    S3SeekableInputStreamConfig.Builder configBuilder = S3SeekableInputStreamConfig.builder();
+
     S3SeekableInputStreamFactory inputStreamFactory =
-        new S3SeekableInputStreamFactory(S3SeekableInputStreamBuilder.builder().build());
+        new S3SeekableInputStreamFactory(configBuilder.build());
     assertNotNull(inputStreamFactory);
 
     S3SeekableInputStreamFactory inputStreamFactoryWrappedClient =
         new S3SeekableInputStreamFactory(
-            S3SeekableInputStreamBuilder.builder()
-                .wrappedAsyncClient(S3AsyncClient.create())
-                .build());
+            configBuilder.wrappedAsyncClient(S3AsyncClient.create()).build());
     assertNotNull(inputStreamFactoryWrappedClient);
   }
 
@@ -32,7 +33,7 @@ public class S3SeekableInputStreamFactoryTest {
     assertThrows(
         NullPointerException.class,
         () -> {
-          new S3SeekableInputStreamFactory((S3SeekableInputStreamBuilder) null);
+          new S3SeekableInputStreamFactory((S3SeekableInputStreamConfig) null);
         });
 
     assertThrows(
@@ -46,7 +47,7 @@ public class S3SeekableInputStreamFactoryTest {
   void testCreateStream() {
 
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
-        new S3SeekableInputStreamFactory(S3SeekableInputStreamBuilder.builder().build());
+        new S3SeekableInputStreamFactory(S3SeekableInputStreamConfig.builder().build());
 
     S3SeekableInputStream inputStream =
         s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"));
@@ -57,7 +58,7 @@ public class S3SeekableInputStreamFactoryTest {
   @Test
   void testCreateStreamThrowsOnNullArgument() {
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
-        new S3SeekableInputStreamFactory(S3SeekableInputStreamBuilder.builder().build());
+        new S3SeekableInputStreamFactory(S3SeekableInputStreamConfig.builder().build());
 
     assertThrows(
         NullPointerException.class,

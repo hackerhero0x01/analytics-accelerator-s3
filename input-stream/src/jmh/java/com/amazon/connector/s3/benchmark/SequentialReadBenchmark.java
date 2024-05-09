@@ -3,7 +3,7 @@ package com.amazon.connector.s3.benchmark;
 import com.amazon.connector.s3.S3SeekableInputStream;
 import com.amazon.connector.s3.S3SeekableInputStreamFactory;
 import com.amazon.connector.s3.datagen.Constants;
-import com.amazon.connector.s3.util.S3SeekableInputStreamBuilder;
+import com.amazon.connector.s3.util.S3SeekableInputStreamConfig;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -35,7 +35,7 @@ import software.amazon.awssdk.utils.IoUtils;
 public class SequentialReadBenchmark {
 
   private static final S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
-      new S3SeekableInputStreamFactory(S3SeekableInputStreamBuilder.builder().build());
+      new S3SeekableInputStreamFactory(S3SeekableInputStreamConfig.builder().build());
 
   @Param(
       value = {
