@@ -14,7 +14,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
  */
 public class S3SeekableInputStreamFactory implements AutoCloseable {
 
-  S3SdkObjectClient s3SdkObjectClient;
+  private final S3SdkObjectClient s3SdkObjectClient;
 
   /**
    * Creates a new instance of {@link S3SeekableInputStreamFactory}. This factory should be used to

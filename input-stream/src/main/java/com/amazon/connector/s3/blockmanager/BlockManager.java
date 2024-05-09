@@ -67,7 +67,7 @@ public class BlockManager implements AutoCloseable {
    * @return an unsigned int representing the byte that was read
    */
   public int readByte(long pos) {
-    return getBlockForPosition(pos, 0).getByte(pos);
+    return getBlockForPosition(pos).getByte(pos);
   }
 
   /**
@@ -126,7 +126,19 @@ public class BlockManager implements AutoCloseable {
         .orElseGet(
             () -> {
               try {
-                return createBlockStartingAt(pos, len);
+                return createBlockStartingAtWithSize(pos, len);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            });
+  }
+
+  private IOBlock getBlockForPosition(long pos) {
+    return lookupBlockForPosition(pos)
+        .orElseGet(
+            () -> {
+              try {
+                return createBlockStartingAt(pos);
               } catch (IOException e) {
                 throw new RuntimeException(e);
               }
@@ -137,21 +149,25 @@ public class BlockManager implements AutoCloseable {
     return ioBlocks.stream().filter(ioBlock -> ioBlock.contains(pos)).findFirst();
   }
 
-  private IOBlock createBlockStartingAt(long start, int len) throws IOException {
+  private IOBlock createBlockStartingAt(long start) throws IOException {
+    long end = Math.min(start + blockSize - 1, getLastObjectByte());
 
+    return createBlock(start, end);
+  }
+
+  private IOBlock createBlockStartingAtWithSize(long start, int size) throws IOException {
     long end;
 
-    // When length is 0, and so not defined, use the default block size.
-    if (len == 0) {
-      end = Math.min(start + blockSize - 1, getLastObjectByte());
+    if (size > READAHEAD_LENGTH) {
+      end = Math.min(start + size, getLastObjectByte());
     } else {
-      if (len > READAHEAD_LENGTH) {
-        end = Math.min(start + len, getLastObjectByte());
-      } else {
-        end = Math.min(start + READAHEAD_LENGTH, getLastObjectByte());
-      }
+      end = Math.min(start + READAHEAD_LENGTH, getLastObjectByte());
     }
 
+    return createBlock(start, end);
+  }
+
+  private IOBlock createBlock(long start, long end) throws IOException {
     CompletableFuture<ObjectContent> objectContent =
         this.objectClient.getObject(
             GetRequest.builder()
