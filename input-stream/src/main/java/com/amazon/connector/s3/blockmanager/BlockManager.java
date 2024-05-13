@@ -159,9 +159,9 @@ public class BlockManager implements AutoCloseable {
     long end;
 
     if (size > READAHEAD_LENGTH) {
-      end = Math.min(start + size, getLastObjectByte());
+      end = Math.min(start + size - 1, getLastObjectByte());
     } else {
-      end = Math.min(start + READAHEAD_LENGTH, getLastObjectByte());
+      end = Math.min(start + READAHEAD_LENGTH - 1, getLastObjectByte());
     }
 
     return createBlock(start, end);
