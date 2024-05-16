@@ -1,8 +1,5 @@
 package com.amazon.connector.s3.blockmanager;
 
-import static com.amazon.connector.s3.util.Constants.ONE_KB;
-import static com.amazon.connector.s3.util.Constants.ONE_MB;
-
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.object.ObjectMetadata;
@@ -27,37 +24,34 @@ import lombok.NonNull;
  * the resources it is holding.
  */
 public class BlockManager implements AutoCloseable {
-  private static final int MAX_BLOCK_COUNT = 10;
-  private static final long DEFAULT_BLOCK_SIZE = 8 * ONE_MB;
-  private static final long READAHEAD_LENGTH = 64 * ONE_KB;
-
   @Getter private final CompletableFuture<ObjectMetadata> metadata;
   private final AutoClosingCircularBuffer<IOBlock> ioBlocks;
 
   private final ObjectClient objectClient;
   private final S3URI s3URI;
-  private long blockSize = DEFAULT_BLOCK_SIZE;
+
+  private final BlockManagerConfiguration configuration;
 
   /**
    * Creates an instance of block manager.
    *
    * @param objectClient the Object Client to use to fetch the data
-   * @param blockSize size of block to use, defaults to 8MB
+   * @param configuration configuration
    * @param s3URI the location of the object
    */
-  public BlockManager(@NonNull ObjectClient objectClient, @NonNull S3URI s3URI, long blockSize) {
+  public BlockManager(
+      @NonNull ObjectClient objectClient,
+      @NonNull S3URI s3URI,
+      @NonNull BlockManagerConfiguration configuration) {
     this.objectClient = objectClient;
     this.s3URI = s3URI;
+    this.configuration = configuration;
+
     this.metadata =
         objectClient.headObject(
             HeadRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build());
 
-    // If block size <= 0, the block manager will default to using DEFAULT_BLOCK_SIZE.
-    if (blockSize > 0) {
-      this.blockSize = blockSize;
-    }
-
-    this.ioBlocks = new AutoClosingCircularBuffer<>(MAX_BLOCK_COUNT);
+    this.ioBlocks = new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks());
   }
 
   /**
@@ -150,7 +144,7 @@ public class BlockManager implements AutoCloseable {
   }
 
   private IOBlock createBlockStartingAt(long start) throws IOException {
-    long end = Math.min(start + blockSize - 1, getLastObjectByte());
+    long end = Math.min(start + configuration.getBlockSizeBytes() - 1, getLastObjectByte());
 
     return createBlock(start, end);
   }
@@ -158,10 +152,10 @@ public class BlockManager implements AutoCloseable {
   private IOBlock createBlockStartingAtWithSize(long start, int size) throws IOException {
     long end;
 
-    if (size > READAHEAD_LENGTH) {
+    if (size > configuration.getReadAheadBytes()) {
       end = Math.min(start + size - 1, getLastObjectByte());
     } else {
-      end = Math.min(start + READAHEAD_LENGTH - 1, getLastObjectByte());
+      end = Math.min(start + configuration.getReadAheadBytes() - 1, getLastObjectByte());
     }
 
     return createBlock(start, end);

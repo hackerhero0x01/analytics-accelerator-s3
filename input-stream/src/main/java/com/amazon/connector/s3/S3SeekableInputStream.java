@@ -24,10 +24,15 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
    * initialises the stream with sensible defaults.
    *
-   * @param s3URI the object's S3 URI
+   * @param objectClient Object client
+   * @param s3URI S3 Uri
+   * @param configuration configuration
    */
-  protected S3SeekableInputStream(@NonNull ObjectClient objectClient, @NonNull S3URI s3URI) {
-    this(new BlockManager(objectClient, s3URI, 0));
+  protected S3SeekableInputStream(
+      @NonNull ObjectClient objectClient,
+      @NonNull S3URI s3URI,
+      @NonNull S3SeekableInputStreamConfiguration configuration) {
+    this(new BlockManager(objectClient, s3URI, configuration.getBlockManagerConfiguration()));
   }
 
   /**

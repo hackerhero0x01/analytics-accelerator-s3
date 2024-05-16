@@ -5,9 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static software.amazon.awssdk.http.SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES;
 
 import com.adobe.testing.s3mock.testcontainers.S3MockContainer;
+import com.amazon.connector.s3.S3SdkObjectClient;
 import com.amazon.connector.s3.S3SeekableInputStream;
+import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
 import com.amazon.connector.s3.S3SeekableInputStreamFactory;
-import com.amazon.connector.s3.util.S3SeekableInputStreamConfig;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.net.URI;
@@ -87,7 +88,7 @@ public class InMemoryReferenceTest {
     // Initialise streams
     s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(
-            S3SeekableInputStreamConfig.builder().wrappedAsyncClient(s3Client).build());
+            new S3SdkObjectClient(s3Client), S3SeekableInputStreamConfiguration.DEFAULT);
     s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(TEST_URI);
     inMemorySeekableStream = new InMemorySeekableStream(data);
   }

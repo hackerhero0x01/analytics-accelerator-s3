@@ -15,16 +15,7 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 
 /** Object client, based on AWS SDK v2 */
 public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
-
   private S3AsyncClient s3AsyncClient = null;
-
-  /**
-   * Create an instance of a S3 client for interaction with Amazon S3. This version of the
-   * constructor uses will use CRT as the S3 client.
-   */
-  S3SdkObjectClient() {
-    this(S3AsyncClient.crtBuilder().maxConcurrency(300).build());
-  }
 
   /**
    * Create an instance of a S3 client for interaction with Amazon S3 compatible object stores.
@@ -40,6 +31,12 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
     s3AsyncClient.close();
   }
 
+  /**
+   * Make a headObject request to the object store.
+   *
+   * @param headRequest The HEAD request to be sent
+   * @return HeadObjectResponse
+   */
   @Override
   public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
     return s3AsyncClient
@@ -53,6 +50,12 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
                 ObjectMetadata.builder().contentLength(headObjectResponse.contentLength()).build());
   }
 
+  /**
+   * Make a getObject request to the object store.
+   *
+   * @param getRequest The GET request to be sent
+   * @return ResponseInputStream<GetObjectResponse>
+   */
   @Override
   public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
     GetObjectRequest.Builder builder =
