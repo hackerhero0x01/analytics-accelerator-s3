@@ -25,6 +25,7 @@ public class S3SeekableInputStreamFactory {
    * between streams.
    *
    * @param objectClient Object client
+   * @param configuration {@link S3SeekableInputStream} configuration
    */
   public S3SeekableInputStreamFactory(
       @NonNull ObjectClient objectClient,

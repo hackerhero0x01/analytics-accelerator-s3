@@ -24,7 +24,7 @@ public class S3SeekableInputStreamConfiguration {
    *
    * @param blockManagerConfiguration - {@link BlockManagerConfiguration}
    */
-  public S3SeekableInputStreamConfiguration(
+  private S3SeekableInputStreamConfiguration(
       @NonNull BlockManagerConfiguration blockManagerConfiguration) {
     this.blockManagerConfiguration = blockManagerConfiguration;
   }

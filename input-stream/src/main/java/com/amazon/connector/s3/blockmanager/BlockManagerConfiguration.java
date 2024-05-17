@@ -42,7 +42,7 @@ public class BlockManagerConfiguration {
    * @param readAheadBytes Read ahead, in bytes
    */
   @Builder
-  public BlockManagerConfiguration(int capacityBlocks, long blockSizeBytes, long readAheadBytes) {
+  private BlockManagerConfiguration(int capacityBlocks, long blockSizeBytes, long readAheadBytes) {
     Preconditions.checkArgument(capacityBlocks > 0, "`capacityBlocks` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");
     Preconditions.checkArgument(readAheadBytes > 0, "`readAheadLengthBytes` must be positive");
