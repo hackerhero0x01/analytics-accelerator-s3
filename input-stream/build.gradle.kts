@@ -12,7 +12,10 @@ dependencies {
     api(project(":object-client"))
 
     implementation(libs.guava)
-    implementation(libs.s3)
+
+    jmhImplementation(libs.s3)
+
+    testImplementation(libs.s3)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.inline)

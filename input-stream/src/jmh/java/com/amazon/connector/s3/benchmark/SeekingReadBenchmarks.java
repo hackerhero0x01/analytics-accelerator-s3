@@ -1,11 +1,12 @@
 package com.amazon.connector.s3.benchmark;
 
+import com.amazon.connector.s3.S3SdkObjectClient;
 import com.amazon.connector.s3.S3SeekableInputStream;
+import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
 import com.amazon.connector.s3.S3SeekableInputStreamFactory;
 import com.amazon.connector.s3.datagen.BenchmarkData;
 import com.amazon.connector.s3.datagen.BenchmarkData.Read;
 import com.amazon.connector.s3.datagen.Constants;
-import com.amazon.connector.s3.util.S3SeekableInputStreamConfig;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -39,7 +40,9 @@ public class SeekingReadBenchmarks {
 
   private static final S3AsyncClient client = S3AsyncClient.create();
   private static final S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
-      new S3SeekableInputStreamFactory(S3SeekableInputStreamConfig.builder().build());
+      new S3SeekableInputStreamFactory(
+          new S3SdkObjectClient(S3AsyncClient.crtBuilder().maxConcurrency(300).build()),
+          S3SeekableInputStreamConfiguration.DEFAULT);
 
   @Param(
       value = {

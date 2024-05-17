@@ -18,7 +18,8 @@ public class BlockManagerTest {
   @Test
   void testConstructor() {
     // When: constructor is called
-    BlockManager blockManager = new BlockManager(mock(ObjectClient.class), URI, 0);
+    BlockManager blockManager =
+        new BlockManager(mock(ObjectClient.class), URI, BlockManagerConfiguration.DEFAULT);
 
     // Then: result is not null
     assertNotNull(blockManager);
@@ -26,16 +27,22 @@ public class BlockManagerTest {
 
   @Test
   void testConstructorFailsOnNull() {
-    assertThrows(NullPointerException.class, () -> new BlockManager(null, URI, 0));
     assertThrows(
-        NullPointerException.class, () -> new BlockManager(mock(ObjectClient.class), null, 0));
+        NullPointerException.class,
+        () -> new BlockManager(null, URI, BlockManagerConfiguration.DEFAULT));
+    assertThrows(
+        NullPointerException.class,
+        () -> new BlockManager(mock(ObjectClient.class), null, BlockManagerConfiguration.DEFAULT));
+    assertThrows(
+        NullPointerException.class, () -> new BlockManager(mock(ObjectClient.class), URI, null));
   }
 
   @Test
   void testClose() throws IOException {
     // Given: object client
     ObjectClient objectClient = mock(ObjectClient.class);
-    BlockManager blockManager = new BlockManager(objectClient, URI, 0);
+    BlockManager blockManager =
+        new BlockManager(objectClient, URI, BlockManagerConfiguration.DEFAULT);
 
     // When: close is called
     blockManager.close();

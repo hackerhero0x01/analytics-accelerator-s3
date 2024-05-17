@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.blockmanager.BlockManager;
+import com.amazon.connector.s3.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.EOFException;
 import java.io.IOException;
@@ -27,7 +28,10 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testDefaultConstructor() throws IOException {
     S3SeekableInputStream inputStream =
-        new S3SeekableInputStream(fakeObjectClient, S3URI.of("bucket", "key"));
+        new S3SeekableInputStream(
+            fakeObjectClient,
+            S3URI.of("bucket", "key"),
+            S3SeekableInputStreamConfiguration.DEFAULT);
     assertNotNull(inputStream);
   }
 
@@ -35,21 +39,21 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testConstructorThrowsOnNullArgument() {
     assertThrows(
         NullPointerException.class,
-        () -> {
-          new S3SeekableInputStream(fakeObjectClient, (S3URI) null);
-        });
+        () ->
+            new S3SeekableInputStream(
+                fakeObjectClient, (S3URI) null, S3SeekableInputStreamConfiguration.DEFAULT));
 
     assertThrows(
         NullPointerException.class,
-        () -> {
-          new S3SeekableInputStream(null, S3URI.of("bucket", "key"));
-        });
+        () ->
+            new S3SeekableInputStream(
+                null, S3URI.of("bucket", "key"), S3SeekableInputStreamConfiguration.DEFAULT));
 
     assertThrows(
         NullPointerException.class,
-        () -> {
-          new S3SeekableInputStream((BlockManager) null);
-        });
+        () -> new S3SeekableInputStream(fakeObjectClient, S3URI.of("bucket", "key"), null));
+
+    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream((BlockManager) null));
   }
 
   @Test
@@ -124,7 +128,9 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testReadOnEmptyObject() throws IOException {
     // Given
     S3SeekableInputStream stream =
-        new S3SeekableInputStream(new BlockManager(new FakeObjectClient(""), TEST_OBJECT, 0));
+        new S3SeekableInputStream(
+            new BlockManager(
+                new FakeObjectClient(""), TEST_OBJECT, BlockManagerConfiguration.DEFAULT));
 
     // When: we read a byte from the empty object
     int readByte = stream.read();
@@ -177,7 +183,10 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Use a smaller block size to ensure the logic to read across multiple IOBlocks is working.
     S3SeekableInputStream stream =
         new S3SeekableInputStream(
-            new BlockManager(new FakeObjectClient(TEST_DATA), TEST_OBJECT, 5));
+            new BlockManager(
+                new FakeObjectClient(TEST_DATA),
+                TEST_OBJECT,
+                BlockManagerConfiguration.builder().blockSizeBytes(5).build()));
 
     byte[] buffer = new byte[TEST_DATA.length()];
 
@@ -194,7 +203,10 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Use a smaller block size to ensure the logic to read across multiple IOBlocks is working.
     S3SeekableInputStream stream =
         new S3SeekableInputStream(
-            new BlockManager(new FakeObjectClient(TEST_DATA), TEST_OBJECT, 5));
+            new BlockManager(
+                new FakeObjectClient(TEST_DATA),
+                TEST_OBJECT,
+                BlockManagerConfiguration.builder().blockSizeBytes(5).build()));
 
     byte[] buffer = new byte[11];
 
