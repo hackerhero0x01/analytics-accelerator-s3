@@ -1,13 +1,13 @@
 package com.amazon.connector.s3.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
-import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Optional;

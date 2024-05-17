@@ -2,8 +2,8 @@ package com.amazon.connector.s3.blockmanager;
 
 import static com.amazon.connector.s3.util.Constants.ONE_KB;
 
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.object.ObjectContent;
-import com.google.common.base.Preconditions;
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;

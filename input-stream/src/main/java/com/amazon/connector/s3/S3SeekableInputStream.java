@@ -1,8 +1,8 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.blockmanager.BlockManager;
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.util.S3URI;
-import com.google.common.base.Preconditions;
 import java.io.EOFException;
 import java.io.IOException;
 import lombok.NonNull;

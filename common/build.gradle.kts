@@ -8,17 +8,13 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":common"))
-    implementation(platform(libs.sdk.bom))
-    implementation(libs.s3);
-    implementation(libs.crt);
-
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.inline)
     testImplementation(libs.mockito.junit.jupiter)
+
     testRuntimeOnly(libs.junit.jupiter.launcher)
 }
 
-tasks.test {
-    environment("AWS_REGION", "eu-west-1")
+tasks.withType<JavaCompile>().configureEach {
 }

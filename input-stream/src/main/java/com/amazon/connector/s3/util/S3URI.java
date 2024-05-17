@@ -1,6 +1,6 @@
 package com.amazon.connector.s3.util;
 
-import com.google.common.base.Preconditions;
+import com.amazon.connector.s3.common.Preconditions;
 import lombok.Data;
 
 /** Container for representing an 's3://' or 's3a://'-style S3 location. */

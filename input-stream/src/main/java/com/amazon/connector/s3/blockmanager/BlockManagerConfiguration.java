@@ -3,7 +3,7 @@ package com.amazon.connector.s3.blockmanager;
 import static com.amazon.connector.s3.util.Constants.ONE_KB;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 
-import com.google.common.base.Preconditions;
+import com.amazon.connector.s3.common.Preconditions;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;

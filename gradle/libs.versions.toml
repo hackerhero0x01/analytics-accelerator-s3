@@ -2,7 +2,6 @@
 junit = "5.10.1"
 mockito = "4.11.0"
 spotless = "6.13.0"
-guava = "32.1.2-jre"
 s3 = "2.25.31"
 s3mock = "3.6.0"
 testcontainers = "1.19.7"
@@ -17,7 +16,6 @@ sdk-bom = { group = "software.amazon.awssdk", name = "bom", version.ref = "s3" }
 crt = { module = "software.amazon.awssdk.crt:aws-crt", version.ref = "crt" }
 netty-nio-client = { module = "software.amazon.awssdk:netty-nio-client", version.ref = "s3" }
 
-guava = { module = "com.google.guava:guava", version.ref = "guava" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-jupiter-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }

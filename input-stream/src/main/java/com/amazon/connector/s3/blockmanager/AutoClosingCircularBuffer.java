@@ -1,6 +1,6 @@
 package com.amazon.connector.s3.blockmanager;
 
-import com.google.common.base.Preconditions;
+import com.amazon.connector.s3.common.Preconditions;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,7 +25,7 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
 
     this.oldestIndex = 0;
     this.capacity = maxCapacity;
-    this.buffer = new ArrayList(maxCapacity);
+    this.buffer = new ArrayList<>(maxCapacity);
   }
 
   /**

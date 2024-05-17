@@ -1,8 +1,10 @@
 package com.amazon.connector.s3.datagen;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.Builder;
 import lombok.Data;
 
@@ -31,32 +33,36 @@ public class BenchmarkData {
      * 1111111111---2222222222---3333333333--- ... --- 5555555555--- | 0% | 20% | 40 % | 80% | 100%
      */
     public List<Read> getForwardSeekReadPattern() {
-      return ImmutableList.of(
-          Read.builder().start(0).length(percent(10)).build(),
-          Read.builder().start(percent(20)).length(percent(10)).build(),
-          Read.builder().start(percent(40)).length(percent(10)).build(),
-          Read.builder().start(percent(60)).length(percent(10)).build(),
-          Read.builder().start(percent(80)).length(percent(10)).build());
+      return Stream.of(
+              Read.builder().start(0).length(percent(10)).build(),
+              Read.builder().start(percent(20)).length(percent(10)).build(),
+              Read.builder().start(percent(40)).length(percent(10)).build(),
+              Read.builder().start(percent(60)).length(percent(10)).build(),
+              Read.builder().start(percent(80)).length(percent(10)).build())
+          .collect(Collectors.toList());
     }
 
     /** Just reverse the forward pattern */
     public List<Read> getBackwardSeekReadPattern() {
-      return Lists.reverse(getForwardSeekReadPattern());
+      List<Read> result = new ArrayList<>(getForwardSeekReadPattern());
+      Collections.reverse(result);
+      return result;
     }
 
     /** Define a tail dance + read 50% of the object */
     public List<Read> getParquetLikeReadPattern() {
-      return ImmutableList.of(
-          // Tail dance
-          Read.builder().start(size - 1 - 4).length(4).build(),
-          Read.builder()
-              .start(size - 8 * Constants.ONE_KB_IN_BYTES)
-              .length(8 * Constants.ONE_KB_IN_BYTES)
-              .build(),
+      return Stream.of(
+              // Tail dance
+              Read.builder().start(size - 1 - 4).length(4).build(),
+              Read.builder()
+                  .start(size - 8 * Constants.ONE_KB_IN_BYTES)
+                  .length(8 * Constants.ONE_KB_IN_BYTES)
+                  .build(),
 
-          // Read some contiguous chunks
-          Read.builder().start(percent(50)).length(percent(30)).build(),
-          Read.builder().start(0).length(percent(20)).build());
+              // Read some contiguous chunks
+              Read.builder().start(percent(50)).length(percent(30)).build(),
+              Read.builder().start(0).length(percent(20)).build())
+          .collect(Collectors.toList());
     }
 
     /**
@@ -81,31 +87,32 @@ public class BenchmarkData {
    * parameterise with Strings. So we use this Map under the hood to implement a keymap.
    */
   public static final List<BenchmarkObject> BENCHMARK_OBJECTS =
-      ImmutableList.of(
-          BenchmarkObject.builder()
-              .keyName("random-1mb.txt")
-              .size(1 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-4mb.txt")
-              .size(4 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-16mb.txt")
-              .size(16 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-64mb.txt")
-              .size(64 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-128mb.txt")
-              .size(128 * Constants.ONE_MB_IN_BYTES)
-              .build(),
-          BenchmarkObject.builder()
-              .keyName("random-256mb.txt")
-              .size(256 * Constants.ONE_MB_IN_BYTES)
-              .build());
+      Stream.of(
+              BenchmarkObject.builder()
+                  .keyName("random-1mb.txt")
+                  .size(1 * Constants.ONE_MB_IN_BYTES)
+                  .build(),
+              BenchmarkObject.builder()
+                  .keyName("random-4mb.txt")
+                  .size(4 * Constants.ONE_MB_IN_BYTES)
+                  .build(),
+              BenchmarkObject.builder()
+                  .keyName("random-16mb.txt")
+                  .size(16 * Constants.ONE_MB_IN_BYTES)
+                  .build(),
+              BenchmarkObject.builder()
+                  .keyName("random-64mb.txt")
+                  .size(64 * Constants.ONE_MB_IN_BYTES)
+                  .build(),
+              BenchmarkObject.builder()
+                  .keyName("random-128mb.txt")
+                  .size(128 * Constants.ONE_MB_IN_BYTES)
+                  .build(),
+              BenchmarkObject.builder()
+                  .keyName("random-256mb.txt")
+                  .size(256 * Constants.ONE_MB_IN_BYTES)
+                  .build())
+          .collect(Collectors.toList());
 
   /** Returns a benchmark object by name. */
   public static BenchmarkObject getBenchMarkObjectByName(String name) {
