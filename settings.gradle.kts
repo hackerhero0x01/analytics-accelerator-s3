@@ -11,4 +11,4 @@ plugins {
 }
 
 rootProject.name = "s3-connector-framework"
-include("object-client", "input-stream")
+include("common", "object-client", "input-stream")

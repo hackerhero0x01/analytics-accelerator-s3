@@ -11,7 +11,7 @@ plugins {
 dependencies {
     api(project(":object-client"))
 
-    implementation(libs.guava)
+    implementation(project(":common"))
 
     jmhImplementation(libs.s3)
 
