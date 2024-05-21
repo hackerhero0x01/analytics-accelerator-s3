@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.datagen;
 
 import com.amazon.connector.s3.datagen.BenchmarkData.BenchmarkObject;
+import java.util.Arrays;
 import java.util.Random;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -18,9 +19,12 @@ public class SequentialReadDataGenerator {
   /**
    * Entry point: set bucket name and prefix in {@link Constants} to generate a dataset of random
    * objects
+   *
+   * @param args program arguments are currently ignored
    */
   public static void main(String[] args) {
-    BenchmarkData.BENCHMARK_OBJECTS.forEach(SequentialReadDataGenerator::generateObject);
+    Arrays.stream(BenchmarkObject.values()).forEach(SequentialReadDataGenerator::generateObject);
+    System.out.println("Done.");
   }
 
   private static void generateObject(BenchmarkObject benchmarkObject) {

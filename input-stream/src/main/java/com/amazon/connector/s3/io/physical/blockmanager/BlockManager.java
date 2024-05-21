@@ -105,7 +105,14 @@ public class BlockManager implements AutoCloseable {
     return numBytesRead;
   }
 
-  /** Reads the last n bytes from the object. */
+  /**
+   * Reads the last n bytes from the object.
+   *
+   * @param buf byte buffer to read into
+   * @param off position of first read byte in the byte buffer
+   * @param n length of data to read in bytes
+   * @return the number of bytes read or -1 when EOF is reached
+   */
   public int readTail(byte[] buf, int off, int n) {
     Preconditions.checkArgument(0 <= n, "must request a non-negative number of bytes from tail");
     Preconditions.checkArgument(

@@ -52,7 +52,11 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
     }
   }
 
-  /** Returns a conventional Java stream of the underlying objects */
+  /**
+   * Returns a conventional Java stream of the underlying objects
+   *
+   * @return a stream of the buffer content
+   */
   public Stream<T> stream() {
     return buffer.stream();
   }

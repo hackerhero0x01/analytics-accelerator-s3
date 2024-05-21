@@ -5,7 +5,7 @@ import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
-import com.amazon.connector.s3.io.physical.plan.LogicalIOPlan;
+import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
@@ -40,7 +40,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   }
 
   @Override
-  public void execute(LogicalIOPlan logicalIOPlan) throws IOException {
+  public void execute(IOPlan logicalIOPlan) throws IOException {
     throw new UnsupportedOperationException("Method not implemented.");
   }
 

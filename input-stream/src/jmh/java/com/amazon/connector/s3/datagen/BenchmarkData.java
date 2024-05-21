@@ -1,15 +1,20 @@
 package com.amazon.connector.s3.datagen;
 
+import static com.amazon.connector.s3.datagen.Constants.ONE_GB_IN_BYTES;
+import static com.amazon.connector.s3.datagen.Constants.ONE_MB_IN_BYTES;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 
 /**
- * Class defining objects used by microbenchmarks and defining the shapes of some read patterns we
+ * Class defining objects used by micro-benchmarks and defining the shapes of some read patterns we
  * want to test for.
  */
 public class BenchmarkData {
@@ -18,19 +23,28 @@ public class BenchmarkData {
    * Class describing a benchmark object and helper methods defining read patterns (forward seeking,
    * backward seeking, parquet-like jumps) on the object.
    */
-  @Data
-  @Builder
-  public static class BenchmarkObject {
+  @AllArgsConstructor
+  @Getter
+  public enum BenchmarkObject {
+    RANDOM_1MB("random-1mb.txt", 1 * ONE_MB_IN_BYTES),
+    RANDOM_4MB("random-4mb.txt", 4 * ONE_MB_IN_BYTES),
+    RANDOM_16MB("random-16mb.txt", 16 * ONE_MB_IN_BYTES),
+    RANDOM_64MB("random-64mb.txt", 64 * ONE_MB_IN_BYTES),
+    RANDOM_128MB("random-128mb.txt", 128 * ONE_MB_IN_BYTES),
+    RANDOM_256MB("random-256mb.txt", 256 * ONE_MB_IN_BYTES),
+    RANDOM_1G("random-1G.txt", ONE_GB_IN_BYTES),
+    RANDOM_5G("random-5G.txt", 5L * ONE_GB_IN_BYTES);
+
     private final String keyName;
     private final long size;
 
     /**
-     * Returns a read pattern that 'jumps through the object' forward by 20% increments and reads
-     * 10% of the object each time. Essentially, this results half of the content being read and
-     * half of the content being ignored.
-     *
-     * <p>Illustration of the pattern (number denotes order of read):
-     * 1111111111---2222222222---3333333333--- ... --- 5555555555--- | 0% | 20% | 40 % | 80% | 100%
+     * @return a read pattern that 'jumps through the object' forward by 20% increments and reads
+     *     10% of the object each time. Essentially, this results half of the content being read and
+     *     half of the content being ignored.
+     *     <p>Illustration of the pattern (number denotes order of read):
+     *     1111111111---2222222222---3333333333--- ... --- 5555555555--- | 0% | 20% | 40 % | 80% |
+     *     100%
      */
     public List<Read> getForwardSeekReadPattern() {
       return Stream.of(
@@ -42,14 +56,20 @@ public class BenchmarkData {
           .collect(Collectors.toList());
     }
 
-    /** Just reverse the forward pattern */
+    /**
+     * @return a read pattern that does backward seeks
+     */
     public List<Read> getBackwardSeekReadPattern() {
       List<Read> result = new ArrayList<>(getForwardSeekReadPattern());
       Collections.reverse(result);
       return result;
     }
 
-    /** Define a tail dance + read 50% of the object */
+    /**
+     * Define a tail dance + read 50% of the object.
+     *
+     * @return a read pattern which is Parquet-like
+     */
     public List<Read> getParquetLikeReadPattern() {
       return Stream.of(
               // Tail dance
@@ -66,11 +86,13 @@ public class BenchmarkData {
     }
 
     /**
-     * Returns x% of an integer. Used above to seek into specific relative positions in the object
-     * when defining read patterns.
+     * @param x an integer between 0 and 100 representing a percentage
+     * @return an integer representing the position in the object which is roughly x% of its size.
+     *     This is used to seek into specific relative positions in the object when defining read
+     *     patterns.
      */
-    private int percent(int x) {
-      return (int) ((size / 100) * x);
+    private long percent(int x) {
+      return (size / 100) * x;
     }
   }
 
@@ -80,45 +102,5 @@ public class BenchmarkData {
   public static class Read {
     long start;
     long length;
-  }
-
-  /**
-   * (object-name, object) pairs -- we need this due to the limitation that JMH only allows us to
-   * parameterise with Strings. So we use this Map under the hood to implement a keymap.
-   */
-  public static final List<BenchmarkObject> BENCHMARK_OBJECTS =
-      Stream.of(
-              BenchmarkObject.builder()
-                  .keyName("random-1mb.txt")
-                  .size(1 * Constants.ONE_MB_IN_BYTES)
-                  .build(),
-              BenchmarkObject.builder()
-                  .keyName("random-4mb.txt")
-                  .size(4 * Constants.ONE_MB_IN_BYTES)
-                  .build(),
-              BenchmarkObject.builder()
-                  .keyName("random-16mb.txt")
-                  .size(16 * Constants.ONE_MB_IN_BYTES)
-                  .build(),
-              BenchmarkObject.builder()
-                  .keyName("random-64mb.txt")
-                  .size(64 * Constants.ONE_MB_IN_BYTES)
-                  .build(),
-              BenchmarkObject.builder()
-                  .keyName("random-128mb.txt")
-                  .size(128 * Constants.ONE_MB_IN_BYTES)
-                  .build(),
-              BenchmarkObject.builder()
-                  .keyName("random-256mb.txt")
-                  .size(256 * Constants.ONE_MB_IN_BYTES)
-                  .build())
-          .collect(Collectors.toList());
-
-  /** Returns a benchmark object by name. */
-  public static BenchmarkObject getBenchMarkObjectByName(String name) {
-    return BENCHMARK_OBJECTS.stream()
-        .filter(o -> o.getKeyName().equals(name))
-        .findFirst()
-        .orElseThrow(() -> new RuntimeException("Cannot find benchmark object with name " + name));
   }
 }

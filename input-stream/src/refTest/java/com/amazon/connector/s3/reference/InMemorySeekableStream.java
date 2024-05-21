@@ -4,6 +4,11 @@ import com.amazon.connector.s3.SeekableInputStream;
 import java.nio.ByteBuffer;
 import org.junit.platform.commons.util.Preconditions;
 
+/**
+ * An in-memory implementation of a seekable input stream. It is used to implement reference tests.
+ * The main advantage of having a super-simple implementation of the behaviour we want from a stream
+ * is that it is easy to argue about its correctness.
+ */
 public class InMemorySeekableStream extends SeekableInputStream {
 
   private ByteBuffer data;

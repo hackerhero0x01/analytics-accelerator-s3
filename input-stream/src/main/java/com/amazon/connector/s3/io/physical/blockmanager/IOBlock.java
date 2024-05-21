@@ -85,7 +85,12 @@ class IOBlock implements Closeable {
     return end - start + 1;
   }
 
-  /** A mapping between object byte locations and byte buffer byte locations */
+  /**
+   * A mapping between object byte locations and byte buffer byte locations.
+   *
+   * @param pos the position in the object
+   * @return off the offset corresponding to `pos`
+   */
   private int positionToOffset(long pos) {
     return (int) (pos - start);
   }
