@@ -24,9 +24,6 @@ public class LogicalIOImpl implements LogicalIO {
   }
 
   @Override
-  public void seek(long newPos) {}
-
-  @Override
   public int read(long position) throws IOException {
     return physicalIO.read(position);
   }

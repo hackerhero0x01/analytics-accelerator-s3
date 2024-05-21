@@ -12,15 +12,6 @@ import com.amazon.connector.s3.RandomAccessReadable;
  * logical layer should be able to create an IOPlan based on this and use the physical layer to
  * execute this asynchronously.
  *
- * <p>The logical IO layer must be aware of seeks as it listens to all high-level IO actions to
- * implement a history.
+ * <p>For now, this interface is a marker interface but should become more soon.
  */
-public interface LogicalIO extends RandomAccessReadable {
-
-  /**
-   * Seek to a new position.
-   *
-   * @param newPos the new position in the stream
-   */
-  void seek(long newPos);
-}
+public interface LogicalIO extends RandomAccessReadable {}
