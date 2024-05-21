@@ -10,8 +10,9 @@ The project is configured to be built via Gradle (Gradle 8.7). It also targets J
 
 # Building
 * To invoke a build and run tests: `./gradlew build`
-* To skip tests: `./gradlew build -x test -x integrationTest`
-* To apply formatting `./gradlew spotlessApply`
+* To skip reference tests: `./gradlew build -x referenceTest`
+* To apply formatting: `./gradlew spotlessApply`
+* To list all tasks: `./gradlew tasks`
 
 # Microbenchmarks
 
