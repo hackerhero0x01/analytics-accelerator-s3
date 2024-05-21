@@ -39,12 +39,11 @@ public class BenchmarkData {
     private final long size;
 
     /**
-     * @return a read pattern that 'jumps through the object' forward by 20% increments and reads
-     *     10% of the object each time. Essentially, this results half of the content being read and
-     *     half of the content being ignored.
-     *     <p>Illustration of the pattern (number denotes order of read):
-     *     1111111111---2222222222---3333333333--- ... --- 5555555555--- | 0% | 20% | 40 % | 80% |
-     *     100%
+     * Construct a read pattern that 'jumps through the object' forward by 20% increments and reads
+     * 10% of the object each time. Essentially, this results half of the content being read and
+     * half of the content being ignored.
+     *
+     * @return a forward seeking read pattern
      */
     public List<Read> getForwardSeekReadPattern() {
       return Stream.of(
@@ -57,6 +56,8 @@ public class BenchmarkData {
     }
 
     /**
+     * Construct a backwards jumping read pattern.
+     *
      * @return a read pattern that does backward seeks
      */
     public List<Read> getBackwardSeekReadPattern() {
