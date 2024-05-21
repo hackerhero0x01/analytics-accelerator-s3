@@ -32,7 +32,9 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param configuration configuration
    */
   protected S3SeekableInputStream(
-      ObjectClient objectClient, S3URI s3URI, S3SeekableInputStreamConfiguration configuration) {
+      @NonNull ObjectClient objectClient,
+      @NonNull S3URI s3URI,
+      @NonNull S3SeekableInputStreamConfiguration configuration) {
     this(
         new LogicalIOImpl(
             new PhysicalIOImpl(
