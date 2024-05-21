@@ -1,6 +1,6 @@
 package com.amazon.connector.s3;
 
-import com.amazon.connector.s3.blockmanager.BlockManagerConfiguration;
+import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;

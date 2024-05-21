@@ -6,4 +6,5 @@
 
 <suppressions>
     <suppress checks="MissingJavadocType" files=".*/src/test/java/.*"/>
+    <suppress checks="JavadocMethod" files=".*Preconditions.*"/>
 </suppressions>

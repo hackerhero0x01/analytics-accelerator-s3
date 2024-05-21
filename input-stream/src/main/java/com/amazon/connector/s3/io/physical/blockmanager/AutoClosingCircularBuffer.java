@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.blockmanager;
+package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.common.Preconditions;
 import java.io.Closeable;

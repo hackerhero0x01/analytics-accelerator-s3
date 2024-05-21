@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.blockmanager;
+package com.amazon.connector.s3.io.physical.blockmanager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

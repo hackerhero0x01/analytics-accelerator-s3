@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.blockmanager;
+package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
@@ -60,7 +60,7 @@ public class BlockManager implements AutoCloseable {
    * @param pos The position to read
    * @return an unsigned int representing the byte that was read
    */
-  public int readByte(long pos) {
+  public int read(long pos) {
     return getBlockForPosition(pos).getByte(pos);
   }
 
@@ -73,7 +73,7 @@ public class BlockManager implements AutoCloseable {
    * @param pos the position to begin reading from
    * @return the total number of bytes read into the buffer
    */
-  public int readIntoBuffer(byte[] buffer, int offset, int len, long pos) {
+  public int read(byte[] buffer, int offset, int len, long pos) {
 
     int numBytesRead = 0;
     int numBytesRemaining = len;
@@ -112,7 +112,7 @@ public class BlockManager implements AutoCloseable {
         n <= contentLength(), "cannot request more bytes from tail than total number of bytes");
 
     long start = contentLength() - n;
-    return readIntoBuffer(buf, off, n, start);
+    return read(buf, off, n, start);
   }
 
   private IOBlock getBlockForPosition(long pos, int len) {

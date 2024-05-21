@@ -1,7 +1,10 @@
 package com.amazon.connector.s3;
 
-import com.amazon.connector.s3.blockmanager.BlockManager;
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.io.logical.LogicalIO;
+import com.amazon.connector.s3.io.logical.impl.LogicalIOImpl;
+import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
+import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.EOFException;
 import java.io.IOException;
@@ -17,7 +20,7 @@ import lombok.NonNull;
  */
 public class S3SeekableInputStream extends SeekableInputStream {
 
-  private final BlockManager blockManager;
+  private final LogicalIO logicalIO;
   private long position;
 
   /**
@@ -32,17 +35,21 @@ public class S3SeekableInputStream extends SeekableInputStream {
       @NonNull ObjectClient objectClient,
       @NonNull S3URI s3URI,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
-    this(new BlockManager(objectClient, s3URI, configuration.getBlockManagerConfiguration()));
+    this(
+        new LogicalIOImpl(
+            new PhysicalIOImpl(
+                new BlockManager(
+                    objectClient, s3URI, configuration.getBlockManagerConfiguration()))));
   }
 
   /**
    * Given a Block Manager, creates a new instance of {@link S3SeekableInputStream}. This version of
    * the constructor is useful for testing as it allows dependency injection.
    *
-   * @param blockManager already initialised Block Manager
+   * @param logicalIO already initialised LogicalIO
    */
-  protected S3SeekableInputStream(@NonNull BlockManager blockManager) {
-    this.blockManager = blockManager;
+  protected S3SeekableInputStream(@NonNull LogicalIO logicalIO) {
+    this.logicalIO = logicalIO;
     this.position = 0;
   }
 
@@ -52,18 +59,18 @@ public class S3SeekableInputStream extends SeekableInputStream {
       return -1;
     }
 
-    int byteRead = this.blockManager.readByte(this.position);
+    int byteRead = this.logicalIO.read(this.position);
     this.position++;
     return byteRead;
   }
 
   @Override
-  public int read(byte[] buffer, int offset, int len) {
+  public int read(byte[] buffer, int offset, int len) throws IOException {
     if (this.position >= contentLength()) {
       return -1;
     }
 
-    int numBytesRead = this.blockManager.readIntoBuffer(buffer, offset, len, position);
+    int numBytesRead = this.logicalIO.read(buffer, offset, len, position);
 
     if (numBytesRead > 0) {
       this.position += numBytesRead;
@@ -92,16 +99,15 @@ public class S3SeekableInputStream extends SeekableInputStream {
 
   @Override
   public int readTail(byte[] buf, int off, int n) {
-    return blockManager.readTail(buf, off, n);
+    return logicalIO.readTail(buf, off, n);
   }
 
   @Override
   public void close() throws IOException {
-    super.close();
-    this.blockManager.close();
+    this.logicalIO.close();
   }
 
   private long contentLength() {
-    return this.blockManager.getMetadata().join().getContentLength();
+    return this.logicalIO.metadata().join().getContentLength();
   }
 }
