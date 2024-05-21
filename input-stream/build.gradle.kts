@@ -12,18 +12,18 @@ plugins {
 
 // Allow to separate dependencies for reference testing
 sourceSets {
-    create("refTest") {
+    create("referenceTest") {
         compileClasspath += sourceSets.main.get().output
         runtimeClasspath += sourceSets.main.get().output
     }
 }
 
-val refTestImplementation by configurations.getting {
+val referenceTestImplementation by configurations.getting {
     extendsFrom(configurations.testImplementation.get())
 }
 
-val refTestRuntimeOnly by configurations.getting
-configurations["refTestRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+val referenceTestRuntimeOnly by configurations.getting
+configurations["referenceTestRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
 
 dependencies {
     api(project(":object-client"))
@@ -37,13 +37,13 @@ dependencies {
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.inline)
     testImplementation(libs.mockito.junit.jupiter)
-    testImplementation(libs.s3mock.testcontainers)
     testImplementation(libs.sdk.url.connection.client)
-    testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.netty.nio.client)
     testRuntimeOnly(libs.junit.jupiter.launcher)
 
-    refTestRuntimeOnly(libs.junit.jupiter.launcher)
+    referenceTestImplementation(libs.s3mock.testcontainers)
+    referenceTestImplementation(libs.testcontainers.junit.jupiter)
+    referenceTestRuntimeOnly(libs.junit.jupiter.launcher)
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -55,12 +55,18 @@ tasks.compileJava {
     }
 }
 
-val refTest = task<Test>("refTest") {
+tasks.named("compileReferenceTestJava", JavaCompile::class) {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+val refTest = task<Test>("referenceTest") {
     description = "Runs reference tests."
     group = "verification"
 
-    testClassesDirs = sourceSets["refTest"].output.classesDirs
-    classpath = sourceSets["refTest"].runtimeClasspath
+    testClassesDirs = sourceSets["referenceTest"].output.classesDirs
+    classpath = sourceSets["referenceTest"].runtimeClasspath
     shouldRunAfter("test")
 
     useJUnitPlatform()
@@ -69,27 +75,6 @@ val refTest = task<Test>("refTest") {
         events("passed")
     }
 
-    javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-
-    environment("AWS_REGION", "eu-west-1")
-}
-
-
-tasks.compileTestJava {
-    javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
-tasks.named("compileRefTestJava", JavaCompile::class) {
-    javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
-tasks.test {
     javaLauncher = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(17)
     }

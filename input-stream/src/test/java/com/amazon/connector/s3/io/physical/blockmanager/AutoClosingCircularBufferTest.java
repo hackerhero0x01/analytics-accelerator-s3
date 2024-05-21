@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
@@ -55,7 +55,7 @@ public class AutoClosingCircularBufferTest {
     circularBuffer.close();
 
     // Then: all elements are closed
-    for (Closeable c : List.of(c1, c2, c3)) {
+    for (Closeable c : Arrays.asList(c1, c2, c3)) {
       verify(c, times(1)).close();
     }
   }
@@ -66,7 +66,7 @@ public class AutoClosingCircularBufferTest {
     AutoClosingCircularBuffer circularBuffer = new AutoClosingCircularBuffer(2);
 
     // When: 3 elements are added and then buffer is converted to a stream
-    List.of(mock(Closeable.class), mock(Closeable.class), mock(Closeable.class))
+    Arrays.asList(mock(Closeable.class), mock(Closeable.class), mock(Closeable.class))
         .forEach(circularBuffer::add);
     Stream<Closeable> stream = circularBuffer.stream();
 
@@ -87,6 +87,7 @@ public class AutoClosingCircularBufferTest {
     Closeable c3 = mock(Closeable.class);
 
     // When: middle element throws on close
-    assertThrows(RuntimeException.class, () -> List.of(c1, c2, c3).forEach(circularBuffer::add));
+    assertThrows(
+        RuntimeException.class, () -> Arrays.asList(c1, c2, c3).forEach(circularBuffer::add));
   }
 }
