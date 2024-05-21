@@ -60,7 +60,7 @@ public class BlockManager implements AutoCloseable {
    * @param pos The position to read
    * @return an unsigned int representing the byte that was read
    */
-  public int read(long pos) {
+  public int read(long pos) throws IOException {
     return getBlockForPosition(pos).getByte(pos);
   }
 
@@ -73,7 +73,7 @@ public class BlockManager implements AutoCloseable {
    * @param pos the position to begin reading from
    * @return the total number of bytes read into the buffer
    */
-  public int read(byte[] buffer, int offset, int len, long pos) {
+  public int read(byte[] buffer, int offset, int len, long pos) throws IOException {
 
     int numBytesRead = 0;
     int numBytesRemaining = len;
@@ -113,7 +113,7 @@ public class BlockManager implements AutoCloseable {
    * @param n length of data to read in bytes
    * @return the number of bytes read or -1 when EOF is reached
    */
-  public int readTail(byte[] buf, int off, int n) {
+  public int readTail(byte[] buf, int off, int n) throws IOException {
     Preconditions.checkArgument(0 <= n, "must request a non-negative number of bytes from tail");
     Preconditions.checkArgument(
         n <= contentLength(), "cannot request more bytes from tail than total number of bytes");
@@ -122,28 +122,22 @@ public class BlockManager implements AutoCloseable {
     return read(buf, off, n, start);
   }
 
-  private IOBlock getBlockForPosition(long pos, int len) {
-    return lookupBlockForPosition(pos)
-        .orElseGet(
-            () -> {
-              try {
-                return createBlockStartingAtWithSize(pos, len);
-              } catch (IOException e) {
-                throw new RuntimeException(e);
-              }
-            });
+  private IOBlock getBlockForPosition(long pos, int len) throws IOException {
+    Optional<IOBlock> lookup = lookupBlockForPosition(pos);
+    if (!lookupBlockForPosition(pos).isPresent()) {
+      return createBlockStartingAtWithSize(pos, len);
+    }
+
+    return lookup.get();
   }
 
-  private IOBlock getBlockForPosition(long pos) {
-    return lookupBlockForPosition(pos)
-        .orElseGet(
-            () -> {
-              try {
-                return createBlockStartingAt(pos);
-              } catch (IOException e) {
-                throw new RuntimeException(e);
-              }
-            });
+  private IOBlock getBlockForPosition(long pos) throws IOException {
+    Optional<IOBlock> lookup = lookupBlockForPosition(pos);
+    if (!lookupBlockForPosition(pos).isPresent()) {
+      return createBlockStartingAt(pos);
+    }
+
+    return lookup.get();
   }
 
   private Optional<IOBlock> lookupBlockForPosition(long pos) {

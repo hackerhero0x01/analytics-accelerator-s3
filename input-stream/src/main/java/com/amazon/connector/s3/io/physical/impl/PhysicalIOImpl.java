@@ -50,17 +50,17 @@ public class PhysicalIOImpl implements PhysicalIO {
   }
 
   @Override
-  public int read(long position) {
+  public int read(long position) throws IOException {
     return this.blockManager.read(position);
   }
 
   @Override
-  public int read(byte[] buf, int off, int len, long position) {
+  public int read(byte[] buf, int off, int len, long position) throws IOException {
     return this.blockManager.read(buf, off, len, position);
   }
 
   @Override
-  public int readTail(byte[] buf, int off, int len) {
+  public int readTail(byte[] buf, int off, int len) throws IOException {
     return this.blockManager.readTail(buf, off, len);
   }
 

@@ -96,7 +96,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
   }
 
   @Override
-  public int readTail(byte[] buf, int off, int n) {
+  public int readTail(byte[] buf, int off, int n) throws IOException {
     return logicalIO.readTail(buf, off, n);
   }
 

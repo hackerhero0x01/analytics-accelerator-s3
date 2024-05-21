@@ -43,5 +43,5 @@ public interface RandomAccessReadable extends Closeable {
    * @param len the number of bytes to read; the n-th byte should be the last byte of the stream.
    * @return the total number of bytes read into the buffer
    */
-  int readTail(byte[] buf, int off, int len);
+  int readTail(byte[] buf, int off, int len) throws IOException;
 }

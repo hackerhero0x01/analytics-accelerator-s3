@@ -61,13 +61,15 @@ public class AutoClosingCircularBufferTest {
   }
 
   @Test
-  void testStream() {
+  void testStream() throws IOException {
     // Given
     AutoClosingCircularBuffer circularBuffer = new AutoClosingCircularBuffer(2);
 
     // When: 3 elements are added and then buffer is converted to a stream
-    Arrays.asList(mock(Closeable.class), mock(Closeable.class), mock(Closeable.class))
-        .forEach(circularBuffer::add);
+    for (Closeable c :
+        Arrays.asList(mock(Closeable.class), mock(Closeable.class), mock(Closeable.class))) {
+      circularBuffer.add(c);
+    }
     Stream<Closeable> stream = circularBuffer.stream();
 
     // Then: stream has only maxCapacity elements
@@ -88,6 +90,11 @@ public class AutoClosingCircularBufferTest {
 
     // When: middle element throws on close
     assertThrows(
-        RuntimeException.class, () -> Arrays.asList(c1, c2, c3).forEach(circularBuffer::add));
+        RuntimeException.class,
+        () -> {
+          circularBuffer.add(c1);
+          circularBuffer.add(c2);
+          circularBuffer.add(c3);
+        });
   }
 }

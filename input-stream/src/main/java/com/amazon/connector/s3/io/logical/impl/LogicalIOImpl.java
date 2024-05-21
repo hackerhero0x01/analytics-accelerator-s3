@@ -34,7 +34,7 @@ public class LogicalIOImpl implements LogicalIO {
   }
 
   @Override
-  public int readTail(byte[] buf, int off, int len) {
+  public int readTail(byte[] buf, int off, int len) throws IOException {
     return physicalIO.readTail(buf, off, len);
   }
 
