@@ -11,12 +11,14 @@ import com.amazon.connector.s3.io.logical.impl.LogicalIOImpl;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
+import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.utils.IoUtils;
 
@@ -311,5 +313,27 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     assertEquals("test-", new String(one, StandardCharsets.UTF_8));
     assertEquals("data1", new String(three, StandardCharsets.UTF_8));
     assertEquals("12345678910", new String(two, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  // Dependencies returning with a -1 read should not set the position back
+  void testMinusOneIsHandledProperly() throws IOException {
+    // Given: seekable stream
+    LogicalIO mockLogicalIO = mock(LogicalIO.class);
+    when(mockLogicalIO.metadata())
+        .thenReturn(
+            CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(200).build()));
+    S3SeekableInputStream stream = new S3SeekableInputStream(mockLogicalIO);
+
+    // When: logical IO returns with a -1 read
+    final int INITIAL_POS = 123;
+    stream.seek(INITIAL_POS);
+    when(mockLogicalIO.read(any(), anyInt(), anyInt(), anyLong())).thenReturn(-1);
+
+    // Then: stream returns -1 and position did not change
+    final int LEN = 5;
+    byte[] b = new byte[LEN];
+    assertEquals(-1, stream.read(b, 0, LEN));
+    assertEquals(INITIAL_POS, stream.getPos());
   }
 }

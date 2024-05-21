@@ -70,10 +70,11 @@ public class S3SeekableInputStream extends SeekableInputStream {
 
     int numBytesRead = this.logicalIO.read(buffer, offset, len, position);
 
-    if (numBytesRead > 0) {
-      this.position += numBytesRead;
+    if (numBytesRead < 0) {
+      return numBytesRead;
     }
 
+    this.position += numBytesRead;
     return numBytesRead;
   }
 
