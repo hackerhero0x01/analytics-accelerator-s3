@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
  * A basic proxying implementation of a LogicalIO layer. To be extended later with logical
  * optimisations (for example, reading Parquet footers and interpreting Parquet metadata).
  */
-public class LogicalIOImpl implements LogicalIO {
+public class ParquetLogicalIOImpl implements LogicalIO {
 
   private final PhysicalIO physicalIO;
 
@@ -19,7 +19,7 @@ public class LogicalIOImpl implements LogicalIO {
    *
    * @param physicalIO underlying physical IO that knows how to fetch bytes
    */
-  public LogicalIOImpl(PhysicalIO physicalIO) {
+  public ParquetLogicalIOImpl(PhysicalIO physicalIO) {
     this.physicalIO = physicalIO;
   }
 

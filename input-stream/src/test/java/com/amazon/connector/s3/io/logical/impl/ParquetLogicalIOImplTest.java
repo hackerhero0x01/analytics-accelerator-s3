@@ -9,18 +9,18 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
-public class LogicalIOImplTest {
+public class ParquetLogicalIOImplTest {
 
   @Test
   void testContructor() {
-    assertNotNull(new LogicalIOImpl(mock(PhysicalIO.class)));
+    assertNotNull(new ParquetLogicalIOImpl(mock(PhysicalIO.class)));
   }
 
   @Test
   void testCloseDependencies() throws IOException {
     // Given
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    LogicalIOImpl logicalIO = new LogicalIOImpl(physicalIO);
+    ParquetLogicalIOImpl logicalIO = new ParquetLogicalIOImpl(physicalIO);
 
     // When: close called
     logicalIO.close();

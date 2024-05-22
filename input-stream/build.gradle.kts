@@ -73,6 +73,7 @@ val refTest = task<Test>("referenceTest") {
 
     testLogging {
         events("passed")
+        events("failed")
     }
 
     javaLauncher = javaToolchains.launcherFor {

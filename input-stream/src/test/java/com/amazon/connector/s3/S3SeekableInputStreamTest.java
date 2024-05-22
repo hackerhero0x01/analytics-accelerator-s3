@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.io.logical.LogicalIO;
-import com.amazon.connector.s3.io.logical.impl.LogicalIOImpl;
+import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
@@ -134,7 +134,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Given
     S3SeekableInputStream stream =
         new S3SeekableInputStream(
-            new LogicalIOImpl(
+            new ParquetLogicalIOImpl(
                 new PhysicalIOImpl(
                     new BlockManager(
                         new FakeObjectClient(""),
@@ -192,7 +192,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Use a smaller block size to ensure the logic to read across multiple IOBlocks is working.
     S3SeekableInputStream stream =
         new S3SeekableInputStream(
-            new LogicalIOImpl(
+            new ParquetLogicalIOImpl(
                 new PhysicalIOImpl(
                     new BlockManager(
                         new FakeObjectClient(TEST_DATA),
@@ -214,7 +214,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Use a smaller block size to ensure the logic to read across multiple IOBlocks is working.
     S3SeekableInputStream stream =
         new S3SeekableInputStream(
-            new LogicalIOImpl(
+            new ParquetLogicalIOImpl(
                 new PhysicalIOImpl(
                     new BlockManager(
                         new FakeObjectClient(TEST_DATA),

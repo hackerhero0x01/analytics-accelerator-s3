@@ -2,7 +2,7 @@ package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.logical.LogicalIO;
-import com.amazon.connector.s3.io.logical.impl.LogicalIOImpl;
+import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.util.S3URI;
@@ -36,15 +36,15 @@ public class S3SeekableInputStream extends SeekableInputStream {
       @NonNull S3URI s3URI,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     this(
-        new LogicalIOImpl(
+        new ParquetLogicalIOImpl(
             new PhysicalIOImpl(
                 new BlockManager(
                     objectClient, s3URI, configuration.getBlockManagerConfiguration()))));
   }
 
   /**
-   * Given a Block Manager, creates a new instance of {@link S3SeekableInputStream}. This version of
-   * the constructor is useful for testing as it allows dependency injection.
+   * Given a LogicalIO, creates a new instance of {@link S3SeekableInputStream}. This version of the
+   * constructor is useful for testing as it allows dependency injection.
    *
    * @param logicalIO already initialised LogicalIO
    */

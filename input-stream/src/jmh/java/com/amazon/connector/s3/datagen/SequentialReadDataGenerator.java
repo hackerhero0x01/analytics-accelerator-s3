@@ -24,6 +24,9 @@ public class SequentialReadDataGenerator {
    */
   public static void main(String[] args) {
     Arrays.stream(BenchmarkObject.values()).forEach(SequentialReadDataGenerator::generateObject);
+
+    // TODO: Fix up System.out after logging is introduced
+    //  Ticket: https://app.asana.com/0/1206885953994785/1207386741212336/f
     System.out.println("Done.");
   }
 
