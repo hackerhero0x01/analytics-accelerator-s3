@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.blockmanager;
+package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.common.Preconditions;
 import java.io.Closeable;
@@ -34,32 +34,30 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
    *
    * @param element The new element to add to the buffer.
    */
-  public void add(T element) {
+  public void add(T element) throws IOException {
     if (buffer.size() < capacity) {
       buffer.add(element);
     } else {
-      tryClose(buffer.get(oldestIndex));
+      buffer.get(oldestIndex).close();
       buffer.set(oldestIndex, element);
       oldestIndex = (oldestIndex + 1) % capacity;
     }
   }
 
-  private void tryClose(T t) {
-    try {
-      t.close();
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to close element of circular buffer", e);
-    }
-  }
-
-  /** Returns a conventional Java stream of the underlying objects */
+  /**
+   * Returns a conventional Java stream of the underlying objects
+   *
+   * @return a stream of the buffer content
+   */
   public Stream<T> stream() {
     return buffer.stream();
   }
 
   /** Closes the buffer, freeing up all underlying resources. */
   @Override
-  public void close() {
-    this.buffer.stream().forEach(this::tryClose);
+  public void close() throws IOException {
+    for (T t : buffer) {
+      t.close();
+    }
   }
 }

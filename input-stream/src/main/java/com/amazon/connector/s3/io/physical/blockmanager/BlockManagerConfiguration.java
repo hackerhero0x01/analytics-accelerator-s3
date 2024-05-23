@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.blockmanager;
+package com.amazon.connector.s3.io.physical.blockmanager;
 
 import static com.amazon.connector.s3.util.Constants.ONE_KB;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;

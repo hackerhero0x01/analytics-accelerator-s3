@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.blockmanager;
+package com.amazon.connector.s3.io.physical.blockmanager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
@@ -55,19 +55,21 @@ public class AutoClosingCircularBufferTest {
     circularBuffer.close();
 
     // Then: all elements are closed
-    for (Closeable c : List.of(c1, c2, c3)) {
+    for (Closeable c : Arrays.asList(c1, c2, c3)) {
       verify(c, times(1)).close();
     }
   }
 
   @Test
-  void testStream() {
+  void testStream() throws IOException {
     // Given
     AutoClosingCircularBuffer circularBuffer = new AutoClosingCircularBuffer(2);
 
     // When: 3 elements are added and then buffer is converted to a stream
-    List.of(mock(Closeable.class), mock(Closeable.class), mock(Closeable.class))
-        .forEach(circularBuffer::add);
+    for (Closeable c :
+        Arrays.asList(mock(Closeable.class), mock(Closeable.class), mock(Closeable.class))) {
+      circularBuffer.add(c);
+    }
     Stream<Closeable> stream = circularBuffer.stream();
 
     // Then: stream has only maxCapacity elements
@@ -87,6 +89,12 @@ public class AutoClosingCircularBufferTest {
     Closeable c3 = mock(Closeable.class);
 
     // When: middle element throws on close
-    assertThrows(RuntimeException.class, () -> List.of(c1, c2, c3).forEach(circularBuffer::add));
+    assertThrows(
+        RuntimeException.class,
+        () -> {
+          circularBuffer.add(c1);
+          circularBuffer.add(c2);
+          circularBuffer.add(c3);
+        });
   }
 }

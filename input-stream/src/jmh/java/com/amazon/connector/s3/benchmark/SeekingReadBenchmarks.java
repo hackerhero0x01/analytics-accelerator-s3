@@ -44,71 +44,48 @@ public class SeekingReadBenchmarks {
           new S3SdkObjectClient(S3AsyncClient.crtBuilder().maxConcurrency(300).build()),
           S3SeekableInputStreamConfiguration.DEFAULT);
 
-  @Param(
-      value = {
-        "random-1mb.txt",
-        "random-4mb.txt",
-        "random-16mb.txt",
-        // TODO: Extend this parameter to bigger objects once we improve performance
-        // https://app.asana.com/0/1206885953994785/1207212328457565/f
-        // "random-64mb.txt",
-        // "random-128mb.txt",
-        // "random-256mb.txt"
-      })
-  private String key;
+  @Param private BenchmarkData.BenchmarkObject object;
 
   /** Test backward seeks with S3 client */
   @Benchmark
   public void testBackwardSeeks__withStandardAsyncClient() {
-    BenchmarkData.getBenchMarkObjectByName(key)
-        .getBackwardSeekReadPattern()
-        .forEach(range -> doReadWithAsyncClient(client, range));
+    this.object.getBackwardSeekReadPattern().forEach(range -> doReadWithAsyncClient(client, range));
   }
 
   /** Test backward seeks with SeekableStream */
   @Benchmark
   public void testBackwardSeeks__withSeekableStream() {
-    S3SeekableInputStream stream = getStreamForKey(key);
+    S3SeekableInputStream stream = getStreamForKey(this.object.getKeyName());
 
-    BenchmarkData.getBenchMarkObjectByName(key)
-        .getBackwardSeekReadPattern()
-        .forEach(range -> doReadWithStream(stream, range));
+    this.object.getBackwardSeekReadPattern().forEach(range -> doReadWithStream(stream, range));
   }
 
   /** Test forward seeks with S3 client */
   @Benchmark
   public void testForwardSeeks__withStandardAsyncClient() {
-    BenchmarkData.getBenchMarkObjectByName(key)
-        .getForwardSeekReadPattern()
-        .forEach(range -> doReadWithAsyncClient(client, range));
+    this.object.getForwardSeekReadPattern().forEach(range -> doReadWithAsyncClient(client, range));
   }
 
   /** Test forward seeks with Seekable Stream */
   @Benchmark
   public void testForwardSeeks__withSeekableStream() {
-    S3SeekableInputStream stream = getStreamForKey(key);
+    S3SeekableInputStream stream = getStreamForKey(this.object.getKeyName());
 
-    BenchmarkData.getBenchMarkObjectByName(key)
-        .getForwardSeekReadPattern()
-        .forEach(range -> doReadWithStream(stream, range));
+    this.object.getForwardSeekReadPattern().forEach(range -> doReadWithStream(stream, range));
   }
 
   /** Test parquet-like reads with S3 client */
   @Benchmark
   public void testParquetLikeRead__withStandardAsyncClient() {
-    BenchmarkData.getBenchMarkObjectByName(key)
-        .getParquetLikeReadPattern()
-        .forEach(range -> doReadWithAsyncClient(client, range));
+    this.object.getParquetLikeReadPattern().forEach(range -> doReadWithAsyncClient(client, range));
   }
 
   /** Test parquet-like reads with Seekable Stream */
   @Benchmark
   public void testParquetLikeRead__withSeekableStream() {
-    S3SeekableInputStream stream = getStreamForKey(key);
+    S3SeekableInputStream stream = getStreamForKey(this.object.getKeyName());
 
-    BenchmarkData.getBenchMarkObjectByName(key)
-        .getParquetLikeReadPattern()
-        .forEach(range -> doReadWithStream(stream, range));
+    this.object.getParquetLikeReadPattern().forEach(range -> doReadWithStream(stream, range));
   }
 
   private void doReadWithAsyncClient(S3AsyncClient client, Read read) {
@@ -116,7 +93,7 @@ public class SeekingReadBenchmarks {
         client.getObject(
             GetObjectRequest.builder()
                 .bucket(Constants.BENCHMARK_BUCKET)
-                .key(Constants.BENCHMARK_DATA_PREFIX_SEQUENTIAL + key)
+                .key(Constants.BENCHMARK_DATA_PREFIX_SEQUENTIAL + this.object.getKeyName())
                 .range(rangeOf(read.getStart(), read.getStart() + read.getLength() - 1))
                 .build(),
             AsyncResponseTransformer.toBlockingInputStream());
