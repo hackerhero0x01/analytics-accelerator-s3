@@ -30,7 +30,7 @@ jobs:
         uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew uberJar
       
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
@@ -40,7 +40,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Upload input-stream jar to s3a treatment bucket
-        run: aws s3 cp --recursive input-stream/build/libs s3://${{ env.S3_BUCKET }}/s3a
+        run: aws s3 cp --recursive input-stream/build/libs/input-stream-uber.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
       
       - name: Upload object-client uber jar to s3a treatment bucket
-        run: aws s3 cp --recursive object-client/build/libs s3://${{ env.S3_BUCKET }}/s3a
+        run: aws s3 cp --recursive object-client/build/libs/object-client-uber.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
