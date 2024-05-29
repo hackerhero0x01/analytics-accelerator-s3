@@ -4,8 +4,6 @@ name: Build and upload s3 seekable stream jars to s3a treatment bucket
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 env:
   AWS_REGION :  ${{ vars.AWS_REGION }} #Change to reflect your Region
