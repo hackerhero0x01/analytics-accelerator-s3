@@ -8,10 +8,11 @@ on:
     branches: [ main ]
 
 env:
-  AWS_REGION : "us-east-1" #Change to reflect your Region
-  S3_BUCKET : "seekable-stream-jars"
-  STATE_MACHINE_ARN : "arn:aws:states:us-east-1:696132882038:stateMachine:BenchmarkOrchestratorStateMachine-prod-us-east-1-696132882038"
-
+  AWS_REGION :  ${{ vars.AWS_REGION }} #Change to reflect your Region
+  S3_BUCKET : ${{ vars.S3_BUCKET }}
+  STATE_MACHINE_ARN : ${{ secrets.STATE_MACHINE_ARN }}
+  ROLE_TO_ASSUME: ${{ secrets.ASSUME_ROLE_ARN }}
+  STATE_MACHINE_INPUT: ${{ vars.STEP_FUNCTION_INPUT }}
 # Permission can be added at job level or workflow level    
 permissions:
       id-token: write   # This is required for requesting the JWT
@@ -36,7 +37,7 @@ jobs:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
-          role-to-assume: arn:aws:iam::696132882038:role/S3SkylineGithubRole #change to reflect your IAM role’s ARN
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
       
@@ -47,5 +48,5 @@ jobs:
         run: aws s3 cp --recursive object-client/build/libs/object-client-uber.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
 
       - name: Trigger S3A Benchmarks
-        run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN}} --input "{\"InputConfigurations\":[{\"AzId\":\"use1-az1\",\"Runner\":{\"JavaClassPath\":\"datalake.connectors.benchmark.tools.experiments.RunOpenSourceSparkAQBE\",\"JavaExecArgs\":\"--numIterations 11 --datasetObjectSize 100mb --conf spark.hadoop.fs.s3a.experimental.input.fadvise=random\",\"JobIdPrefix\":\"Baseline\",\"S3UriPrefix\":\"s3-skyline-us-east-1\",\"AthenaAndCwRegion\":\"us-east-1\",\"Namespace\":\"shared\",\"AccountId\":\"696132882038\",\"Connector\":\"s3a\"}},{\"AzId\":\"use1-az1\",\"Runner\":{\"JavaClassPath\":\"datalake.connectors.benchmark.tools.experiments.RunOpenSourceSparkAQBE\",\"JavaExecArgs\":\"--numIterations 11 --datasetObjectSize 100mb --jars s3://seekable-stream-jars/hadoop-aws-3.5.0-SNAPSHOT.jar s3://seekable-stream-jars/input-stream-1.0.0.jar s3://seekable-stream-jars/object-client-1.0.0.jar --conf spark.hadoop.fs.s3a.seekable.stream.enabled=true spark.hadoop.fs.s3a.experimental.input.fadvise=random\",\"JobIdPrefix\":\"Treatment\",\"S3UriPrefix\":\"s3-skyline-us-east-1\",\"AthenaAndCwRegion\":\"us-east-1\",\"Namespace\":\"shared\",\"AccountId\":\"696132882038\",\"Connector\":\"s3a\"}}]}"
+        run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT }}
 
