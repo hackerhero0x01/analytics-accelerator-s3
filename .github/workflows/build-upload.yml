@@ -40,10 +40,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Upload input-stream jar to s3a treatment bucket
-        run: aws s3 cp --recursive input-stream/build/libs/input-stream-uber.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
+        run: aws s3 cp input-stream/build/libs/input-stream-uber.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
       
       - name: Upload object-client uber jar to s3a treatment bucket
-        run: aws s3 cp --recursive object-client/build/libs/object-client-uber.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
+        run: aws s3 cp object-client/build/libs/object-client-uber.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
 
       - name: Trigger S3A Benchmarks
         run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT }}
