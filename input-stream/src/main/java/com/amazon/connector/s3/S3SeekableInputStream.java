@@ -4,6 +4,7 @@ import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
+import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerInterface;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.EOFException;
@@ -31,7 +32,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param s3URI S3 Uri
    * @param configuration configuration
    */
-  protected S3SeekableInputStream(
+  public S3SeekableInputStream(
       @NonNull ObjectClient objectClient,
       @NonNull S3URI s3URI,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
@@ -39,7 +40,19 @@ public class S3SeekableInputStream extends SeekableInputStream {
         new ParquetLogicalIOImpl(
             new PhysicalIOImpl(
                 new BlockManager(
-                    objectClient, s3URI, configuration.getBlockManagerConfiguration()))));
+                    objectClient, s3URI, configuration.getBlockManagerConfiguration())),
+        configuration.getLogicalIOConfiguration()));
+  }
+
+  /**
+   * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
+   * initialises the stream with sensible defaults.
+   *
+   *  @param blockManager provides instance of {@link BlockManagerInterface}
+   */
+  protected S3SeekableInputStream(@NonNull BlockManagerInterface blockManager,
+                                  @NonNull S3SeekableInputStreamConfiguration configuration) {
+    this(new ParquetLogicalIOImpl(new PhysicalIOImpl(blockManager), configuration.getLogicalIOConfiguration()));
   }
 
   /**

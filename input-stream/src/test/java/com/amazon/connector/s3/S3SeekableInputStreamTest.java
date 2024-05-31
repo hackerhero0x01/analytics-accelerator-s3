@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.io.logical.LogicalIO;
+import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
@@ -139,7 +140,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                     new BlockManager(
                         new FakeObjectClient(""),
                         TEST_OBJECT,
-                        BlockManagerConfiguration.DEFAULT))));
+                        BlockManagerConfiguration.DEFAULT)),
+                LogicalIOConfiguration.DEFAULT));
 
     // When: we read a byte from the empty object
     int readByte = stream.read();
@@ -197,7 +199,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                     new BlockManager(
                         new FakeObjectClient(TEST_DATA),
                         TEST_OBJECT,
-                        BlockManagerConfiguration.builder().blockSizeBytes(5).build()))));
+                        BlockManagerConfiguration.builder().blockSizeBytes(5).build())),
+                LogicalIOConfiguration.DEFAULT));
 
     byte[] buffer = new byte[TEST_DATA.length()];
 
@@ -219,7 +222,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                     new BlockManager(
                         new FakeObjectClient(TEST_DATA),
                         TEST_OBJECT,
-                        BlockManagerConfiguration.builder().blockSizeBytes(5).build()))));
+                        BlockManagerConfiguration.builder().blockSizeBytes(5).build())),
+                LogicalIOConfiguration.DEFAULT));
 
     byte[] buffer = new byte[11];
 

@@ -1,5 +1,7 @@
 package com.amazon.connector.s3;
 
+import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
+import com.amazon.connector.s3.io.physical.blockmanager.MultiObjectsBlockManager;
 import com.amazon.connector.s3.util.S3URI;
 import lombok.Getter;
 import lombok.NonNull;
@@ -18,6 +20,7 @@ import lombok.NonNull;
 public class S3SeekableInputStreamFactory {
   private final ObjectClient objectClient;
   private final S3SeekableInputStreamConfiguration configuration;
+  private final MultiObjectsBlockManager multiObjectsBlockManager;
 
   /**
    * Creates a new instance of {@link S3SeekableInputStreamFactory}. This factory should be used to
@@ -32,6 +35,7 @@ public class S3SeekableInputStreamFactory {
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     this.objectClient = objectClient;
     this.configuration = configuration;
+    this.multiObjectsBlockManager = new MultiObjectsBlockManager(objectClient, configuration.getBlockManagerConfiguration());
   }
 
   /**
@@ -41,6 +45,11 @@ public class S3SeekableInputStreamFactory {
    * @return An instance of the input stream.
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI) {
+    if (configuration.getBlockManagerConfiguration().isUseSingleCache()) {
+      BlockManager blockManager = new BlockManager(multiObjectsBlockManager, s3URI);
+      return new S3SeekableInputStream(blockManager, configuration);
+    }
+
     return new S3SeekableInputStream(objectClient, s3URI, configuration);
   }
 }

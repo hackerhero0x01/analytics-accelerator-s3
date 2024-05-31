@@ -12,6 +12,8 @@ import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguratio
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
+import java.security.InvalidParameterException;
+
 import org.junit.jupiter.api.Test;
 
 public class PhysicalIOImplTest {
@@ -25,12 +27,18 @@ public class PhysicalIOImplTest {
   }
 
   @Test
+  void testDependantConstructor() {
+    PhysicalIOImpl physicalIO = new PhysicalIOImpl(mock(BlockManager.class));
+    assertNotNull(physicalIO);
+  }
+
+  @Test
   void testExecuteNotImplementedThrows() {
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(
             mock(ObjectClient.class), S3URI.of("a", "b"), BlockManagerConfiguration.DEFAULT);
 
-    assertThrows(UnsupportedOperationException.class, () -> physicalIO.execute(new IOPlan()));
+    assertThrows(InvalidParameterException.class, () -> physicalIO.execute(IOPlan.builder().build()));
   }
 
   @Test

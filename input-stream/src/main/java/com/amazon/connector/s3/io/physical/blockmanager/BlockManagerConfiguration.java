@@ -14,21 +14,29 @@ import lombok.Getter;
 @EqualsAndHashCode
 public class BlockManagerConfiguration {
   public static final int DEFAULT_CAPACITY_BLOCKS = 10;
+  public static final int DEFAULT_CAPACITY_MULTI_OBJECTS = 45;
+  public static final boolean DEFAULT_USE_SINGLE_CACHE = true;
   public static final long DEFAULT_BLOCK_SIZE_BYTES = 8 * ONE_MB;
   public static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
 
   /** Capacity, in blocks. {@link BlockManagerConfiguration#DEFAULT_CAPACITY_BLOCKS} by default. */
-  @Builder.Default private final int capacityBlocks = DEFAULT_CAPACITY_BLOCKS;
+  @Builder.Default private int capacityBlocks = DEFAULT_CAPACITY_BLOCKS;
+
+  /** Capacity, in objects {@link  BlockManagerConfiguration#DEFAULT_CAPACITY_MULTI_OBJECTS} by default */
+  @Builder.Default private int capacityMultiObjects = DEFAULT_CAPACITY_MULTI_OBJECTS;
+
+  /** Use single cache. {@link BlockManagerConfiguration#DEFAULT_USE_SINGLE_CACHE} by default. */
+  @Builder.Default private boolean useSingleCache = DEFAULT_USE_SINGLE_CACHE;
 
   /**
    * Block size, in bytes. {@link BlockManagerConfiguration#DEFAULT_BLOCK_SIZE_BYTES} by default.
    */
-  @Builder.Default private final long blockSizeBytes = DEFAULT_BLOCK_SIZE_BYTES;
+  @Builder.Default private long blockSizeBytes = DEFAULT_BLOCK_SIZE_BYTES;
 
   /**
    * Read ahead, in bytes. {@link BlockManagerConfiguration#DEFAULT_BLOCK_SIZE_BYTES} by default.
    */
-  @Builder.Default private final long readAheadBytes = DEFAULT_READ_AHEAD_BYTES;
+  @Builder.Default private long readAheadBytes = DEFAULT_READ_AHEAD_BYTES;
 
   /** Default set of settings for {@link BlockManager} */
   public static final BlockManagerConfiguration DEFAULT =
@@ -42,13 +50,17 @@ public class BlockManagerConfiguration {
    * @param readAheadBytes Read ahead, in bytes
    */
   @Builder
-  private BlockManagerConfiguration(int capacityBlocks, long blockSizeBytes, long readAheadBytes) {
+  private BlockManagerConfiguration(int capacityBlocks, int capacityMultiObjects, boolean useSingleCache,
+                                    long blockSizeBytes, long readAheadBytes) {
     Preconditions.checkArgument(capacityBlocks > 0, "`capacityBlocks` must be positive");
+    Preconditions.checkArgument(capacityMultiObjects > 0, "`capacityMultiObjects` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");
     Preconditions.checkArgument(readAheadBytes > 0, "`readAheadLengthBytes` must be positive");
 
     this.capacityBlocks = capacityBlocks;
+    this.capacityMultiObjects = capacityMultiObjects;
     this.blockSizeBytes = blockSizeBytes;
     this.readAheadBytes = readAheadBytes;
+    this.useSingleCache = useSingleCache;
   }
 }
