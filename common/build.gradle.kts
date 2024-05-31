@@ -5,6 +5,7 @@
 plugins {
     id("buildlogic.java-library-conventions")
     id("io.freefair.lombok") version "8.6"
+    `maven-publish`
 }
 
 dependencies {
@@ -17,4 +18,14 @@ dependencies {
 }
 
 tasks.withType<JavaCompile>().configureEach {
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("common") {
+            version = "1.0.0"
+
+            from(components["java"])
+        }
+    }
 }

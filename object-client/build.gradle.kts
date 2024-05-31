@@ -5,6 +5,7 @@
 plugins {
     id("buildlogic.java-library-conventions")
     id("io.freefair.lombok") version "8.6"
+    `maven-publish`
 }
 
 dependencies {
@@ -21,4 +22,14 @@ dependencies {
 
 tasks.test {
     environment("AWS_REGION", "eu-west-1")
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("objectClient") {
+            version = "1.0.0"
+
+            from(components["java"])
+        }
+    }
 }
