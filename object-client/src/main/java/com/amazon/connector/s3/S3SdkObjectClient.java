@@ -62,12 +62,8 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
         GetObjectRequest.builder().bucket(getRequest.getBucket()).key(getRequest.getKey());
 
     if (Objects.nonNull(getRequest.getRange())) {
-      String range =
-          String.format(
-              "bytes=%s-%s", getRequest.getRange().getStart(), getRequest.getRange().getEnd());
-
+      String range = getRequest.getRange().toString();
       builder.range(range);
-
       // Temporarily adding range of data requested as a Referrer header to allow for easy analysis
       // of access logs. This is similar to what the Auditing feature in S3A does.
       builder.overrideConfiguration(

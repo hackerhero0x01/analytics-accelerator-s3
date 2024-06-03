@@ -12,6 +12,7 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
+import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -87,7 +88,7 @@ public class S3SdkObjectClientTest {
             GetRequest.builder()
                 .bucket("bucket")
                 .key("key")
-                .range(Range.builder().start(0).end(20).build())
+                .range(new Range(OptionalLong.of(0), OptionalLong.of(20)))
                 .build()));
   }
 

@@ -8,6 +8,11 @@ import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguratio
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 
 public class S3SeekableInputStreamTestBase {
 

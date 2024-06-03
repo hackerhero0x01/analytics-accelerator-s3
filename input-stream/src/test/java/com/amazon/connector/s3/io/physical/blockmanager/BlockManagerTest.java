@@ -131,8 +131,8 @@ public class BlockManagerTest {
     // Then: only object size is requested
     verify(objectClient).getObject(requestCaptor.capture());
     GetRequest getRequest = requestCaptor.getValue();
-    assertEquals(0L, getRequest.getRange().getStart());
-    assertEquals(ONE_MB - 1, getRequest.getRange().getEnd());
+    assertEquals(0L, getRequest.getRange().getStart().getAsLong());
+    assertEquals(ONE_MB - 1, getRequest.getRange().getEnd().getAsLong());
   }
 
   @Test
@@ -184,8 +184,8 @@ public class BlockManagerTest {
     // Then: only object size is requested
     verify(objectClient).getObject(requestCaptor.capture());
     GetRequest getRequest = requestCaptor.getValue();
-    assertEquals(0L, getRequest.getRange().getStart());
-    assertEquals(readAheadConfig - 1, getRequest.getRange().getEnd());
+    assertEquals(0L, getRequest.getRange().getStart().getAsLong());
+    assertEquals(readAheadConfig - 1, getRequest.getRange().getEnd().getAsLong());
   }
 
   @Test

@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.reference;
+package com.amazon.connector.s3.model;
 
 import com.amazon.connector.s3.SeekableInputStream;
 import java.nio.ByteBuffer;

@@ -47,6 +47,11 @@ dependencies {
 
     referenceTestImplementation(libs.s3mock.testcontainers)
     referenceTestImplementation(libs.testcontainers.junit.jupiter)
+
+    referenceTestImplementation("net.jqwik:jqwik:1.8.5")
+    referenceTestImplementation("net.jqwik:jqwik-testcontainers:0.5.2")
+    referenceTestImplementation("org.testcontainers:testcontainers:1.16.2")
+
     referenceTestRuntimeOnly(libs.junit.jupiter.launcher)
 }
 
@@ -63,6 +68,8 @@ tasks.named("compileReferenceTestJava", JavaCompile::class) {
     javaCompiler = javaToolchains.compilerFor {
         languageVersion = JavaLanguageVersion.of(17)
     }
+
+    options.compilerArgs.add("-parameters")
 }
 
 val refTest = task<Test>("referenceTest") {
