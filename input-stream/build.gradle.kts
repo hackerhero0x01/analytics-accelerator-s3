@@ -29,6 +29,7 @@ dependencies {
     api(project(":object-client"))
 
     implementation(project(":common"))
+    implementation(libs.parquet.format)
 
     jmhImplementation(libs.s3)
 

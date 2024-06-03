@@ -7,6 +7,7 @@ s3mock = "3.6.0"
 testcontainers = "1.19.7"
 crt = "0.29.10"
 lombok = "1.18.32"
+parquetFormat = "2.10.0"
 
 [libraries]
 # S3-related dependencies
@@ -15,6 +16,7 @@ sdk-url-connection-client = { module = "software.amazon.awssdk:url-connection-cl
 sdk-bom = { group = "software.amazon.awssdk", name = "bom", version.ref = "s3" }
 crt = { module = "software.amazon.awssdk.crt:aws-crt", version.ref = "crt" }
 netty-nio-client = { module = "software.amazon.awssdk:netty-nio-client", version.ref = "s3" }
+parquet-format = { module = "org.apache.parquet:parquet-format", version.ref = "parquetFormat" }
 
 # Code maintenance and best practices
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }

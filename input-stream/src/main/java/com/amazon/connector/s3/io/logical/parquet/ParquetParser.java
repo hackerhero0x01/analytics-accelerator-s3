@@ -1,0 +1,79 @@
+package com.amazon.connector.s3.io.logical.parquet;
+
+import static com.amazon.connector.s3.util.Constants.PARQUET_FOOTER_LENGTH_SIZE;
+import static com.amazon.connector.s3.util.Constants.PARQUET_MAGIC_STR;
+
+import com.amazon.connector.s3.common.Preconditions;
+import java.io.ByteArrayInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import org.apache.parquet.format.FileMetaData;
+import org.apache.parquet.format.InterningProtocol;
+import shaded.parquet.org.apache.thrift.TException;
+import shaded.parquet.org.apache.thrift.protocol.TCompactProtocol;
+import shaded.parquet.org.apache.thrift.protocol.TProtocol;
+import shaded.parquet.org.apache.thrift.transport.TIOStreamTransport;
+import shaded.parquet.org.apache.thrift.transport.TTransportException;
+
+/** Allows for parsing a tail of a parquet file to get it's FileMetadata. */
+public final class ParquetParser {
+
+  /**
+   * Parses the tail of a parquet file to obtain it's FileMetaData.
+   *
+   * @param contentLen The length of the parquet file tail to be parsed
+   * @param fileTail The file data to be parsed
+   * @return FileMetaData
+   * @throws IOException
+   */
+  public static FileMetaData parseParquetFooter(int contentLen, ByteBuffer fileTail)
+      throws IOException {
+
+    Preconditions.checkArgument(
+        contentLen > PARQUET_MAGIC_STR.length() + PARQUET_FOOTER_LENGTH_SIZE,
+        "Specified content length is too low");
+
+    int fileMetadataLengthIndex =
+        contentLen - PARQUET_MAGIC_STR.length() - PARQUET_FOOTER_LENGTH_SIZE;
+
+    fileTail.position(fileMetadataLengthIndex);
+
+    byte[] buff = new byte[4];
+    fileTail.get(buff, 0, 4);
+
+    int fileMetadataLength = readIntLittleEndian(new ByteArrayInputStream(buff));
+    int fileMetadataIndex = fileMetadataLengthIndex - fileMetadataLength;
+    fileTail.position(fileMetadataIndex);
+    byte[] footer = new byte[fileMetadataLength];
+    fileTail.get(footer, 0, fileMetadataLength);
+
+    try {
+      FileMetaData fmd = new FileMetaData();
+      fmd.read(protocol(new ByteArrayInputStream(footer)));
+      return fmd;
+    } catch (TException e) {
+      throw new IOException("can not read FileMetaData: " + e.getMessage(), e);
+    }
+  }
+
+  private static TProtocol protocol(InputStream from) throws TTransportException {
+    return protocol(new TIOStreamTransport(from));
+  }
+
+  private static InterningProtocol protocol(TIOStreamTransport t) {
+    return new InterningProtocol(new TCompactProtocol(t));
+  }
+
+  private static int readIntLittleEndian(InputStream in) throws IOException {
+    int ch1 = in.read();
+    int ch2 = in.read();
+    int ch3 = in.read();
+    int ch4 = in.read();
+    if ((ch1 | ch2 | ch3 | ch4) < 0) {
+      throw new EOFException();
+    }
+    return ((ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0));
+  }
+}
