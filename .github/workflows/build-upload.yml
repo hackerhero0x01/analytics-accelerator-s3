@@ -10,7 +10,9 @@ env:
   S3_BUCKET : ${{ vars.S3_BUCKET }}
   STATE_MACHINE_ARN : ${{ secrets.STATE_MACHINE_ARN }}
   ROLE_TO_ASSUME: ${{ secrets.ASSUME_ROLE_ARN }}
-  STATE_MACHINE_INPUT: ${{ vars.STEP_FUNCTION_INPUT }}
+  STATE_MACHINE_INPUT_S3A: ${{ vars.STATE_MACHINE_INPUT_S3A }}
+  STATE_MACHINE_INPUT_S3FILEIO: ${{ vars.STATE_MACHINE_INPUT_S3FILEIO }}
+
 # Permission can be added at job level or workflow level    
 permissions:
       id-token: write   # This is required for requesting the JWT
@@ -60,5 +62,7 @@ jobs:
         run: aws s3 cp common/build/libs/object-client.jar s3://${{ env.S3_BUCKET }}/s3fileio/object-client.jar
 
       - name: Trigger S3A Benchmarks
-        run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT }}
+        run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT_S3A }}
 
+      - name: Trigger S3FileIO Benchmarks
+        run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT_S3FILEIO }}
