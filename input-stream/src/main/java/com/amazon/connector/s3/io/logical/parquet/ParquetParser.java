@@ -30,6 +30,8 @@ final class ParquetParser {
   public static FileMetaData parseParquetFooter(int contentLen, ByteBuffer fileTail)
       throws IOException {
 
+    // TODO: https://app.asana.com/0/1206885953994785/1207471636563541 This is an initial basic
+    // implementation. We should look at supporting different parquet versions, encrypted files etc.
     Preconditions.checkArgument(
         contentLen > PARQUET_MAGIC_STR_LENGTH + PARQUET_FOOTER_LENGTH_SIZE,
         "Specified content length is too low");
