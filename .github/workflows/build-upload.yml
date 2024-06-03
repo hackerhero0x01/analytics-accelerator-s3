@@ -53,13 +53,13 @@ jobs:
         run: aws s3 cp input-stream/build/libs/input-stream-uber.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
 
       - name: Upload input-stream JAR to S3FileIO treatment bucket
-        run: aws s3 cp common/build/libs/input-stream.jar s3://${{ env.S3_BUCKET }}/s3fileio/input-stream.jar
+        run: aws s3 cp input-stream/build/libs/input-stream.jar s3://${{ env.S3_BUCKET }}/s3fileio/input-stream.jar
 
       - name: Upload object-client JAR to S3a treatment bucket
         run: aws s3 cp object-client/build/libs/object-client-uber.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
 
       - name: Upload object-client JAR to S3FileIO treatment bucket
-        run: aws s3 cp common/build/libs/object-client.jar s3://${{ env.S3_BUCKET }}/s3fileio/object-client.jar
+        run: aws s3 cp object-client/build/libs/object-client.jar s3://${{ env.S3_BUCKET }}/s3fileio/object-client.jar
 
       - name: Trigger S3A Benchmarks
         run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT_S3A }}
