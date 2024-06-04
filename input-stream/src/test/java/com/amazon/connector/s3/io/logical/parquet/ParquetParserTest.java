@@ -23,7 +23,7 @@ public class ParquetParserTest {
   @Test
   void testParquetMetadataParsing() throws IOException {
 
-    File file = new File("src/test/java/com/amazon/connector/s3/testdata/call_center.parquet");
+    File file = new File("src/test/resources/call_center.parquet");
     InputStream inputStream = new FileInputStream(file);
 
     byte[] buffer = new byte[ONE_KB * 20];
