@@ -13,6 +13,7 @@ The project is configured to be built via Gradle (Gradle 8.7). It also targets J
 * To skip reference tests: `./gradlew build -x referenceTest`
 * To apply formatting: `./gradlew spotlessApply`
 * To list all tasks: `./gradlew tasks`
+* To publish JARs to Maven local: `./gradlew publishToMavenLocal`
 
 # Microbenchmarks
 
@@ -32,6 +33,12 @@ prefix in your bucket for all micro-benchmark related stuff). Now, to generate s
 Just run `./gradlew jmh --rerun`. (The reason for re-run is a Gradle-quirk. You may want to re-run benchmarks even when
 you did not actually change the source of your project: `--rerun` turns off the Gradle optimisation that falls through
 build steps when nothing changed.)
+
+## Developing integrations
+
+When you are building this library into connectors, your IDE will need to be aware of the JARs (common, object-client,
+input-stream). Consuming these via Maven/Gradle is natural and you can use `./gradlew publishToMavenLocal` to have the
+built JARs installed to your Maven local repository (this is `~/.m2` most of the time).
 
 
 ## Security
