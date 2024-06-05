@@ -17,7 +17,12 @@ public class ParquetParserTest {
 
   @Test
   void testContructor() {
-    assertNotNull(new ParquetParser());
+    assertNotNull(new ParquetParser(ByteBuffer.allocate(0)));
+  }
+
+  @Test
+  void testConstructorFailsOnNull() {
+    assertThrows(NullPointerException.class, () -> new ParquetParser(null));
   }
 
   @Test
@@ -29,26 +34,29 @@ public class ParquetParserTest {
     byte[] buffer = new byte[ONE_KB * 20];
     inputStream.read(buffer, 0, (int) file.length());
 
-    FileMetaData fileMetaData =
-        ParquetParser.parseParquetFooter((int) file.length(), ByteBuffer.wrap(buffer));
+    ParquetParser parquetParser = new ParquetParser(ByteBuffer.wrap(buffer));
+    FileMetaData fileMetaData = parquetParser.parseParquetFooter((int) file.length());
 
     assertEquals(fileMetaData.row_groups.size(), 1);
     assertEquals(fileMetaData.getRow_groups().get(0).getColumns().size(), 31);
   }
 
   @Test
-  void testParquetMetadataParsingInvalidLength() {
+  void testParquetMetadataParsingInvalidData() {
+
+    ParquetParser parquetParserInvalidLength = new ParquetParser(ByteBuffer.allocate(ONE_KB));
     assertThrows(
         IllegalArgumentException.class,
         () -> {
-          ParquetParser.parseParquetFooter(8, ByteBuffer.allocate(ONE_KB));
+          parquetParserInvalidLength.parseParquetFooter(8);
         });
 
     // Empty buffer, will throw thrift exception
+    ParquetParser parquetParserInvalidBuffer = new ParquetParser(ByteBuffer.allocate(ONE_KB));
     assertThrows(
         IOException.class,
         () -> {
-          ParquetParser.parseParquetFooter(9, ByteBuffer.allocate(ONE_KB));
+          parquetParserInvalidBuffer.parseParquetFooter(9);
         });
   }
 }

@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import lombok.NonNull;
 import org.apache.parquet.format.FileMetaData;
 import org.apache.parquet.format.InterningProtocol;
 import shaded.parquet.org.apache.thrift.TException;
@@ -17,18 +18,22 @@ import shaded.parquet.org.apache.thrift.transport.TIOStreamTransport;
 import shaded.parquet.org.apache.thrift.transport.TTransportException;
 
 /** Allows for parsing a tail of a parquet file to get its FileMetadata. */
-final class ParquetParser {
+class ParquetParser {
+
+  private final ByteBuffer fileTail;
+
+  ParquetParser(@NonNull ByteBuffer fileTail) {
+    this.fileTail = fileTail;
+  }
 
   /**
    * Parses the tail of a parquet file to obtain its FileMetaData.
    *
    * @param contentLen The length of the parquet file tail to be parsed
-   * @param fileTail The file data to be parsed
    * @return FileMetaData
    * @throws IOException
    */
-  public static FileMetaData parseParquetFooter(int contentLen, ByteBuffer fileTail)
-      throws IOException {
+  public FileMetaData parseParquetFooter(int contentLen) throws IOException {
 
     // TODO: https://app.asana.com/0/1206885953994785/1207471636563541 This is an initial basic
     // implementation. We should look at supporting different parquet versions, encrypted files etc.
