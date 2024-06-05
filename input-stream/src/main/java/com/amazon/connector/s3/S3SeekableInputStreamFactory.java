@@ -3,10 +3,9 @@ package com.amazon.connector.s3;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.MultiObjectsBlockManager;
 import com.amazon.connector.s3.util.S3URI;
+import java.io.IOException;
 import lombok.Getter;
 import lombok.NonNull;
-
-import java.io.IOException;
 
 /**
  * Initialises resources to prepare for reading from S3. Resources initialised in this class are
@@ -37,7 +36,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     this.objectClient = objectClient;
     this.configuration = configuration;
-    this.multiObjectsBlockManager = new MultiObjectsBlockManager(objectClient, configuration.getBlockManagerConfiguration());
+    this.multiObjectsBlockManager =
+        new MultiObjectsBlockManager(objectClient, configuration.getBlockManagerConfiguration());
   }
 
   /**
@@ -57,6 +57,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
 
   /**
    * Closes the factory and underlying resources.
+   *
    * @throws IOException
    */
   @Override

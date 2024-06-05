@@ -28,7 +28,8 @@ public class PhysicalIOImpl implements PhysicalIO {
       ObjectClient objectClient, S3URI s3URI, BlockManagerConfiguration blockManagerConfiguration) {
     Preconditions.checkNotNull(objectClient, "objectClient should not be null");
     Preconditions.checkNotNull(s3URI, "s3URI should not be null");
-    Preconditions.checkNotNull(blockManagerConfiguration, "blockManagerConfiguration should not be null");
+    Preconditions.checkNotNull(
+        blockManagerConfiguration, "blockManagerConfiguration should not be null");
 
     this.blockManager = new BlockManager(objectClient, s3URI, blockManagerConfiguration);
   }
@@ -45,10 +46,11 @@ public class PhysicalIOImpl implements PhysicalIO {
 
   @Override
   public void execute(IOPlan logicalIOPlan) throws InvalidParameterException {
-      if  (logicalIOPlan.getPrefetchRanges() == null)
-        throw new InvalidParameterException("logicalIOPlan doesn't provide information about file to read");
+    if (logicalIOPlan.getPrefetchRanges() == null)
+      throw new InvalidParameterException(
+          "logicalIOPlan doesn't provide information about file to read");
 
-      this.blockManager.queuePrefetch(logicalIOPlan.getPrefetchRanges());
+    this.blockManager.queuePrefetch(logicalIOPlan.getPrefetchRanges());
   }
 
   @Override
@@ -75,7 +77,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   public void close() throws IOException {
     try {
       this.blockManager.close();
-    } catch(Exception e){
+    } catch (Exception e) {
       throw new IOException(e);
     }
   }

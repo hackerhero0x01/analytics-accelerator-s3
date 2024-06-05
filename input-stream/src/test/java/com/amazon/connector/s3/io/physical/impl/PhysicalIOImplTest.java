@@ -13,7 +13,6 @@ import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.security.InvalidParameterException;
-
 import org.junit.jupiter.api.Test;
 
 public class PhysicalIOImplTest {
@@ -38,7 +37,8 @@ public class PhysicalIOImplTest {
         new PhysicalIOImpl(
             mock(ObjectClient.class), S3URI.of("a", "b"), BlockManagerConfiguration.DEFAULT);
 
-    assertThrows(InvalidParameterException.class, () -> physicalIO.execute(IOPlan.builder().build()));
+    assertThrows(
+        InvalidParameterException.class, () -> physicalIO.execute(IOPlan.builder().build()));
   }
 
   @Test

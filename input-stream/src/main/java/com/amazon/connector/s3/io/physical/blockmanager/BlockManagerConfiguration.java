@@ -22,7 +22,10 @@ public class BlockManagerConfiguration {
   /** Capacity, in blocks. {@link BlockManagerConfiguration#DEFAULT_CAPACITY_BLOCKS} by default. */
   @Builder.Default private int capacityBlocks = DEFAULT_CAPACITY_BLOCKS;
 
-  /** Capacity, in objects {@link  BlockManagerConfiguration#DEFAULT_CAPACITY_MULTI_OBJECTS} by default */
+  /**
+   * Capacity, in objects {@link BlockManagerConfiguration#DEFAULT_CAPACITY_MULTI_OBJECTS} by
+   * default
+   */
   @Builder.Default private int capacityMultiObjects = DEFAULT_CAPACITY_MULTI_OBJECTS;
 
   /** Use single cache. {@link BlockManagerConfiguration#DEFAULT_USE_SINGLE_CACHE} by default. */
@@ -52,10 +55,15 @@ public class BlockManagerConfiguration {
    * @param capacityMultiObjects Capacity, in objects
    */
   @Builder
-  private BlockManagerConfiguration(int capacityBlocks, int capacityMultiObjects, boolean useSingleCache,
-                                    long blockSizeBytes, long readAheadBytes) {
+  private BlockManagerConfiguration(
+      int capacityBlocks,
+      int capacityMultiObjects,
+      boolean useSingleCache,
+      long blockSizeBytes,
+      long readAheadBytes) {
     Preconditions.checkArgument(capacityBlocks > 0, "`capacityBlocks` must be positive");
-    Preconditions.checkArgument(capacityMultiObjects > 0, "`capacityMultiObjects` must be positive");
+    Preconditions.checkArgument(
+        capacityMultiObjects > 0, "`capacityMultiObjects` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");
     Preconditions.checkArgument(readAheadBytes > 0, "`readAheadLengthBytes` must be positive");
 

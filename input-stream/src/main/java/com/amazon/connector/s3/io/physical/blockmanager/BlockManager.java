@@ -10,9 +10,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 
-/**
- * A block manager for a single object.
- */
+/** A block manager for a single object. */
 public class BlockManager implements BlockManagerInterface {
   private final MultiObjectsBlockManager multiObjectsBlockManager;
   private final ObjectStatus objectStatus;
@@ -29,7 +27,7 @@ public class BlockManager implements BlockManagerInterface {
       @NonNull ObjectClient objectClient,
       @NonNull S3URI s3URI,
       @NonNull BlockManagerConfiguration configuration) {
-    this.ownsMultiObjectsBlockManager  = true;
+    this.ownsMultiObjectsBlockManager = true;
     this.multiObjectsBlockManager = new MultiObjectsBlockManager(objectClient, configuration);
     this.objectStatus = new ObjectStatus(this.multiObjectsBlockManager.getMetadata(s3URI), s3URI);
   }
@@ -41,8 +39,7 @@ public class BlockManager implements BlockManagerInterface {
    * @param s3URI the location of the object
    */
   public BlockManager(
-          @NonNull MultiObjectsBlockManager multiObjectsBlockManager,
-          @NonNull S3URI s3URI) {
+      @NonNull MultiObjectsBlockManager multiObjectsBlockManager, @NonNull S3URI s3URI) {
     this.multiObjectsBlockManager = multiObjectsBlockManager;
     this.objectStatus = new ObjectStatus(this.multiObjectsBlockManager.getMetadata(s3URI), s3URI);
   }
@@ -71,6 +68,7 @@ public class BlockManager implements BlockManagerInterface {
   public void queuePrefetch(List<Range> prefetchRanges) {
     multiObjectsBlockManager.queuePrefetch(prefetchRanges, objectStatus.getS3URI());
   }
+
   @Override
   public void close() throws IOException {
     if (ownsMultiObjectsBlockManager) {

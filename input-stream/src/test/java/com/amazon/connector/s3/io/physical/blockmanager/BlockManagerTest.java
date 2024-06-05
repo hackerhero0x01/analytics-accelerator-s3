@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.utils.StringUtils;
@@ -54,7 +53,9 @@ public class BlockManagerTest {
         () -> new BlockManager(null, URI, BlockManagerConfiguration.DEFAULT));
     assertThrows(
         NullPointerException.class,
-        () -> new BlockManager(mock(ObjectClient.class), (S3URI) null, BlockManagerConfiguration.DEFAULT));
+        () ->
+            new BlockManager(
+                mock(ObjectClient.class), (S3URI) null, BlockManagerConfiguration.DEFAULT));
     assertThrows(
         NullPointerException.class, () -> new BlockManager(mock(ObjectClient.class), URI, null));
   }
@@ -62,8 +63,7 @@ public class BlockManagerTest {
   @Test
   void testDependentConstructor() {
     // When: constructor is called
-    BlockManager blockManager =
-            new BlockManager(mock(MultiObjectsBlockManager.class), URI);
+    BlockManager blockManager = new BlockManager(mock(MultiObjectsBlockManager.class), URI);
 
     // Then: result is not null
     assertNotNull(blockManager);
@@ -71,12 +71,10 @@ public class BlockManagerTest {
 
   @Test
   void testDependentConstructorFailsOnNull() {
+    assertThrows(NullPointerException.class, () -> new BlockManager(null, URI));
     assertThrows(
-            NullPointerException.class,
-            () -> new BlockManager(null, URI));
-    assertThrows(
-            NullPointerException.class,
-            () -> new BlockManager(mock(MultiObjectsBlockManager.class), (S3URI) null));
+        NullPointerException.class,
+        () -> new BlockManager(mock(MultiObjectsBlockManager.class), (S3URI) null));
   }
 
   @Test
@@ -129,11 +127,11 @@ public class BlockManagerTest {
 
     ObjectClient objectClient = mock(ObjectClient.class);
     when(objectClient.headObject(any()))
-            .thenReturn(
-                    CompletableFuture.completedFuture(
-                            ObjectMetadata.builder().contentLength(contentLength).build()));
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectMetadata.builder().contentLength(contentLength).build()));
     MultiObjectsBlockManager multiObjectsBlockManager =
-            new MultiObjectsBlockManager(objectClient, BlockManagerConfiguration.DEFAULT);
+        new MultiObjectsBlockManager(objectClient, BlockManagerConfiguration.DEFAULT);
     BlockManager blockManager = new BlockManager(multiObjectsBlockManager, URI);
     ObjectMetadata metadata = blockManager.getMetadata().join();
 
@@ -190,7 +188,8 @@ public class BlockManagerTest {
     sb.replace(secondRangeStart, secondRangeEnd, str2);
     FakeObjectClient objectClient = new FakeObjectClient(sb.toString());
 
-    BlockManager blockManager = new BlockManager(objectClient, URI, BlockManagerConfiguration.DEFAULT);
+    BlockManager blockManager =
+        new BlockManager(objectClient, URI, BlockManagerConfiguration.DEFAULT);
     List<Range> prefetchRanges = new ArrayList<>();
     prefetchRanges.add(new Range(secondRangeStart, secondRangeEnd));
     prefetchRanges.add(new Range(firstRangeStart, firstRangeEnd));

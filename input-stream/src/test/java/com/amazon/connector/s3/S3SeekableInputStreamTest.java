@@ -139,9 +139,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             new ParquetLogicalIOImpl(
                 new PhysicalIOImpl(
                     new BlockManager(
-                        new FakeObjectClient(""),
-                        TEST_OBJECT,
-                        BlockManagerConfiguration.DEFAULT)),
+                        new FakeObjectClient(""), TEST_OBJECT, BlockManagerConfiguration.DEFAULT)),
                 LogicalIOConfiguration.builder().FooterPrecachingEnabled(false).build()));
 
     // When: we read a byte from the empty object

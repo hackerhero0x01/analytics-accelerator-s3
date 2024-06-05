@@ -41,19 +41,22 @@ public class S3SeekableInputStream extends SeekableInputStream {
             new PhysicalIOImpl(
                 new BlockManager(
                     objectClient, s3URI, configuration.getBlockManagerConfiguration())),
-        configuration.getLogicalIOConfiguration()));
+            configuration.getLogicalIOConfiguration()));
   }
 
   /**
    * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
    * initialises the stream with sensible defaults.
    *
-   *  @param blockManager provides instance of {@link BlockManagerInterface}
-   *  @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
+   * @param blockManager provides instance of {@link BlockManagerInterface}
+   * @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
    */
-  protected S3SeekableInputStream(@NonNull BlockManagerInterface blockManager,
-                                  @NonNull S3SeekableInputStreamConfiguration configuration) {
-    this(new ParquetLogicalIOImpl(new PhysicalIOImpl(blockManager), configuration.getLogicalIOConfiguration()));
+  protected S3SeekableInputStream(
+      @NonNull BlockManagerInterface blockManager,
+      @NonNull S3SeekableInputStreamConfiguration configuration) {
+    this(
+        new ParquetLogicalIOImpl(
+            new PhysicalIOImpl(blockManager), configuration.getLogicalIOConfiguration()));
   }
 
   /**
