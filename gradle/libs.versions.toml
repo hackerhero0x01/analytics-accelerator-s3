@@ -8,6 +8,7 @@ testcontainers = "1.19.7"
 crt = "0.29.10"
 lombok = "1.18.32"
 parquetFormat = "2.10.0"
+log4j = "2.23.1"
 
 [libraries]
 # S3-related dependencies
@@ -21,6 +22,8 @@ parquet-format = { module = "org.apache.parquet:parquet-format", version.ref = "
 # Code maintenance and best practices
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 spotless = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
+log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 
 # Unit tests
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }

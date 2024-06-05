@@ -30,6 +30,8 @@ dependencies {
 
     implementation(project(":common"))
     implementation(libs.parquet.format)
+    implementation(libs.log4j.api)
+    implementation(libs.log4j.core)
 
     jmhImplementation(libs.s3)
 
