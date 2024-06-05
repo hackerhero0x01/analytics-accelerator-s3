@@ -29,7 +29,6 @@ configurations["referenceTestRuntimeOnly"].extendsFrom(configurations.runtimeOnl
 dependencies {
     api(project(":object-client"))
 
-    implementation("org.slf4j:slf4j-api:1.7.36")
     implementation(project(":common"))
     implementation(libs.parquet.format)
     implementation(libs.log4j.api)

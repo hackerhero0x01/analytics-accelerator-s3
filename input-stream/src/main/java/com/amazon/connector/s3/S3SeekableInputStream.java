@@ -32,7 +32,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param s3URI S3 Uri
    * @param configuration configuration
    */
-  public S3SeekableInputStream(
+  protected S3SeekableInputStream(
       @NonNull ObjectClient objectClient,
       @NonNull S3URI s3URI,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
@@ -49,6 +49,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * initialises the stream with sensible defaults.
    *
    *  @param blockManager provides instance of {@link BlockManagerInterface}
+   *  @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
    */
   protected S3SeekableInputStream(@NonNull BlockManagerInterface blockManager,
                                   @NonNull S3SeekableInputStreamConfiguration configuration) {

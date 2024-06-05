@@ -6,8 +6,11 @@ import lombok.Data;
 
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * ObjectStatus contains the metadata of the object and the S3URI of the object.
+ */
 @Data
-public class FileStatus {
+public class ObjectStatus {
     private final CompletableFuture<ObjectMetadata> objectMetadata;
     private final S3URI s3URI;
 }

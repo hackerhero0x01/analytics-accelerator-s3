@@ -6,8 +6,9 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,12 +25,12 @@ public class ParquetLogicalIOImpl implements LogicalIO {
   private final PhysicalIO physicalIO;
   private final LogicalIOConfiguration logicalIOConfiguration;
 
-  private static final Logger LOG = LoggerFactory.getLogger(ParquetLogicalIOImpl.class);
-
+  private static final Logger LOG = LogManager.getLogger(ParquetLogicalIOImpl.class);
   /**
    * Constructs an instance of LogicalIOImpl.
    *
    * @param physicalIO underlying physical IO that knows how to fetch bytes
+   * @param logicalIOConfiguration configuration for this logical IO implementation
    */
   public ParquetLogicalIOImpl(PhysicalIO physicalIO, LogicalIOConfiguration logicalIOConfiguration) {
     this.physicalIO = physicalIO;
@@ -74,8 +75,10 @@ public class ParquetLogicalIOImpl implements LogicalIO {
     long startRange = 0;
     if (contentLength > logicalIOConfiguration.getFooterPrecachingSize())
     {
-      if (contentLength > logicalIOConfiguration.getSmallObjectSizeThreshold() ||
-              !logicalIOConfiguration.isSmallObjectsPrefetchingEnabled())
+      boolean smallFileCacheEnabledButFileTooBig = contentLength > logicalIOConfiguration.getSmallObjectSizeThreshold() &&
+              logicalIOConfiguration.isSmallObjectsPrefetchingEnabled();
+
+      if (smallFileCacheEnabledButFileTooBig || !logicalIOConfiguration.isSmallObjectsPrefetchingEnabled())
       {
         startRange = contentLength - logicalIOConfiguration.getFooterPrecachingSize();
       }

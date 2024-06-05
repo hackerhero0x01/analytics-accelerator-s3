@@ -48,7 +48,7 @@ public class PhysicalIOImpl implements PhysicalIO {
       if  (logicalIOPlan.getPrefetchRanges() == null)
         throw new InvalidParameterException("logicalIOPlan doesn't provide information about file to read");
 
-      this.blockManager.queuePrefetch(logicalIOPlan.getPrefetchRanges(), logicalIOPlan.getFileStatus());
+      this.blockManager.queuePrefetch(logicalIOPlan.getPrefetchRanges());
   }
 
   @Override

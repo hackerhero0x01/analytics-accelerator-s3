@@ -48,6 +48,8 @@ public class BlockManagerConfiguration {
    * @param capacityBlocks Capacity, in blocks.
    * @param blockSizeBytes Block size, in bytes
    * @param readAheadBytes Read ahead, in bytes
+   * @param useSingleCache Use single cache
+   * @param capacityMultiObjects Capacity, in objects
    */
   @Builder
   private BlockManagerConfiguration(int capacityBlocks, int capacityMultiObjects, boolean useSingleCache,

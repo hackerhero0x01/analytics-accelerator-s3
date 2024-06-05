@@ -25,7 +25,8 @@ public class S3SeekableInputStreamConfiguration {
   /**
    * Creates a new instance of
    *
-   * @param blockManagerConfiguration - {@link BlockManagerConfiguration}
+   * @param blockManagerConfiguration - {@link BlockManagerConfiguration} configuration
+   * @param logicalIOConfiguration - {@link LogicalIOConfiguration} configuration
    */
   private S3SeekableInputStreamConfiguration(
       @NonNull BlockManagerConfiguration blockManagerConfiguration,

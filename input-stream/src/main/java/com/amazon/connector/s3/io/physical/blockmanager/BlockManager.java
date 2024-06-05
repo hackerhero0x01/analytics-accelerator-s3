@@ -1,7 +1,7 @@
 package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.io.logical.FileStatus;
+import com.amazon.connector.s3.io.logical.ObjectStatus;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
@@ -15,7 +15,8 @@ import lombok.NonNull;
  */
 public class BlockManager implements BlockManagerInterface {
   private final MultiObjectsBlockManager multiObjectsBlockManager;
-  FileStatus fileStatus;
+  private final ObjectStatus objectStatus;
+  private boolean ownsMultiObjectsBlockManager = false;
 
   /**
    * Creates an instance of block manager.
@@ -28,8 +29,9 @@ public class BlockManager implements BlockManagerInterface {
       @NonNull ObjectClient objectClient,
       @NonNull S3URI s3URI,
       @NonNull BlockManagerConfiguration configuration) {
+    this.ownsMultiObjectsBlockManager  = true;
     this.multiObjectsBlockManager = new MultiObjectsBlockManager(objectClient, configuration);
-    this.fileStatus = new FileStatus(this.multiObjectsBlockManager.getMetadata(s3URI), s3URI);
+    this.objectStatus = new ObjectStatus(this.multiObjectsBlockManager.getMetadata(s3URI), s3URI);
   }
 
   /**
@@ -42,30 +44,37 @@ public class BlockManager implements BlockManagerInterface {
           @NonNull MultiObjectsBlockManager multiObjectsBlockManager,
           @NonNull S3URI s3URI) {
     this.multiObjectsBlockManager = multiObjectsBlockManager;
-    this.fileStatus = new FileStatus(this.multiObjectsBlockManager.getMetadata(s3URI), s3URI);
+    this.objectStatus = new ObjectStatus(this.multiObjectsBlockManager.getMetadata(s3URI), s3URI);
   }
 
+  @Override
   public int read(long pos) throws IOException {
-    return multiObjectsBlockManager.read(pos, fileStatus.getS3URI());
+    return multiObjectsBlockManager.read(pos, objectStatus.getS3URI());
   }
 
+  @Override
   public int read(byte[] buffer, int offset, int len, long pos) throws IOException {
-    return multiObjectsBlockManager.read(buffer, offset, len, pos, fileStatus.getS3URI());
+    return multiObjectsBlockManager.read(buffer, offset, len, pos, objectStatus.getS3URI());
   }
 
+  @Override
   public int readTail(byte[] buf, int off, int n) throws IOException {
-    return multiObjectsBlockManager.readTail(buf, off, n, fileStatus.getS3URI());
+    return multiObjectsBlockManager.readTail(buf, off, n, objectStatus.getS3URI());
   }
 
+  @Override
   public CompletableFuture<ObjectMetadata> getMetadata() {
-    return fileStatus.getObjectMetadata();
+    return objectStatus.getObjectMetadata();
   }
 
-  public void queuePrefetch(List<Range> prefetchRanges, FileStatus fileStatus) {
-    multiObjectsBlockManager.queuePrefetch(prefetchRanges, fileStatus.getS3URI());
+  @Override
+  public void queuePrefetch(List<Range> prefetchRanges) {
+    multiObjectsBlockManager.queuePrefetch(prefetchRanges, objectStatus.getS3URI());
   }
   @Override
   public void close() throws IOException {
-    multiObjectsBlockManager.close();
+    if (ownsMultiObjectsBlockManager) {
+      multiObjectsBlockManager.close();
+    }
   }
 }

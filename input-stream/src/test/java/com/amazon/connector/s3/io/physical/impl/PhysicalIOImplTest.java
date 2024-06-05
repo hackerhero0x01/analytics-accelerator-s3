@@ -27,7 +27,7 @@ public class PhysicalIOImplTest {
   }
 
   @Test
-  void testDependantConstructor() {
+  void testDependentConstructor() {
     PhysicalIOImpl physicalIO = new PhysicalIOImpl(mock(BlockManager.class));
     assertNotNull(physicalIO);
   }

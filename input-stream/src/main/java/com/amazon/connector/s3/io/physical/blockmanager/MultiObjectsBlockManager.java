@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
@@ -9,6 +10,8 @@ import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import lombok.NonNull;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -31,6 +34,8 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     private final LinkedHashMap<S3URI, AutoClosingCircularBuffer<IOBlock> > ioBlocks;
     private final ObjectClient objectClient;
     private final BlockManagerConfiguration configuration;
+
+    private static final Logger LOG = LogManager.getLogger(ParquetLogicalIOImpl.class);
 
     /**
      * Creates an instance of block manager.
@@ -59,6 +64,12 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         };
     }
 
+    /**
+     * Returns a future to the metadata of the object.
+     *
+     * @param s3URI the S3URI of the object
+     * @return the metadata of the object
+     */
     public CompletableFuture<ObjectMetadata> getMetadata(S3URI s3URI) {
         if (!metadata.containsKey(s3URI)) {
             metadata.put(s3URI, objectClient.headObject(
@@ -71,6 +82,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
      * Reads a byte from the underlying object
      *
      * @param pos The position to read
+     * @param s3URI The S3URI of the object
      * @return an unsigned int representing the byte that was read
      */
     public int read(long pos, S3URI s3URI) throws IOException {
@@ -84,6 +96,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
      * @param offset start position in buffer at which data is written
      * @param len length of data to be read
      * @param pos the position to begin reading from
+     * @param s3URI the S3URI of the object
      * @return the total number of bytes read into the buffer
      */
     public int read(byte[] buffer, int offset, int len, long pos, S3URI s3URI) throws IOException {
@@ -124,6 +137,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
      * @param buf byte buffer to read into
      * @param off position of first read byte in the byte buffer
      * @param n length of data to read in bytes
+     * @param s3URI the S3URI of the object
      * @return the number of bytes read or -1 when EOF is reached
      */
     public int readTail(byte[] buf, int off, int n, S3URI s3URI) throws IOException {
@@ -215,6 +229,13 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         this.ioBlocks.clear();
     }
 
+    /**
+     * Queue a prefetch request for the given ranges and for a specified by s3URI object .
+     * The request will be processed asynchronously.
+     *
+     * @param prefetchRanges the ranges to prefetch
+     * @param s3URI the S3URI of the object
+     */
     public void queuePrefetch(final List<com.amazon.connector.s3.io.physical.plan.Range> prefetchRanges,
                               final S3URI s3URI) {
         this.ioBlocks.computeIfAbsent(s3URI,
@@ -223,6 +244,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
             try {
                 createBlock(range.getStart(), range.getEnd(), s3URI);
             } catch (IOException e) {
+                LOG.error("Error creating block for range: {}; key: {}; exception: {}", range, s3URI.getKey(), e);
                 throw new RuntimeException(e);
             }
         });

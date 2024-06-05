@@ -6,6 +6,8 @@ import com.amazon.connector.s3.util.S3URI;
 import lombok.Getter;
 import lombok.NonNull;
 
+import java.io.IOException;
+
 /**
  * Initialises resources to prepare for reading from S3. Resources initialised in this class are
  * shared across instances of {@link S3SeekableInputStream}. For example, this allows for the same
@@ -17,7 +19,7 @@ import lombok.NonNull;
  * SeekableInputStream}.
  */
 @Getter
-public class S3SeekableInputStreamFactory {
+public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final ObjectClient objectClient;
   private final S3SeekableInputStreamConfiguration configuration;
   private final MultiObjectsBlockManager multiObjectsBlockManager;
@@ -51,5 +53,14 @@ public class S3SeekableInputStreamFactory {
     }
 
     return new S3SeekableInputStream(objectClient, s3URI, configuration);
+  }
+
+  /**
+   * Closes the factory and underlying resources.
+   * @throws IOException
+   */
+  @Override
+  public void close() throws IOException {
+    multiObjectsBlockManager.close();
   }
 }

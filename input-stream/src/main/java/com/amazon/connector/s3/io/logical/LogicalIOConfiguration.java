@@ -4,21 +4,19 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-import static com.amazon.connector.s3.util.Constants.ONE_MB;
+import static com.amazon.connector.s3.util.Constants.DEFAULT_FOOTER_PRECACHING_SIZE;
+import static com.amazon.connector.s3.util.Constants.DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD;
 
 /** Configuration for {@link LogicalIO} */
 @Getter
 @Builder
 @EqualsAndHashCode
 public class LogicalIOConfiguration {
-    public static final long DEFAULT_FOOTER_PRECACHING_SIZE = ONE_MB;
-    public static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 3 * ONE_MB;
-
-    @Builder.Default private boolean FooterPrecachingEnabled = false;
+    @Builder.Default private boolean FooterPrecachingEnabled = true;
 
     @Builder.Default private long FooterPrecachingSize = DEFAULT_FOOTER_PRECACHING_SIZE;
 
-    @Builder.Default private boolean SmallObjectsPrefetchingEnabled = false;
+    @Builder.Default private boolean SmallObjectsPrefetchingEnabled = true;
 
     @Builder.Default private long SmallObjectSizeThreshold = DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD;
 

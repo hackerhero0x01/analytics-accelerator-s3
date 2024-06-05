@@ -1,6 +1,5 @@
 package com.amazon.connector.s3.io.physical.blockmanager;
 
-import com.amazon.connector.s3.io.logical.FileStatus;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 
@@ -8,7 +7,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public interface BlockManagerInterface extends AutoCloseable {
+/** A block manager interface for a single object. */
+ public interface BlockManagerInterface extends AutoCloseable {
     /**
      * Reads a byte from the underlying object
      *
@@ -44,9 +44,8 @@ public interface BlockManagerInterface extends AutoCloseable {
      * The request will be processed asynchronously.
      *
      * @param prefetchRanges the ranges to prefetch
-     * @param fileStatus the meta information about the file
      */
-    void queuePrefetch(List<Range> prefetchRanges, FileStatus fileStatus);
+    void queuePrefetch(List<Range> prefetchRanges);
 
     /**
      * Get the metadata of the object

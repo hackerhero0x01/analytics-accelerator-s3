@@ -9,7 +9,6 @@ import com.amazon.connector.s3.util.S3URI;
 import org.junit.jupiter.api.Test;
 
 public class S3SeekableInputStreamFactoryTest {
-
   @Test
   void testConstructor() {
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -40,7 +39,8 @@ public class S3SeekableInputStreamFactoryTest {
   void testCreateDefaultStream() {
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(
-            mock(ObjectClient.class), S3SeekableInputStreamConfiguration.DEFAULT);
+            mock(ObjectClient.class),
+            S3SeekableInputStreamConfiguration.builder().logicalIOConfiguration(LogicalIOConfiguration.builder().FooterPrecachingEnabled(false).build()).build());
     S3SeekableInputStream inputStream =
         s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"));
     assertNotNull(inputStream);
@@ -50,7 +50,7 @@ public class S3SeekableInputStreamFactoryTest {
     void testCreateIndependentStream() {
         S3SeekableInputStreamConfiguration configuration =
                 S3SeekableInputStreamConfiguration.builder().
-                        logicalIOConfiguration(LogicalIOConfiguration.DEFAULT).
+                        logicalIOConfiguration(LogicalIOConfiguration.builder().FooterPrecachingEnabled(false).build()).
                         blockManagerConfiguration(BlockManagerConfiguration.builder().
                                                           useSingleCache(false).build()).build();
         S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
