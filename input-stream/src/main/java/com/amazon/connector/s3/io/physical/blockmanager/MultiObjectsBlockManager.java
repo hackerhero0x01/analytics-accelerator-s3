@@ -11,6 +11,7 @@ import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +31,8 @@ import org.apache.logging.log4j.Logger;
  * with all the resources it is holding.
  */
 public class MultiObjectsBlockManager implements AutoCloseable {
-  private final LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>> metadata;
-  private final LinkedHashMap<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks;
+  private final Map<S3URI, CompletableFuture<ObjectMetadata>> metadata;
+  private final Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks;
   private final ObjectClient objectClient;
   private final BlockManagerConfiguration configuration;
 
@@ -49,20 +50,22 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     this.configuration = configuration;
 
     this.ioBlocks =
-        new LinkedHashMap<S3URI, AutoClosingCircularBuffer<IOBlock>>() {
-          @Override
-          protected boolean removeEldestEntry(final Map.Entry eldest) {
-            return this.size() > configuration.getCapacityMultiObjects();
-          }
-        };
+        Collections.synchronizedMap(
+            new LinkedHashMap<S3URI, AutoClosingCircularBuffer<IOBlock>>() {
+              @Override
+              protected boolean removeEldestEntry(final Map.Entry eldest) {
+                return this.size() > configuration.getCapacityMultiObjects();
+              }
+            });
 
     this.metadata =
-        new LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>>() {
-          @Override
-          protected boolean removeEldestEntry(final Map.Entry eldest) {
-            return this.size() > configuration.getCapacityMultiObjects();
-          }
-        };
+        Collections.synchronizedMap(
+            new LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>>() {
+              @Override
+              protected boolean removeEldestEntry(final Map.Entry eldest) {
+                return this.size() > configuration.getCapacityMultiObjects();
+              }
+            });
   }
 
   /**

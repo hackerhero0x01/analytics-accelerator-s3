@@ -4,6 +4,8 @@ import com.amazon.connector.s3.common.Preconditions;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -11,7 +13,7 @@ import java.util.stream.Stream;
  */
 public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable {
 
-  private final ArrayList<T> buffer;
+  private final List<T> buffer;
   private final int capacity;
   private int oldestIndex;
 
@@ -25,7 +27,8 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
 
     this.oldestIndex = 0;
     this.capacity = maxCapacity;
-    this.buffer = new ArrayList<>(maxCapacity);
+    this.buffer = Collections.synchronizedList(new ArrayList<>(maxCapacity));
+    // this.buffer = new ArrayList<>(maxCapacity);
   }
 
   /**
@@ -50,7 +53,9 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
    * @return a stream of the buffer content
    */
   public Stream<T> stream() {
-    return buffer.stream();
+    synchronized (buffer) {
+      return buffer.stream();
+    }
   }
 
   /** Closes the buffer, freeing up all underlying resources. */
