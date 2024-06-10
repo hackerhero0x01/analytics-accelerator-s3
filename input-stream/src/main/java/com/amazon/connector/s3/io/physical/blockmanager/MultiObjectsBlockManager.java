@@ -2,7 +2,6 @@ package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
-import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
@@ -11,12 +10,14 @@ import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import lombok.Getter;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,8 +37,26 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   private final ObjectClient objectClient;
   private final BlockManagerConfiguration configuration;
 
-  private static final Logger LOG = LogManager.getLogger(ParquetLogicalIOImpl.class);
+  private class PrefetchContainer {
+    private final long start;
+    private final long end;
+    @Getter private final CompletableFuture<IOBlock> ioBlockCompletableFuture;
 
+    public PrefetchContainer(
+        long start, long end, CompletableFuture<IOBlock> ioBlockCompletableFuture) {
+      this.start = start;
+      this.end = end;
+      this.ioBlockCompletableFuture = ioBlockCompletableFuture;
+    }
+
+    public boolean contains(long pos) {
+      return start <= pos && pos <= end;
+    }
+  }
+
+  private Map<String, List<PrefetchContainer>> prefetchCache;
+
+  private static final Logger LOG = LogManager.getLogger(MultiObjectsBlockManager.class);
   /**
    * Creates an instance of block manager.
    *
@@ -54,7 +73,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
             new LinkedHashMap<S3URI, AutoClosingCircularBuffer<IOBlock>>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > configuration.getCapacityMultiObjects();
+                return this.size() > 10;
               }
             });
 
@@ -66,6 +85,15 @@ public class MultiObjectsBlockManager implements AutoCloseable {
                 return this.size() > configuration.getCapacityMultiObjects();
               }
             });
+
+    this.prefetchCache =
+        Collections.synchronizedMap(
+            new LinkedHashMap<String, List<PrefetchContainer>>() {
+              @Override
+              protected boolean removeEldestEntry(final Map.Entry eldest) {
+                return this.size() > 45;
+              }
+            });
   }
 
   /**
@@ -75,12 +103,23 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    * @return the metadata of the object
    */
   public CompletableFuture<ObjectMetadata> getMetadata(S3URI s3URI) {
-    if (!metadata.containsKey(s3URI)) {
-      metadata.put(
-          s3URI,
-          objectClient.headObject(
-              HeadRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build()));
+    if (metadata.containsKey(s3URI)) {
+      CompletableFuture<ObjectMetadata> objectMetadata = metadata.get(s3URI);
+      try {
+        objectMetadata.join();
+        return objectMetadata;
+      } catch (Exception e) {
+        // remove failed entry from cache
+        LOG.error("Removing failed head request for {}", s3URI.getKey());
+        metadata.remove(s3URI);
+      }
     }
+    LOG.info("Issuing head request for {}", s3URI.getKey());
+
+    metadata.put(
+        s3URI,
+        objectClient.headObject(
+            HeadRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build()));
     return metadata.get(s3URI);
   }
 
@@ -166,6 +205,18 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   }
 
   private IOBlock getBlockForPosition(long pos, S3URI s3URI) throws IOException {
+    if (prefetchCache.containsKey(s3URI.getKey())) {
+      List<PrefetchContainer> prefetchContainers = prefetchCache.get(s3URI.getKey());
+      for (PrefetchContainer prefetchContainer : prefetchContainers) {
+        if (prefetchContainer.contains(pos)) {
+          LOG.info(
+              "Hit cache in getBlockForPosition for range from {} for {}", pos, s3URI.getKey());
+          return prefetchContainer.getIoBlockCompletableFuture().join();
+        }
+      }
+    }
+
+    LOG.info("Cache miss in getBlockForPosition for range from {} for {}", pos, s3URI.getKey());
     Optional<IOBlock> lookup = lookupBlockForPosition(pos, s3URI);
     if (!lookup.isPresent()) {
       return createBlockStartingAt(pos, s3URI);
@@ -176,9 +227,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
 
   private Optional<IOBlock> lookupBlockForPosition(long pos, S3URI s3URI) {
     AutoClosingCircularBuffer<IOBlock> blocks =
-        ioBlocks.computeIfAbsent(
-            s3URI,
-            block -> new AutoClosingCircularBuffer<>(configuration.getCapacityMultiObjects()));
+        ioBlocks.computeIfAbsent(s3URI, block -> new AutoClosingCircularBuffer<>(10));
     return blocks.stream().filter(block -> block.contains(pos)).findFirst();
   }
 
@@ -212,9 +261,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
 
     IOBlock ioBlock = new IOBlock(start, end, objectContent);
     AutoClosingCircularBuffer<IOBlock> blocks =
-        ioBlocks.computeIfAbsent(
-            s3URI,
-            block -> new AutoClosingCircularBuffer<>(configuration.getCapacityMultiObjects()));
+        ioBlocks.computeIfAbsent(s3URI, block -> new AutoClosingCircularBuffer<>(10));
     blocks.add(ioBlock);
     return ioBlock;
   }
@@ -234,10 +281,12 @@ public class MultiObjectsBlockManager implements AutoCloseable {
           try {
             block.close();
           } catch (IOException e) {
+            LOG.error("Error closing block for key: {}; exception: {}", key, e);
             throw new RuntimeException(e);
           }
         });
     this.ioBlocks.clear();
+    this.prefetchCache.clear();
   }
 
   /**
@@ -250,20 +299,53 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   public void queuePrefetch(
       final List<com.amazon.connector.s3.io.physical.plan.Range> prefetchRanges,
       final S3URI s3URI) {
-    this.ioBlocks.computeIfAbsent(
-        s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityMultiObjects()));
-    prefetchRanges.forEach(
-        range -> {
-          try {
-            createBlock(range.getStart(), range.getEnd(), s3URI);
-          } catch (IOException e) {
-            LOG.error(
-                "Error creating block for range: {}; key: {}; exception: {}",
-                range,
-                s3URI.getKey(),
-                e);
-            throw new RuntimeException(e);
-          }
-        });
+    List<PrefetchContainer> prefetchContainers;
+
+    if (prefetchCache.containsKey(s3URI.getKey())) {
+      prefetchContainers = prefetchCache.get(s3URI.getKey());
+    } else {
+      prefetchContainers = new ArrayList<>();
+    }
+
+    for (com.amazon.connector.s3.io.physical.plan.Range range : prefetchRanges) {
+      LOG.info(
+          "Get prefetch request for range from {} to {} for {}",
+          range.getStart(),
+          range.getEnd(),
+          s3URI.getKey());
+      if (!prefetchContainers.contains(range.getStart())) {
+        LOG.info(
+            "Executing prefetch request for range from {} to {} for {}",
+            range.getStart(),
+            range.getEnd(),
+            s3URI.getKey());
+        prefetchContainers.add(
+            new PrefetchContainer(
+                range.getStart(),
+                range.getEnd(),
+                CompletableFuture.supplyAsync(
+                    () -> {
+                      try {
+
+                        return this.createBlock(range.getStart(), range.getEnd(), s3URI);
+                      } catch (IOException e) {
+                        LOG.error(
+                            "Error creating block for range: {}; key: {}; exception: {}",
+                            range,
+                            s3URI.getKey(),
+                            e);
+                        throw new RuntimeException(e);
+                      }
+                    })));
+      } else {
+        LOG.info(
+            "Range from {} to {} already in prefetch request for {}",
+            range.getStart(),
+            range.getEnd(),
+            s3URI.getKey());
+      }
+    }
+
+    prefetchCache.put(s3URI.getKey(), prefetchContainers);
   }
 }
