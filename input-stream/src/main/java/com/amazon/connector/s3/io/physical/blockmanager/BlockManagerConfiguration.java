@@ -15,6 +15,7 @@ import lombok.Getter;
 public class BlockManagerConfiguration {
   public static final int DEFAULT_CAPACITY_BLOCKS = 10;
   public static final int DEFAULT_CAPACITY_MULTI_OBJECTS = 45;
+  public static final int DEFAULT_CAPACITY_PREFETCH_CACHE = 45;
   public static final boolean DEFAULT_USE_SINGLE_CACHE = true;
   public static final long DEFAULT_BLOCK_SIZE_BYTES = 8 * ONE_MB;
   public static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
@@ -27,6 +28,12 @@ public class BlockManagerConfiguration {
    * default
    */
   @Builder.Default private int capacityMultiObjects = DEFAULT_CAPACITY_MULTI_OBJECTS;
+
+  /**
+   * Capacity, in objects {@link BlockManagerConfiguration#DEFAULT_CAPACITY_PREFETCH_CACHE} by
+   * default
+   */
+  @Builder.Default private int capacityPrefetchCache = DEFAULT_CAPACITY_PREFETCH_CACHE;
 
   /** Use single cache. {@link BlockManagerConfiguration#DEFAULT_USE_SINGLE_CACHE} by default. */
   @Builder.Default private boolean useSingleCache = DEFAULT_USE_SINGLE_CACHE;
@@ -53,21 +60,28 @@ public class BlockManagerConfiguration {
    * @param readAheadBytes Read ahead, in bytes
    * @param useSingleCache Use single cache
    * @param capacityMultiObjects Capacity, in objects
+   * @param capacityPrefetchCache Capacity, of the prefetch cache
    */
   @Builder
   private BlockManagerConfiguration(
       int capacityBlocks,
       int capacityMultiObjects,
+      int capacityPrefetchCache,
       boolean useSingleCache,
       long blockSizeBytes,
       long readAheadBytes) {
     Preconditions.checkArgument(capacityBlocks > 0, "`capacityBlocks` must be positive");
+    Preconditions.checkArgument(
+        capacityMultiObjects > 0, " `capacityMultiObjects` must be positive");
+    Preconditions.checkArgument(
+        capacityPrefetchCache > 0, " `capacityPrefetchCache` must be positive");
     Preconditions.checkArgument(
         capacityMultiObjects > 0, "`capacityMultiObjects` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");
     Preconditions.checkArgument(readAheadBytes > 0, "`readAheadLengthBytes` must be positive");
 
     this.capacityBlocks = capacityBlocks;
+    this.capacityPrefetchCache = capacityPrefetchCache;
     this.capacityMultiObjects = capacityMultiObjects;
     this.blockSizeBytes = blockSizeBytes;
     this.readAheadBytes = readAheadBytes;

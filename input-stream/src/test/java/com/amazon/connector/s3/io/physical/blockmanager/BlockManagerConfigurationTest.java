@@ -31,10 +31,12 @@ public class BlockManagerConfigurationTest {
             .blockSizeBytes(4 * ONE_MB)
             .capacityBlocks(20)
             .readAheadBytes(128 * ONE_KB)
+            .capacityPrefetchCache(30)
             .build();
     assertEquals(configuration.getBlockSizeBytes(), 4 * ONE_MB);
     assertEquals(configuration.getCapacityBlocks(), 20);
     assertEquals(configuration.getReadAheadBytes(), 128 * ONE_KB);
+    assertEquals(configuration.getCapacityPrefetchCache(), 30);
   }
 
   @Test

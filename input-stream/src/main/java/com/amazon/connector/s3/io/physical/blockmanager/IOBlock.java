@@ -14,8 +14,9 @@ import lombok.Getter;
 import lombok.NonNull;
 
 class IOBlock implements Closeable {
-  private final long start;
-  private final long end;
+
+  @Getter private final long start;
+  @Getter private final long end;
   private CompletableFuture<ObjectContent> content;
 
   @Getter private final ByteBuffer blockContent;

@@ -28,7 +28,6 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
     this.oldestIndex = 0;
     this.capacity = maxCapacity;
     this.buffer = Collections.synchronizedList(new ArrayList<>(maxCapacity));
-    // this.buffer = new ArrayList<>(maxCapacity);
   }
 
   /**

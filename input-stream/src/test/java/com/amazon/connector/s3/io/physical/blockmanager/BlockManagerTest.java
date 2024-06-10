@@ -79,12 +79,26 @@ public class BlockManagerTest {
 
   @Test
   void testClose() throws IOException {
-    // Given: object client
+    // Given: object client and block manager
+
+    int contentLength = ONE_MB;
+    byte[] content = new byte[contentLength];
     ObjectClient objectClient = mock(ObjectClient.class);
     BlockManager blockManager =
         new BlockManager(objectClient, URI, BlockManagerConfiguration.DEFAULT);
 
-    // When: close is called
+    when(objectClient.getObject(any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectContent.builder().stream(new ByteArrayInputStream(content)).build()));
+
+    ObjectStatus objectStatus = mock(ObjectStatus.class);
+    when(objectStatus.getS3URI()).thenReturn(URI);
+
+    // When: the prefetch cache is not empty and close is called
+    List<Range> prefetchRanges = new ArrayList<>();
+    prefetchRanges.add(new Range(0, 100));
+    blockManager.queuePrefetch(prefetchRanges);
     blockManager.close();
 
     // Object client is not closed, as we want to share the client b/w streams.
@@ -205,6 +219,161 @@ public class BlockManagerTest {
     assertArrayEquals(str2.getBytes(), buf);
     assertEquals(2, objectClient.getGetRequestCount());
     assertEquals(1, objectClient.getHeadRequestCount());
+  }
+
+  @Test
+  void testPrefetch_Error() throws IOException {
+    // Given: Block Manager and creation of IOBlock throws Runtime exception when prefetch happens
+    int contentLength = ONE_MB;
+    byte[] content = new byte[contentLength];
+    ObjectClient objectClient = mock(ObjectClient.class);
+    when(objectClient.getObject(any()))
+        .thenThrow(new RuntimeException("Throwing runtime exception"))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectContent.builder().stream(new ByteArrayInputStream(content)).build()));
+    when(objectClient.headObject(any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectMetadata.builder().contentLength(contentLength).build()));
+    BlockManager blockManager =
+        new BlockManager(objectClient, URI, BlockManagerConfiguration.DEFAULT);
+
+    // When: Prefetch is called
+    List<Range> prefetchRanges = new ArrayList<>();
+    prefetchRanges.add(new Range(0, 100));
+    blockManager.queuePrefetch(prefetchRanges);
+
+    // Then : Read data and should be fetched synchronously
+    byte[] buf = new byte[16];
+    blockManager.read(buf, 0, buf.length, 0);
+
+    verify(objectClient, times(2)).getObject(any());
+  }
+
+  @Test
+  void testBlockManager_doNotPrefetch_IfAlreadyPresent() throws IOException {
+    // Given: Range from 0-100 is prefetched
+    int prefetchStart = 0;
+    int prefetchEnd = 100;
+
+    StringBuilder sb = new StringBuilder(300);
+    sb.append(StringUtils.repeat("0", 300));
+    String str1 = StringUtils.repeat("1", prefetchEnd - prefetchStart + 1);
+    sb.replace(prefetchStart, prefetchEnd, str1);
+
+    FakeObjectClient objectClient = new FakeObjectClient(sb.toString());
+
+    BlockManager blockManager =
+        new BlockManager(objectClient, URI, BlockManagerConfiguration.DEFAULT);
+    List<Range> prefetchRanges = new ArrayList<>();
+    prefetchRanges.add(new Range(prefetchStart, prefetchEnd));
+
+    ObjectStatus objectStatus = mock(ObjectStatus.class);
+    when(objectStatus.getS3URI()).thenReturn(URI);
+
+    blockManager.queuePrefetch(prefetchRanges);
+
+    byte[] buf = new byte[prefetchEnd - prefetchStart + 1];
+    blockManager.read(buf, 0, str1.length(), 0);
+    assertArrayEquals(str1.getBytes(), buf);
+
+    // When: Read for a Range already existing in the prefetch cache is called
+    int secondRangeStart = 10;
+    int secondRangeEnd = 50;
+    prefetchRanges = new ArrayList<>();
+    prefetchRanges.add(new Range(secondRangeStart, secondRangeEnd));
+    blockManager.queuePrefetch(prefetchRanges);
+
+    buf = new byte[secondRangeEnd - secondRangeStart + 1];
+    blockManager.read(buf, 0, secondRangeEnd - secondRangeStart + 1, 0);
+    assertArrayEquals(str1.substring(secondRangeStart, secondRangeEnd + 1).getBytes(), buf);
+
+    // Then: Ensure GET is called only once
+    assertEquals(1, objectClient.getGetRequestCount());
+    assertEquals(1, objectClient.getHeadRequestCount());
+  }
+
+  @Test
+  void testBlockManager_prefetchIfPartOfRangeIsPrefetched() throws IOException {
+    // Given: Range 0->100 is prefetched and range 80 -> 150
+    // (partly overlapping with prefetched range) is called
+
+    int prefetchStart = 0;
+    int prefetchEnd = 100;
+
+    int secondRangeStart = 80;
+    int secondRangeEnd = 150;
+
+    StringBuilder sb = new StringBuilder(300);
+    sb.append(StringUtils.repeat("0", 300));
+    String str1 = StringUtils.repeat("1", prefetchEnd - prefetchStart + 1);
+    String str2 = StringUtils.repeat("1", secondRangeEnd - secondRangeStart + 1);
+    sb.replace(prefetchStart, prefetchEnd, str1);
+    sb.replace(prefetchEnd, secondRangeEnd, str2);
+
+    FakeObjectClient objectClient = new FakeObjectClient(sb.toString());
+
+    BlockManager blockManager =
+        new BlockManager(objectClient, URI, BlockManagerConfiguration.DEFAULT);
+    List<Range> prefetchRanges = new ArrayList<>();
+    prefetchRanges.add(new Range(prefetchStart, prefetchEnd));
+    prefetchRanges.add(new Range(secondRangeStart, secondRangeEnd));
+
+    ObjectStatus objectStatus = mock(ObjectStatus.class);
+    when(objectStatus.getS3URI()).thenReturn(URI);
+
+    // Prefetch for range 0->100 and then from 80-> 150
+    blockManager.queuePrefetch(prefetchRanges);
+
+    byte[] buf = new byte[prefetchEnd - prefetchStart + 1];
+    blockManager.read(buf, 0, str1.length(), 0);
+    assertArrayEquals(str1.getBytes(), buf);
+
+    buf = new byte[secondRangeEnd - secondRangeStart + 1];
+    blockManager.read(buf, 0, secondRangeEnd - secondRangeStart + 1, 0);
+    assertArrayEquals(
+        sb.toString().substring(secondRangeStart, secondRangeEnd + 1).getBytes(), buf);
+
+    // Then: Issue two prefetch requests one from 0->100 and another from 100->150
+    assertEquals(2, objectClient.getGetRequestCount());
+    assertEquals(1, objectClient.getHeadRequestCount());
+  }
+
+  @Test
+  void testBlockManager_prefetchErrorDoesNotThrow() throws IOException {
+    // Given: block manager AND S3 is unavailable
+    int contentLength = ONE_MB;
+    int readAheadConfig = 123;
+
+    ObjectClient objectClient = mock(ObjectClient.class);
+    when(objectClient.getObject(any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectContent.builder().stream(new ThrowingInputStream()).build()));
+    when(objectClient.headObject(any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectMetadata.builder().contentLength(contentLength).build()));
+
+    // When: Prefetching
+    int prefetchStart = 0;
+    int prefetchEnd = 100;
+
+    List<Range> prefetchRanges = new ArrayList<>();
+    prefetchRanges.add(new Range(prefetchStart, prefetchEnd));
+
+    BlockManager blockManager =
+        new BlockManager(
+            objectClient,
+            URI,
+            BlockManagerConfiguration.builder().readAheadBytes(readAheadConfig).build());
+
+    // Then: Do not throw error for prefetching. Reading should throw error
+    blockManager.queuePrefetch(prefetchRanges);
+
+    byte[] buf = new byte[16];
+    assertThrows(IOException.class, () -> blockManager.read(buf, 0, buf.length, 0));
   }
 
   @Test
