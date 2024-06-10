@@ -286,7 +286,7 @@ public class BlockManagerTest {
     blockManager.queuePrefetch(prefetchRanges);
 
     buf = new byte[secondRangeEnd - secondRangeStart + 1];
-    blockManager.read(buf, 0, secondRangeEnd - secondRangeStart + 1, 0);
+    blockManager.read(buf, 0, secondRangeEnd - secondRangeStart + 1, secondRangeStart);
     assertArrayEquals(str1.substring(secondRangeStart, secondRangeEnd + 1).getBytes(), buf);
 
     // Then: Ensure GET is called only once
@@ -331,7 +331,7 @@ public class BlockManagerTest {
     assertArrayEquals(str1.getBytes(), buf);
 
     buf = new byte[secondRangeEnd - secondRangeStart + 1];
-    blockManager.read(buf, 0, secondRangeEnd - secondRangeStart + 1, 0);
+    blockManager.read(buf, 0, secondRangeEnd - secondRangeStart + 1, secondRangeStart);
     assertArrayEquals(
         sb.toString().substring(secondRangeStart, secondRangeEnd + 1).getBytes(), buf);
 
