@@ -1,7 +1,7 @@
 package com.amazon.connector.s3.io.physical.blockmanager;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -86,6 +86,6 @@ public class PrefetchIOBlockTest {
               }
             });
     PrefetchIOBlock prefetchIOBlock = new PrefetchIOBlock(-1, 100, cf);
-    assertThrows(Exception.class, () -> prefetchIOBlock.getIoBlockCompletableFuture().join());
+    assertFalse(prefetchIOBlock.getIOBlock().isPresent());
   }
 }

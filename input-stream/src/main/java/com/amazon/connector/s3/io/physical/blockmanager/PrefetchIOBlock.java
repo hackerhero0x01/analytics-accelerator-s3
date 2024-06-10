@@ -4,7 +4,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,7 +14,7 @@ public class PrefetchIOBlock implements Closeable {
 
   private final long end;
 
-  @Getter private CompletableFuture<IOBlock> ioBlockCompletableFuture;
+  private CompletableFuture<IOBlock> ioBlockCompletableFuture;
 
   private static final Logger LOG = LogManager.getLogger(PrefetchIOBlock.class);
 
@@ -40,7 +39,8 @@ public class PrefetchIOBlock implements Closeable {
   }
 
   /**
-   * @return Complete the future and return the IOBlock
+   * @return Complete the future and returns the IOBlock. Reurns Optional.empty() if the future
+   *     completed exceptionally
    */
   public Optional<IOBlock> getIOBlock() {
     Optional<IOBlock> res = Optional.empty();
