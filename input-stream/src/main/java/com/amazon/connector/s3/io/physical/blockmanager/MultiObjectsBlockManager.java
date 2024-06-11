@@ -198,8 +198,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     // First check the prefetch cache
     AutoClosingCircularBuffer<PrefetchIOBlock> prefetchBlocks =
         prefetchCache.computeIfAbsent(
-            s3URI,
-            block -> new AutoClosingCircularBuffer<>(configuration.getCapacityMultiObjects()));
+            s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
     Optional<PrefetchIOBlock> prefetchBlock =
         prefetchBlocks.stream().filter(block -> block.contains(pos)).findFirst();
     if (prefetchBlock.isPresent() && prefetchBlock.get().getIOBlock().isPresent()) {
@@ -209,8 +208,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     LOG.info("Prefetch cache miss for pos: {}. Fetching synchronously", pos);
     AutoClosingCircularBuffer<IOBlock> syncBlocks =
         ioBlocks.computeIfAbsent(
-            s3URI,
-            block -> new AutoClosingCircularBuffer<>(configuration.getCapacityMultiObjects()));
+            s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
     return syncBlocks.stream().filter(block -> block.contains(pos)).findFirst();
   }
 
@@ -245,8 +243,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     IOBlock ioBlock = new IOBlock(start, end, objectContent);
     AutoClosingCircularBuffer<IOBlock> blocks =
         ioBlocks.computeIfAbsent(
-            s3URI,
-            block -> new AutoClosingCircularBuffer<>(configuration.getCapacityMultiObjects()));
+            s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
     blocks.add(ioBlock);
     return ioBlock;
   }
@@ -328,8 +325,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         prefetchCache.computeIfAbsent(
             s3URI,
             block ->
-                new AutoClosingCircularBuffer<PrefetchIOBlock>(
-                    configuration.getCapacityMultiObjects()));
+                new AutoClosingCircularBuffer<PrefetchIOBlock>(configuration.getCapacityBlocks()));
     prefetchBlocks.add(prefetchIOBlock);
   }
 }
