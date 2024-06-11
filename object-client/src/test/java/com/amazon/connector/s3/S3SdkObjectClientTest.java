@@ -55,6 +55,13 @@ public class S3SdkObjectClientTest {
   }
 
   @Test
+  void testConstructorWithConfiguration() {
+    ObjectClientConfiguration configuration = ObjectClientConfiguration.DEFAULT;
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient, configuration);
+    assertNotNull(client);
+  }
+
+  @Test
   void testConstructorThrowsOnNullArgument() {
     assertThrows(
         NullPointerException.class,
