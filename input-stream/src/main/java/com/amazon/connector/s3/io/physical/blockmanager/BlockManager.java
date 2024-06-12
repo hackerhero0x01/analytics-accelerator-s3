@@ -7,9 +7,6 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.List;
-import java.nio.ByteBuffer;
-import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 

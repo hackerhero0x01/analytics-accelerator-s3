@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.property;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.amazon.connector.s3.arbitraries.StreamArbitraries;
@@ -14,7 +15,8 @@ public class SeekableStreamPropertiesTest extends StreamArbitraries {
 
   @Property
   boolean positionIsInitiallyZero(@ForAll("streamSizes") int size) {
-    InMemoryS3SeekableStream s = new InMemoryS3SeekableStream("test-bucket", "test-key", size);
+    InMemoryS3SeekableInputStream s =
+        new InMemoryS3SeekableInputStream("test-bucket", "test-key", size);
 
     return s.getPos() == 0;
   }
@@ -23,7 +25,8 @@ public class SeekableStreamPropertiesTest extends StreamArbitraries {
   boolean seekChangesPosition(
       @ForAll("positiveStreamSizes") int size, @ForAll("validPositions") int pos)
       throws IOException {
-    InMemoryS3SeekableStream s = new InMemoryS3SeekableStream("test-bucket", "test-key", size);
+    InMemoryS3SeekableInputStream s =
+        new InMemoryS3SeekableInputStream("test-bucket", "test-key", size);
 
     int jumpInSideObject = pos % size;
     s.seek(jumpInSideObject);
@@ -31,8 +34,26 @@ public class SeekableStreamPropertiesTest extends StreamArbitraries {
   }
 
   @Property
+  void readIncreasesPosition(
+      @ForAll("sizeBiggerThanOne") int size, @ForAll("validPositions") int pos) throws IOException {
+    InMemoryS3SeekableInputStream s =
+        new InMemoryS3SeekableInputStream("test-bucket", "test-key", size);
+
+    int newPos = Math.max(0, pos % size - 1);
+
+    // Seek is correct
+    s.seek(newPos);
+    assertEquals(newPos, s.getPos());
+
+    // Read increases position by 1
+    s.read();
+    assertEquals(newPos + 1, s.getPos());
+  }
+
+  @Property
   void seekToInvalidPositionThrows(@ForAll("invalidPositions") int invalidPos) {
-    InMemoryS3SeekableStream s = new InMemoryS3SeekableStream("test-bucket", "test-key", 42);
+    InMemoryS3SeekableInputStream s =
+        new InMemoryS3SeekableInputStream("test-bucket", "test-key", 42);
 
     assertThrows(IllegalArgumentException.class, () -> s.seek(invalidPos));
   }

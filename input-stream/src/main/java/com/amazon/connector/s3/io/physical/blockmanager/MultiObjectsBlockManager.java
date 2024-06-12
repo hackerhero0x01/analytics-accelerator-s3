@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
@@ -237,7 +238,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
             GetRequest.builder()
                 .bucket(s3URI.getBucket())
                 .key(s3URI.getKey())
-                .range(Range.builder().start(start).end(end).build())
+                .range(new Range(OptionalLong.of(start), OptionalLong.of(end)))
                 .build());
 
     IOBlock ioBlock = new IOBlock(start, end, objectContent);

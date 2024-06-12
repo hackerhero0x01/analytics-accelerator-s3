@@ -10,7 +10,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
 
@@ -50,13 +49,12 @@ public class FakeObjectClient implements ObjectClient {
   }
 
   private InputStream getTestInputStream(Range range) {
-    byte[] requestedRange;
-    if (Objects.isNull(range)) {
-      requestedRange = this.content.getBytes(StandardCharsets.UTF_8);
-    } else {
-      byte[] data = this.content.getBytes(StandardCharsets.UTF_8);
-      requestedRange = Arrays.copyOfRange(data, (int) range.getStart(), (int) range.getEnd() + 1);
-    }
+    byte[] data = this.content.getBytes(StandardCharsets.UTF_8);
+    byte[] requestedRange =
+        Arrays.copyOfRange(
+            data,
+            (int) range.getStart().orElse(0),
+            (int) range.getEnd().orElse(this.content.length() - 1) + 1);
 
     return new ByteArrayInputStream(requestedRange);
   }

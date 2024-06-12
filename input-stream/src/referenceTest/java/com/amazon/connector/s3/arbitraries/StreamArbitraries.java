@@ -21,6 +21,11 @@ public class StreamArbitraries {
   }
 
   @Provide
+  Arbitrary<Integer> sizeBiggerThanOne() {
+    return Arbitraries.integers().between(2, MAX_STREAM_LENGTH_UNDER_TEST);
+  }
+
+  @Provide
   Arbitrary<Integer> validPositions() {
     return Arbitraries.integers().between(0, MAX_STREAM_LENGTH_UNDER_TEST);
   }

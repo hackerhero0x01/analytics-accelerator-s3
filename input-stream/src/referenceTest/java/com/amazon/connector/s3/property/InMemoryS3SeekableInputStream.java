@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 
-public class InMemoryS3SeekableStream extends SeekableInputStream {
+public class InMemoryS3SeekableInputStream extends SeekableInputStream {
 
   private final SeekableInputStream delegate;
 
@@ -28,7 +28,7 @@ public class InMemoryS3SeekableStream extends SeekableInputStream {
    * @param key the key
    * @param len the length of the data
    */
-  public InMemoryS3SeekableStream(String bucket, String key, int len) {
+  public InMemoryS3SeekableInputStream(String bucket, String key, int len) {
     S3URI s3URI = S3URI.of(bucket, key);
     ObjectClient objectClient = new InMemoryObjectClient(len);
 
@@ -67,7 +67,7 @@ public class InMemoryS3SeekableStream extends SeekableInputStream {
         end = (int) getRequest.getRange().getEnd().orElse(end);
       }
 
-      byte[] range = Arrays.copyOfRange(this.content, start, end);
+      byte[] range = Arrays.copyOfRange(this.content, start, end + 1);
       return CompletableFuture.completedFuture(
           ObjectContent.builder().stream(new ByteArrayInputStream(range)).build());
     }
