@@ -264,8 +264,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   }
 
   private long contentLength(S3URI s3URI) {
-    long contentLength = this.getMetadata(s3URI).join().getContentLength();
-    return contentLength;
+    return this.getMetadata(s3URI).join().getContentLength();
   }
 
   private long getLastObjectByte(S3URI s3URI) {
