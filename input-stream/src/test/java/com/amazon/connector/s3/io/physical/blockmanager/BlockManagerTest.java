@@ -23,6 +23,7 @@ import com.amazon.connector.s3.util.S3URI;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -186,6 +187,24 @@ public class BlockManagerTest {
     GetRequest getRequest = requestCaptor.getValue();
     assertEquals(0L, getRequest.getRange().getStart());
     assertEquals(readAheadConfig - 1, getRequest.getRange().getEnd());
+  }
+
+  @Test
+  void testBlockManager_testOneByteRead() throws IOException {
+    // Given: block manager
+    StringBuilder sb = new StringBuilder(10);
+    sb.append(StringUtils.repeat("1", 10));
+    FakeObjectClient objectClient = new FakeObjectClient(sb.toString());
+
+    BlockManager blockManager =
+        new BlockManager(objectClient, URI, BlockManagerConfiguration.DEFAULT);
+
+    // When: called 1 byte read
+    int byteRead = blockManager.read(1);
+
+    // Then:  compare the byte read
+    final byte expectedValue = sb.toString().getBytes(StandardCharsets.UTF_8)[1];
+    assertEquals(byteRead, expectedValue);
   }
 
   @Test

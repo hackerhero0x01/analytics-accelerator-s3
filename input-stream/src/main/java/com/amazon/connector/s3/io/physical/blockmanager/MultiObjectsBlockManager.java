@@ -172,7 +172,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     Preconditions.checkArgument(
         n <= contentLength(s3URI),
         "cannot request more bytes from tail than total number of bytes");
-
     long start = contentLength(s3URI) - n;
     return read(buf, off, n, start, s3URI);
   }
@@ -205,7 +204,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       return prefetchBlock.get().getIOBlock();
     }
     // Block not present in the prefetch cache. Fetch it synchronously
-    LOG.info("Prefetch cache miss for pos: {}. Fetching synchronously", pos);
     AutoClosingCircularBuffer<IOBlock> syncBlocks =
         ioBlocks.computeIfAbsent(
             s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
@@ -215,7 +213,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   private IOBlock createBlockStartingAt(long start, S3URI s3URI) throws IOException {
     long end = Math.min(start + configuration.getBlockSizeBytes() - 1, getLastObjectByte(s3URI));
 
-    return createBlock(start, end, s3URI);
+    return createBlock(start, end, s3URI, false);
   }
 
   private IOBlock createBlockStartingAtWithSize(long start, int size, S3URI s3URI)
@@ -228,10 +226,11 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       end = Math.min(start + configuration.getReadAheadBytes() - 1, getLastObjectByte(s3URI));
     }
 
-    return createBlock(start, end, s3URI);
+    return createBlock(start, end, s3URI, false);
   }
 
-  private IOBlock createBlock(long start, long end, S3URI s3URI) throws IOException {
+  private IOBlock createBlock(long start, long end, S3URI s3URI, boolean isPrefetch)
+      throws IOException {
     CompletableFuture<ObjectContent> objectContent =
         this.objectClient.getObject(
             GetRequest.builder()
@@ -239,17 +238,19 @@ public class MultiObjectsBlockManager implements AutoCloseable {
                 .key(s3URI.getKey())
                 .range(Range.builder().start(start).end(end).build())
                 .build());
-
     IOBlock ioBlock = new IOBlock(start, end, objectContent);
-    AutoClosingCircularBuffer<IOBlock> blocks =
-        ioBlocks.computeIfAbsent(
-            s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
-    blocks.add(ioBlock);
+    if (!isPrefetch) {
+      AutoClosingCircularBuffer<IOBlock> blocks =
+          ioBlocks.computeIfAbsent(
+              s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
+      blocks.add(ioBlock);
+    }
     return ioBlock;
   }
 
   private long contentLength(S3URI s3URI) {
-    return this.getMetadata(s3URI).join().getContentLength();
+    long contentLength = this.getMetadata(s3URI).join().getContentLength();
+    return contentLength;
   }
 
   private long getLastObjectByte(S3URI s3URI) {
@@ -315,7 +316,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         CompletableFuture.supplyAsync(
             () -> {
               try {
-                return this.createBlock(start, end, s3URI);
+                return this.createBlock(start, end, s3URI, true);
               } catch (IOException e) {
                 throw new RuntimeException(e);
               }
