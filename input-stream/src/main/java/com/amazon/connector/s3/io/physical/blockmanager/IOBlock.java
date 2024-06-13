@@ -39,17 +39,18 @@ class IOBlock implements Closeable {
   }
 
   public int getByte(long pos) {
+    Preconditions.checkState(contains(pos), "position is not contained in block");
     return Byte.toUnsignedInt(this.blockContent[positionToOffset(pos)]);
   }
 
-  public int remainingInBuffer(long pos) {
+  private int remainingInBuffer(long pos) {
     return bufferSize - positionToOffset(pos);
   }
 
-  public void read(byte[] buff, int len, long pos) {
-    for (int i = 0; i < len; i++) {
-      buff[i] = blockContent[positionToOffset(pos) + i];
-    }
+  public int read(byte[] buff, int offset, long len, long pos) {
+    int bytesToRead = (int) Math.min(len, remainingInBuffer(pos));
+    System.arraycopy(blockContent, positionToOffset(pos), buff, offset, bytesToRead);
+    return bytesToRead;
   }
 
   private void readIntoBuffer() throws IOException {

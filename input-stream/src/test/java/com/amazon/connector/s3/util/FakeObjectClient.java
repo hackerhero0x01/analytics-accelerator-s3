@@ -22,6 +22,7 @@ public class FakeObjectClient implements ObjectClient {
   @Getter private int headRequestCount = 0;
   @Getter private int getRequestCount = 0;
   @Getter private List<Range> requestedRanges = new ArrayList<>();
+  private byte[] contentBytes;
 
   /**
    * Instantiate a fake Object Client backed by some string as data.
@@ -30,6 +31,7 @@ public class FakeObjectClient implements ObjectClient {
    */
   public FakeObjectClient(String data) {
     this.content = data;
+    this.contentBytes = this.content.getBytes(StandardCharsets.UTF_8);
   }
 
   @Override
@@ -53,10 +55,9 @@ public class FakeObjectClient implements ObjectClient {
   }
 
   private InputStream getTestInputStream(Range range) {
-    byte[] data = this.content.getBytes(StandardCharsets.UTF_8);
     byte[] requestedRange =
         Arrays.copyOfRange(
-            data,
+            contentBytes,
             (int) range.getStart().orElse(0),
             (int) range.getEnd().orElse(this.content.length() - 1) + 1);
 

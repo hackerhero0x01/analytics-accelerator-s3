@@ -106,8 +106,10 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       CompletableFuture<ObjectMetadata> objectMetadata = metadata.get(s3URI);
       try {
         objectMetadata.join();
-        LOG.info("Get head request. Content size is {}. Object key is {}", objectMetadata.get().getContentLength(),
-                s3URI);
+        LOG.info(
+            "Get head request. Content size is {}. Object key is {}",
+            objectMetadata.get().getContentLength(),
+            s3URI);
         return objectMetadata;
       } catch (Exception e) {
         // remove failed entry from cache
@@ -149,7 +151,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     int numBytesRead = 0;
     int numBytesRemaining = len;
     long nextReadPos = pos;
-    int posInBuffer = offset;
+    int nextReadOffset = offset;
 
     while (numBytesRemaining > 0) {
 
@@ -159,14 +161,8 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       }
 
       IOBlock ioBlock = getBlockForPosition(nextReadPos, len, s3URI);
-      int numBytesToRead = Math.min(ioBlock.remainingInBuffer(nextReadPos), numBytesRemaining);
-      byte[] currentBuffer = new byte[numBytesToRead];
-      ioBlock.read(currentBuffer, numBytesToRead, nextReadPos);
-
-      for (int i = 0; i < numBytesToRead; i++) {
-        buffer[posInBuffer++] = currentBuffer[i];
-      }
-
+      int numBytesToRead = ioBlock.read(buffer, nextReadOffset, numBytesRemaining, nextReadPos);
+      nextReadOffset += numBytesToRead;
       nextReadPos += numBytesToRead;
       numBytesRemaining -= numBytesToRead;
       numBytesRead += numBytesToRead;
@@ -215,8 +211,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     AutoClosingCircularBuffer<PrefetchIOBlock> prefetchBlocks =
         prefetchCache.computeIfAbsent(
             s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
-    Optional<PrefetchIOBlock> prefetchBlock =
-        prefetchBlocks.stream().filter(block -> block.contains(pos)).findFirst();
+    Optional<PrefetchIOBlock> prefetchBlock = prefetchBlocks.findItem(block -> block.contains(pos));
     if (prefetchBlock.isPresent() && prefetchBlock.get().getIOBlock().isPresent()) {
       LOG.info("Hit prefetch cache pos: {}. Object {}", pos, s3URI);
       return prefetchBlock.get().getIOBlock();
@@ -225,7 +220,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     AutoClosingCircularBuffer<IOBlock> syncBlocks =
         ioBlocks.computeIfAbsent(
             s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
-    return syncBlocks.stream().filter(block -> block.contains(pos)).findFirst();
+    return syncBlocks.findItem(block -> block.contains(pos));
   }
 
   private IOBlock createBlockStartingAt(long start, S3URI s3URI) throws IOException {
@@ -310,8 +305,8 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       final S3URI s3URI) {
     prefetchRanges.forEach(
         range -> {
-          long start = range.getStart();
-          long end = range.getEnd();
+          long start = Math.max(0, range.getStart());
+          long end = Math.max(0, range.getEnd());
           Optional<IOBlock> startBlock = lookupBlockForPosition(start, s3URI);
           Optional<IOBlock> endBlock = lookupBlockForPosition(end, s3URI);
           if (startBlock.isPresent() && endBlock.isPresent()) {
@@ -319,6 +314,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
             return;
           } else if (startBlock.isPresent() && !endBlock.isPresent()) {
             start = startBlock.get().getEnd() + 1;
+
           } else if (endBlock.isPresent() && !startBlock.isPresent()) {
             end = endBlock.get().getStart() - 1;
           }

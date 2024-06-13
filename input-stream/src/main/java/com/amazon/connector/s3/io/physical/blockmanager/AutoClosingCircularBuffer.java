@@ -1,11 +1,16 @@
 package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.common.Preconditions;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -16,6 +21,10 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
   private final List<T> buffer;
   private final int capacity;
   private int oldestIndex;
+
+  private boolean closed;
+
+  private static final Logger LOG = LogManager.getLogger(MultiObjectsBlockManager.class);
 
   /**
    * Creates an instance of AutoClosingCircularBuffer.
@@ -28,6 +37,7 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
     this.oldestIndex = 0;
     this.capacity = maxCapacity;
     this.buffer = Collections.synchronizedList(new ArrayList<>(maxCapacity));
+    this.closed = false;
   }
 
   /**
@@ -37,12 +47,17 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
    * @param element The new element to add to the buffer.
    */
   public void add(T element) throws IOException {
-    if (buffer.size() < capacity) {
-      buffer.add(element);
-    } else {
-      buffer.get(oldestIndex).close();
-      buffer.set(oldestIndex, element);
-      oldestIndex = (oldestIndex + 1) % capacity;
+    if (closed) {
+      LOG.error("Trying to add new element, after close() wasc called");
+    }
+    synchronized (buffer) {
+      if (buffer.size() < capacity) {
+        buffer.add(element);
+      } else {
+        buffer.get(oldestIndex).close();
+        buffer.set(oldestIndex, element);
+        oldestIndex = (oldestIndex + 1) % capacity;
+      }
     }
   }
 
@@ -51,15 +66,31 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
    *
    * @return a stream of the buffer content
    */
-  public Stream<T> stream() {
+  protected Stream<T> stream() {
+    if (closed) {
+      LOG.error("Trying to add new element, after close() wasc called");
+    }
     synchronized (buffer) {
       return buffer.stream();
+    }
+  }
+
+  /**
+   * Finds an item in the buffer based on a predicate.
+   *
+   * @param predicate the predicate to use for finding the item
+   * @return an Optional containing the item if found, otherwise an empty Optional
+   */
+  public Optional<T> findItem(Predicate<T> predicate) {
+    synchronized (buffer) {
+      return buffer.stream().filter(predicate).findFirst();
     }
   }
 
   /** Closes the buffer, freeing up all underlying resources. */
   @Override
   public void close() throws IOException {
+    closed = true;
     for (T t : buffer) {
       t.close();
     }

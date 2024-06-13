@@ -71,6 +71,11 @@ public class ParquetLogicalIOImpl implements LogicalIO {
   private void createFooterCachingPlan(final CompletableFuture<ObjectMetadata> metadata)
       throws IOException {
     long contentLength = metadata.join().getContentLength();
+    if (contentLength < 0) {
+      LOG.error("Encountered negative ContentLength:  {} ", contentLength);
+      throw new RuntimeException("Encountered negative ContentLength: " + contentLength);
+    }
+
     long startRange = 0;
     if (contentLength > logicalIOConfiguration.getFooterPrecachingSize()) {
       boolean smallFileCacheEnabledButFileTooBig =
