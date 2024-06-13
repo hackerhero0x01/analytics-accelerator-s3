@@ -6,7 +6,7 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 val codeCoverageToolVersion = "0.8.11"
 val codeCoverageReports = "reports/codeCoverage"
-val codeCoverageThreshold = "0.92".toBigDecimal()
+val codeCoverageThreshold = "0.95".toBigDecimal()
 
 plugins {
     // Apply the java Plugin to add support for Java.

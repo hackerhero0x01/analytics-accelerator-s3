@@ -76,4 +76,12 @@ public class S3SeekableInputStreamFactoryTest {
           s3SeekableInputStreamFactory.createStream(null);
         });
   }
+
+  @Test
+  void testClose() {
+    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            mock(ObjectClient.class), S3SeekableInputStreamConfiguration.DEFAULT);
+    assertDoesNotThrow(() -> s3SeekableInputStreamFactory.close());
+  }
 }

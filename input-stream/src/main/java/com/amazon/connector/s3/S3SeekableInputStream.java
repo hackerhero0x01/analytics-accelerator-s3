@@ -33,9 +33,9 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param configuration configuration
    */
   protected S3SeekableInputStream(
-      @NonNull ObjectClient objectClient,
-      @NonNull S3URI s3URI,
-      @NonNull S3SeekableInputStreamConfiguration configuration) {
+      ObjectClient objectClient,
+      S3URI s3URI,
+      S3SeekableInputStreamConfiguration configuration) {
     this(
         new ParquetLogicalIOImpl(
             new PhysicalIOImpl(
@@ -52,8 +52,8 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
    */
   protected S3SeekableInputStream(
-      @NonNull BlockManagerInterface blockManager,
-      @NonNull S3SeekableInputStreamConfiguration configuration) {
+      BlockManagerInterface blockManager,
+      S3SeekableInputStreamConfiguration configuration) {
     this(
         new ParquetLogicalIOImpl(
             new PhysicalIOImpl(blockManager), configuration.getLogicalIOConfiguration()));

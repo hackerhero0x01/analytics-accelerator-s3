@@ -2,10 +2,18 @@ package com.amazon.connector.s3.io.physical.blockmanager;
 
 import static com.amazon.connector.s3.util.Constants.ONE_KB;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.internal.util.io.IOUtil.close;
 
+import com.amazon.connector.s3.util.S3URI;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 public class BlockManagerConfigurationTest {
   @Test
@@ -37,6 +45,29 @@ public class BlockManagerConfigurationTest {
     assertEquals(configuration.getCapacityBlocks(), 20);
     assertEquals(configuration.getReadAheadBytes(), 128 * ONE_KB);
     assertEquals(configuration.getCapacityPrefetchCache(), 30);
+  }
+
+  @Test
+  void testInvalidCapacityPrefetchCache() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            BlockManagerConfiguration.builder()
+                .blockSizeBytes(4 * ONE_MB)
+                .capacityBlocks(20)
+                .readAheadBytes(128 * ONE_KB)
+                .capacityPrefetchCache(-10)
+                .build());
+
+    assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                    BlockManagerConfiguration.builder()
+                            .blockSizeBytes(4 * ONE_MB)
+                            .capacityMultiObjects(-20)
+                            .readAheadBytes(128 * ONE_KB)
+                            .capacityPrefetchCache(11)
+                            .build());
   }
 
   @Test
@@ -73,5 +104,13 @@ public class BlockManagerConfigurationTest {
                 .capacityBlocks(20)
                 .readAheadBytes(-128 * ONE_KB)
                 .build());
+  }
+
+  @Test
+  void testClose() throws IOException {
+    MultiObjectsBlockManager multiObjectsBlockManager = mock(MultiObjectsBlockManager.class);
+    BlockManager blockManager = new BlockManager(multiObjectsBlockManager, S3URI.of("test", "test"));
+    assertDoesNotThrow( () -> blockManager.close());
+    verify(multiObjectsBlockManager, times(0)).close();
   }
 }

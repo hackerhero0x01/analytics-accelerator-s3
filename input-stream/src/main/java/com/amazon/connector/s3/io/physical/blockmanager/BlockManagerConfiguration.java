@@ -75,8 +75,6 @@ public class BlockManagerConfiguration {
         capacityMultiObjects > 0, " `capacityMultiObjects` must be positive");
     Preconditions.checkArgument(
         capacityPrefetchCache > 0, " `capacityPrefetchCache` must be positive");
-    Preconditions.checkArgument(
-        capacityMultiObjects > 0, "`capacityMultiObjects` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");
     Preconditions.checkArgument(readAheadBytes > 0, "`readAheadLengthBytes` must be positive");
 

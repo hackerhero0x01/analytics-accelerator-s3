@@ -1,7 +1,10 @@
 package com.amazon.connector.s3;
 
+import static com.amazon.connector.s3.util.Constants.ONE_MB;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
@@ -9,8 +12,11 @@ import static org.mockito.Mockito.*;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
+import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
+import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerInterface;
+import com.amazon.connector.s3.io.physical.blockmanager.MultiObjectsBlockManager;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
@@ -19,10 +25,14 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.utils.IoUtils;
+import software.amazon.awssdk.utils.StringUtils;
 
 public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
@@ -34,31 +44,55 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
   void testDefaultConstructor() throws IOException {
+    S3URI s3URI = S3URI.of("bucket", "key");
     S3SeekableInputStream inputStream =
         new S3SeekableInputStream(
             fakeObjectClient,
-            S3URI.of("bucket", "key"),
+            s3URI,
             S3SeekableInputStreamConfiguration.DEFAULT);
+    assertNotNull(inputStream);
+
+    BlockManager blockManager = new BlockManager(fakeObjectClient, s3URI, BlockManagerConfiguration.DEFAULT);
+    inputStream = new S3SeekableInputStream(blockManager, S3SeekableInputStreamConfiguration.DEFAULT);
     assertNotNull(inputStream);
   }
 
   @Test
   void testConstructorThrowsOnNullArgument() {
+    S3SeekableInputStreamConfiguration conf = S3SeekableInputStreamConfiguration.DEFAULT;
+    S3URI s3URI = S3URI.of("bucket", "key");
     assertThrows(
         NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                fakeObjectClient, (S3URI) null, S3SeekableInputStreamConfiguration.DEFAULT));
+        () -> new S3SeekableInputStream(fakeObjectClient, (S3URI) null, conf));
 
     assertThrows(
         NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                null, S3URI.of("bucket", "key"), S3SeekableInputStreamConfiguration.DEFAULT));
+        () -> new S3SeekableInputStream(null, s3URI, conf));
 
     assertThrows(
         NullPointerException.class,
-        () -> new S3SeekableInputStream(fakeObjectClient, S3URI.of("bucket", "key"), null));
+        () -> new S3SeekableInputStream(fakeObjectClient, s3URI, null));
+
+    assertThrows(
+            NullPointerException.class,
+            () -> new S3SeekableInputStream(null, (S3URI) null, conf));
+
+    assertThrows(
+            NullPointerException.class,
+            () -> new S3SeekableInputStream(null, s3URI, null));
+
+    assertThrows(
+            NullPointerException.class,
+            () -> new S3SeekableInputStream(fakeObjectClient, null, null));
+
+    assertThrows(
+            NullPointerException.class,
+            () -> new S3SeekableInputStream(null, null, null));
+
+    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream((BlockManagerInterface) null, conf));
+    BlockManager blockManager = new BlockManager(fakeObjectClient, s3URI, BlockManagerConfiguration.DEFAULT);
+    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(blockManager, null));
+    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(null, null));
 
     assertThrows(NullPointerException.class, () -> new S3SeekableInputStream((LogicalIO) null));
   }
@@ -306,5 +340,46 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     byte[] b = new byte[LEN];
     assertEquals(-1, stream.read(b, 0, LEN));
     assertEquals(INITIAL_POS, stream.getPos());
+  }
+
+  @Test
+  void testMultiThreadUsage() throws IOException, InterruptedException {
+    int filesSize = 8 * ONE_MB;
+    StringBuilder sb = new StringBuilder(filesSize);
+    sb.append(StringUtils.repeat("0", 8 * ONE_MB));
+    S3URI s3URI = S3URI.of("test", "test");
+    MultiObjectsBlockManager blockManager = new MultiObjectsBlockManager(new FakeObjectClient(sb.toString()),
+                                                             BlockManagerConfiguration.DEFAULT);
+    AtomicBoolean haveException = new AtomicBoolean(false);
+
+    //Create 20 threads to start multiple SeekableInputStream to read last 4 bytes
+    ArrayList<Thread> threads = new ArrayList<>();
+    for (int i = 0; i < 20; i++) {
+      threads.add(new Thread(() -> {
+        try {
+          PhysicalIO physicalIO = new PhysicalIOImpl(new BlockManager(blockManager, s3URI));
+          LogicalIO logicalIO = new ParquetLogicalIOImpl(physicalIO, LogicalIOConfiguration.DEFAULT);
+          SeekableInputStream stream = new S3SeekableInputStream(logicalIO);
+          byte[] buffer = new byte[4];
+          stream.readTail(buffer, 0, 4);
+          stream.read(buffer, 0, 4);
+        } catch (Exception e) {
+          haveException.set(true);
+        }
+      }));
+    }
+    //Start all the threads
+    threads.forEach(Thread::start);
+
+    ArrayList<Thread> threadsWithException = new ArrayList<>();
+    for (Thread thread : threads) {
+        try {
+            thread.join();
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+    }
+    boolean result = haveException.get();
+    assertTrue(!result, "Have exception in one of the threads");
   }
 }

@@ -9,7 +9,9 @@ import com.amazon.connector.s3.request.Range;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
 
@@ -19,6 +21,7 @@ public class FakeObjectClient implements ObjectClient {
 
   @Getter private int headRequestCount = 0;
   @Getter private int getRequestCount = 0;
+  @Getter private List<Range> requestedRanges = new ArrayList<>();
 
   /**
    * Instantiate a fake Object Client backed by some string as data.
@@ -39,6 +42,7 @@ public class FakeObjectClient implements ObjectClient {
   @Override
   public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
     getRequestCount++;
+    requestedRanges.add(getRequest.getRange());
     return CompletableFuture.completedFuture(
         ObjectContent.builder().stream(getTestInputStream(getRequest.getRange())).build());
   }
