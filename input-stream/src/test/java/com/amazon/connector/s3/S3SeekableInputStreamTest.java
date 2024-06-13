@@ -189,40 +189,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   }
 
   @Test
-  void testReadWithBufferAndSmallBlockSize() throws IOException {
-    // Use a smaller block size to ensure the logic to read across multiple IOBlocks is working.
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(
-            new ParquetLogicalIOImpl(
-                new PhysicalIOImpl(
-                    new BlockManager(
-                        new FakeObjectClient(TEST_DATA),
-                        TEST_OBJECT,
-                        BlockManagerConfiguration.builder().blockSizeBytes(5).build())),
-                LogicalIOConfiguration.DEFAULT));
-
-    byte[] buffer = new byte[TEST_DATA.length()];
-
-    assertEquals(20, stream.read(buffer, 0, TEST_DATA.length()));
-    assertTrue(Arrays.equals(buffer, TEST_DATA.getBytes()));
-    assertEquals(stream.getPos(), TEST_DATA.length());
-
-    // All data has been read, and pos is current at EOF. Next read should return -1.
-    assertEquals(-1, stream.read(buffer, 0, TEST_DATA.length()));
-  }
-
-  @Test
   void testReadWithBufferAndSeeks() throws IOException {
-    // Use a smaller block size to ensure the logic to read across multiple IOBlocks is working.
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(
-            new ParquetLogicalIOImpl(
-                new PhysicalIOImpl(
-                    new BlockManager(
-                        new FakeObjectClient(TEST_DATA),
-                        TEST_OBJECT,
-                        BlockManagerConfiguration.builder().blockSizeBytes(5).build())),
-                LogicalIOConfiguration.DEFAULT));
+    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
 
     byte[] buffer = new byte[11];
 

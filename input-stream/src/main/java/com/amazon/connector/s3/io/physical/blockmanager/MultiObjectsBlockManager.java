@@ -9,7 +9,6 @@ import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -132,7 +131,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     int numBytesRead = 0;
     int numBytesRemaining = len;
     long nextReadPos = pos;
-    int nextReadOffset = offset;
+    int posInBuffer = offset;
 
     while (numBytesRemaining > 0) {
 
@@ -142,15 +141,14 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       }
 
       IOBlock ioBlock = getBlockForPosition(nextReadPos, len, s3URI);
+      int numBytesToRead = Math.min(ioBlock.remainingInBuffer(nextReadPos), numBytesRemaining);
+      byte[] currentBuffer = new byte[numBytesToRead];
+      ioBlock.read(currentBuffer, numBytesToRead, nextReadPos);
 
-      ioBlock.setPositionInBuffer(nextReadPos);
-      ByteBuffer blockData = ioBlock.getBlockContent();
+      for (int i = 0; i < numBytesToRead; i++) {
+        buffer[posInBuffer++] = currentBuffer[i];
+      }
 
-      // TODO: https://app.asana.com/0/1206885953994785/1207272185469589 - This logic can be moved
-      // down to IOBlock.
-      int numBytesToRead = Math.min(blockData.remaining(), numBytesRemaining);
-      blockData.get(buffer, nextReadOffset, numBytesToRead);
-      nextReadOffset += numBytesToRead;
       nextReadPos += numBytesToRead;
       numBytesRemaining -= numBytesToRead;
       numBytesRead += numBytesToRead;

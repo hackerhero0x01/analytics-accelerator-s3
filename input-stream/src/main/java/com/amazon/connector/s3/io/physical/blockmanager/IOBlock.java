@@ -8,7 +8,6 @@ import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
 import lombok.NonNull;
@@ -19,7 +18,7 @@ class IOBlock implements Closeable {
   @Getter private final long end;
   private CompletableFuture<ObjectContent> content;
 
-  @Getter private final ByteBuffer blockContent;
+  private final byte[] blockContent;
 
   private final int bufferSize;
   private static final int READ_BUFFER_SIZE = 64 * ONE_KB;
@@ -34,18 +33,23 @@ class IOBlock implements Closeable {
     this.end = end;
     this.content = objectContent;
     this.bufferSize = (int) size();
-    this.blockContent = ByteBuffer.allocate(this.bufferSize);
+    this.blockContent = new byte[(int) size()];
 
     readIntoBuffer();
   }
 
   public int getByte(long pos) {
-    blockContent.position(positionToOffset(pos));
-    return Byte.toUnsignedInt(blockContent.get());
+    return Byte.toUnsignedInt(this.blockContent[positionToOffset(pos)]);
   }
 
-  public void setPositionInBuffer(long pos) {
-    blockContent.position(positionToOffset(pos));
+  public int remainingInBuffer(long pos) {
+    return bufferSize - positionToOffset(pos);
+  }
+
+  public void read(byte[] buff, int len, long pos) {
+    for (int i = 0; i < len; i++) {
+      buff[i] = blockContent[positionToOffset(pos) + i];
+    }
   }
 
   private void readIntoBuffer() throws IOException {
@@ -53,6 +57,7 @@ class IOBlock implements Closeable {
     int numBytesToRead;
     int numBytesRemaining = this.bufferSize;
     int bytesRead;
+    int posInBuffer = 0;
     byte[] buffer = new byte[READ_BUFFER_SIZE];
 
     try (InputStream inputStream = this.content.join().getStream()) {
@@ -68,7 +73,9 @@ class IOBlock implements Closeable {
 
         if (bytesRead > 0) {
           numBytesRemaining -= bytesRead;
-          blockContent.put(buffer, 0, bytesRead);
+          for (int i = 0; i < bytesRead; i++) {
+            blockContent[posInBuffer++] = buffer[i];
+          }
         }
 
         if (bytesRead == 0) {
