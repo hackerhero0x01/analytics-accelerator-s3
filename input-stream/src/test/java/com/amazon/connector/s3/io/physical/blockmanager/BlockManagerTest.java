@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -25,7 +26,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -107,7 +111,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testBlockManager_usesMetadata() throws IOException {
+  void testBlockManagerUsesMetadata() throws IOException {
     // Given: block manager
     int contentLength = ONE_MB;
     byte[] content = new byte[contentLength];
@@ -137,7 +141,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testBlockManager_getMetadata() throws IOException {
+  void testBlockManagerGetMetadata() throws IOException {
     int contentLength = ONE_MB;
 
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -156,7 +160,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testBlockManager_usesReadAheadConfig() throws IOException {
+  void testBlockManagerUsesReadAheadConfig() throws IOException {
     // Given: block manager
     int contentLength = ONE_MB;
     int readAheadConfig = 123;
@@ -190,7 +194,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testBlockManager_testOneByteRead() throws IOException {
+  void testBlockManagerOneByteRead() throws IOException {
     // Given: block manager
     StringBuilder sb = new StringBuilder(10);
     sb.append(StringUtils.repeat("1", 10));
@@ -208,7 +212,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testBlockManager_queuePrefetch() throws IOException {
+  void testBlockManagerQueuePrefetch() throws IOException {
     int firstRangeStart = 0;
     int firstRangeEnd = 50;
     int secondRangeStart = 101;
@@ -241,7 +245,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testPrefetch_Error() throws IOException {
+  void testPrefetchError() throws IOException {
     // Given: Block Manager and creation of IOBlock throws Runtime exception when prefetch happens
     int contentLength = ONE_MB;
     byte[] content = new byte[contentLength];
@@ -271,7 +275,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testBlockManager_doNotPrefetch_IfAlreadyPresent() throws IOException {
+  void testBlockManagerDoNotPrefetchIfAlreadyPresent() throws IOException {
     // Given: Range from 0-100 is prefetched
     int prefetchStart = 0;
     int prefetchEnd = 100;
@@ -314,7 +318,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testBlockManager_prefetchIfPartOfRangeIsPrefetched() throws IOException {
+  void testBlockManagerPrefetchIfPartOfRangeIsPrefetched() throws IOException {
     // Given: Range 0->100 is prefetched and range 80 -> 150
     // (partly overlapping with prefetched range) is called
 
@@ -360,7 +364,60 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testBlockManager_prefetchErrorDoesNotThrow() throws IOException {
+  void testPrefetchAddsToOnlyPrefetchCache() throws IOException {
+    // Given: MultiObjectBlock Manager
+    Map<S3URI, CompletableFuture<ObjectMetadata>> metadata = new LinkedHashMap<>();
+    Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks = new LinkedHashMap<>();
+    Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache = new LinkedHashMap<>();
+
+    StringBuilder sb = new StringBuilder(300);
+    sb.append(StringUtils.repeat("1", 300));
+    FakeObjectClient objectClient = new FakeObjectClient(sb.toString());
+
+    MultiObjectsBlockManager multiObjectsBlockManager =
+        new MultiObjectsBlockManager(
+            objectClient, BlockManagerConfiguration.DEFAULT, metadata, ioBlocks, prefetchCache);
+    BlockManager blockManager = new BlockManager(multiObjectsBlockManager, URI);
+
+    // When: Queue prefetch
+    List<Range> prefetchRanges = new ArrayList<>();
+    prefetchRanges.add(new Range(150, 200));
+    blockManager.queuePrefetch(prefetchRanges);
+
+    // Then: Check that IOBlock is only added to the prefetch cache
+    Optional<PrefetchIOBlock> prefetchIOBlock =
+        prefetchCache.get(URI).stream().filter(block -> block.contains(160)).findFirst();
+    assertTrue(prefetchIOBlock.isPresent());
+
+    Optional<IOBlock> ioBlock =
+        ioBlocks.get(URI).stream().filter(block -> block.contains(160)).findFirst();
+    assertTrue(!ioBlock.isPresent());
+
+    // When: Read is called on range that is not prefetched
+    byte[] buf = new byte[100];
+    blockManager.read(buf, 0, 100, 0);
+
+    // Then: IOBlock is only present in the ioBlocks cache
+    ioBlock = ioBlocks.get(URI).stream().filter(block -> block.contains(90)).findFirst();
+    assertTrue(ioBlock.isPresent());
+
+    prefetchIOBlock =
+        prefetchCache.get(URI).stream().filter(block -> block.contains(90)).findFirst();
+    assertTrue(!prefetchIOBlock.isPresent());
+
+    // When: Subsequent read is called for prefetched range
+    buf = new byte[50];
+    blockManager.read(buf, 0, 50, 150);
+
+    blockManager.read(buf, 0, 50, 10);
+
+    // Then: IOBlocks are served from the appropriate caches and new blocks are not created
+    assertTrue(prefetchCache.get(URI).stream().count() == 1);
+    assertTrue(ioBlocks.get(URI).stream().count() == 1);
+  }
+
+  @Test
+  void testBlockManagerPrefetchErrorDoesNotThrow() throws IOException {
     // Given: block manager AND S3 is unavailable
     int contentLength = ONE_MB;
     int readAheadConfig = 123;
@@ -398,7 +455,7 @@ public class BlockManagerTest {
   @Test
   // TODO: This test should be modified at some point to test for retries when we introduce them:
   //  ticket: https://app.asana.com/0/1206885953994785/1207374694729991/f
-  void testBlockManager_doesNotRetry() throws IOException {
+  void testBlockManagerDoesNotRetry() throws IOException {
     // Given: block manager AND S3 is unavailable
     int contentLength = ONE_MB;
     int readAheadConfig = 123;

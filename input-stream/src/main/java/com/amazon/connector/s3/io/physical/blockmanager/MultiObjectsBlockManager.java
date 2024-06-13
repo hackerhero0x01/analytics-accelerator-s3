@@ -46,34 +46,50 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    */
   public MultiObjectsBlockManager(
       @NonNull ObjectClient objectClient, @NonNull BlockManagerConfiguration configuration) {
-    this.objectClient = objectClient;
-    this.configuration = configuration;
-
-    this.ioBlocks =
-        Collections.synchronizedMap(
-            new LinkedHashMap<S3URI, AutoClosingCircularBuffer<IOBlock>>() {
-              @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > configuration.getCapacityMultiObjects();
-              }
-            });
-
-    this.metadata =
+    this(
+        objectClient,
+        configuration,
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getCapacityMultiObjects();
               }
-            });
-    this.prefetchCache =
+            }),
+        Collections.synchronizedMap(
+            new LinkedHashMap<S3URI, AutoClosingCircularBuffer<IOBlock>>() {
+              @Override
+              protected boolean removeEldestEntry(final Map.Entry eldest) {
+                return this.size() > configuration.getCapacityMultiObjects();
+              }
+            }),
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getCapacityPrefetchCache();
               }
-            });
+            }));
+  }
+
+  /**
+   * @param objectClient the Object Client to use to fetch the data
+   * @param configuration the configuration
+   * @param metadata the metadata cache
+   * @param ioBlocks the IOBlock cache
+   * @param prefetchCache the prefetch cache
+   */
+  public MultiObjectsBlockManager(
+      @NonNull ObjectClient objectClient,
+      @NonNull BlockManagerConfiguration configuration,
+      @NonNull Map<S3URI, CompletableFuture<ObjectMetadata>> metadata,
+      @NonNull Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks,
+      @NonNull Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache) {
+    this.objectClient = objectClient;
+    this.configuration = configuration;
+    this.metadata = metadata;
+    this.ioBlocks = ioBlocks;
+    this.prefetchCache = prefetchCache;
   }
 
   /**
@@ -127,7 +143,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    * @return the total number of bytes read into the buffer
    */
   public int read(byte[] buffer, int offset, int len, long pos, S3URI s3URI) throws IOException {
-
     int numBytesRead = 0;
     int numBytesRemaining = len;
     long nextReadPos = pos;
