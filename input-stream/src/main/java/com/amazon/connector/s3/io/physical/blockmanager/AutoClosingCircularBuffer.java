@@ -91,8 +91,11 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
   @Override
   public void close() throws IOException {
     closed.set(true);
-    for (T t : buffer) {
-      t.close();
+    synchronized (buffer) {
+      for (T t : buffer) {
+        t.close();
+      }
+      buffer.clear();
     }
   }
 }
