@@ -73,13 +73,16 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   }
 
   /**
+   * Creates an instance of MultiObjectsBlockManager This constructor is used for dependency
+   * injection
+   *
    * @param objectClient the Object Client to use to fetch the data
    * @param configuration the configuration
    * @param metadata the metadata cache
    * @param ioBlocks the IOBlock cache
    * @param prefetchCache the prefetch cache
    */
-  public MultiObjectsBlockManager(
+  protected MultiObjectsBlockManager(
       @NonNull ObjectClient objectClient,
       @NonNull BlockManagerConfiguration configuration,
       @NonNull Map<S3URI, CompletableFuture<ObjectMetadata>> metadata,

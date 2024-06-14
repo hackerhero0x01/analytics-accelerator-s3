@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.physical.blockmanager;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -391,7 +392,7 @@ public class BlockManagerTest {
 
     Optional<IOBlock> ioBlock =
         ioBlocks.get(URI).stream().filter(block -> block.contains(160)).findFirst();
-    assertTrue(!ioBlock.isPresent());
+    assertFalse(ioBlock.isPresent());
 
     // When: Read is called on range that is not prefetched
     byte[] buf = new byte[100];
