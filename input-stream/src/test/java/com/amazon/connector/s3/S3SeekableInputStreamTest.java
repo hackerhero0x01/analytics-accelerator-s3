@@ -2,6 +2,7 @@ package com.amazon.connector.s3;
 
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -344,7 +345,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             new FakeObjectClient(sb.toString()), BlockManagerConfiguration.DEFAULT);
     AtomicBoolean haveException = new AtomicBoolean(false);
 
-    // Create 20 threads to start multiple SeekableInputStream to read last 4 bytes
+    // Create 20 threads to start multiple SeekableInputStream to read last and first 4 bytes
     ArrayList<Thread> threads = new ArrayList<>();
     for (int i = 0; i < 20; i++) {
       threads.add(
@@ -375,7 +376,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
         e.printStackTrace();
       }
     }
-    boolean result = haveException.get();
-    assertTrue(!result, "Have exception in one of the threads");
+    boolean completedWithException = haveException.get();
+    assertFalse(completedWithException, "Have exception in one of the threads");
   }
 }

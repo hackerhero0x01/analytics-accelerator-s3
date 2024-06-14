@@ -247,7 +247,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
                 .range(new Range(OptionalLong.of(start), OptionalLong.of(end)))
                 .build());
 
-    LOG.info("Creating IOBlock {}:{} for {}", start, end, s3URI);
+    LOG.info("Creating IOBlock {}:{} for {}", start, end, s3URI.getKey());
     IOBlock ioBlock = new IOBlock(start, end, objectContent);
     if (!isPrefetch) {
       AutoClosingCircularBuffer<IOBlock> blocks =

@@ -125,7 +125,6 @@ public class ParquetLogicalIOImplTest {
 
   @Test
   void testMetadaWithZeroContentLength() {
-    // FakeObjectClient fakeObjectClient = new FakeObjectClient("");
     ObjectClient mockClient = mock(ObjectClient.class);
     when(mockClient.headObject(any(HeadRequest.class)))
         .thenReturn(
@@ -139,7 +138,6 @@ public class ParquetLogicalIOImplTest {
 
   @Test
   void testMetadaWithNegativeContentLength() {
-    // FakeObjectClient fakeObjectClient = new FakeObjectClient("");
     ObjectClient mockClient = mock(ObjectClient.class);
     when(mockClient.headObject(any(HeadRequest.class)))
         .thenReturn(
