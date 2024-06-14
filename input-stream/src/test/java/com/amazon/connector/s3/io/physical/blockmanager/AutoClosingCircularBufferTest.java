@@ -59,6 +59,9 @@ public class AutoClosingCircularBufferTest {
       verify(c, times(1)).close();
     }
 
+    // TODO: Uncomment or delete, when we decide on accessing closed objects
+    // ticket: https://app.asana.com/0/1206885953994785/1207572966456548
+
     // assertThrows(IllegalArgumentException.class, () ->
     // circularBuffer.add(mock(Closeable.class)));
     // assertThrows(IllegalArgumentException.class, () -> circularBuffer.stream());
