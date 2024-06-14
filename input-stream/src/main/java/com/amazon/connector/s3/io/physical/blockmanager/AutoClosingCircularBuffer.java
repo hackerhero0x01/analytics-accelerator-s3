@@ -1,17 +1,17 @@
 package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.common.Preconditions;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A circular buffer of fixed capacity. Closes its elements before removing them. Not thread-safe.
@@ -22,9 +22,9 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
   private final int capacity;
   private int oldestIndex;
 
-  private boolean closed;
+  private AtomicBoolean closed = new AtomicBoolean();
 
-  private static final Logger LOG = LogManager.getLogger(MultiObjectsBlockManager.class);
+  private static final Logger LOG = LogManager.getLogger(AutoClosingCircularBuffer.class);
 
   /**
    * Creates an instance of AutoClosingCircularBuffer.
@@ -37,7 +37,7 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
     this.oldestIndex = 0;
     this.capacity = maxCapacity;
     this.buffer = Collections.synchronizedList(new ArrayList<>(maxCapacity));
-    this.closed = false;
+    this.closed.set(false);
   }
 
   /**
@@ -47,8 +47,8 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
    * @param element The new element to add to the buffer.
    */
   public void add(T element) throws IOException {
-    if (closed) {
-      LOG.error("Trying to add new element, after close() wasc called");
+    if (closed.get()) {
+      LOG.error("Trying to add new element, after close() was called");
     }
     synchronized (buffer) {
       if (buffer.size() < capacity) {
@@ -67,8 +67,8 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
    * @return a stream of the buffer content
    */
   protected Stream<T> stream() {
-    if (closed) {
-      LOG.error("Trying to add new element, after close() wasc called");
+    if (closed.get()) {
+      LOG.error("Trying to add new element, after close() was called");
     }
     synchronized (buffer) {
       return buffer.stream();
@@ -90,7 +90,7 @@ public class AutoClosingCircularBuffer<T extends Closeable> implements Closeable
   /** Closes the buffer, freeing up all underlying resources. */
   @Override
   public void close() throws IOException {
-    closed = true;
+    closed.set(true);
     for (T t : buffer) {
       t.close();
     }

@@ -241,8 +241,8 @@ public class BlockManagerTest {
     buf = new byte[secondRangeEnd - secondRangeStart + 1];
     blockManager.read(buf, 0, str2.length(), secondRangeStart);
     assertArrayEquals(str2.getBytes(), buf);
-    assertEquals(2, objectClient.getGetRequestCount());
-    assertEquals(1, objectClient.getHeadRequestCount());
+    assertEquals(2, objectClient.getGetRequestCount().get());
+    assertEquals(1, objectClient.getHeadRequestCount().get());
   }
 
   @Test
@@ -314,8 +314,8 @@ public class BlockManagerTest {
     assertArrayEquals(str1.substring(secondRangeStart, secondRangeEnd + 1).getBytes(), buf);
 
     // Then: Ensure GET is called only once
-    assertEquals(1, objectClient.getGetRequestCount());
-    assertEquals(1, objectClient.getHeadRequestCount());
+    assertEquals(1, objectClient.getGetRequestCount().get());
+    assertEquals(1, objectClient.getHeadRequestCount().get());
   }
 
   @Test
@@ -360,8 +360,8 @@ public class BlockManagerTest {
         sb.toString().substring(secondRangeStart, secondRangeEnd + 1).getBytes(), buf);
 
     // Then: Issue two prefetch requests one from 0->100 and another from 100->150
-    assertEquals(2, objectClient.getGetRequestCount());
-    assertEquals(1, objectClient.getHeadRequestCount());
+    assertEquals(2, objectClient.getGetRequestCount().get());
+    assertEquals(1, objectClient.getHeadRequestCount().get());
   }
 
   @Test

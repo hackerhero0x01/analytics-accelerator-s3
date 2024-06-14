@@ -106,10 +106,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       CompletableFuture<ObjectMetadata> objectMetadata = metadata.get(s3URI);
       try {
         objectMetadata.join();
-        LOG.info(
-            "Get head request. Content size is {}. Object key is {}",
-            objectMetadata.get().getContentLength(),
-            s3URI);
         return objectMetadata;
       } catch (Exception e) {
         // remove failed entry from cache
@@ -118,7 +114,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       }
     }
 
-    LOG.info("Issuing  new head request for {}", s3URI.getKey());
+    LOG.info("Issuing new Head request for {}", s3URI.getKey());
     metadata.put(
         s3URI,
         objectClient.headObject(
@@ -213,7 +209,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
             s3URI, block -> new AutoClosingCircularBuffer<>(configuration.getCapacityBlocks()));
     Optional<PrefetchIOBlock> prefetchBlock = prefetchBlocks.findItem(block -> block.contains(pos));
     if (prefetchBlock.isPresent() && prefetchBlock.get().getIOBlock().isPresent()) {
-      LOG.info("Hit prefetch cache pos: {}. Object {}", pos, s3URI);
       return prefetchBlock.get().getIOBlock();
     }
     // Block not present in the prefetch cache. Fetch it synchronously

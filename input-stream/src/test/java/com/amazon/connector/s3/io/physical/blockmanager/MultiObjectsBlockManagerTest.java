@@ -52,7 +52,7 @@ public class MultiObjectsBlockManagerTest {
   }
 
   @Test
-  public void testCaches() throws IOException {
+  public void testCaches() throws IOException, InterruptedException {
     StringBuilder sb = new StringBuilder(8 * ONE_MB);
     sb.append(StringUtils.repeat("0", 8 * ONE_MB));
     FakeObjectClient objectClient = new FakeObjectClient(sb.toString());
@@ -83,8 +83,8 @@ public class MultiObjectsBlockManagerTest {
     multiObjectsBlockManager.read(4 * ONE_MB, s3URI2);
     multiObjectsBlockManager.read(3 * ONE_MB, s3URI2);
 
-    assertEquals(2, objectClient.getHeadRequestCount());
-    assertEquals(8, objectClient.getGetRequestCount());
+    assertEquals(2, objectClient.getHeadRequestCount().get());
+    assertEquals(8, objectClient.getGetRequestCount().get());
   }
 
   @Test

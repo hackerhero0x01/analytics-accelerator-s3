@@ -3,7 +3,6 @@ package com.amazon.connector.s3.io.logical.impl;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -149,8 +148,6 @@ public class ParquetLogicalIOImplTest {
     BlockManager blockManager =
         new BlockManager(mockClient, s3URI, BlockManagerConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO = new PhysicalIOImpl(blockManager);
-    assertThrows(
-        RuntimeException.class,
-        () -> new ParquetLogicalIOImpl(physicalIO, LogicalIOConfiguration.DEFAULT));
+    assertDoesNotThrow(() -> new ParquetLogicalIOImpl(physicalIO, LogicalIOConfiguration.DEFAULT));
   }
 }
