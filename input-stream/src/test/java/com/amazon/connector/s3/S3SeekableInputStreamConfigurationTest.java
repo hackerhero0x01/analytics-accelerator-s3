@@ -29,8 +29,8 @@ public class S3SeekableInputStreamConfigurationTest {
         () -> S3SeekableInputStreamConfiguration.builder().blockManagerConfiguration(null).build());
 
     assertThrows(
-            NullPointerException.class,
-            () -> S3SeekableInputStreamConfiguration.builder().logicalIOConfiguration(null).build());
+        NullPointerException.class,
+        () -> S3SeekableInputStreamConfiguration.builder().logicalIOConfiguration(null).build());
   }
 
   @Test

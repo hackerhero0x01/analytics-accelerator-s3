@@ -58,6 +58,9 @@ public class AutoClosingCircularBufferTest {
     for (Closeable c : Arrays.asList(c1, c2, c3)) {
       verify(c, times(1)).close();
     }
+
+    //assertThrows(IllegalArgumentException.class, () -> circularBuffer.add(mock(Closeable.class)));
+    //assertThrows(IllegalArgumentException.class, () -> circularBuffer.stream());
   }
 
   @Test

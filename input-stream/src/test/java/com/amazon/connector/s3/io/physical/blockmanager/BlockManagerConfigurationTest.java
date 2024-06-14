@@ -8,12 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.internal.util.io.IOUtil.close;
 
 import com.amazon.connector.s3.util.S3URI;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
+import org.junit.jupiter.api.Test;
 
 public class BlockManagerConfigurationTest {
   @Test
@@ -60,14 +58,14 @@ public class BlockManagerConfigurationTest {
                 .build());
 
     assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                    BlockManagerConfiguration.builder()
-                            .blockSizeBytes(4 * ONE_MB)
-                            .capacityMultiObjects(-20)
-                            .readAheadBytes(128 * ONE_KB)
-                            .capacityPrefetchCache(11)
-                            .build());
+        IllegalArgumentException.class,
+        () ->
+            BlockManagerConfiguration.builder()
+                .blockSizeBytes(4 * ONE_MB)
+                .capacityMultiObjects(-20)
+                .readAheadBytes(128 * ONE_KB)
+                .capacityPrefetchCache(11)
+                .build());
   }
 
   @Test
@@ -109,8 +107,9 @@ public class BlockManagerConfigurationTest {
   @Test
   void testClose() throws IOException {
     MultiObjectsBlockManager multiObjectsBlockManager = mock(MultiObjectsBlockManager.class);
-    BlockManager blockManager = new BlockManager(multiObjectsBlockManager, S3URI.of("test", "test"));
-    assertDoesNotThrow( () -> blockManager.close());
+    BlockManager blockManager =
+        new BlockManager(multiObjectsBlockManager, S3URI.of("test", "test"));
+    assertDoesNotThrow(() -> blockManager.close());
     verify(multiObjectsBlockManager, times(0)).close();
   }
 }
