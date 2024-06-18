@@ -7,4 +7,13 @@ import lombok.Data;
 public class Range {
   private final long start;
   private final long end;
+
+  /**
+   * Gets length of range.
+   *
+   * @return length of range
+   */
+  public long getLength() {
+    return end - start;
+  }
 }

@@ -35,7 +35,7 @@ import software.amazon.awssdk.utils.StringUtils;
 public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
-  void testConstructor() throws IOException {
+  void testConstructor() {
     S3SeekableInputStream inputStream = new S3SeekableInputStream(fakeLogicalIO);
     assertNotNull(inputStream);
   }
@@ -43,6 +43,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testDefaultConstructor() throws IOException {
     S3URI s3URI = S3URI.of("bucket", "key");
+
     S3SeekableInputStream inputStream =
         new S3SeekableInputStream(
             fakeObjectClient, s3URI, S3SeekableInputStreamConfiguration.DEFAULT);
@@ -166,7 +167,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 new PhysicalIOImpl(
                     new BlockManager(
                         new FakeObjectClient(""), TEST_OBJECT, BlockManagerConfiguration.DEFAULT)),
-                LogicalIOConfiguration.builder().FooterPrecachingEnabled(false).build()));
+                LogicalIOConfiguration.builder().footerCachingEnabled(false).build()));
 
     // When: we read a byte from the empty object
     int readByte = stream.read();

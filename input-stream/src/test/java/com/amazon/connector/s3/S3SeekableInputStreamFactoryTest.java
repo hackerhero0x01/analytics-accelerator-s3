@@ -42,7 +42,7 @@ public class S3SeekableInputStreamFactoryTest {
             mock(ObjectClient.class),
             S3SeekableInputStreamConfiguration.builder()
                 .logicalIOConfiguration(
-                    LogicalIOConfiguration.builder().FooterPrecachingEnabled(false).build())
+                    LogicalIOConfiguration.builder().footerCachingEnabled(false).build())
                 .build());
     S3SeekableInputStream inputStream =
         s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"));
@@ -54,7 +54,7 @@ public class S3SeekableInputStreamFactoryTest {
     S3SeekableInputStreamConfiguration configuration =
         S3SeekableInputStreamConfiguration.builder()
             .logicalIOConfiguration(
-                LogicalIOConfiguration.builder().FooterPrecachingEnabled(false).build())
+                LogicalIOConfiguration.builder().footerCachingEnabled(false).build())
             .blockManagerConfiguration(
                 BlockManagerConfiguration.builder().useSingleCache(false).build())
             .build();

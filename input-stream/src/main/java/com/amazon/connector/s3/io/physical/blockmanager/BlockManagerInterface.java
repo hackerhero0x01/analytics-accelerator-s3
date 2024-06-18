@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.io.physical.blockmanager;
 
+import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import java.io.IOException;
@@ -50,4 +51,8 @@ public interface BlockManagerInterface extends AutoCloseable {
    * @return the metadata of the object
    */
   CompletableFuture<ObjectMetadata> getMetadata();
+
+  ColumnMappers getColumnMappers();
+
+  void putColumnMappers(ColumnMappers columnMappers);
 }

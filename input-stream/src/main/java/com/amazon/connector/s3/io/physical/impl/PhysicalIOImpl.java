@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.impl;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
@@ -51,6 +52,16 @@ public class PhysicalIOImpl implements PhysicalIO {
           "logicalIOPlan doesn't provide information about file to read");
 
     this.blockManager.queuePrefetch(logicalIOPlan.getPrefetchRanges());
+  }
+
+  @Override
+  public ColumnMappers columnMappers() {
+    return this.blockManager.getColumnMappers();
+  }
+
+  @Override
+  public void putColumnMappers(ColumnMappers columnMappers) {
+    this.blockManager.putColumnMappers(columnMappers);
   }
 
   @Override

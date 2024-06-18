@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.io.physical;
 
 import com.amazon.connector.s3.RandomAccessReadable;
+import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import java.io.IOException;
 
@@ -13,4 +14,18 @@ public interface PhysicalIO extends RandomAccessReadable {
    * @param ioPlan the plan to execute asynchronously
    */
   void execute(IOPlan ioPlan) throws IOException;
+
+  /**
+   * Gets column mappers.
+   *
+   * @return column mappers with parquet metadata info.
+   */
+  ColumnMappers columnMappers();
+
+  /**
+   * Puts column mappers.
+   *
+   * @param columnMappers column mappers with parquet metadata.
+   */
+  void putColumnMappers(ColumnMappers columnMappers);
 }
