@@ -57,7 +57,6 @@ public class ParquetMetadataTask {
    * @return Column mappings
    */
   public ColumnMappers storeColumnMappers(FileTail fileTail) {
-    LOG.info("STORING COLUMN MAPPERS");
     try {
       FileMetaData fileMetaData =
           parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
