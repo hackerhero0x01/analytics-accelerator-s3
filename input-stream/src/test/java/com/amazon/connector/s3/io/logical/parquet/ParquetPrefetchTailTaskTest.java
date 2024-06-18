@@ -57,7 +57,7 @@ public class ParquetPrefetchTailTaskTest {
 
       ParquetPrefetchTailTask parquetPrefetchTailTask =
           new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
-      CompletableFuture.supplyAsync(parquetPrefetchTailTask).join();
+      parquetPrefetchTailTask.prefetchTail();
 
       verify(mockedPhysicalIO).execute(any(IOPlan.class));
       verify(mockedPhysicalIO)

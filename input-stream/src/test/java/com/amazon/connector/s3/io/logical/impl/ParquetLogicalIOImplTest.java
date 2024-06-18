@@ -42,7 +42,6 @@ public class ParquetLogicalIOImplTest {
     verify(physicalIO, times(1)).close();
   }
 
-  // TODO: these probably need to be moved too
   @Test
   void testMetadaWithZeroContentLength() {
     ObjectClient mockClient = mock(ObjectClient.class);
@@ -68,4 +67,52 @@ public class ParquetLogicalIOImplTest {
     PhysicalIOImpl physicalIO = new PhysicalIOImpl(blockManager);
     assertDoesNotThrow(() -> new ParquetLogicalIOImpl(physicalIO, LogicalIOConfiguration.DEFAULT));
   }
+
+  //  @Test
+  //  void testFooterPrefetchedAndMetadateParsed() throws IOException {
+  //    PhysicalIO physicalIO = mock(PhysicalIO.class);
+  //    ParquetMetadataTask parquetMetadataTask = mock(ParquetMetadataTask.class);
+  //    ParquetReadTailTask parquetReadTailTask = mock(ParquetReadTailTask.class);
+  //    ParquetPrefetchTailTask parquetPrefetchTailTask = mock(ParquetPrefetchTailTask.class);
+  //    ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
+  //        mock(ParquetPrefetchRemainingColumnTask.class);
+  //
+  //    when(parquetReadTailTask.get()).thenReturn(new FileTail(ByteBuffer.allocate(0), 0));
+  //
+  //    ParquetLogicalIOImpl logicalIO =
+  //        new ParquetLogicalIOImpl(
+  //            physicalIO,
+  //            LogicalIOConfiguration.DEFAULT,
+  //            parquetPrefetchTailTask,
+  //            parquetReadTailTask,
+  //            parquetMetadataTask,
+  //            parquetPrefetchRemainingColumnTask);
+  //
+  //    logicalIO.read(new byte[0], 0, 0, 0);
+  //
+  //    verify(parquetPrefetchRemainingColumnTask).prefetchRemainingColumnChunk(anyLong(),
+  // anyInt());
+  //  }
+
+  //  @Test
+  //  void testFooterPrefetchedAndMetadateParsed() {
+  //    PhysicalIO physicalIO = mock(PhysicalIO.class);
+  //    ParquetMetadataTask parquetMetadataTask = mock(ParquetMetadataTask.class);
+  //    ParquetReadTailTask parquetReadTailTask = mock(ParquetReadTailTask.class);
+  //    ParquetPrefetchTailTask parquetPrefetchTailTask = mock(ParquetPrefetchTailTask.class);
+  //
+  //    when(physicalIO.columnMappers()).thenReturn(null);
+  //    when(parquetReadTailTask.get()).thenReturn(new FileTail(ByteBuffer.allocate(0), 0));
+  //
+  //    new ParquetLogicalIOImpl(
+  //        physicalIO,
+  //        LogicalIOConfiguration.DEFAULT,
+  //        parquetPrefetchTailTask,
+  //        parquetReadTailTask,
+  //        parquetMetadataTask);
+  //
+  //    verify(parquetPrefetchTailTask).prefetchTail();
+  //    verify(parquetReadTailTask).get();
+  //    verify(parquetMetadataTask).storeColumnMappers(any(FileTail.class));
+  //  }
 }

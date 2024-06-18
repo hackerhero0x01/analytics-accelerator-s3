@@ -2,17 +2,20 @@ package com.amazon.connector.s3.io.physical.impl;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.security.InvalidParameterException;
+import java.util.HashMap;
 import org.junit.jupiter.api.Test;
 
 public class PhysicalIOImplTest {
@@ -39,6 +42,14 @@ public class PhysicalIOImplTest {
 
     assertThrows(
         InvalidParameterException.class, () -> physicalIO.execute(IOPlan.builder().build()));
+  }
+
+  @Test
+  void testPutColumnMappers() {
+    BlockManager blockManager = mock(BlockManager.class);
+    PhysicalIOImpl physicalIO = new PhysicalIOImpl(blockManager);
+    physicalIO.putColumnMappers(new ColumnMappers(new HashMap<>()));
+    verify(blockManager).putColumnMappers(any(ColumnMappers.class));
   }
 
   @Test

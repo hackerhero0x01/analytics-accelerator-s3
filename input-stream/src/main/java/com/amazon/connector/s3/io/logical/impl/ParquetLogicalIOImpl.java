@@ -11,6 +11,7 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,6 +23,10 @@ public class ParquetLogicalIOImpl implements LogicalIO {
 
   private final PhysicalIO physicalIO;
   private final LogicalIOConfiguration logicalIOConfiguration;
+  private final ParquetMetadataTask parquetMetadataTask;
+  private final ParquetPrefetchTailTask parquetPrefetchTailTask;
+  private final ParquetReadTailTask parquetReadTailTask;
+  private final ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask;
 
   private static final Logger LOG = LogManager.getLogger(ParquetLogicalIOImpl.class);
 
@@ -32,21 +37,31 @@ public class ParquetLogicalIOImpl implements LogicalIO {
    * @param logicalIOConfiguration configuration for this logical IO implementation
    */
   public ParquetLogicalIOImpl(
-      PhysicalIO physicalIO, LogicalIOConfiguration logicalIOConfiguration) {
+      @NonNull PhysicalIO physicalIO, @NonNull LogicalIOConfiguration logicalIOConfiguration) {
+    this(
+        physicalIO,
+        logicalIOConfiguration,
+        new ParquetPrefetchTailTask(logicalIOConfiguration, physicalIO),
+        new ParquetReadTailTask(logicalIOConfiguration, physicalIO),
+        new ParquetMetadataTask(logicalIOConfiguration, physicalIO),
+        new ParquetPrefetchRemainingColumnTask(logicalIOConfiguration, physicalIO));
+  }
+
+  protected ParquetLogicalIOImpl(
+      PhysicalIO physicalIO,
+      LogicalIOConfiguration logicalIOConfiguration,
+      ParquetPrefetchTailTask parquetPrefetchTailTask,
+      ParquetReadTailTask parquetReadTailTask,
+      ParquetMetadataTask parquetMetadataTask,
+      ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask) {
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
+    this.parquetPrefetchTailTask = parquetPrefetchTailTask;
+    this.parquetReadTailTask = parquetReadTailTask;
+    this.parquetMetadataTask = parquetMetadataTask;
+    this.parquetPrefetchRemainingColumnTask = parquetPrefetchRemainingColumnTask;
 
-    if (logicalIOConfiguration.isFooterCachingEnabled()) {
-      new ParquetPrefetchTailTask(logicalIOConfiguration, physicalIO).get();
-    }
-
-    if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()
-        && physicalIO.columnMappers() == null) {
-      CompletableFuture.supplyAsync(new ParquetReadTailTask(logicalIOConfiguration, physicalIO))
-          .thenAccept(
-              (FileTail fileTail) ->
-                  new ParquetMetadataTask(physicalIO, logicalIOConfiguration, fileTail).get());
-    }
+    prefetchFooterAndBuildMetadata();
   }
 
   @Override
@@ -58,8 +73,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
   public int read(byte[] buf, int off, int len, long position) throws IOException {
     if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()) {
       CompletableFuture.supplyAsync(
-          new ParquetPrefetchRemainingColumnTask(
-              physicalIO, logicalIOConfiguration, position, len));
+          () -> parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(position, len));
     }
 
     return physicalIO.read(buf, off, len, position);
@@ -78,5 +92,17 @@ public class ParquetLogicalIOImpl implements LogicalIO {
   @Override
   public void close() throws IOException {
     physicalIO.close();
+  }
+
+  private void prefetchFooterAndBuildMetadata() {
+    if (logicalIOConfiguration.isFooterCachingEnabled()) {
+      parquetPrefetchTailTask.prefetchTail();
+    }
+
+    if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()
+        && physicalIO.columnMappers() == null) {
+      CompletableFuture.supplyAsync(parquetReadTailTask)
+          .thenAccept((FileTail fileTail) -> parquetMetadataTask.storeColumnMappers(fileTail));
+    }
   }
 }

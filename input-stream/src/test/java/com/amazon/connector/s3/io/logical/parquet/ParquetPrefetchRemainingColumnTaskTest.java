@@ -17,7 +17,6 @@ import com.amazon.connector.s3.io.physical.plan.Range;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
 public class ParquetPrefetchRemainingColumnTaskTest {
@@ -26,17 +25,17 @@ public class ParquetPrefetchRemainingColumnTaskTest {
   void testContructor() {
     assertNotNull(
         new ParquetPrefetchRemainingColumnTask(
-            mock(PhysicalIO.class), LogicalIOConfiguration.DEFAULT, 0, 0));
+            LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
   }
 
   @Test
   void testContructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetPrefetchRemainingColumnTask(mock(PhysicalIO.class), null, 0, 0));
+        () -> new ParquetPrefetchRemainingColumnTask(LogicalIOConfiguration.DEFAULT, null));
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetPrefetchRemainingColumnTask(mock(PhysicalIO.class), null, 0, 0));
+        () -> new ParquetPrefetchRemainingColumnTask(null, mock(PhysicalIO.class)));
   }
 
   @Test
@@ -57,9 +56,8 @@ public class ParquetPrefetchRemainingColumnTaskTest {
     expectedRanges.add(new Range(200 + FIVE_MB, 200 + FIVE_MB + (TEN_MB - FIVE_MB)));
 
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
-        new ParquetPrefetchRemainingColumnTask(
-            mockedPhysicalIO, LogicalIOConfiguration.DEFAULT, 200, 5 * ONE_MB);
-    CompletableFuture.supplyAsync(parquetPrefetchRemainingColumnTask).join();
+        new ParquetPrefetchRemainingColumnTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+    parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(200, 5 * ONE_MB);
 
     verify(mockedPhysicalIO).execute(any(IOPlan.class));
     verify(mockedPhysicalIO).execute(argThat(new IOPlanMatcher(expectedRanges)));

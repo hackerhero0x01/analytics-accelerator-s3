@@ -26,29 +26,16 @@ public class ParquetMetadataTaskTest {
 
   @Test
   void testContructor() {
-    assertNotNull(
-        new ParquetMetadataTask(
-            mock(PhysicalIO.class),
-            LogicalIOConfiguration.DEFAULT,
-            new FileTail(ByteBuffer.allocate(0), 0)));
+    assertNotNull(new ParquetMetadataTask(LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
   }
 
   @Test
   void testConstructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () ->
-            new ParquetMetadataTask(
-                null, LogicalIOConfiguration.DEFAULT, new FileTail(ByteBuffer.allocate(0), 0)));
+        () -> new ParquetMetadataTask(LogicalIOConfiguration.DEFAULT, null));
     assertThrows(
-        NullPointerException.class,
-        () ->
-            new ParquetMetadataTask(
-                mock(PhysicalIO.class), null, new FileTail(ByteBuffer.allocate(0), 0)));
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new ParquetMetadataTask(mock(PhysicalIO.class), LogicalIOConfiguration.DEFAULT, null));
+        NullPointerException.class, () -> new ParquetMetadataTask(null, mock(PhysicalIO.class)));
   }
 
   @Test
@@ -68,12 +55,13 @@ public class ParquetMetadataTaskTest {
 
     ParquetMetadataTask parquetMetadataTask =
         new ParquetMetadataTask(
-            mockedPhysicalIO,
-            LogicalIOConfiguration.DEFAULT,
-            new FileTail(ByteBuffer.allocate(0), 0),
-            mockedParquetParser);
+            mockedPhysicalIO, LogicalIOConfiguration.DEFAULT, mockedParquetParser);
 
-    ColumnMappers columnMappers = CompletableFuture.supplyAsync(parquetMetadataTask).join();
+    ColumnMappers columnMappers =
+        CompletableFuture.supplyAsync(
+                () ->
+                    parquetMetadataTask.storeColumnMappers(new FileTail(ByteBuffer.allocate(0), 0)))
+            .join();
 
     assertEquals(
         fileMetaData.getRow_groups().get(0).getColumns().size(),
@@ -110,12 +98,10 @@ public class ParquetMetadataTaskTest {
         .thenThrow(new IOException("can not read FileMetaData"));
     ParquetMetadataTask parquetMetadataTask =
         new ParquetMetadataTask(
-            mock(PhysicalIO.class),
-            LogicalIOConfiguration.DEFAULT,
-            new FileTail(ByteBuffer.allocate(0), 0),
-            mockedParquetParser);
+            mock(PhysicalIO.class), LogicalIOConfiguration.DEFAULT, mockedParquetParser);
     CompletableFuture<ColumnMappers> parquetMetadataTaskFuture =
-        CompletableFuture.supplyAsync(parquetMetadataTask);
+        CompletableFuture.supplyAsync(
+            () -> parquetMetadataTask.storeColumnMappers(new FileTail(ByteBuffer.allocate(0), 0)));
 
     // Any errors in parsing should be swallowed
     assertNull(parquetMetadataTaskFuture.join());

@@ -7,13 +7,12 @@ import com.amazon.connector.s3.io.physical.plan.Range;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Task for prefetching the tail of a parquet file. */
-public class ParquetPrefetchTailTask implements Supplier<Void> {
+public class ParquetPrefetchTailTask {
 
   private final LogicalIOConfiguration logicalIOConfiguration;
   private final PhysicalIO physicalIO;
@@ -32,8 +31,8 @@ public class ParquetPrefetchTailTask implements Supplier<Void> {
     this.physicalIO = physicalIO;
   }
 
-  @Override
-  public Void get() {
+  /** Prefetch tail of the parquet file */
+  public void prefetchTail() {
     try {
       long contentLength = physicalIO.metadata().join().getContentLength();
       Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
@@ -45,7 +44,5 @@ public class ParquetPrefetchTailTask implements Supplier<Void> {
     } catch (IOException e) {
       LOG.debug("Error in executing tail prefetch plan", e);
     }
-
-    return null;
   }
 }

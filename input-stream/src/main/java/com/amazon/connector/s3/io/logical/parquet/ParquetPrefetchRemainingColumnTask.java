@@ -7,18 +7,15 @@ import com.amazon.connector.s3.io.physical.plan.Range;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.Supplier;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /** Task for prefetching the remainder of a column chunk. */
-public class ParquetPrefetchRemainingColumnTask implements Supplier<Void> {
+public class ParquetPrefetchRemainingColumnTask {
 
   private final PhysicalIO physicalIO;
   private final LogicalIOConfiguration logicalIOConfiguration;
-  private final long position;
-  private final int len;
 
   private static final Logger LOG = LogManager.getLogger(ParquetPrefetchRemainingColumnTask.class);
 
@@ -27,29 +24,28 @@ public class ParquetPrefetchRemainingColumnTask implements Supplier<Void> {
    *
    * @param physicalIO physicalIO instance
    * @param logicalIOConfiguration logicalIO configuration
-   * @param position the current position of the read
-   * @param len the lenght of the read
    */
   public ParquetPrefetchRemainingColumnTask(
-      @NonNull PhysicalIO physicalIO,
-      @NonNull LogicalIOConfiguration logicalIOConfiguration,
-      long position,
-      int len) {
+      @NonNull LogicalIOConfiguration logicalIOConfiguration, @NonNull PhysicalIO physicalIO) {
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
-    this.position = position;
-    this.len = len;
   }
 
-  @Override
-  public Void get() {
+  /**
+   * Prefetches the remaining colum chunk.
+   *
+   * @param position current position of read
+   * @param len length of read
+   * @return ranges prefetched
+   */
+  public List<Range> prefetchRemainingColumnChunk(long position, int len) {
     ColumnMappers columnMappers = physicalIO.columnMappers();
 
     if (columnMappers != null) {
       HashMap<String, ColumnMetadata> offsetIndexToColumnMap =
           columnMappers.getOffsetIndexToColumnMap();
       if (offsetIndexToColumnMap.containsKey(Long.toString(position))) {
-        createRemainingColumnPrefetchPlan(
+        return createRemainingColumnPrefetchPlan(
             offsetIndexToColumnMap.get(Long.toString(position)), position, len);
       }
     }
@@ -57,7 +53,7 @@ public class ParquetPrefetchRemainingColumnTask implements Supplier<Void> {
     return null;
   }
 
-  private void createRemainingColumnPrefetchPlan(
+  private List<Range> createRemainingColumnPrefetchPlan(
       ColumnMetadata columnMetadata, long position, int len) {
 
     if (len < columnMetadata.getCompressedSize()) {
@@ -68,9 +64,12 @@ public class ParquetPrefetchRemainingColumnTask implements Supplier<Void> {
       IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
       try {
         physicalIO.execute(ioPlan);
+        return prefetchRanges;
       } catch (Exception e) {
         LOG.debug("Error in executing remaining column prefetch plan", e);
       }
     }
+
+    return null;
   }
 }

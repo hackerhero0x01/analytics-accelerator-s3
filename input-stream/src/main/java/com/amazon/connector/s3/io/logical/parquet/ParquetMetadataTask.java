@@ -4,7 +4,6 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.function.Supplier;
 import lombok.NonNull;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
@@ -17,11 +16,10 @@ import org.slf4j.LoggerFactory;
  * used to track current columns being read. Best effort only, any exceptions in parsing will be
  * swallowed.
  */
-public class ParquetMetadataTask implements Supplier<ColumnMappers> {
+public class ParquetMetadataTask {
   private final ParquetParser parquetParser;
   private final PhysicalIO physicalIO;
   private final LogicalIOConfiguration logicalIOConfiguration;
-  private final FileTail fileTail;
 
   private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataTask.class);
 
@@ -30,16 +28,9 @@ public class ParquetMetadataTask implements Supplier<ColumnMappers> {
    *
    * @param physicalIO PhysicalIO instance
    * @param logicalIOConfiguration logical io configuration
-   * @param fileTail tail of object to read
    */
-  public ParquetMetadataTask(
-      @NonNull PhysicalIO physicalIO,
-      @NonNull LogicalIOConfiguration logicalIOConfiguration,
-      @NonNull FileTail fileTail) {
-    this.parquetParser = new ParquetParser();
-    this.physicalIO = physicalIO;
-    this.logicalIOConfiguration = logicalIOConfiguration;
-    this.fileTail = fileTail;
+  public ParquetMetadataTask(LogicalIOConfiguration logicalIOConfiguration, PhysicalIO physicalIO) {
+    this(physicalIO, logicalIOConfiguration, new ParquetParser());
   }
 
   /**
@@ -48,22 +39,25 @@ public class ParquetMetadataTask implements Supplier<ColumnMappers> {
    *
    * @param physicalIO PhysicalIO instance
    * @param logicalIOConfiguration logical io configuration
-   * @param fileTail buffer with footer bytes to be parsed
    * @param parquetParser parser for getting the file metadata
    */
   protected ParquetMetadataTask(
       @NonNull PhysicalIO physicalIO,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
-      @NonNull FileTail fileTail,
       @NonNull ParquetParser parquetParser) {
     this.parquetParser = parquetParser;
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
-    this.fileTail = fileTail;
   }
 
-  @Override
-  public ColumnMappers get() {
+  /**
+   * Stores parquet metadata column mappings for future use
+   *
+   * @param fileTail tail of parquet file to be parsed
+   * @return Column mappings
+   */
+  public ColumnMappers storeColumnMappers(FileTail fileTail) {
+    LOG.info("STORING COLUMN MAPPERS");
     try {
       FileMetaData fileMetaData =
           parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
