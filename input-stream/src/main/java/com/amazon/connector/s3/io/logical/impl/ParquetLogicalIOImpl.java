@@ -2,16 +2,18 @@ package com.amazon.connector.s3.io.logical.impl;
 
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.logical.parquet.FileTail;
+import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.logical.parquet.ParquetMetadataTask;
 import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchRemainingColumnTask;
 import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchTailTask;
 import com.amazon.connector.s3.io.logical.parquet.ParquetReadTailTask;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
+import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,7 +39,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
    * @param logicalIOConfiguration configuration for this logical IO implementation
    */
   public ParquetLogicalIOImpl(
-      @NonNull PhysicalIO physicalIO, @NonNull LogicalIOConfiguration logicalIOConfiguration) {
+      PhysicalIO physicalIO, LogicalIOConfiguration logicalIOConfiguration) {
     this(
         physicalIO,
         logicalIOConfiguration,
@@ -45,8 +47,21 @@ public class ParquetLogicalIOImpl implements LogicalIO {
         new ParquetReadTailTask(logicalIOConfiguration, physicalIO),
         new ParquetMetadataTask(logicalIOConfiguration, physicalIO),
         new ParquetPrefetchRemainingColumnTask(logicalIOConfiguration, physicalIO));
+
+    prefetchFooterAndBuildMetadata();
   }
 
+  /**
+   * Constructs an instance of LogicalIOImpl. This version of the constructor allows for dependency
+   * injection.
+   *
+   * @param physicalIO underlying physical IO that knows how to fetch bytes
+   * @param logicalIOConfiguration configuration for this logical IO implementation
+   * @param parquetPrefetchTailTask task for prefetching parquet file tail
+   * @param parquetReadTailTask task for reading parquet file tail
+   * @param parquetMetadataTask task for parsing parquet metadata
+   * @param parquetPrefetchRemainingColumnTask task for prefetching remaining column task
+   */
   protected ParquetLogicalIOImpl(
       PhysicalIO physicalIO,
       LogicalIOConfiguration logicalIOConfiguration,
@@ -60,8 +75,6 @@ public class ParquetLogicalIOImpl implements LogicalIO {
     this.parquetReadTailTask = parquetReadTailTask;
     this.parquetMetadataTask = parquetMetadataTask;
     this.parquetPrefetchRemainingColumnTask = parquetPrefetchRemainingColumnTask;
-
-    prefetchFooterAndBuildMetadata();
   }
 
   @Override
@@ -71,11 +84,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
 
   @Override
   public int read(byte[] buf, int off, int len, long position) throws IOException {
-    if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()) {
-      CompletableFuture.supplyAsync(
-          () -> parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(position, len));
-    }
-
+    prefetchRemainingColumnChunk(position, len);
     return physicalIO.read(buf, off, len, position);
   }
 
@@ -94,15 +103,30 @@ public class ParquetLogicalIOImpl implements LogicalIO {
     physicalIO.close();
   }
 
-  private void prefetchFooterAndBuildMetadata() {
+  protected Optional<CompletableFuture<List<Range>>> prefetchRemainingColumnChunk(
+      long position, int len) {
+    if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()) {
+      return Optional.of(
+          CompletableFuture.supplyAsync(
+              () ->
+                  parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(position, len)));
+    }
+
+    return Optional.empty();
+  }
+
+  protected Optional<CompletableFuture<ColumnMappers>> prefetchFooterAndBuildMetadata() {
     if (logicalIOConfiguration.isFooterCachingEnabled()) {
       parquetPrefetchTailTask.prefetchTail();
     }
 
     if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()
         && physicalIO.columnMappers() == null) {
-      CompletableFuture.supplyAsync(parquetReadTailTask)
-          .thenAccept((FileTail fileTail) -> parquetMetadataTask.storeColumnMappers(fileTail));
+      return Optional.of(
+          CompletableFuture.supplyAsync(parquetReadTailTask)
+              .thenApply(parquetMetadataTask::storeColumnMappers));
     }
+
+    return Optional.empty();
   }
 }

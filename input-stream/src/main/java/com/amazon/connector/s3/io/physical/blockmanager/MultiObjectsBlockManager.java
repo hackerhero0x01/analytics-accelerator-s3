@@ -97,10 +97,10 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   protected MultiObjectsBlockManager(
       @NonNull ObjectClient objectClient,
       @NonNull BlockManagerConfiguration configuration,
-      @NonNull Map<S3URI, CompletableFuture<ObjectMetadata>> metadata,
-      @NonNull Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks,
-      @NonNull Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache,
-      @NonNull Map<S3URI, ColumnMappers> columnMappersStore) {
+      Map<S3URI, CompletableFuture<ObjectMetadata>> metadata,
+      Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks,
+      Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache,
+      Map<S3URI, ColumnMappers> columnMappersStore) {
     this.objectClient = objectClient;
     this.configuration = configuration;
     this.metadata = metadata;
