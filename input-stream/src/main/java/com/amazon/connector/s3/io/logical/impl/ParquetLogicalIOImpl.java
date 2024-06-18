@@ -37,8 +37,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
     this.logicalIOConfiguration = logicalIOConfiguration;
 
     if (logicalIOConfiguration.isFooterCachingEnabled()) {
-      CompletableFuture.supplyAsync(
-          new ParquetPrefetchTailTask(logicalIOConfiguration, physicalIO));
+      new ParquetPrefetchTailTask(logicalIOConfiguration, physicalIO).get();
     }
 
     if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()
@@ -46,7 +45,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
       CompletableFuture.supplyAsync(new ParquetReadTailTask(logicalIOConfiguration, physicalIO))
           .thenAccept(
               (FileTail fileTail) ->
-                  new ParquetMetadataTask(physicalIO, logicalIOConfiguration, fileTail));
+                  new ParquetMetadataTask(physicalIO, logicalIOConfiguration, fileTail).get());
     }
   }
 

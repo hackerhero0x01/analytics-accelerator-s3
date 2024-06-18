@@ -50,11 +50,11 @@ public class ParquetPrefetchRemainingColumnTaskTest {
 
     List<Range> expectedRanges = new ArrayList<>();
     // If a column starts at 200, has size 10MB, and we get a read for 5MB, then queue a
-    // prefetch with range (200 + 5MB) to (200 + 10MB - 5MB).
+    // prefetch with range (200 + 5MB) to (200 + 5MB + (10MB - 5MB)).
     // Which means prefetch the remainder of the column chunk.
     int FIVE_MB = 5 * ONE_MB;
     int TEN_MB = 10 * ONE_MB;
-    expectedRanges.add(new Range(200 + FIVE_MB, 200 + TEN_MB - FIVE_MB));
+    expectedRanges.add(new Range(200 + FIVE_MB, 200 + FIVE_MB + (TEN_MB - FIVE_MB)));
 
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
         new ParquetPrefetchRemainingColumnTask(

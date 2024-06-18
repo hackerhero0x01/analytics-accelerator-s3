@@ -92,6 +92,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    * @param metadata the metadata cache
    * @param ioBlocks the IOBlock cache
    * @param prefetchCache the prefetch cache
+   * @param columnMappersStore store for parquet metadata column mappings
    */
   protected MultiObjectsBlockManager(
       @NonNull ObjectClient objectClient,
@@ -135,10 +136,22 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     return metadata.get(s3URI);
   }
 
+  /**
+   * Gets column mappers for a key.
+   *
+   * @param s3URI The S3URI to get column mappers for.
+   * @return Column mappings
+   */
   public ColumnMappers getColumnMappers(S3URI s3URI) {
     return columnMappersStore.get(s3URI);
   }
 
+  /**
+   * Stores column mappers for an object.
+   *
+   * @param s3URI S3URI to store mappers for
+   * @param columnMappers Parquet metdata column mappings
+   */
   public void putColumnMappers(S3URI s3URI, ColumnMappers columnMappers) {
     columnMappersStore.put(s3URI, columnMappers);
   }

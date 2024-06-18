@@ -34,10 +34,11 @@ public class ParquetReadTailTask implements Supplier<FileTail> {
   public FileTail get() {
     long contentLength = physicalIO.metadata().join().getContentLength();
     Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
+    int tailLength = (int) tailRange.getLength() + 1;
     try {
-      byte[] fileTail = new byte[(int) tailRange.getLength()];
-      physicalIO.readTail(fileTail, 0, (int) tailRange.getLength());
-      return new FileTail(ByteBuffer.wrap(fileTail), (int) tailRange.getLength());
+      byte[] fileTail = new byte[tailLength];
+      physicalIO.readTail(fileTail, 0, tailLength);
+      return new FileTail(ByteBuffer.wrap(fileTail), tailLength);
     } catch (IOException e) {
       LOG.debug("Error in getting file tail", e);
       return null;

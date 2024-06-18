@@ -43,7 +43,7 @@ public class ParquetReadTailTaskTest {
 
     FileTail fileTail = CompletableFuture.supplyAsync(parquetReadTailTask).join();
 
-    assertEquals(fileTail.getFileTailLength(), 799);
+    assertEquals(fileTail.getFileTailLength(), 800);
     verify(mockedPhysicalIO).readTail(any(byte[].class), anyInt(), anyInt());
     verify(mockedPhysicalIO).metadata();
   }

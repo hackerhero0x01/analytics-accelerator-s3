@@ -52,7 +52,17 @@ public interface BlockManagerInterface extends AutoCloseable {
    */
   CompletableFuture<ObjectMetadata> getMetadata();
 
+  /**
+   * Get parquet metadata column mappings for the object
+   *
+   * @return column mappings
+   */
   ColumnMappers getColumnMappers();
 
+  /**
+   * Store parquet metadata column mappings for the object
+   *
+   * @param columnMappers column mappings to store
+   */
   void putColumnMappers(ColumnMappers columnMappers);
 }

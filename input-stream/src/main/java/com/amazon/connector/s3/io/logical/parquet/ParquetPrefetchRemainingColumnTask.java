@@ -62,7 +62,7 @@ public class ParquetPrefetchRemainingColumnTask implements Supplier<Void> {
 
     if (len < columnMetadata.getCompressedSize()) {
       long startRange = position + len;
-      long endRange = position + columnMetadata.getCompressedSize() - len;
+      long endRange = startRange + (columnMetadata.getCompressedSize() - len);
       List<Range> prefetchRanges = new ArrayList<>();
       prefetchRanges.add(new Range(startRange, endRange));
       IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
