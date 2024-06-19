@@ -372,6 +372,7 @@ public class BlockManagerTest {
     Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks = new LinkedHashMap<>();
     Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache = new LinkedHashMap<>();
     Map<S3URI, ColumnMappers> columnMappersStore = new LinkedHashMap<>();
+    Map<String, String> recentColumns = new LinkedHashMap<>();
 
     StringBuilder sb = new StringBuilder(300);
     sb.append(StringUtils.repeat("1", 300));
@@ -384,7 +385,8 @@ public class BlockManagerTest {
             metadata,
             ioBlocks,
             prefetchCache,
-            columnMappersStore);
+            columnMappersStore,
+            recentColumns);
     BlockManager blockManager = new BlockManager(multiObjectsBlockManager, URI);
 
     // When: Queue prefetch

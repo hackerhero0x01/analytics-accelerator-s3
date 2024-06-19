@@ -5,6 +5,7 @@ import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /** A block manager interface for a single object. */
@@ -65,4 +66,18 @@ public interface BlockManagerInterface extends AutoCloseable {
    * @param columnMappers column mappings to store
    */
   void putColumnMappers(ColumnMappers columnMappers);
+
+  /**
+   * Adds column to list of recent columns.
+   *
+   * @param columnName column to be added
+   */
+  void addRecentColumn(String columnName);
+
+  /**
+   * Gets a list of recent columns being read.
+   *
+   * @return Set of recent columns being
+   */
+  Set<String> getRecentColumns();
 }

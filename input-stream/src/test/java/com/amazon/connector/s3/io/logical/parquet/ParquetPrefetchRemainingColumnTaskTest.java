@@ -45,7 +45,8 @@ public class ParquetPrefetchRemainingColumnTaskTest {
     offsetIndexToColumnMap.put("200", new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB));
 
     PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
-    when(mockedPhysicalIO.columnMappers()).thenReturn(new ColumnMappers(offsetIndexToColumnMap));
+    when(mockedPhysicalIO.columnMappers())
+        .thenReturn(new ColumnMappers(offsetIndexToColumnMap, new HashMap<>()));
 
     List<Range> expectedRanges = new ArrayList<>();
     // If a column starts at 200, has size 10MB, and we get a read for 5MB, then queue a

@@ -157,6 +157,7 @@ public class MultiObjectsBlockManagerTest {
     Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks = new HashMap<>();
     Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache = new HashMap<>();
     Map<S3URI, ColumnMappers> columnMappersStore = new HashMap<>();
+    Map<String, String> recentColumns = new HashMap<>();
 
     MultiObjectsBlockManager multiObjectsBlockManager =
         new MultiObjectsBlockManager(
@@ -165,10 +166,11 @@ public class MultiObjectsBlockManagerTest {
             metadata,
             ioBlocks,
             prefetchCache,
-            columnMappersStore);
+            columnMappersStore,
+            recentColumns);
 
     S3URI s3URI = S3URI.of("test", "test1");
-    ColumnMappers columnMappers = new ColumnMappers(new HashMap<>());
+    ColumnMappers columnMappers = new ColumnMappers(new HashMap<>(), new HashMap<>());
 
     multiObjectsBlockManager.putColumnMappers(s3URI, columnMappers);
     assertEquals(columnMappers, multiObjectsBlockManager.getColumnMappers(s3URI));

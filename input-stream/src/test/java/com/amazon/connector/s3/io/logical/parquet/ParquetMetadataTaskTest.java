@@ -1,8 +1,8 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,6 +17,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
@@ -57,12 +58,16 @@ public class ParquetMetadataTaskTest {
         new ParquetMetadataTask(
             mockedPhysicalIO, LogicalIOConfiguration.DEFAULT, mockedParquetParser);
 
-    ColumnMappers columnMappers =
+    Optional<ColumnMappers> columnMappersOptional =
         CompletableFuture.supplyAsync(
                 () ->
-                    parquetMetadataTask.storeColumnMappers(new FileTail(ByteBuffer.allocate(0), 0)))
+                    parquetMetadataTask.storeColumnMappers(
+                        Optional.of(new FileTail(ByteBuffer.allocate(0), 0))))
             .join();
 
+    assertTrue(columnMappersOptional.isPresent());
+
+    ColumnMappers columnMappers = columnMappersOptional.get();
     assertEquals(
         fileMetaData.getRow_groups().get(0).getColumns().size(),
         columnMappers.getOffsetIndexToColumnMap().size());
@@ -99,11 +104,13 @@ public class ParquetMetadataTaskTest {
     ParquetMetadataTask parquetMetadataTask =
         new ParquetMetadataTask(
             mock(PhysicalIO.class), LogicalIOConfiguration.DEFAULT, mockedParquetParser);
-    CompletableFuture<ColumnMappers> parquetMetadataTaskFuture =
+    CompletableFuture<Optional<ColumnMappers>> parquetMetadataTaskFuture =
         CompletableFuture.supplyAsync(
-            () -> parquetMetadataTask.storeColumnMappers(new FileTail(ByteBuffer.allocate(0), 0)));
+            () ->
+                parquetMetadataTask.storeColumnMappers(
+                    Optional.of(new FileTail(ByteBuffer.allocate(0), 0))));
 
     // Any errors in parsing should be swallowed
-    assertNull(parquetMetadataTaskFuture.join());
+    assertFalse(parquetMetadataTaskFuture.join().isPresent());
   }
 }

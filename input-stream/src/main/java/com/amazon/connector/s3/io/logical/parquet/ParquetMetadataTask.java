@@ -4,6 +4,7 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Optional;
 import lombok.NonNull;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
@@ -29,7 +30,8 @@ public class ParquetMetadataTask {
    * @param physicalIO PhysicalIO instance
    * @param logicalIOConfiguration logical io configuration
    */
-  public ParquetMetadataTask(LogicalIOConfiguration logicalIOConfiguration, PhysicalIO physicalIO) {
+  public ParquetMetadataTask(
+      @NonNull LogicalIOConfiguration logicalIOConfiguration, @NonNull PhysicalIO physicalIO) {
     this(physicalIO, logicalIOConfiguration, new ParquetParser());
   }
 
@@ -53,25 +55,31 @@ public class ParquetMetadataTask {
   /**
    * Stores parquet metadata column mappings for future use
    *
-   * @param fileTail tail of parquet file to be parsed
+   * @param fileTailOptional Optional for tail of parquet file to be parsed
    * @return Column mappings
    */
-  public ColumnMappers storeColumnMappers(FileTail fileTail) {
+  public Optional<ColumnMappers> storeColumnMappers(Optional<FileTail> fileTailOptional) {
+
     try {
-      FileMetaData fileMetaData =
-          parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
-      ColumnMappers columnMappers = buildColumnMaps(fileMetaData);
-      physicalIO.putColumnMappers(columnMappers);
-      return columnMappers;
+      if (fileTailOptional.isPresent()) {
+        FileTail fileTail = fileTailOptional.get();
+        FileMetaData fileMetaData =
+            parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
+        ColumnMappers columnMappers = buildColumnMaps(fileMetaData);
+        physicalIO.putColumnMappers(columnMappers);
+        return Optional.of(columnMappers);
+      }
     } catch (IOException e) {
       LOG.debug("Error parsing parquet footer", e);
-      return null;
     }
+
+    return Optional.empty();
   }
 
   private ColumnMappers buildColumnMaps(FileMetaData fileMetaData) {
 
     HashMap<String, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
+    HashMap<String, ColumnMetadata> columnNameToColumnMap = new HashMap<>();
 
     int rowGroupIndex = 0;
     for (RowGroup rowGroup : fileMetaData.getRow_groups()) {
@@ -82,27 +90,31 @@ public class ParquetMetadataTask {
         String columnName = columnChunk.getMeta_data().getPath_in_schema().get(0);
 
         if (columnChunk.getMeta_data().getDictionary_page_offset() != 0) {
-          offsetIndexToColumnMap.put(
-              Long.toString(columnChunk.getMeta_data().getDictionary_page_offset()),
+          ColumnMetadata columnMetadata =
               new ColumnMetadata(
                   rowGroupIndex,
                   columnName,
                   columnChunk.getMeta_data().getDictionary_page_offset(),
-                  columnChunk.getMeta_data().getTotal_compressed_size()));
-        } else {
+                  columnChunk.getMeta_data().getTotal_compressed_size());
           offsetIndexToColumnMap.put(
-              Long.toString(columnChunk.getFile_offset()),
+              Long.toString(columnChunk.getMeta_data().getDictionary_page_offset()),
+              columnMetadata);
+          columnNameToColumnMap.put(columnName, columnMetadata);
+        } else {
+          ColumnMetadata columnMetadata =
               new ColumnMetadata(
                   rowGroupIndex,
                   columnName,
                   columnChunk.getFile_offset(),
-                  columnChunk.getMeta_data().getTotal_compressed_size()));
+                  columnChunk.getMeta_data().getTotal_compressed_size());
+          offsetIndexToColumnMap.put(Long.toString(columnChunk.getFile_offset()), columnMetadata);
+          columnNameToColumnMap.put(columnName, columnMetadata);
         }
       }
 
       rowGroupIndex++;
     }
 
-    return new ColumnMappers(offsetIndexToColumnMap);
+    return new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap);
   }
 }

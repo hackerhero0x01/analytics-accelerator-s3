@@ -7,4 +7,5 @@ import lombok.Data;
 @Data
 public class ColumnMappers {
   private final HashMap<String, ColumnMetadata> offsetIndexToColumnMap;
+  private final HashMap<String, ColumnMetadata> columnNameToColumnMap;
 }

@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
@@ -36,6 +37,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   private final Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks;
   private final Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache;
   private final Map<S3URI, ColumnMappers> columnMappersStore;
+  private final Map<String, String> recentColumns;
 
   private final ObjectClient objectClient;
   private final BlockManagerConfiguration configuration;
@@ -80,6 +82,13 @@ public class MultiObjectsBlockManager implements AutoCloseable {
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getCapacityMultiObjects();
               }
+            }),
+        Collections.synchronizedMap(
+            new LinkedHashMap<String, String>() {
+              @Override
+              protected boolean removeEldestEntry(final Map.Entry eldest) {
+                return this.size() > configuration.getCapacityMultiObjects();
+              }
             }));
   }
 
@@ -93,6 +102,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    * @param ioBlocks the IOBlock cache
    * @param prefetchCache the prefetch cache
    * @param columnMappersStore store for parquet metadata column mappings
+   * @param recentColumns recent parquet columns read
    */
   protected MultiObjectsBlockManager(
       @NonNull ObjectClient objectClient,
@@ -100,13 +110,15 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       Map<S3URI, CompletableFuture<ObjectMetadata>> metadata,
       Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks,
       Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache,
-      Map<S3URI, ColumnMappers> columnMappersStore) {
+      Map<S3URI, ColumnMappers> columnMappersStore,
+      Map<String, String> recentColumns) {
     this.objectClient = objectClient;
     this.configuration = configuration;
     this.metadata = metadata;
     this.ioBlocks = ioBlocks;
     this.prefetchCache = prefetchCache;
     this.columnMappersStore = columnMappersStore;
+    this.recentColumns = recentColumns;
   }
 
   /**
@@ -154,6 +166,24 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    */
   public void putColumnMappers(S3URI s3URI, ColumnMappers columnMappers) {
     columnMappersStore.put(s3URI, columnMappers);
+  }
+
+  /**
+   * Adds column to list of recent columns.
+   *
+   * @param columnName column to be added
+   */
+  public void addRecentColumn(String columnName) {
+    recentColumns.put(columnName, columnName);
+  }
+
+  /**
+   * Gets a list of recent columns being read.
+   *
+   * @return Set of recent columns being
+   */
+  public Set<String> getRecentColumns() {
+    return recentColumns.keySet();
   }
 
   /**

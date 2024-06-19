@@ -48,7 +48,7 @@ public class PhysicalIOImplTest {
   void testPutColumnMappers() {
     BlockManager blockManager = mock(BlockManager.class);
     PhysicalIOImpl physicalIO = new PhysicalIOImpl(blockManager);
-    physicalIO.putColumnMappers(new ColumnMappers(new HashMap<>()));
+    physicalIO.putColumnMappers(new ColumnMappers(new HashMap<>(), new HashMap<>()));
     verify(blockManager).putColumnMappers(any(ColumnMappers.class));
   }
 

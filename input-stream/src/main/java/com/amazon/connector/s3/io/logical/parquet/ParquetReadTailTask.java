@@ -5,13 +5,13 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.function.Supplier;
+import java.util.Optional;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Task for reading the tail of a parquet file. */
-public class ParquetReadTailTask implements Supplier<FileTail> {
+public class ParquetReadTailTask {
 
   private final LogicalIOConfiguration logicalIOConfiguration;
   private final PhysicalIO physicalIO;
@@ -30,18 +30,23 @@ public class ParquetReadTailTask implements Supplier<FileTail> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ParquetReadTailTask.class);
 
-  @Override
-  public FileTail get() {
+  /**
+   * Reads parquet file tail
+   *
+   * @return tail of parquet file
+   */
+  public Optional<FileTail> readFileTail() {
     long contentLength = physicalIO.metadata().join().getContentLength();
     Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
     int tailLength = (int) tailRange.getLength() + 1;
     try {
       byte[] fileTail = new byte[tailLength];
       physicalIO.readTail(fileTail, 0, tailLength);
-      return new FileTail(ByteBuffer.wrap(fileTail), tailLength);
+      return Optional.of(new FileTail(ByteBuffer.wrap(fileTail), tailLength));
     } catch (IOException e) {
       LOG.debug("Error in getting file tail", e);
-      return null;
     }
+
+    return Optional.empty();
   }
 }

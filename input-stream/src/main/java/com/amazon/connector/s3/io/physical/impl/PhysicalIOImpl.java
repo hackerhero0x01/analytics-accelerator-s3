@@ -12,6 +12,7 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.security.InvalidParameterException;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /** An implementation of a physical IO layer. */
@@ -62,6 +63,16 @@ public class PhysicalIOImpl implements PhysicalIO {
   @Override
   public void putColumnMappers(ColumnMappers columnMappers) {
     this.blockManager.putColumnMappers(columnMappers);
+  }
+
+  @Override
+  public void addRecentColumn(String columnName) {
+    this.blockManager.addRecentColumn(columnName);
+  }
+
+  @Override
+  public Set<String> getRecentColumns() {
+    return this.blockManager.getRecentColumns();
   }
 
   @Override

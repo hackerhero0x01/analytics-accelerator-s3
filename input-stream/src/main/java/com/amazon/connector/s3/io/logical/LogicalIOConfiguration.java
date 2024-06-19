@@ -22,5 +22,7 @@ public class LogicalIOConfiguration {
 
   @Builder.Default private boolean metadataAwarePefetchingEnabled = true;
 
+  @Builder.Default private boolean predictivePrefetchingEnabled = true;
+
   public static LogicalIOConfiguration DEFAULT = LogicalIOConfiguration.builder().build();
 }

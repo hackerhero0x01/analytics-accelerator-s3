@@ -7,6 +7,7 @@ import com.amazon.connector.s3.io.physical.plan.Range;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,7 +39,7 @@ public class ParquetPrefetchRemainingColumnTask {
    * @param len length of read
    * @return ranges prefetched
    */
-  public List<Range> prefetchRemainingColumnChunk(long position, int len) {
+  public Optional<List<Range>> prefetchRemainingColumnChunk(long position, int len) {
     ColumnMappers columnMappers = physicalIO.columnMappers();
 
     if (columnMappers != null) {
@@ -50,10 +51,10 @@ public class ParquetPrefetchRemainingColumnTask {
       }
     }
 
-    return null;
+    return Optional.empty();
   }
 
-  private List<Range> createRemainingColumnPrefetchPlan(
+  private Optional<List<Range>> createRemainingColumnPrefetchPlan(
       ColumnMetadata columnMetadata, long position, int len) {
 
     if (len < columnMetadata.getCompressedSize()) {
@@ -64,12 +65,12 @@ public class ParquetPrefetchRemainingColumnTask {
       IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
       try {
         physicalIO.execute(ioPlan);
-        return prefetchRanges;
+        return Optional.of(prefetchRanges);
       } catch (Exception e) {
         LOG.debug("Error in executing remaining column prefetch plan", e);
       }
     }
 
-    return null;
+    return Optional.empty();
   }
 }

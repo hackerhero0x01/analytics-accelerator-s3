@@ -10,6 +10,7 @@ import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.logical.parquet.ParquetMetadataTask;
+import com.amazon.connector.s3.io.logical.parquet.ParquetPredictivePrefetchingTask;
 import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchRemainingColumnTask;
 import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchTailTask;
 import com.amazon.connector.s3.io.logical.parquet.ParquetReadTailTask;
@@ -120,7 +121,8 @@ public class ParquetLogicalIOImplTest {
   @Test
   void testNoPrefetchingWhenColumnMappersExist() {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    when(physicalIO.columnMappers()).thenReturn(new ColumnMappers(new HashMap<>()));
+    when(physicalIO.columnMappers())
+        .thenReturn(new ColumnMappers(new HashMap<>(), new HashMap<>()));
     ParquetLogicalIOImpl logicalIO = getMockedLogicalIO(physicalIO, LogicalIOConfiguration.DEFAULT);
     assertEquals(logicalIO.prefetchFooterAndBuildMetadata().isPresent(), false);
   }
@@ -132,6 +134,8 @@ public class ParquetLogicalIOImplTest {
     ParquetPrefetchTailTask parquetPrefetchTailTask = mock(ParquetPrefetchTailTask.class);
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
         mock(ParquetPrefetchRemainingColumnTask.class);
+    ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
+        mock(ParquetPredictivePrefetchingTask.class);
 
     return new ParquetLogicalIOImpl(
         physicalIO,
@@ -139,6 +143,7 @@ public class ParquetLogicalIOImplTest {
         parquetPrefetchTailTask,
         parquetReadTailTask,
         parquetMetadataTask,
-        parquetPrefetchRemainingColumnTask);
+        parquetPrefetchRemainingColumnTask,
+        parquetPredictivePrefetchingTask);
   }
 }
