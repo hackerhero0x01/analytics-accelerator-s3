@@ -113,4 +113,13 @@ public class ParquetMetadataTaskTest {
     // Any errors in parsing should be swallowed
     assertFalse(parquetMetadataTaskFuture.join().isPresent());
   }
+
+  @Test
+  void testEmptyFileTail() {
+    ParquetMetadataTask parquetMetadataTask =
+        new ParquetMetadataTask(
+            mock(PhysicalIO.class), LogicalIOConfiguration.DEFAULT, mock(ParquetParser.class));
+
+    assertFalse(parquetMetadataTask.storeColumnMappers(Optional.empty()).isPresent());
+  }
 }

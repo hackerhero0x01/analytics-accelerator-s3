@@ -1,9 +1,11 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +16,7 @@ import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,6 +66,21 @@ public class ParquetPrefetchTailTaskTest {
       verify(mockedPhysicalIO)
           .execute(argThat(new IOPlanMatcher(contentSizeToRanges.get(contentLength))));
     }
+  }
+
+  @Test
+  void testExceptionSwallowed() throws IOException {
+    PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
+    ParquetPrefetchTailTask parquetPrefetchTailTask =
+        new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+
+    CompletableFuture<ObjectMetadata> metadata =
+        CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(600).build());
+    when(mockedPhysicalIO.metadata()).thenReturn(metadata);
+
+    doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
+
+    assertFalse(parquetPrefetchTailTask.prefetchTail().isPresent());
   }
 
   private HashMap<Long, List<Range>> getPrefetchRangeList(long footerSize, long smallFileSize) {

@@ -1,10 +1,12 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +16,7 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,5 +65,24 @@ public class ParquetPrefetchRemainingColumnTaskTest {
 
     verify(mockedPhysicalIO).execute(any(IOPlan.class));
     verify(mockedPhysicalIO).execute(argThat(new IOPlanMatcher(expectedRanges)));
+  }
+
+  @Test
+  void testExceptionSwallowed() {
+    HashMap<String, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
+    offsetIndexToColumnMap.put("200", new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB));
+
+    PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
+    when(mockedPhysicalIO.columnMappers())
+        .thenReturn(new ColumnMappers(offsetIndexToColumnMap, new HashMap<>()));
+    ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
+        new ParquetPrefetchRemainingColumnTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+
+    doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
+
+    assertFalse(
+        parquetPrefetchRemainingColumnTask
+            .prefetchRemainingColumnChunk(200, 5 * ONE_MB)
+            .isPresent());
   }
 }

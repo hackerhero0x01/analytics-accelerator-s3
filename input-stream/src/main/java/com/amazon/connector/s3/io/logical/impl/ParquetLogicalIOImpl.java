@@ -132,7 +132,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
         CompletableFuture<Optional<ColumnMappers>> columnMappersCompletableFuture =
             CompletableFuture.supplyAsync(() -> parquetReadTailTask.readFileTail())
                 .thenApply(parquetMetadataTask::storeColumnMappers);
-        ;
+
         prefetchPredictedColumns(columnMappersCompletableFuture);
         return Optional.of(columnMappersCompletableFuture);
       }

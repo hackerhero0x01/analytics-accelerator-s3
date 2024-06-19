@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -117,5 +118,19 @@ public class ParquetPredictivePrefetchingTaskTest {
     assertEquals(prefetchedRanges.get(), expectedRanges);
 
     verify(physicalIO).execute(any(IOPlan.class));
+  }
+
+  @Test
+  void testExceptionSwallowed() throws IOException {
+    PhysicalIO physicalIO = mock(PhysicalIO.class);
+    ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
+        new ParquetPredictivePrefetchingTask(LogicalIOConfiguration.DEFAULT, physicalIO);
+
+    doThrow(new IOException("Error in prefetch")).when(physicalIO).execute(any(IOPlan.class));
+
+    assertFalse(
+        parquetPredictivePrefetchingTask
+            .prefetchRecentColumns(Optional.of(new ColumnMappers(new HashMap<>(), new HashMap<>())))
+            .isPresent());
   }
 }

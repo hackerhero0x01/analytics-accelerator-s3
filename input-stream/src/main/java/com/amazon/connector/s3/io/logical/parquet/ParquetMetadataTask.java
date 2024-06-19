@@ -46,7 +46,7 @@ public class ParquetMetadataTask {
   protected ParquetMetadataTask(
       @NonNull PhysicalIO physicalIO,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
-      @NonNull ParquetParser parquetParser) {
+      ParquetParser parquetParser) {
     this.parquetParser = parquetParser;
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
