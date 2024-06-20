@@ -19,7 +19,9 @@ import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
@@ -79,15 +81,43 @@ public class MultiObjectsBlockManagerTest {
         };
 
     multiObjectsBlockManager.queuePrefetch(ranges, s3URI1);
+    Thread.sleep(50);
     multiObjectsBlockManager.read(4 * ONE_MB, s3URI1);
+    Thread.sleep(50);
     multiObjectsBlockManager.read(3 * ONE_MB, s3URI1);
 
     multiObjectsBlockManager.queuePrefetch(ranges, s3URI2);
+    Thread.sleep(50);
     multiObjectsBlockManager.read(4 * ONE_MB, s3URI2);
+    Thread.sleep(50);
     multiObjectsBlockManager.read(3 * ONE_MB, s3URI2);
 
     assertEquals(2, objectClient.getHeadRequestCount().get());
     assertEquals(8, objectClient.getGetRequestCount().get());
+  }
+
+  @Test
+  void testPrefetchWithIncorrectRanges() throws InterruptedException {
+    StringBuilder sb = new StringBuilder(8 * ONE_MB);
+    sb.append(StringUtils.repeat("0", 8 * ONE_MB));
+    FakeObjectClient objectClient = new FakeObjectClient(sb.toString());
+    MultiObjectsBlockManager multiObjectsBlockManager =
+        new MultiObjectsBlockManager(objectClient, BlockManagerConfiguration.DEFAULT);
+    S3URI s3URI = S3URI.of("test", "test");
+
+    multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(100, 90)), s3URI);
+    multiObjectsBlockManager.queuePrefetch(
+        Arrays.asList(new Range(9 * ONE_MB, 10 * ONE_MB)), s3URI);
+    assertEquals(0, objectClient.getGetRequestCount().get());
+    // that will prefetch 0-0
+    multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(0, -10)), s3URI);
+    // that will try to look for 0-10, but will find 0-0 and do nothing
+    multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(0, 10)), s3URI);
+    multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(-10, 10)), s3URI);
+    List<Range> expectedRanges = Arrays.asList(new Range(0, 0));
+    assertEquals(1, objectClient.getRequestedRanges().size());
+    assertEquals(0, objectClient.getRequestedRanges().getFirst().getStart().orElse(-1));
+    assertEquals(0, objectClient.getRequestedRanges().getFirst().getEnd().orElse(-1));
   }
 
   @Test

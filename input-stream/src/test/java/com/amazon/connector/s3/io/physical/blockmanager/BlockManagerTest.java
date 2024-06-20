@@ -99,6 +99,11 @@ public class BlockManagerTest {
             CompletableFuture.completedFuture(
                 ObjectContent.builder().stream(new ByteArrayInputStream(content)).build()));
 
+    when(objectClient.headObject(any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectMetadata.builder().contentLength(contentLength).build()));
+
     ObjectStatus objectStatus = mock(ObjectStatus.class);
     when(objectStatus.getS3URI()).thenReturn(URI);
 

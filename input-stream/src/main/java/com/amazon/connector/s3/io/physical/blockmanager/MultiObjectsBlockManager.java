@@ -303,6 +303,14 @@ public class MultiObjectsBlockManager implements AutoCloseable {
 
   private IOBlock createBlock(long start, long end, S3URI s3URI, boolean isPrefetch)
       throws IOException {
+
+    LOG.info(
+        "Creating IOBlock {}:{}. Object size {}. Object key {}",
+        start,
+        end,
+        contentLength(s3URI),
+        s3URI.getKey());
+
     CompletableFuture<ObjectContent> objectContent =
         this.objectClient.getObject(
             GetRequest.builder()
@@ -311,7 +319,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
                 .range(new Range(OptionalLong.of(start), OptionalLong.of(end)))
                 .build());
 
-    LOG.info("Creating IOBlock {}:{} for {}", start, end, s3URI.getKey());
     IOBlock ioBlock = new IOBlock(start, end, objectContent);
     if (!isPrefetch) {
       AutoClosingCircularBuffer<IOBlock> blocks =
@@ -367,16 +374,20 @@ public class MultiObjectsBlockManager implements AutoCloseable {
           long start = Math.max(0, range.getStart());
           long end = Math.max(0, range.getEnd());
           Optional<IOBlock> startBlock = lookupBlockForPosition(start, s3URI);
-          Optional<IOBlock> endBlock = lookupBlockForPosition(end, s3URI);
-          if (startBlock.isPresent() && endBlock.isPresent()) {
-            // entire range is prefetched. Do not prefetch again.
+          if (startBlock.isPresent()) {
             return;
-          } else if (startBlock.isPresent() && !endBlock.isPresent()) {
-            start = startBlock.get().getEnd() + 1;
-
-          } else if (endBlock.isPresent() && !startBlock.isPresent()) {
-            end = endBlock.get().getStart() - 1;
           }
+
+          if (start > end || end > getLastObjectByte(s3URI)) {
+            LOG.error(
+                "Wrong range in queuePrefetch {}:{}. Content length: {}. Object {}.",
+                start,
+                end,
+                contentLength(s3URI),
+                s3URI.getKey());
+            return;
+          }
+
           try {
             createPrefetchBlock(start, end, s3URI);
           } catch (IOException e) {
