@@ -49,8 +49,8 @@ public class ParquetPredictivePrefetchingTaskTest {
   void testAddToRecentColumnList() {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
 
-    HashMap<String, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
-    offsetIndexToColumnMap.put("100", new ColumnMetadata(0, "sk_test", 100, 500));
+    HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
+    offsetIndexToColumnMap.put(100L, new ColumnMetadata(0, "sk_test", 100, 500));
     ColumnMappers columnMappers = new ColumnMappers(offsetIndexToColumnMap, new HashMap<>());
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
         new ParquetPredictivePrefetchingTask(LogicalIOConfiguration.DEFAULT, physicalIO);

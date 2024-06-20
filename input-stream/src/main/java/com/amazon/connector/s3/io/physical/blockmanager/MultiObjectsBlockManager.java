@@ -37,6 +37,8 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   private final Map<S3URI, CompletableFuture<ObjectMetadata>> metadata;
   private final Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks;
   private final Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache;
+  // TODO: Parquet specific caches should be moved out of here.
+  // https://app.asana.com/0/1206885953994785/1207619533187947
   private final Map<S3URI, ColumnMappers> columnMappersStore;
   private final Map<String, String> recentColumns;
 

@@ -4,7 +4,6 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +46,7 @@ public class ParquetPrefetchTailTask {
       IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
       physicalIO.execute(ioPlan);
       return Optional.of(prefetchRanges);
-    } catch (IOException e) {
+    } catch (Exception e) {
       LOG.debug("Error in executing tail prefetch plan", e);
     }
 

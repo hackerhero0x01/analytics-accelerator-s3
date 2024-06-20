@@ -2,7 +2,6 @@ package com.amazon.connector.s3.io.logical.parquet;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Optional;
 import lombok.NonNull;
@@ -69,7 +68,7 @@ public class ParquetMetadataTask {
         physicalIO.putColumnMappers(columnMappers);
         return Optional.of(columnMappers);
       }
-    } catch (IOException e) {
+    } catch (Exception e) {
       LOG.debug("Error parsing parquet footer", e);
     }
 
@@ -78,7 +77,7 @@ public class ParquetMetadataTask {
 
   private ColumnMappers buildColumnMaps(FileMetaData fileMetaData) {
 
-    HashMap<String, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
+    HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     HashMap<String, ColumnMetadata> columnNameToColumnMap = new HashMap<>();
 
     int rowGroupIndex = 0;
@@ -97,8 +96,7 @@ public class ParquetMetadataTask {
                   columnChunk.getMeta_data().getDictionary_page_offset(),
                   columnChunk.getMeta_data().getTotal_compressed_size());
           offsetIndexToColumnMap.put(
-              Long.toString(columnChunk.getMeta_data().getDictionary_page_offset()),
-              columnMetadata);
+              columnChunk.getMeta_data().getDictionary_page_offset(), columnMetadata);
           columnNameToColumnMap.put(columnName, columnMetadata);
         } else {
           ColumnMetadata columnMetadata =
@@ -107,7 +105,7 @@ public class ParquetMetadataTask {
                   columnName,
                   columnChunk.getFile_offset(),
                   columnChunk.getMeta_data().getTotal_compressed_size());
-          offsetIndexToColumnMap.put(Long.toString(columnChunk.getFile_offset()), columnMetadata);
+          offsetIndexToColumnMap.put(columnChunk.getFile_offset(), columnMetadata);
           columnNameToColumnMap.put(columnName, columnMetadata);
         }
       }

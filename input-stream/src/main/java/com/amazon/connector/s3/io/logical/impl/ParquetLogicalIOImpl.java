@@ -112,7 +112,8 @@ public class ParquetLogicalIOImpl implements LogicalIO {
 
   protected Optional<CompletableFuture<Optional<List<Range>>>> prefetchRemainingColumnChunk(
       long position, int len) {
-    if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()) {
+    if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()
+        && !logicalIOConfiguration.isPredictivePrefetchingEnabled()) {
       return Optional.of(
           CompletableFuture.supplyAsync(
               () ->
@@ -128,7 +129,8 @@ public class ParquetLogicalIOImpl implements LogicalIO {
     }
 
     if (physicalIO.columnMappers() == null) {
-      if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()) {
+      if (logicalIOConfiguration.isMetadataAwarePefetchingEnabled()
+          || logicalIOConfiguration.isPredictivePrefetchingEnabled()) {
         CompletableFuture<Optional<ColumnMappers>> columnMappersCompletableFuture =
             CompletableFuture.supplyAsync(() -> parquetReadTailTask.readFileTail())
                 .thenApply(parquetMetadataTask::storeColumnMappers);

@@ -75,14 +75,14 @@ public class ParquetMetadataTaskTest {
     verify(mockedPhysicalIO).putColumnMappers(any(ColumnMappers.class));
 
     for (ColumnChunk columnChunk : fileMetaData.getRow_groups().get(0).getColumns()) {
-      String key;
+      Long key;
 
       // If the column has a dictionary, key should be equal to dictionary_page_offset as this is
       // where reads for this column start.
       if (columnChunk.getMeta_data().getDictionary_page_offset() != 0) {
-        key = Long.toString(columnChunk.getMeta_data().getDictionary_page_offset());
+        key = columnChunk.getMeta_data().getDictionary_page_offset();
       } else {
-        key = Long.toString(columnChunk.getFile_offset());
+        key = columnChunk.getFile_offset();
       }
 
       assertTrue(columnMappers.getOffsetIndexToColumnMap().containsKey(key));

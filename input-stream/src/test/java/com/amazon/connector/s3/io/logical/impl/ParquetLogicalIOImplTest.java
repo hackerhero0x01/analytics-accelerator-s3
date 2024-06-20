@@ -98,7 +98,10 @@ public class ParquetLogicalIOImplTest {
   @Test
   void testRemainingColumnPrefetched() {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    ParquetLogicalIOImpl logicalIO = getMockedLogicalIO(physicalIO, LogicalIOConfiguration.DEFAULT);
+    ParquetLogicalIOImpl logicalIO =
+        getMockedLogicalIO(
+            physicalIO,
+            LogicalIOConfiguration.builder().predictivePrefetchingEnabled(false).build());
     assertEquals(true, logicalIO.prefetchRemainingColumnChunk(0, 0).isPresent());
   }
 
@@ -116,7 +119,7 @@ public class ParquetLogicalIOImplTest {
         getMockedLogicalIO(
             physicalIO,
             LogicalIOConfiguration.builder().metadataAwarePefetchingEnabled(false).build());
-    assertEquals(logicalIO.prefetchFooterAndBuildMetadata().isPresent(), false);
+    assertEquals(logicalIO.prefetchFooterAndBuildMetadata().isPresent(), true);
     assertEquals(logicalIO.prefetchRemainingColumnChunk(0, 0).isPresent(), false);
   }
 
@@ -132,8 +135,7 @@ public class ParquetLogicalIOImplTest {
   @Test
   void testNoPredictivePrefetchingWhenDisabled() {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    when(physicalIO.columnMappers())
-        .thenReturn(new ColumnMappers(new HashMap<>(), new HashMap<>()));
+
     ParquetLogicalIOImpl logicalIO =
         getMockedLogicalIO(
             physicalIO,
@@ -143,6 +145,8 @@ public class ParquetLogicalIOImplTest {
         CompletableFuture.completedFuture(
             Optional.of(new ColumnMappers(new HashMap<>(), new HashMap<>())));
 
+    assertEquals(logicalIO.prefetchFooterAndBuildMetadata().isPresent(), true);
+    assertEquals(logicalIO.prefetchRemainingColumnChunk(0, 0).isPresent(), true);
     assertFalse(logicalIO.prefetchPredictedColumns(optionalCompletableFuture).isPresent());
   }
 

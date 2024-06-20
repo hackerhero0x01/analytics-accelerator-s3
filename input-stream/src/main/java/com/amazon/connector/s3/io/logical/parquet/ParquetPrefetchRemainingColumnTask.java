@@ -43,11 +43,11 @@ public class ParquetPrefetchRemainingColumnTask {
     ColumnMappers columnMappers = physicalIO.columnMappers();
 
     if (columnMappers != null) {
-      HashMap<String, ColumnMetadata> offsetIndexToColumnMap =
+      HashMap<Long, ColumnMetadata> offsetIndexToColumnMap =
           columnMappers.getOffsetIndexToColumnMap();
-      if (offsetIndexToColumnMap.containsKey(Long.toString(position))) {
+      if (offsetIndexToColumnMap.containsKey(position)) {
         return createRemainingColumnPrefetchPlan(
-            offsetIndexToColumnMap.get(Long.toString(position)), position, len);
+            offsetIndexToColumnMap.get(position), position, len);
       }
     }
 

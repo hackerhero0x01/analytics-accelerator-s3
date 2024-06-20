@@ -3,7 +3,6 @@ package com.amazon.connector.s3.io.logical.parquet;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.Range;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 import lombok.NonNull;
@@ -43,7 +42,7 @@ public class ParquetReadTailTask {
       byte[] fileTail = new byte[tailLength];
       physicalIO.readTail(fileTail, 0, tailLength);
       return Optional.of(new FileTail(ByteBuffer.wrap(fileTail), tailLength));
-    } catch (IOException e) {
+    } catch (Exception e) {
       LOG.debug("Error in getting file tail", e);
     }
 
