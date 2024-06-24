@@ -72,12 +72,14 @@ public class ParquetPredictivePrefetchingTask {
       ColumnMappers columnMappers = columnMappersOptional.get();
       for (String recentColumn : physicalIO.getRecentColumns()) {
         if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
-          ColumnMetadata columnMetadata =
+          List<ColumnMetadata> columnMetadataList =
               columnMappers.getColumnNameToColumnMap().get(recentColumn);
-          prefetchRanges.add(
-              new Range(
-                  columnMetadata.getStartPos(),
-                  columnMetadata.getStartPos() + columnMetadata.getCompressedSize()));
+          for (ColumnMetadata columnMetadata : columnMetadataList) {
+            prefetchRanges.add(
+                new Range(
+                    columnMetadata.getStartPos(),
+                    columnMetadata.getStartPos() + columnMetadata.getCompressedSize()));
+          }
         }
       }
 

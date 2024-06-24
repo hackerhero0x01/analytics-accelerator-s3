@@ -38,6 +38,23 @@ public class ParquetParserTest {
   }
 
   @Test
+  void testParquetMetadataParsingMultipleRowGroups() throws IOException {
+
+    File file = new File("src/test/resources/multi_row_group.parquet");
+    InputStream inputStream = new FileInputStream(file);
+
+    byte[] buffer = new byte[ONE_KB * 20];
+    inputStream.read(buffer, 0, (int) file.length());
+
+    ParquetParser parquetParser = new ParquetParser();
+    FileMetaData fileMetaData =
+        parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
+
+    assertEquals(fileMetaData.row_groups.size(), 3);
+    assertEquals(fileMetaData.getRow_groups().get(0).getColumns().size(), 2);
+  }
+
+  @Test
   void testParquetMetadataParsingInvalidData() {
 
     ParquetParser parquetParserInvalidLength = new ParquetParser();
