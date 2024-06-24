@@ -80,16 +80,17 @@ public class MultiObjectsBlockManagerTest {
           }
         };
 
-    multiObjectsBlockManager.queuePrefetch(ranges, s3URI1);
-    Thread.sleep(50);
+    List<CompletableFuture<IOBlock>> prefetchResults =
+        multiObjectsBlockManager.queuePrefetch(ranges, s3URI1);
+    prefetchResults.forEach(prefetchBlock -> prefetchBlock.join());
+
     multiObjectsBlockManager.read(4 * ONE_MB, s3URI1);
-    Thread.sleep(50);
     multiObjectsBlockManager.read(3 * ONE_MB, s3URI1);
 
-    multiObjectsBlockManager.queuePrefetch(ranges, s3URI2);
-    Thread.sleep(50);
+    prefetchResults = multiObjectsBlockManager.queuePrefetch(ranges, s3URI2);
+    prefetchResults.forEach(prefetchBlock -> prefetchBlock.join());
+
     multiObjectsBlockManager.read(4 * ONE_MB, s3URI2);
-    Thread.sleep(50);
     multiObjectsBlockManager.read(3 * ONE_MB, s3URI2);
 
     assertEquals(2, objectClient.getHeadRequestCount().get());
@@ -110,11 +111,18 @@ public class MultiObjectsBlockManagerTest {
         Arrays.asList(new Range(9 * ONE_MB, 10 * ONE_MB)), s3URI);
     assertEquals(0, objectClient.getGetRequestCount().get());
     // that will prefetch 0-0
-    multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(0, -10)), s3URI);
+    List<CompletableFuture<IOBlock>> prefetchResults =
+        multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(0, -10)), s3URI);
+    prefetchResults.forEach(prefetchBlock -> prefetchBlock.join());
     // that will try to look for 0-10, but will find 0-0 and do nothing
-    multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(0, 10)), s3URI);
-    multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(-10, 10)), s3URI);
-    List<Range> expectedRanges = Arrays.asList(new Range(0, 0));
+    prefetchResults =
+        multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(0, 10)), s3URI);
+    prefetchResults.forEach(prefetchBlock -> prefetchBlock.join());
+
+    prefetchResults =
+        multiObjectsBlockManager.queuePrefetch(Arrays.asList(new Range(-10, 10)), s3URI);
+    prefetchResults.forEach(prefetchBlock -> prefetchBlock.join());
+
     assertEquals(1, objectClient.getRequestedRanges().size());
     assertEquals(0, objectClient.getRequestedRanges().getFirst().getStart().orElse(-1));
     assertEquals(0, objectClient.getRequestedRanges().getFirst().getEnd().orElse(-1));

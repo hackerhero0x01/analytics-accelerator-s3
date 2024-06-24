@@ -10,6 +10,7 @@ import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -365,10 +366,12 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    *
    * @param prefetchRanges the ranges to prefetch
    * @param s3URI the S3URI of the object
+   * @return a list of CompletableFuture<IOBlock> representing the prefetch requests
    */
-  public void queuePrefetch(
+  public List<CompletableFuture<IOBlock>> queuePrefetch(
       final List<com.amazon.connector.s3.io.physical.plan.Range> prefetchRanges,
       final S3URI s3URI) {
+    List<CompletableFuture<IOBlock>> results = new ArrayList<>();
     prefetchRanges.forEach(
         range -> {
           long start = Math.max(0, range.getStart());
@@ -378,6 +381,8 @@ public class MultiObjectsBlockManager implements AutoCloseable {
             return;
           }
 
+          // TODO: implement caching strategy :
+          // https://app.asana.com/0/1206885953994785/1207634179483967/f
           if (start > end || end > getLastObjectByte(s3URI)) {
             LOG.error(
                 "Wrong range in queuePrefetch {}:{}. Content length: {}. Object {}.",
@@ -389,7 +394,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
           }
 
           try {
-            createPrefetchBlock(start, end, s3URI);
+            results.add(createPrefetchBlock(start, end, s3URI));
           } catch (IOException e) {
             LOG.error(
                 "Error in prefetching block for range: {}; key: {}; exception: {}",
@@ -399,9 +404,11 @@ public class MultiObjectsBlockManager implements AutoCloseable {
             throw new RuntimeException(e);
           }
         });
+    return results;
   }
 
-  private void createPrefetchBlock(long start, long end, S3URI s3URI) throws IOException {
+  private CompletableFuture<IOBlock> createPrefetchBlock(long start, long end, S3URI s3URI)
+      throws IOException {
     CompletableFuture<IOBlock> completableFutureIOBlock =
         CompletableFuture.supplyAsync(
             () -> {
@@ -418,5 +425,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
             block ->
                 new AutoClosingCircularBuffer<PrefetchIOBlock>(configuration.getCapacityBlocks()));
     prefetchBlocks.add(prefetchIOBlock);
+    return completableFutureIOBlock;
   }
 }
