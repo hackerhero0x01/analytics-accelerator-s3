@@ -91,11 +91,10 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
     if (Objects.nonNull(getRequest.getRange())) {
       String range = getRequest.getRange().toString();
       builder.range(range);
-      // Temporarily adding range of data requested as a Referrer header to allow for easy analysis
-      // of access logs. This is similar to what the Auditing feature in S3A does.
+
       builder.overrideConfiguration(
           AwsRequestOverrideConfiguration.builder()
-              .putHeader("Referer", range)
+              .putHeader("Referer", getRequest.getReferrer())
               .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
               .build());
     }

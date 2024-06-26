@@ -8,6 +8,7 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
+import com.amazon.connector.s3.request.Referrer;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -314,12 +315,15 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         contentLength(s3URI),
         s3URI.getKey());
 
+    Range range = new Range(OptionalLong.of(start), OptionalLong.of(end));
+
     CompletableFuture<ObjectContent> objectContent =
         this.objectClient.getObject(
             GetRequest.builder()
                 .bucket(s3URI.getBucket())
                 .key(s3URI.getKey())
-                .range(new Range(OptionalLong.of(start), OptionalLong.of(end)))
+                .range(range)
+                .referrer(new Referrer(range.toString(), isPrefetch).toString())
                 .build());
 
     IOBlock ioBlock = new IOBlock(start, end, objectContent);

@@ -14,4 +14,5 @@ public class GetRequest {
   @NonNull String bucket;
   @NonNull String key;
   Range range;
+  String referrer;
 }
