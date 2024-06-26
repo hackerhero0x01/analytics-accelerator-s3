@@ -33,8 +33,8 @@ import software.amazon.awssdk.utils.IoUtils;
  */
 @Fork(1)
 @State(Scope.Benchmark)
-@Warmup(iterations = 3)
-@Measurement(iterations = 15)
+@Warmup(iterations = 2)
+@Measurement(iterations = 3)
 @BenchmarkMode(Mode.SingleShotTime)
 public class SeekingReadBenchmarks {
 

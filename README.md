@@ -14,6 +14,7 @@ The project is configured to be built via Gradle (Gradle 8.7). It also targets J
 * To apply formatting: `./gradlew spotlessApply`
 * To list all tasks: `./gradlew tasks`
 * To publish JARs to Maven local: `./gradlew publishToMavenLocal`
+* To build JMH benchmarks JAR: `./gradlew jmhJar`
 
 # Microbenchmarks
 
@@ -30,14 +31,19 @@ prefix in your bucket for all micro-benchmark related stuff). Now, to generate s
 
 ## Running the Benchmarks
 
-Just run `./gradlew jmh --rerun`. (The reason for re-run is a Gradle-quirk. You may want to re-run benchmarks even when
+There are two ways:
+1. Just run `./gradlew jmh --rerun`. (The reason for re-run is a Gradle-quirk. You may want to re-run benchmarks even when
 you did not actually change the source of your project: `--rerun` turns off the Gradle optimisation that falls through
 build steps when nothing changed.)
+2. Run `java -jar input-stream/build/libs/input-stream-jmh.jar` (but don't forget to build the JMH JAR first; this you
+can do with the `jmhJar` command listed above). This pattern is more useful when you want to add 
+advanced configurations. For example, you could run `java -jar input-stream/build/libs/input-stream-jmh.jar -e SeekingReadBenchmarks`
+to not run the benchmarks that seek.
 
 ## Developing integrations
 
 When you are building this library into connectors, your IDE will need to be aware of the JARs (common, object-client,
-input-stream). Consuming these via Maven/Gradle is natural and you can use `./gradlew publishToMavenLocal` to have the
+input-stream). Consuming these via Maven/Gradle is natural, and you can use `./gradlew publishToMavenLocal` to have the
 built JARs installed to your Maven local repository (this is `~/.m2` most of the time).
 
 
