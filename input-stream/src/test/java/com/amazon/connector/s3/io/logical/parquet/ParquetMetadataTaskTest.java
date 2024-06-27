@@ -19,14 +19,19 @@ import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
 import org.apache.parquet.format.RowGroup;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import software.amazon.awssdk.utils.ImmutableMap;
 
 public class ParquetMetadataTaskTest {
 
@@ -88,11 +93,14 @@ public class ParquetMetadataTaskTest {
     }
   }
 
-  @Test
-  void testColumnMapCreationMultiRowGroup() throws IOException, ClassNotFoundException {
+  @ParameterizedTest
+  @MethodSource("arguments")
+  void testColumnMapCreationMultiRowGroup(
+      String filename, Map<String, Integer> expectedColToRowGroup, int expectedColumns)
+      throws IOException, ClassNotFoundException {
     // Deserialize fileMetaData object
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
-    FileMetaData fileMetaData = getFileMetadata("src/test/resources/multi_row_group.ser");
+    FileMetaData fileMetaData = getFileMetadata(filename);
     Optional<ColumnMappers> columnMappersOptional =
         getColumnMappers(fileMetaData, mockedPhysicalIO);
 
@@ -106,9 +114,11 @@ public class ParquetMetadataTaskTest {
     // map
     // should have two entries (one for each column) of size 3 (one entry for each occurrence of the
     // column)
-    assertEquals(2, columnNameToColumnMap.size());
-    assertEquals(3, columnNameToColumnMap.get("n_legs").size());
-    assertEquals(3, columnNameToColumnMap.get("animal").size());
+    assertEquals(expectedColumns, columnNameToColumnMap.size());
+    expectedColToRowGroup.forEach(
+        (col, rowGroup) -> {
+          assertEquals(rowGroup, columnNameToColumnMap.get(col).size());
+        });
 
     int rowGroupIndex = 0;
     for (RowGroup rowGroup : fileMetaData.getRow_groups()) {
@@ -138,6 +148,24 @@ public class ParquetMetadataTaskTest {
       }
       rowGroupIndex++;
     }
+  }
+
+  private static Stream<Arguments> arguments() {
+    return Stream.of(
+        Arguments.of(
+            "src/test/resources/multi_row_group.ser", ImmutableMap.of("n_legs", 3, "animal", 3), 2),
+        Arguments.of(
+            "src/test/resources/nested_data_mrg_metadata.ser",
+            ImmutableMap.of(
+                "address.city",
+                3,
+                "address.zip",
+                3,
+                "phone_numbers.list.element.type",
+                3,
+                "phone_numbers.list.element.number",
+                3),
+            8));
   }
 
   @Test
