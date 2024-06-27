@@ -144,7 +144,7 @@ public class ParquetMetadataTaskTest {
   void testColumnMapCreationNestedSchema() throws IOException, ClassNotFoundException {
     // Deserialize fileMetaData object
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
-    FileMetaData fileMetaData = getFileMetadata("src/test/resources/nested_schema_metadata.ser");
+    FileMetaData fileMetaData = getFileMetadata("src/test/resources/nested_data_metadata.ser");
     Optional<ColumnMappers> columnMappersOptional =
         getColumnMappers(fileMetaData, mockedPhysicalIO);
 

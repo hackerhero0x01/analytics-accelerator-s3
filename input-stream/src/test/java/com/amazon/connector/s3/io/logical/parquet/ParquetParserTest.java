@@ -47,6 +47,7 @@ public class ParquetParserTest {
         Arguments.of("src/test/resources/call_center.parquet", 31),
         Arguments.of("src/test/resources/nested_data.parquet", 8));
   }
+
   @Test
   void testParquetMetadataParsingMultipleRowGroups() throws IOException {
 
