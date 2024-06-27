@@ -10,8 +10,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.stream.Stream;
 import org.apache.parquet.format.FileMetaData;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class ParquetParserTest {
 
@@ -20,10 +24,11 @@ public class ParquetParserTest {
     assertNotNull(new ParquetParser());
   }
 
-  @Test
-  void testParquetMetadataParsing() throws IOException {
+  @ParameterizedTest
+  @MethodSource("arguments")
+  void testParquetMetadataParsing(String parquetFilePath, int expectedColumns) throws IOException {
 
-    File file = new File("src/test/resources/call_center.parquet");
+    File file = new File(parquetFilePath);
     InputStream inputStream = new FileInputStream(file);
 
     byte[] buffer = new byte[ONE_KB * 20];
@@ -34,9 +39,14 @@ public class ParquetParserTest {
         parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
 
     assertEquals(fileMetaData.row_groups.size(), 1);
-    assertEquals(fileMetaData.getRow_groups().get(0).getColumns().size(), 31);
+    assertEquals(fileMetaData.getRow_groups().get(0).getColumns().size(), expectedColumns);
   }
 
+  private static Stream<Arguments> arguments() {
+    return Stream.of(
+        Arguments.of("src/test/resources/call_center.parquet", 31),
+        Arguments.of("src/test/resources/nested_data.parquet", 8));
+  }
   @Test
   void testParquetMetadataParsingMultipleRowGroups() throws IOException {
 
