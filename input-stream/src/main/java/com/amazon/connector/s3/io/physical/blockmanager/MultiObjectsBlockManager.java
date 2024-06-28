@@ -212,7 +212,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    */
   public int read(byte[] buffer, int offset, int len, long pos, S3URI s3URI) throws IOException {
     int numBytesRead = 0;
-    int numBytesRemaining = len;
+    long numBytesRemaining = len;
     long nextReadPos = pos;
     int nextReadOffset = offset;
 
@@ -223,7 +223,14 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         return numBytesRead;
       }
 
-      IOBlock ioBlock = getBlockForPosition(nextReadPos, len, s3URI);
+      IOBlock ioBlock = getBlockForPosition(nextReadPos, numBytesRemaining, s3URI);
+      long blockOffset = nextReadPos - ioBlock.getStart();
+      if (ioBlock.size() - blockOffset < numBytesRemaining) {
+        long nextStartPos = nextReadPos + ioBlock.size() - blockOffset;
+        if (nextStartPos <= getLastObjectByte(s3URI))
+          getBlockForPosition(
+              nextStartPos, numBytesRemaining - ioBlock.size() + blockOffset, s3URI);
+      }
       int numBytesToRead = ioBlock.read(buffer, nextReadOffset, numBytesRemaining, nextReadPos);
       nextReadOffset += numBytesToRead;
       nextReadPos += numBytesToRead;
@@ -252,7 +259,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     return read(buf, off, n, start, s3URI);
   }
 
-  private IOBlock getBlockForPosition(long pos, int len, S3URI s3URI) throws IOException {
+  private IOBlock getBlockForPosition(long pos, long len, S3URI s3URI) throws IOException {
     Optional<IOBlock> lookup = lookupBlockForPosition(pos, s3URI);
     if (!lookup.isPresent()) {
       return createBlockStartingAtWithSize(pos, len, s3URI);
@@ -291,7 +298,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     return createBlock(start, end, s3URI, false);
   }
 
-  private IOBlock createBlockStartingAtWithSize(long start, int size, S3URI s3URI)
+  private IOBlock createBlockStartingAtWithSize(long start, long size, S3URI s3URI)
       throws IOException {
     long end;
 
