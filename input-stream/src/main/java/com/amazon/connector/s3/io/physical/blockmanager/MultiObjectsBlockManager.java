@@ -224,12 +224,21 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       }
 
       IOBlock ioBlock = getBlockForPosition(nextReadPos, numBytesRemaining, s3URI);
-      long blockOffset = nextReadPos - ioBlock.getStart();
-      if (ioBlock.size() - blockOffset < numBytesRemaining) {
-        long nextStartPos = nextReadPos + ioBlock.size() - blockOffset;
-        if (nextStartPos <= getLastObjectByte(s3URI))
-          getBlockForPosition(
-              nextStartPos, numBytesRemaining - ioBlock.size() + blockOffset, s3URI);
+      // Calculate the absolute start position within the current block and the number of bytes
+      // remaining in it
+      long absolutStartPositionInsideBlock = nextReadPos - ioBlock.getStart();
+      long bytesRemainingInBlock = ioBlock.size() - absolutStartPositionInsideBlock;
+      // Check if the current block has enough bytes to satisfy the remaining read
+      if (bytesRemainingInBlock < numBytesRemaining) {
+        // Calculate the relative start position for the next block
+        long relativeStartPositionForNextBlock = nextReadPos + bytesRemainingInBlock;
+        if (relativeStartPositionForNextBlock <= getLastObjectByte(s3URI)) {
+          // Calculate the number of bytes to read for the next block
+          long bytesToReadAfterCurrentBlock = numBytesRemaining - bytesRemainingInBlock;
+          // Prefetch async block if it doesn't exist
+          prefechBlockForPositionIfNotExists(
+              relativeStartPositionForNextBlock, bytesToReadAfterCurrentBlock, s3URI);
+        }
       }
       int numBytesToRead = ioBlock.read(buffer, nextReadOffset, numBytesRemaining, nextReadPos);
       nextReadOffset += numBytesToRead;
@@ -266,6 +275,14 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     }
 
     return lookup.get();
+  }
+
+  private void prefechBlockForPositionIfNotExists(long pos, long len, S3URI s3URI)
+      throws IOException {
+    Optional<IOBlock> lookup = lookupBlockForPosition(pos, s3URI);
+    if (!lookup.isPresent()) {
+      createPrefetchBlockAtWithSize(pos, len, s3URI);
+    }
   }
 
   private IOBlock getBlockForPosition(long pos, S3URI s3URI) throws IOException {
@@ -309,6 +326,19 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     }
 
     return createBlock(start, end, s3URI, false);
+  }
+
+  private CompletableFuture<IOBlock> createPrefetchBlockAtWithSize(
+      long start, long size, S3URI s3URI) throws IOException {
+    long end;
+
+    if (size > configuration.getReadAheadBytes()) {
+      end = Math.min(start + size - 1, getLastObjectByte(s3URI));
+    } else {
+      end = Math.min(start + configuration.getReadAheadBytes() - 1, getLastObjectByte(s3URI));
+    }
+
+    return createPrefetchBlock(start, end, s3URI);
   }
 
   private IOBlock createBlock(long start, long end, S3URI s3URI, boolean isPrefetch)
