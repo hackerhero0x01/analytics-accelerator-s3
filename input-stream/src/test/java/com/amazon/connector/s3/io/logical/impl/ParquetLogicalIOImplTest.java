@@ -1,20 +1,12 @@
 package com.amazon.connector.s3.io.logical.impl;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
-import com.amazon.connector.s3.io.logical.parquet.ParquetMetadataTask;
-import com.amazon.connector.s3.io.logical.parquet.ParquetPredictivePrefetchingTask;
-import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchRemainingColumnTask;
-import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchTailTask;
-import com.amazon.connector.s3.io.logical.parquet.ParquetReadTailTask;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
@@ -23,44 +15,53 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
 public class ParquetLogicalIOImplTest {
 
+  private static final S3URI TEST_URI = S3URI.of("foo", "bar");
+
   @Test
-  void testContructor() {
+  void testConstructor() {
     assertNotNull(
         new ParquetLogicalIOImpl(
+            S3URI.of("foo", "bar"),
             mock(PhysicalIO.class),
-            LogicalIOConfiguration.builder()
-                .footerCachingEnabled(false)
-                .metadataAwarePefetchingEnabled(false)
-                .build()));
+            mock(LogicalIOConfiguration.class),
+            mock(ParquetMetadataStore.class)));
   }
 
   @Test
   void testConstructorThrowsOnNullArgument() {
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetLogicalIOImpl(null, LogicalIOConfiguration.DEFAULT));
+        () ->
+            new ParquetLogicalIOImpl(
+                TEST_URI,
+                null,
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class)));
     assertThrows(
-        NullPointerException.class, () -> new ParquetLogicalIOImpl(mock(PhysicalIO.class), null));
+        NullPointerException.class,
+        () ->
+            new ParquetLogicalIOImpl(
+                TEST_URI, mock(PhysicalIO.class), null, mock(ParquetMetadataStore.class)));
   }
 
   @Test
   void testCloseDependencies() throws IOException {
     // Given
     PhysicalIO physicalIO = mock(PhysicalIO.class);
+    LogicalIOConfiguration configuration =
+        LogicalIOConfiguration.builder()
+            .footerCachingEnabled(false)
+            .metadataAwarePrefetchingEnabled(false)
+            .build();
+
     ParquetLogicalIOImpl logicalIO =
         new ParquetLogicalIOImpl(
-            physicalIO,
-            LogicalIOConfiguration.builder()
-                .footerCachingEnabled(false)
-                .metadataAwarePefetchingEnabled(false)
-                .build());
+            TEST_URI, physicalIO, configuration, new ParquetMetadataStore(configuration));
 
     // When: close called
     logicalIO.close();
@@ -79,7 +80,13 @@ public class ParquetLogicalIOImplTest {
     BlockManager blockManager =
         new BlockManager(mockClient, s3URI, BlockManagerConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO = new PhysicalIOImpl(blockManager);
-    assertDoesNotThrow(() -> new ParquetLogicalIOImpl(physicalIO, LogicalIOConfiguration.DEFAULT));
+    assertDoesNotThrow(
+        () ->
+            new ParquetLogicalIOImpl(
+                TEST_URI,
+                physicalIO,
+                LogicalIOConfiguration.DEFAULT,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }
 
   @Test
@@ -92,81 +99,12 @@ public class ParquetLogicalIOImplTest {
     BlockManager blockManager =
         new BlockManager(mockClient, s3URI, BlockManagerConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO = new PhysicalIOImpl(blockManager);
-    assertDoesNotThrow(() -> new ParquetLogicalIOImpl(physicalIO, LogicalIOConfiguration.DEFAULT));
-  }
-
-  @Test
-  void testRemainingColumnPrefetched() {
-    PhysicalIO physicalIO = mock(PhysicalIO.class);
-    ParquetLogicalIOImpl logicalIO =
-        getMockedLogicalIO(
-            physicalIO,
-            LogicalIOConfiguration.builder().predictivePrefetchingEnabled(false).build());
-    assertEquals(true, logicalIO.prefetchRemainingColumnChunk(0, 0).isPresent());
-  }
-
-  @Test
-  void testFooterPrefetchedAndMetadataParsed() {
-    PhysicalIO physicalIO = mock(PhysicalIO.class);
-    ParquetLogicalIOImpl logicalIO = getMockedLogicalIO(physicalIO, LogicalIOConfiguration.DEFAULT);
-    assertEquals(true, logicalIO.prefetchFooterAndBuildMetadata().isPresent());
-  }
-
-  @Test
-  void testMetadataAwarePrefetchingDisabled() {
-    PhysicalIO physicalIO = mock(PhysicalIO.class);
-    ParquetLogicalIOImpl logicalIO =
-        getMockedLogicalIO(
-            physicalIO,
-            LogicalIOConfiguration.builder().metadataAwarePefetchingEnabled(false).build());
-    assertEquals(logicalIO.prefetchFooterAndBuildMetadata().isPresent(), true);
-    assertEquals(logicalIO.prefetchRemainingColumnChunk(0, 0).isPresent(), false);
-  }
-
-  @Test
-  void testNoPrefetchingWhenColumnMappersExist() {
-    PhysicalIO physicalIO = mock(PhysicalIO.class);
-    when(physicalIO.columnMappers())
-        .thenReturn(new ColumnMappers(new HashMap<>(), new HashMap<>()));
-    ParquetLogicalIOImpl logicalIO = getMockedLogicalIO(physicalIO, LogicalIOConfiguration.DEFAULT);
-    assertFalse(logicalIO.prefetchFooterAndBuildMetadata().isPresent());
-  }
-
-  @Test
-  void testNoPredictivePrefetchingWhenDisabled() {
-    PhysicalIO physicalIO = mock(PhysicalIO.class);
-
-    ParquetLogicalIOImpl logicalIO =
-        getMockedLogicalIO(
-            physicalIO,
-            LogicalIOConfiguration.builder().predictivePrefetchingEnabled(false).build());
-
-    CompletableFuture<Optional<ColumnMappers>> optionalCompletableFuture =
-        CompletableFuture.completedFuture(
-            Optional.of(new ColumnMappers(new HashMap<>(), new HashMap<>())));
-
-    assertEquals(logicalIO.prefetchFooterAndBuildMetadata().isPresent(), true);
-    assertEquals(logicalIO.prefetchRemainingColumnChunk(0, 0).isPresent(), true);
-    assertFalse(logicalIO.prefetchPredictedColumns(optionalCompletableFuture).isPresent());
-  }
-
-  private ParquetLogicalIOImpl getMockedLogicalIO(
-      PhysicalIO physicalIO, LogicalIOConfiguration logicalIOConfiguration) {
-    ParquetMetadataTask parquetMetadataTask = mock(ParquetMetadataTask.class);
-    ParquetReadTailTask parquetReadTailTask = mock(ParquetReadTailTask.class);
-    ParquetPrefetchTailTask parquetPrefetchTailTask = mock(ParquetPrefetchTailTask.class);
-    ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
-        mock(ParquetPrefetchRemainingColumnTask.class);
-    ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
-        mock(ParquetPredictivePrefetchingTask.class);
-
-    return new ParquetLogicalIOImpl(
-        physicalIO,
-        logicalIOConfiguration,
-        parquetPrefetchTailTask,
-        parquetReadTailTask,
-        parquetMetadataTask,
-        parquetPrefetchRemainingColumnTask,
-        parquetPredictivePrefetchingTask);
+    assertDoesNotThrow(
+        () ->
+            new ParquetLogicalIOImpl(
+                TEST_URI,
+                physicalIO,
+                LogicalIOConfiguration.DEFAULT,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }
 }

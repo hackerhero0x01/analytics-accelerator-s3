@@ -3,6 +3,7 @@ package com.amazon.connector.s3;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
+import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
@@ -17,8 +18,12 @@ public class S3SeekableInputStreamTestBase {
   protected final FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
   protected final BlockManager fakeBlockManager =
       new BlockManager(fakeObjectClient, TEST_OBJECT, BlockManagerConfiguration.DEFAULT);
+  protected final LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
 
   protected final LogicalIO fakeLogicalIO =
       new ParquetLogicalIOImpl(
-          new PhysicalIOImpl(fakeBlockManager), LogicalIOConfiguration.DEFAULT);
+          TEST_OBJECT,
+          new PhysicalIOImpl(fakeBlockManager),
+          logicalIOConfiguration,
+          new ParquetMetadataStore(logicalIOConfiguration));
 }

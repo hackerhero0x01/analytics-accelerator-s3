@@ -1,10 +1,8 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -14,21 +12,21 @@ import static org.mockito.Mockito.when;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.object.ObjectMetadata;
-import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
 public class ParquetReadTailTaskTest {
 
   @Test
-  void testContructor() {
+  void testConstructor() {
     assertNotNull(new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
   }
 
   @Test
-  void testContructorFailsOnNull() {
+  void testConstructorFailsOnNull() {
     assertThrows(
         NullPointerException.class, () -> new ParquetReadTailTask(null, mock(PhysicalIO.class)));
     assertThrows(
@@ -38,6 +36,7 @@ public class ParquetReadTailTaskTest {
 
   @Test
   void testTailRead() throws IOException {
+    // Given: read tail task
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     when(mockedPhysicalIO.metadata())
         .thenReturn(
@@ -45,26 +44,30 @@ public class ParquetReadTailTaskTest {
     ParquetReadTailTask parquetReadTailTask =
         new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
-    Optional<FileTail> fileTail = parquetReadTailTask.readFileTail();
+    // When: file tail is requested
+    FileTail fileTail = parquetReadTailTask.readFileTail();
 
-    assertTrue(fileTail.isPresent());
-    assertEquals(fileTail.get().getFileTailLength(), 800);
+    // Then: file tail is fetched from the PhysicalIO
+    assertEquals(fileTail.getFileTailLength(), 800);
     verify(mockedPhysicalIO).readTail(any(byte[].class), anyInt(), anyInt());
     verify(mockedPhysicalIO).metadata();
   }
 
   @Test
-  void testExceptionSwallowed() throws IOException {
+  @SneakyThrows
+  void testExceptionRemappedToCompletionException() {
+    // Given: read tail task with a throwing physicalIO under the hood
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
-    when(mockedPhysicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
-    ParquetReadTailTask parquetReadTailTask =
-        new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
     when(mockedPhysicalIO.metadata())
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(800).build()));
-    when(mockedPhysicalIO.readTail(any(byte[].class), anyInt(), anyInt()))
-        .thenThrow(new IOException("Error in reading tail"));
+    when(mockedPhysicalIO.readTail(any(), anyInt(), anyInt()))
+        .thenThrow(new IOException("Something went horribly wrong."));
+    ParquetReadTailTask parquetReadTailTask =
+        new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
-    assertFalse(parquetReadTailTask.readFileTail().isPresent());
+    // When & Then: file tail is requested --> IOException from PH/IO is wrapped in
+    // CompletionException
+    assertThrows(CompletionException.class, () -> parquetReadTailTask.readFileTail());
   }
 }

@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
@@ -26,22 +25,13 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * A multi objects block manager in charge of fetching bytes from an object store for multiple
- * objects. Currently: - Multy Objects Block Manager for multiple objects fetches bytes in 8MB
- * chunks by default - IO blocks are fixed in size (at most 8MB) and do not grow beyond their
- * original size - Multi Objects Block Manager keeps for each object the last 10 blocks alive in
- * memory -- technically speaking this is caching, but we should be able to naturally extend this
- * logic into prefetching. - If an 11th chunk is requested, then the oldest chunk is released along
- * with all the resources it is holding.
+ * objects.
  */
 public class MultiObjectsBlockManager implements AutoCloseable {
 
   private final Map<S3URI, CompletableFuture<ObjectMetadata>> metadata;
   private final Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks;
   private final Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache;
-  // TODO: Parquet specific caches should be moved out of here.
-  // https://app.asana.com/0/1206885953994785/1207619533187947
-  private final Map<S3URI, ColumnMappers> columnMappersStore;
-  private final Map<String, String> recentColumns;
 
   private final ObjectClient objectClient;
   private final BlockManagerConfiguration configuration;
@@ -121,8 +111,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     this.metadata = metadata;
     this.ioBlocks = ioBlocks;
     this.prefetchCache = prefetchCache;
-    this.columnMappersStore = columnMappersStore;
-    this.recentColumns = recentColumns;
   }
 
   /**
@@ -150,44 +138,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         objectClient.headObject(
             HeadRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build()));
     return metadata.get(s3URI);
-  }
-
-  /**
-   * Gets column mappers for a key.
-   *
-   * @param s3URI The S3URI to get column mappers for.
-   * @return Column mappings
-   */
-  public ColumnMappers getColumnMappers(S3URI s3URI) {
-    return columnMappersStore.get(s3URI);
-  }
-
-  /**
-   * Stores column mappers for an object.
-   *
-   * @param s3URI S3URI to store mappers for
-   * @param columnMappers Parquet metdata column mappings
-   */
-  public void putColumnMappers(S3URI s3URI, ColumnMappers columnMappers) {
-    columnMappersStore.put(s3URI, columnMappers);
-  }
-
-  /**
-   * Adds column to list of recent columns.
-   *
-   * @param columnName column to be added
-   */
-  public void addRecentColumn(String columnName) {
-    recentColumns.put(columnName, columnName);
-  }
-
-  /**
-   * Gets a list of recent columns being read.
-   *
-   * @return Set of recent columns being
-   */
-  public Set<String> getRecentColumns() {
-    return recentColumns.keySet();
   }
 
   /**

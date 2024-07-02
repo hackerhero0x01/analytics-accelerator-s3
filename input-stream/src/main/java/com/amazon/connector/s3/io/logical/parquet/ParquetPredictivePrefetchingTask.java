@@ -1,12 +1,16 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
+import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
+import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +22,9 @@ import org.slf4j.LoggerFactory;
  */
 public class ParquetPredictivePrefetchingTask {
 
+  private final S3URI s3Uri;
   private final PhysicalIO physicalIO;
+  private final ParquetMetadataStore parquetMetadataStore;
   private final LogicalIOConfiguration logicalIOConfiguration;
 
   private static final Logger LOG = LoggerFactory.getLogger(ParquetPredictivePrefetchingTask.class);
@@ -26,13 +32,20 @@ public class ParquetPredictivePrefetchingTask {
   /**
    * Creates a new instance of {@link ParquetPredictivePrefetchingTask}
    *
+   * @param s3Uri the object's S3URI
    * @param logicalIOConfiguration logical io configuration
    * @param physicalIO PhysicalIO instance
+   * @param parquetMetadataStore object containing Parquet usage information
    */
   public ParquetPredictivePrefetchingTask(
-      @NonNull LogicalIOConfiguration logicalIOConfiguration, @NonNull PhysicalIO physicalIO) {
+      @NonNull S3URI s3Uri,
+      @NonNull LogicalIOConfiguration logicalIOConfiguration,
+      @NonNull PhysicalIO physicalIO,
+      @NonNull ParquetMetadataStore parquetMetadataStore) {
+    this.s3Uri = s3Uri;
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
+    this.parquetMetadataStore = parquetMetadataStore;
   }
 
   /**
@@ -44,12 +57,12 @@ public class ParquetPredictivePrefetchingTask {
    */
   public Optional<String> addToRecentColumnList(long position) {
     if (logicalIOConfiguration.isPredictivePrefetchingEnabled()
-        && physicalIO.columnMappers() != null) {
-      ColumnMappers columnMappers = physicalIO.columnMappers();
+        && parquetMetadataStore.getColumnMappers(s3Uri) != null) {
+      ColumnMappers columnMappers = parquetMetadataStore.getColumnMappers(s3Uri);
       if (columnMappers.getOffsetIndexToColumnMap().containsKey(position)) {
         String recentColumnName =
             columnMappers.getOffsetIndexToColumnMap().get(position).getColumnName();
-        physicalIO.addRecentColumn(recentColumnName);
+        parquetMetadataStore.addRecentColumn(recentColumnName);
         return Optional.of(recentColumnName);
       }
     }
@@ -60,45 +73,34 @@ public class ParquetPredictivePrefetchingTask {
   /**
    * If any recent columns exist in the current parquet file, prefetch them.
    *
-   * @param columnMappersOptional Optional of parquet file column mappings
+   * @param columnMappers Parquet file column mappings
    * @return ranges prefetched
    */
-  public Optional<List<Range>> prefetchRecentColumns(
-      Optional<ColumnMappers> columnMappersOptional) {
-    // TODO: currently only handles single row groups.
-    if (logicalIOConfiguration.isPredictivePrefetchingEnabled()
-        && columnMappersOptional.isPresent()) {
-      List<Range> prefetchRanges = new ArrayList<>();
-      ColumnMappers columnMappers = columnMappersOptional.get();
-      for (String recentColumn : physicalIO.getRecentColumns()) {
-        if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
-          LOG.debug(
-              "Column {} found in schema for {}, adding to prefetch list",
-              recentColumn,
-              physicalIO.getS3URI().getKey());
-          List<ColumnMetadata> columnMetadataList =
-              columnMappers.getColumnNameToColumnMap().get(recentColumn);
-          for (ColumnMetadata columnMetadata : columnMetadataList) {
-            prefetchRanges.add(
-                new Range(
-                    columnMetadata.getStartPos(),
-                    columnMetadata.getStartPos() + columnMetadata.getCompressedSize()));
-          }
+  public IOPlanExecution prefetchRecentColumns(ColumnMappers columnMappers) {
+    List<Range> prefetchRanges = new ArrayList<>();
+    for (String recentColumn : parquetMetadataStore.getRecentColumns()) {
+      if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
+        LOG.debug(
+                "Column {} found in schema for {}, adding to prefetch list",
+                recentColumn,
+                physicalIO.getS3URI().getKey());
+        List<ColumnMetadata> columnMetadataList =
+            columnMappers.getColumnNameToColumnMap().get(recentColumn);
+        for (ColumnMetadata columnMetadata : columnMetadataList) {
+          prefetchRanges.add(
+              new Range(
+                  columnMetadata.getStartPos(),
+                  columnMetadata.getStartPos() + columnMetadata.getCompressedSize()));
         }
-      }
-
-      IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
-      try {
-        physicalIO.execute(ioPlan);
-        return Optional.of(prefetchRanges);
-      } catch (Exception e) {
-        LOG.error(
-            "Error in executing predictive prefetch plan for {}. Will fallback to synchronous reading for this key.",
-            physicalIO.getS3URI().getKey(),
-            e);
       }
     }
 
-    return Optional.empty();
+    IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
+    try {
+      return physicalIO.execute(ioPlan);
+    } catch (Exception e) {
+      LOG.error("Error in executing predictive prefetch plan for {}. Will fallback to synchronous reading for this key.", physicalIO.getS3URI().getKey(), e);
+      throw new CompletionException("Error in executing predictive prefetching", e);
+    }
   }
 }

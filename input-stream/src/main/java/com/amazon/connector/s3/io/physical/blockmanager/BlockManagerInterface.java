@@ -1,12 +1,9 @@
 package com.amazon.connector.s3.io.physical.blockmanager;
 
-import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
-import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /** A block manager interface for a single object. */
@@ -53,39 +50,4 @@ public interface BlockManagerInterface extends AutoCloseable {
    * @return the metadata of the object
    */
   CompletableFuture<ObjectMetadata> getMetadata();
-
-  /**
-   * Get parquet metadata column mappings for the object
-   *
-   * @return column mappings
-   */
-  ColumnMappers getColumnMappers();
-
-  /**
-   * Store parquet metadata column mappings for the object
-   *
-   * @param columnMappers column mappings to store
-   */
-  void putColumnMappers(ColumnMappers columnMappers);
-
-  /**
-   * Adds column to list of recent columns.
-   *
-   * @param columnName column to be added
-   */
-  void addRecentColumn(String columnName);
-
-  /**
-   * Gets a list of recent columns being read.
-   *
-   * @return Set of recent columns being
-   */
-  Set<String> getRecentColumns();
-
-  /**
-   * Gets the S3 URI.
-   *
-   * @return S3 URI
-   */
-  S3URI getS3URI();
 }

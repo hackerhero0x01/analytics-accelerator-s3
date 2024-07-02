@@ -8,6 +8,8 @@ public class Constants {
   public static final int PARQUET_MAGIC_STR_LENGTH = 4;
   public static final int PARQUET_FOOTER_LENGTH_SIZE = 4;
 
+  public static final int DEFAULT_PARQUET_METADATA_STORE_SIZE = 45;
+
   public static final long DEFAULT_FOOTER_CACHING_SIZE = ONE_MB;
   public static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 3 * ONE_MB;
 }
