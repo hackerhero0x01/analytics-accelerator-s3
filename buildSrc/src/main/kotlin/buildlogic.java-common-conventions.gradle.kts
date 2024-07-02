@@ -83,18 +83,3 @@ tasks.jacocoTestReport {
 
     dependsOn(tasks.test) // tests are required to run before generating the report
 }
-
-// NOTE: This is temporary change to allow us to build uber jars that can be used to integrate
-// upstream. Ultimately more thinking around packaging and distribution will be required. 
-tasks.register<Jar>("uberJar") {
-    archiveClassifier = "uber"
-
-    from(sourceSets.main.get().output)
-
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-    dependsOn(configurations.runtimeClasspath)
-    from({
-        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
-    })
-}
