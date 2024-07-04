@@ -144,7 +144,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       }
     }
 
-    LOG.info("Issuing new Head request for {}", s3URI.getKey());
+    LOG.debug("Issuing new Head request for {}", s3URI.getKey());
     metadata.put(
         s3URI,
         objectClient.headObject(
@@ -345,12 +345,13 @@ public class MultiObjectsBlockManager implements AutoCloseable {
   private IOBlock createBlock(long start, long end, S3URI s3URI, boolean isPrefetch)
       throws IOException {
 
-    LOG.info(
-        "Creating IOBlock {}:{}. Object size {}. Object key {}",
+    LOG.debug(
+        "Creating IOBlock {}:{}. Object size {}. Object key {}. isPrefetch {}",
         start,
         end,
         contentLength(s3URI),
-        s3URI.getKey());
+        s3URI.getKey(),
+        isPrefetch);
 
     Range range = new Range(OptionalLong.of(start), OptionalLong.of(end));
 
