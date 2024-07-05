@@ -98,6 +98,7 @@ public class ParquetPredictivePrefetchingTaskTest {
   @Test
   void testPrefetchRecentColumns() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
+    when(physicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
     List<ColumnMetadata> columnMetadataList = new ArrayList<>();
     columnMetadataList.add(new ColumnMetadata(0, "sk_test", 100, 500));
