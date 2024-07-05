@@ -64,6 +64,7 @@ public class ParquetPrefetchRemainingColumnTask {
       prefetchRanges.add(new Range(startRange, endRange));
       IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
       try {
+        LOG.debug("Prefetching remaining column chunk for {}", physicalIO.getS3URI().getKey());
         physicalIO.execute(ioPlan);
         return Optional.of(prefetchRanges);
       } catch (Exception e) {

@@ -72,6 +72,10 @@ public class ParquetPredictivePrefetchingTask {
       ColumnMappers columnMappers = columnMappersOptional.get();
       for (String recentColumn : physicalIO.getRecentColumns()) {
         if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
+          LOG.debug(
+              "Column {} found in schema for {}, adding to prefetch list",
+              recentColumn,
+              physicalIO.getS3URI().getKey());
           List<ColumnMetadata> columnMetadataList =
               columnMappers.getColumnNameToColumnMap().get(recentColumn);
           for (ColumnMetadata columnMetadata : columnMetadataList) {
