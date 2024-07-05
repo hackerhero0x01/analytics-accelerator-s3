@@ -47,7 +47,10 @@ public class ParquetPrefetchTailTask {
       physicalIO.execute(ioPlan);
       return Optional.of(prefetchRanges);
     } catch (Exception e) {
-      LOG.debug("Error in executing tail prefetch plan", e);
+      LOG.error(
+          "Error in executing tail prefetch plan for {}. Will fallback to reading footer synchronously.",
+          physicalIO.getS3URI().getKey(),
+          e);
     }
 
     return Optional.empty();

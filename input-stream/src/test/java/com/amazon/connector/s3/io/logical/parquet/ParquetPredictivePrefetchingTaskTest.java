@@ -17,6 +17,7 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -125,6 +126,7 @@ public class ParquetPredictivePrefetchingTaskTest {
   @Test
   void testExceptionSwallowed() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
+    when(physicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
         new ParquetPredictivePrefetchingTask(LogicalIOConfiguration.DEFAULT, physicalIO);
 

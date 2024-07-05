@@ -88,7 +88,10 @@ public class ParquetPredictivePrefetchingTask {
         physicalIO.execute(ioPlan);
         return Optional.of(prefetchRanges);
       } catch (Exception e) {
-        LOG.debug("Error in executing predictive prefetch plan", e);
+        LOG.error(
+            "Error in executing predictive prefetch plan for {}. Will fallback to synchronous reading for this key.",
+            physicalIO.getS3URI().getKey(),
+            e);
       }
     }
 

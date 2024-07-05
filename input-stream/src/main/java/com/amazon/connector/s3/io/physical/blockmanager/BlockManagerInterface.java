@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.physical.blockmanager;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -80,4 +81,11 @@ public interface BlockManagerInterface extends AutoCloseable {
    * @return Set of recent columns being
    */
   Set<String> getRecentColumns();
+
+  /**
+   * Gets the S3 URI.
+   *
+   * @return S3 URI
+   */
+  S3URI getS3URI();
 }
