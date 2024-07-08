@@ -27,20 +27,23 @@ import org.junit.jupiter.api.Test;
 
 public class ParquetPrefetchTailTaskTest {
 
+  private static final S3URI TEST_URI = S3URI.of("foo", "bar");
+
   @Test
   void testContructor() {
     assertNotNull(
-        new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
+        new ParquetPrefetchTailTask(
+            TEST_URI, LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
   }
 
   @Test
   void testContructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetPrefetchTailTask(null, mock(PhysicalIO.class)));
+        () -> new ParquetPrefetchTailTask(TEST_URI, null, mock(PhysicalIO.class)));
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, null));
+        () -> new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, null));
   }
 
   @Test
@@ -61,7 +64,7 @@ public class ParquetPrefetchTailTaskTest {
       when(mockedPhysicalIO.metadata()).thenReturn(metadata);
 
       ParquetPrefetchTailTask parquetPrefetchTailTask =
-          new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+          new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
       parquetPrefetchTailTask.prefetchTail();
 
       verify(mockedPhysicalIO).execute(any(IOPlan.class));
@@ -75,9 +78,8 @@ public class ParquetPrefetchTailTaskTest {
   void testExceptionRemappedToCompletionException() {
     // Given: Parquet Tail Prefetching task
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
-    when(mockedPhysicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
     ParquetPrefetchTailTask parquetPrefetchTailTask =
-        new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+        new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
     // When: task executes but PhysicalIO throws
     CompletableFuture<ObjectMetadata> metadata =

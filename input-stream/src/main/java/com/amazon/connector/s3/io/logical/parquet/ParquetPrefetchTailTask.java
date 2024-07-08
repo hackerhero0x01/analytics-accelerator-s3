@@ -4,6 +4,7 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionException;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 /** Task for prefetching the tail of a parquet file. */
 public class ParquetPrefetchTailTask {
 
+  private final S3URI s3URI;
   private final LogicalIOConfiguration logicalIOConfiguration;
   private final PhysicalIO physicalIO;
 
@@ -26,7 +28,10 @@ public class ParquetPrefetchTailTask {
    * @param physicalIO physicalIO instance
    */
   public ParquetPrefetchTailTask(
-      @NonNull LogicalIOConfiguration logicalIOConfiguration, @NonNull PhysicalIO physicalIO) {
+      @NonNull S3URI s3URI,
+      @NonNull LogicalIOConfiguration logicalIOConfiguration,
+      @NonNull PhysicalIO physicalIO) {
+    this.s3URI = s3URI;
     this.logicalIOConfiguration = logicalIOConfiguration;
     this.physicalIO = physicalIO;
   }
@@ -47,7 +52,10 @@ public class ParquetPrefetchTailTask {
       physicalIO.execute(ioPlan);
       return prefetchRanges;
     } catch (Exception e) {
-      LOG.error("Error in executing tail prefetch plan for {}. Will fallback to reading footer synchronously.", physicalIO.getS3URI().getKey(), e);
+      LOG.error(
+          "Error in executing tail prefetch plan for {}. Will fallback to reading footer synchronously.",
+          this.s3URI.getKey(),
+          e);
       throw new CompletionException("Error in executing tail prefetch plan", e);
     }
   }

@@ -81,9 +81,9 @@ public class ParquetPredictivePrefetchingTask {
     for (String recentColumn : parquetMetadataStore.getRecentColumns()) {
       if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
         LOG.debug(
-                "Column {} found in schema for {}, adding to prefetch list",
-                recentColumn,
-                physicalIO.getS3URI().getKey());
+            "Column {} found in schema for {}, adding to prefetch list",
+            recentColumn,
+            this.s3Uri.getKey());
         List<ColumnMetadata> columnMetadataList =
             columnMappers.getColumnNameToColumnMap().get(recentColumn);
         for (ColumnMetadata columnMetadata : columnMetadataList) {
@@ -99,7 +99,10 @@ public class ParquetPredictivePrefetchingTask {
     try {
       return physicalIO.execute(ioPlan);
     } catch (Exception e) {
-      LOG.error("Error in executing predictive prefetch plan for {}. Will fallback to synchronous reading for this key.", physicalIO.getS3URI().getKey(), e);
+      LOG.error(
+          "Error in executing predictive prefetch plan for {}. Will fallback to synchronous reading for this key.",
+          this.s3Uri.getKey(),
+          e);
       throw new CompletionException("Error in executing predictive prefetching", e);
     }
   }

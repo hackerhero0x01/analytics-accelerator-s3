@@ -78,7 +78,10 @@ public class ParquetPrefetchRemainingColumnTask {
       try {
         return physicalIO.execute(ioPlan);
       } catch (Exception e) {
-        LOG.error("Error in executing remaining column chunk prefetch plan for {}. Will fallback to synchronous reading for this column.", physicalIO.getS3URI().getKey(), e);
+        LOG.error(
+            "Error in executing remaining column chunk prefetch plan for {}. Will fallback to synchronous reading for this column.",
+            this.s3Uri.getKey(),
+            e);
         throw new CompletionException("Error in executing remaining column prefetch plan", e);
       }
     }

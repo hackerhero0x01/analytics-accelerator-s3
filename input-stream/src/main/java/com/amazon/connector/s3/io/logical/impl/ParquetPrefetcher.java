@@ -62,8 +62,8 @@ public class ParquetPrefetcher {
         physicalIO,
         parquetMetadataStore,
         new ParquetMetadataParsingTask(s3Uri, logicalIOConfiguration, parquetMetadataStore),
-        new ParquetPrefetchTailTask(logicalIOConfiguration, physicalIO),
-        new ParquetReadTailTask(logicalIOConfiguration, physicalIO),
+        new ParquetPrefetchTailTask(s3Uri, logicalIOConfiguration, physicalIO),
+        new ParquetReadTailTask(s3Uri, logicalIOConfiguration, physicalIO),
         new ParquetPrefetchRemainingColumnTask(
             s3Uri, logicalIOConfiguration, physicalIO, parquetMetadataStore),
         new ParquetPredictivePrefetchingTask(

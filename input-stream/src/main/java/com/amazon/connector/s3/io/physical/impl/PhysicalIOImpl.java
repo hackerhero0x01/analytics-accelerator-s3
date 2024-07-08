@@ -57,11 +57,6 @@ public class PhysicalIOImpl implements PhysicalIO {
   }
 
   @Override
-  public S3URI getS3URI() {
-    return this.blockManager.getS3URI();
-  }
-
-  @Override
   public CompletableFuture<ObjectMetadata> metadata() {
     return this.blockManager.getMetadata();
   }

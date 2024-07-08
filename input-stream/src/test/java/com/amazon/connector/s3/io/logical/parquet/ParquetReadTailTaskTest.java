@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -20,18 +21,22 @@ import org.junit.jupiter.api.Test;
 
 public class ParquetReadTailTaskTest {
 
+  private static final S3URI TEST_URI = S3URI.of("foo", "bar");
+
   @Test
   void testConstructor() {
-    assertNotNull(new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
+    assertNotNull(
+        new ParquetReadTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
   }
 
   @Test
   void testConstructorFailsOnNull() {
     assertThrows(
-        NullPointerException.class, () -> new ParquetReadTailTask(null, mock(PhysicalIO.class)));
+        NullPointerException.class,
+        () -> new ParquetReadTailTask(TEST_URI, null, mock(PhysicalIO.class)));
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, null));
+        () -> new ParquetReadTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, null));
   }
 
   @Test
@@ -42,7 +47,7 @@ public class ParquetReadTailTaskTest {
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(800).build()));
     ParquetReadTailTask parquetReadTailTask =
-        new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+        new ParquetReadTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
     // When: file tail is requested
     FileTail fileTail = parquetReadTailTask.readFileTail();
@@ -64,7 +69,7 @@ public class ParquetReadTailTaskTest {
     when(mockedPhysicalIO.readTail(any(), anyInt(), anyInt()))
         .thenThrow(new IOException("Something went horribly wrong."));
     ParquetReadTailTask parquetReadTailTask =
-        new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+        new ParquetReadTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
     // When & Then: file tail is requested --> IOException from PH/IO is wrapped in
     // CompletionException
