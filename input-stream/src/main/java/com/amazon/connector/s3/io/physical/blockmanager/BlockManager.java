@@ -67,6 +67,7 @@ public class BlockManager implements BlockManagerInterface {
     return objectStatus.getObjectMetadata();
   }
 
+  @Override
   public void queuePrefetch(List<Range> prefetchRanges) {
     multiObjectsBlockManager.queuePrefetch(prefetchRanges, objectStatus.getS3URI());
   }

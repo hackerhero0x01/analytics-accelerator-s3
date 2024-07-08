@@ -24,8 +24,9 @@ public class ParquetPrefetchTailTask {
   /**
    * Creates a new instance of {@link ParquetPrefetchTailTask}
    *
-   * @param logicalIOConfiguration logical io configuration
-   * @param physicalIO physicalIO instance
+   * @param s3URI the S3URI of the object to prefetch
+   * @param logicalIOConfiguration LogicalIO configuration
+   * @param physicalIO PhysicalIO instance
    */
   public ParquetPrefetchTailTask(
       @NonNull S3URI s3URI,

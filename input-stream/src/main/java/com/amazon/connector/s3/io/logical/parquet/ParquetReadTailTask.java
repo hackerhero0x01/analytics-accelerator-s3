@@ -20,8 +20,9 @@ public class ParquetReadTailTask {
   /**
    * Creates a new instance of {@link ParquetReadTailTask}.
    *
-   * @param logicalIOConfiguration logical io configuration
-   * @param physicalIO physicalIO instance
+   * @param s3URI the S3URI of the object to read
+   * @param logicalIOConfiguration LogicalIO configuration
+   * @param physicalIO PhysicalIO instance
    */
   public ParquetReadTailTask(
       @NonNull S3URI s3URI,

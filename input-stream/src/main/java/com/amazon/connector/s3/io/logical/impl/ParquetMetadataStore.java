@@ -21,7 +21,11 @@ public class ParquetMetadataStore {
   private final Map<String, Object> recentColumns;
   private static final Object RECENT_COLUMN_PRESENT = new Object();
 
-  /** Creates a new instance of ParquetStatistics */
+  /**
+   * Creates a new instance of ParquetMetadataStore.
+   *
+   * @param configuration object containing information about the metadata store size
+   */
   public ParquetMetadataStore(LogicalIOConfiguration configuration) {
     this.configuration = configuration;
 
