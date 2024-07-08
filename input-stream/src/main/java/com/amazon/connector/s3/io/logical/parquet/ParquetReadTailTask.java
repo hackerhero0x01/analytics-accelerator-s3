@@ -43,7 +43,10 @@ public class ParquetReadTailTask {
       physicalIO.readTail(fileTail, 0, tailLength);
       return Optional.of(new FileTail(ByteBuffer.wrap(fileTail), tailLength));
     } catch (Exception e) {
-      LOG.debug("Error in getting file tail", e);
+      LOG.error(
+          "Error in reading tail for {}. Will fallback to synchronous reading for this key.",
+          physicalIO.getS3URI().getKey(),
+          e);
     }
 
     return Optional.empty();

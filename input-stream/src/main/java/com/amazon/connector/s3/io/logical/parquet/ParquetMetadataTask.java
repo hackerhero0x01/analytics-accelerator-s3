@@ -71,7 +71,10 @@ public class ParquetMetadataTask {
         return Optional.of(columnMappers);
       }
     } catch (Exception e) {
-      LOG.debug("Error parsing parquet footer", e);
+      LOG.error(
+          "Error parsing parquet footer for {}. Will fallback to synchronous reading for this key.",
+          physicalIO.getS3URI().getKey(),
+          e);
     }
 
     return Optional.empty();

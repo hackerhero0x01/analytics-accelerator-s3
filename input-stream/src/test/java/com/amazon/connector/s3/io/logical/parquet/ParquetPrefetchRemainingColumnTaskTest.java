@@ -16,6 +16,7 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +49,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
     offsetIndexToColumnMap.put(200L, new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB));
 
     PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
+    when(mockedPhysicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
     when(mockedPhysicalIO.columnMappers())
         .thenReturn(new ColumnMappers(offsetIndexToColumnMap, new HashMap<>()));
 
@@ -73,6 +75,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
     offsetIndexToColumnMap.put(200L, new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB));
 
     PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
+    when(mockedPhysicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
     when(mockedPhysicalIO.columnMappers())
         .thenReturn(new ColumnMappers(offsetIndexToColumnMap, new HashMap<>()));
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =

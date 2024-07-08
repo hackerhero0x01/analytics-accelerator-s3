@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
+import com.amazon.connector.s3.util.S3URI;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -211,9 +212,13 @@ public class ParquetMetadataTaskTest {
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
     when(mockedParquetParser.parseParquetFooter(any(ByteBuffer.class), anyInt()))
         .thenThrow(new IOException("can not read FileMetaData"));
+
+    PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
+    when(mockedPhysicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
+
     ParquetMetadataTask parquetMetadataTask =
         new ParquetMetadataTask(
-            mock(PhysicalIO.class), LogicalIOConfiguration.DEFAULT, mockedParquetParser);
+            mockedPhysicalIO, LogicalIOConfiguration.DEFAULT, mockedParquetParser);
     CompletableFuture<Optional<ColumnMappers>> parquetMetadataTaskFuture =
         CompletableFuture.supplyAsync(
             () ->

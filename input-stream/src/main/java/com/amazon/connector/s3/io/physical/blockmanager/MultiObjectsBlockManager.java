@@ -144,7 +144,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
       }
     }
 
-    LOG.info("Issuing new Head request for {}", s3URI.getKey());
+    LOG.debug("Issuing new Head request for {}", s3URI.getKey());
     metadata.put(
         s3URI,
         objectClient.headObject(
@@ -213,7 +213,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    */
   public int read(byte[] buffer, int offset, int len, long pos, S3URI s3URI) throws IOException {
     int numBytesRead = 0;
-    int numBytesRemaining = len;
+    long numBytesRemaining = len;
     long nextReadPos = pos;
     int nextReadOffset = offset;
 
@@ -224,7 +224,23 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         return numBytesRead;
       }
 
-      IOBlock ioBlock = getBlockForPosition(nextReadPos, len, s3URI);
+      IOBlock ioBlock = getBlockForPosition(nextReadPos, numBytesRemaining, s3URI);
+      // Calculate the absolute start position within the current block and the number of bytes
+      // remaining in it
+      long absolutStartPositionInsideBlock = nextReadPos - ioBlock.getStart();
+      long bytesRemainingInBlock = ioBlock.size() - absolutStartPositionInsideBlock;
+      // Check if the current block has enough bytes to satisfy the remaining read
+      if (bytesRemainingInBlock < numBytesRemaining) {
+        // Calculate the relative start position for the next block
+        long relativeStartPositionForNextBlock = nextReadPos + bytesRemainingInBlock;
+        if (relativeStartPositionForNextBlock <= getLastObjectByte(s3URI)) {
+          // Calculate the number of bytes to read for the next block
+          long bytesToReadAfterCurrentBlock = numBytesRemaining - bytesRemainingInBlock;
+          // Prefetch async block if it doesn't exist
+          prefechBlockForPositionIfNotExists(
+              relativeStartPositionForNextBlock, bytesToReadAfterCurrentBlock, s3URI);
+        }
+      }
       int numBytesToRead = ioBlock.read(buffer, nextReadOffset, numBytesRemaining, nextReadPos);
       nextReadOffset += numBytesToRead;
       nextReadPos += numBytesToRead;
@@ -253,13 +269,21 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     return read(buf, off, n, start, s3URI);
   }
 
-  private IOBlock getBlockForPosition(long pos, int len, S3URI s3URI) throws IOException {
+  private IOBlock getBlockForPosition(long pos, long len, S3URI s3URI) throws IOException {
     Optional<IOBlock> lookup = lookupBlockForPosition(pos, s3URI);
     if (!lookup.isPresent()) {
       return createBlockStartingAtWithSize(pos, len, s3URI);
     }
 
     return lookup.get();
+  }
+
+  private void prefechBlockForPositionIfNotExists(long pos, long len, S3URI s3URI)
+      throws IOException {
+    Optional<IOBlock> lookup = lookupBlockForPosition(pos, s3URI);
+    if (!lookup.isPresent()) {
+      createPrefetchBlockAtWithSize(pos, len, s3URI);
+    }
   }
 
   private IOBlock getBlockForPosition(long pos, S3URI s3URI) throws IOException {
@@ -292,7 +316,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     return createBlock(start, end, s3URI, false);
   }
 
-  private IOBlock createBlockStartingAtWithSize(long start, int size, S3URI s3URI)
+  private IOBlock createBlockStartingAtWithSize(long start, long size, S3URI s3URI)
       throws IOException {
     long end;
 
@@ -305,15 +329,29 @@ public class MultiObjectsBlockManager implements AutoCloseable {
     return createBlock(start, end, s3URI, false);
   }
 
+  private CompletableFuture<IOBlock> createPrefetchBlockAtWithSize(
+      long start, long size, S3URI s3URI) throws IOException {
+    long end;
+
+    if (size > configuration.getReadAheadBytes()) {
+      end = Math.min(start + size - 1, getLastObjectByte(s3URI));
+    } else {
+      end = Math.min(start + configuration.getReadAheadBytes() - 1, getLastObjectByte(s3URI));
+    }
+
+    return createPrefetchBlock(start, end, s3URI);
+  }
+
   private IOBlock createBlock(long start, long end, S3URI s3URI, boolean isPrefetch)
       throws IOException {
 
-    LOG.info(
-        "Creating IOBlock {}:{}. Object size {}. Object key {}",
+    LOG.debug(
+        "Creating IOBlock {}:{}. Object size {}. Object key {}. isPrefetch {}",
         start,
         end,
         contentLength(s3URI),
-        s3URI.getKey());
+        s3URI.getKey(),
+        isPrefetch);
 
     Range range = new Range(OptionalLong.of(start), OptionalLong.of(end));
 

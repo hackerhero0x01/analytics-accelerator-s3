@@ -34,7 +34,6 @@ jobs:
       - name: Build with Gradle
         run: |
           ./gradlew build
-          ./gradlew uberJar
       
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
@@ -44,19 +43,19 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload common JAR to S3a treatment bucket
-        run: aws s3 cp common/build/libs/common-uber.jar s3://${{ env.S3_BUCKET }}/s3a/common-1.0.0.jar
+        run: aws s3 cp common/build/libs/common.jar s3://${{ env.S3_BUCKET }}/s3a/common-1.0.0.jar
 
       - name: Upload common JAR to S3FileIO treatment bucket
         run: aws s3 cp common/build/libs/common.jar s3://${{ env.S3_BUCKET }}/s3fileio/common.jar
 
       - name: Upload input-stream JAR to S3a treatment bucket
-        run: aws s3 cp input-stream/build/libs/input-stream-uber.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
+        run: aws s3 cp input-stream/build/libs/input-stream-all.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
 
       - name: Upload input-stream JAR to S3FileIO treatment bucket
         run: aws s3 cp input-stream/build/libs/input-stream.jar s3://${{ env.S3_BUCKET }}/s3fileio/input-stream.jar
 
       - name: Upload object-client JAR to S3a treatment bucket
-        run: aws s3 cp object-client/build/libs/object-client-uber.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
+        run: aws s3 cp object-client/build/libs/object-client.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
 
       - name: Upload object-client JAR to S3FileIO treatment bucket
         run: aws s3 cp object-client/build/libs/object-client.jar s3://${{ env.S3_BUCKET }}/s3fileio/object-client.jar

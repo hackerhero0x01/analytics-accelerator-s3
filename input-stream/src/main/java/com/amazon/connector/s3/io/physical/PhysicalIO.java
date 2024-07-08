@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.physical;
 import com.amazon.connector.s3.RandomAccessReadable;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
+import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.Set;
 
@@ -43,4 +44,11 @@ public interface PhysicalIO extends RandomAccessReadable {
    * @return Set of recent columns being
    */
   Set<String> getRecentColumns();
+
+  /**
+   * Gets the S3 URI.
+   *
+   * @return S3 URI
+   */
+  S3URI getS3URI();
 }

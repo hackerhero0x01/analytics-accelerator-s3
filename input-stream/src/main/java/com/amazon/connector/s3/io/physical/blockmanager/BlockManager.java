@@ -17,6 +17,7 @@ public class BlockManager implements BlockManagerInterface {
   private final MultiObjectsBlockManager multiObjectsBlockManager;
   private final ObjectStatus objectStatus;
   private boolean ownsMultiObjectsBlockManager = false;
+  private final S3URI s3URI;
 
   /**
    * Creates an instance of block manager.
@@ -32,6 +33,7 @@ public class BlockManager implements BlockManagerInterface {
     this.ownsMultiObjectsBlockManager = true;
     this.multiObjectsBlockManager = new MultiObjectsBlockManager(objectClient, configuration);
     this.objectStatus = new ObjectStatus(this.multiObjectsBlockManager.getMetadata(s3URI), s3URI);
+    this.s3URI = s3URI;
   }
 
   /**
@@ -44,6 +46,7 @@ public class BlockManager implements BlockManagerInterface {
       @NonNull MultiObjectsBlockManager multiObjectsBlockManager, @NonNull S3URI s3URI) {
     this.multiObjectsBlockManager = multiObjectsBlockManager;
     this.objectStatus = new ObjectStatus(this.multiObjectsBlockManager.getMetadata(s3URI), s3URI);
+    this.s3URI = s3URI;
   }
 
   @Override
@@ -84,6 +87,11 @@ public class BlockManager implements BlockManagerInterface {
   @Override
   public Set<String> getRecentColumns() {
     return multiObjectsBlockManager.getRecentColumns();
+  }
+
+  @Override
+  public S3URI getS3URI() {
+    return s3URI;
   }
 
   @Override

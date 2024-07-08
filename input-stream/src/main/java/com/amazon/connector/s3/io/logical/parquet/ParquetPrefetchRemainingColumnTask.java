@@ -64,10 +64,14 @@ public class ParquetPrefetchRemainingColumnTask {
       prefetchRanges.add(new Range(startRange, endRange));
       IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
       try {
+        LOG.debug("Prefetching remaining column chunk for {}", physicalIO.getS3URI().getKey());
         physicalIO.execute(ioPlan);
         return Optional.of(prefetchRanges);
       } catch (Exception e) {
-        LOG.debug("Error in executing remaining column prefetch plan", e);
+        LOG.error(
+            "Error in executing remaining column chunk prefetch plan for {}. Will fallback to synchronous reading for this column.",
+            physicalIO.getS3URI().getKey(),
+            e);
       }
     }
 

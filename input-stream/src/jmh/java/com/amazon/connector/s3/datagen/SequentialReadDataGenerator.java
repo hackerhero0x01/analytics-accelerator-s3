@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Random;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.internal.crt.S3CrtAsyncClient;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
@@ -35,7 +36,7 @@ public class SequentialReadDataGenerator {
     String fullKeyName = String.format("s3://%s/%s", Constants.BENCHMARK_BUCKET, key);
     System.out.println("Generating " + fullKeyName + " and uploading it to S3...");
 
-    S3AsyncClient s3AsyncClient = S3AsyncClient.create();
+    S3AsyncClient s3AsyncClient = S3CrtAsyncClient.builder().maxConcurrency(300).build();
     s3AsyncClient
         .putObject(
             PutObjectRequest.builder().bucket(Constants.BENCHMARK_BUCKET).key(key).build(),

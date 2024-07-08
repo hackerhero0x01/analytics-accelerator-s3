@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -55,6 +56,7 @@ public class ParquetReadTailTaskTest {
   @Test
   void testExceptionSwallowed() throws IOException {
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
+    when(mockedPhysicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
     ParquetReadTailTask parquetReadTailTask =
         new ParquetReadTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
     when(mockedPhysicalIO.metadata())
