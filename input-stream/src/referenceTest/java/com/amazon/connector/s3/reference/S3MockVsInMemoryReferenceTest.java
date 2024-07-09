@@ -17,10 +17,12 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Random;
+import java.util.UUID;
 import net.jqwik.api.Example;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
-import net.jqwik.api.lifecycle.BeforeProperty;
+import net.jqwik.api.lifecycle.AfterContainer;
+import net.jqwik.api.lifecycle.BeforeContainer;
 import net.jqwik.testcontainers.Container;
 import net.jqwik.testcontainers.Testcontainers;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -48,15 +50,21 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
   private static S3AsyncClient s3Client;
   private S3SeekableInputStream s3SeekableInputStream;
   private InMemorySeekableStream inMemorySeekableStream;
-
-  private static final String TEST_KEY = "key";
   private static final String TEST_BUCKET = "bucket";
-  private static final S3URI TEST_URI = S3URI.of(TEST_BUCKET, TEST_KEY);
   private static S3SeekableInputStreamFactory s3SeekableInputStreamFactory;
 
-  @BeforeProperty
-  void setupS3Client() {
+  @BeforeContainer
+  static void setup() {
     s3Client = createS3ClientV2(S3_MOCK.getHttpsEndpoint());
+    // Initialise streams
+    s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            new S3SdkObjectClient(s3Client), S3SeekableInputStreamConfiguration.DEFAULT);
+  }
+
+  @AfterContainer
+  static void teardown() throws IOException {
+    s3SeekableInputStreamFactory.close();
   }
 
   void setupStreams(int size) throws IOException {
@@ -66,17 +74,14 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
     r.nextBytes(data);
 
     // Put random data in S3
+    String uuidKey = UUID.randomUUID().toString();
+    S3URI uri = S3URI.of(TEST_BUCKET, uuidKey);
+
     s3Client
-        .putObject(
-            x -> x.bucket(TEST_URI.getBucket()).key(TEST_URI.getKey()),
-            AsyncRequestBody.fromBytes(data))
+        .putObject(x -> x.bucket(TEST_BUCKET).key(uuidKey), AsyncRequestBody.fromBytes(data))
         .join();
 
-    // Initialise streams
-    s3SeekableInputStreamFactory =
-        new S3SeekableInputStreamFactory(
-            new S3SdkObjectClient(s3Client), S3SeekableInputStreamConfiguration.DEFAULT);
-    s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(TEST_URI);
+    s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(uri);
     inMemorySeekableStream = new InMemorySeekableStream(data);
   }
 
