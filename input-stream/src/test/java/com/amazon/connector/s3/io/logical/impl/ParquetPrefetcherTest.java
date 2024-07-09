@@ -47,7 +47,7 @@ public class ParquetPrefetcherTest {
   }
 
   @Test
-  public void testConfigurations__prefetchRemainingColumnChunk__enabled() {
+  public void testConfigurationsPrefetchRemainingColumnChunkEnabled() {
     // Given: config with metadata awareness ENABLED but predictive prefetching DISABLED
     LogicalIOConfiguration logicalIOConfiguration =
         LogicalIOConfiguration.builder()
@@ -79,7 +79,7 @@ public class ParquetPrefetcherTest {
 
   @ParameterizedTest
   @MethodSource("prefetchRemainingColumnChunkShouldBeSkipped")
-  public void testConfigurations__prefetchRemainingColumnChunk__disabled(
+  public void testConfigurationsPrefetchRemainingColumnChunkDisabled(
       boolean metadataAwarePrefetching, boolean predictivePrefetching) {
     // Given: config that should not trigger prefetching
     LogicalIOConfiguration logicalIOConfiguration =
@@ -111,7 +111,7 @@ public class ParquetPrefetcherTest {
   }
 
   @Test
-  public void testConfigurations__prefetchFooterAndBuildMetadata__defaultConfig() {
+  public void testConfigurationsPrefetchFooterAndBuildMetadataDefaultConfig() {
     // Given: default LogicalIO configuration
     LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
 
@@ -147,7 +147,7 @@ public class ParquetPrefetcherTest {
   }
 
   @Test
-  public void testConfigurations__prefetchFooterAndBuildMetadata__noPredictivePrefetching() {
+  public void testConfigurationsPrefetchFooterAndBuildMetadataNoPredictivePrefetching() {
     // Given: config with predictive prefetching disabled
     LogicalIOConfiguration logicalIOConfiguration =
         LogicalIOConfiguration.builder().predictivePrefetchingEnabled(false).build();
@@ -183,7 +183,7 @@ public class ParquetPrefetcherTest {
   }
 
   @Test
-  public void testConfigurations__prefetchFooterAndBuildMetadata__allPrefetchDisabled() {
+  public void testConfigurationsPrefetchFooterAndBuildMetadataAllPrefetchDisabled() {
     // Given: config with all prefetching disabled
     LogicalIOConfiguration logicalIOConfiguration =
         LogicalIOConfiguration.builder()
@@ -222,7 +222,7 @@ public class ParquetPrefetcherTest {
   }
 
   @Test
-  public void testConfigurations__prefetchFooterAndBuildMetadata__footerCachingDisabled() {
+  public void testConfigurationsPrefetchFooterAndBuildMetadataFooterCachingDisabled() {
     // Given: config with footer caching disabled
     LogicalIOConfiguration logicalIOConfiguration =
         LogicalIOConfiguration.builder().footerCachingEnabled(false).build();
