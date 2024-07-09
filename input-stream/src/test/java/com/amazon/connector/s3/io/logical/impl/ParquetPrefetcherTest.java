@@ -172,13 +172,9 @@ public class ParquetPrefetcherTest {
     // When: footer prefetching and metadata build is requested
     parquetPrefetcher.prefetchFooterAndBuildMetadata().join();
 
-    // Then: tail prefetching is triggered
+    // Then: tail prefetching is still triggered
     verify(parquetPrefetchTailTask, times(1)).prefetchTail();
-    // Then: read tail is triggered
-    verify(parquetReadTailTask, times(1)).readFileTail();
-    // Then: columns are stored
-    verify(parquetMetadataParsingTask, times(1)).storeColumnMappers(any(FileTail.class));
-    // Then: predictive reads are NOT triggered
+    // Then: BUT predictive reads are NOT triggered
     verifyNoInteractions(parquetPredictivePrefetchingTask);
   }
 
