@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
+import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
@@ -36,7 +37,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
   void testConstructor() {
-    S3SeekableInputStream inputStream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream inputStream = new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
     assertNotNull(inputStream);
   }
 
@@ -46,13 +47,20 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
     S3SeekableInputStream inputStream =
         new S3SeekableInputStream(
-            fakeObjectClient, s3URI, S3SeekableInputStreamConfiguration.DEFAULT);
+            fakeObjectClient,
+            s3URI,
+            S3SeekableInputStreamConfiguration.DEFAULT,
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
     assertNotNull(inputStream);
 
     BlockManager blockManager =
         new BlockManager(fakeObjectClient, s3URI, BlockManagerConfiguration.DEFAULT);
     inputStream =
-        new S3SeekableInputStream(blockManager, S3SeekableInputStreamConfiguration.DEFAULT);
+        new S3SeekableInputStream(
+            TEST_OBJECT,
+            blockManager,
+            S3SeekableInputStreamConfiguration.DEFAULT,
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
     assertNotNull(inputStream);
   }
 
@@ -62,38 +70,80 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     S3URI s3URI = S3URI.of("bucket", "key");
     assertThrows(
         NullPointerException.class,
-        () -> new S3SeekableInputStream(fakeObjectClient, (S3URI) null, conf));
-
-    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(null, s3URI, conf));
-
-    assertThrows(
-        NullPointerException.class, () -> new S3SeekableInputStream(fakeObjectClient, s3URI, null));
-
-    assertThrows(
-        NullPointerException.class, () -> new S3SeekableInputStream(null, (S3URI) null, conf));
-
-    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(null, s3URI, null));
-
-    assertThrows(
-        NullPointerException.class, () -> new S3SeekableInputStream(fakeObjectClient, null, null));
-
-    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(null, null, null));
+        () ->
+            new S3SeekableInputStream(
+                fakeObjectClient,
+                (S3URI) null,
+                conf,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
 
     assertThrows(
         NullPointerException.class,
-        () -> new S3SeekableInputStream((BlockManagerInterface) null, conf));
+        () ->
+            new S3SeekableInputStream(
+                null, s3URI, conf, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(
+                fakeObjectClient,
+                s3URI,
+                null,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(
+                null,
+                (S3URI) null,
+                conf,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(
+                null, s3URI, null, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(
+                fakeObjectClient,
+                null,
+                null,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(
+                TEST_OBJECT,
+                (BlockManagerInterface) null,
+                conf,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
     BlockManager blockManager =
         new BlockManager(fakeObjectClient, s3URI, BlockManagerConfiguration.DEFAULT);
-    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(blockManager, null));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(
+                null,
+                blockManager,
+                null,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
     assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(null, null));
 
-    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream((LogicalIO) null));
+    assertThrows(
+        NullPointerException.class, () -> new S3SeekableInputStream(TEST_OBJECT, (LogicalIO) null));
   }
 
   @Test
   void testInitialGetPosition() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
 
     // When: nothing
     // Then: stream position is at 0
@@ -103,7 +153,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testReadAdvancesPosition() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
 
     // When: read() is called
     stream.read();
@@ -115,7 +165,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testSeek() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
 
     // When
     stream.seek(13);
@@ -127,7 +177,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testFullRead() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
 
     // When: all data is requested
     String dataReadOut = IoUtils.toUtf8String(stream);
@@ -139,7 +189,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testSeekToVeryEnd() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
 
     // When: we seek to the last byte
     stream.seek(TEST_DATA.length() - 1);
@@ -152,7 +202,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testSeekAfterEnd() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
 
     // When: we seek past EOF we get EOFException
     assertThrows(EOFException.class, () -> stream.seek(TEST_DATA.length() + 1));
@@ -161,13 +211,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testReadOnEmptyObject() throws IOException {
     // Given
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(
-            new ParquetLogicalIOImpl(
-                new PhysicalIOImpl(
-                    new BlockManager(
-                        new FakeObjectClient(""), TEST_OBJECT, BlockManagerConfiguration.DEFAULT)),
-                LogicalIOConfiguration.builder().footerCachingEnabled(false).build()));
+    S3SeekableInputStream stream = getTestStreamWithContent("");
 
     // When: we read a byte from the empty object
     int readByte = stream.read();
@@ -179,7 +223,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testInvalidSeek() throws IOException {
     // Given
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = getTestStream();
 
     // When: seek is to an invalid position then exception is thrown
     assertThrows(Exception.class, () -> stream.seek(TEST_DATA.length()));
@@ -193,7 +237,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testLogicalIOGetsClosed() throws IOException {
     // Given
     LogicalIO logicalIO = mock(LogicalIO.class);
-    S3SeekableInputStream stream = new S3SeekableInputStream(logicalIO);
+    S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, logicalIO);
 
     // When
     stream.close();
@@ -204,7 +248,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
   void testReadWithBuffer() throws IOException {
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = getTestStream();
 
     byte[] buffer = new byte[TEST_DATA.length()];
     assertEquals(20, stream.read(buffer, 0, TEST_DATA.length()));
@@ -217,7 +261,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
   void testReadWithBufferAndSeeks() throws IOException {
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = getTestStream();
 
     byte[] buffer = new byte[11];
 
@@ -246,7 +290,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
   void testReadWithBufferOutOfBounds() throws IOException {
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = getTestStream();
 
     // Read beyond EOF, expect all bytes to be read and pos to be EOF.
     assertEquals(TEST_DATA.length(), stream.read(new byte[20], 0, TEST_DATA.length() + 20));
@@ -262,7 +306,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testReadTailWithInvalidArgument() {
     // Given: seekable stream
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = getTestStream();
 
     // When & Then: reading tail with invalid arguments, exception is thrown
     // -1 is invalid length
@@ -276,7 +320,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testReadTailHappyCase() throws IOException {
     // Given: seekable stream
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = getTestStream();
 
     // When: tail of length 10 is requested
     byte[] buf = new byte[11];
@@ -291,7 +335,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testReadTailDoesNotAlterPosition() throws IOException {
     // Given: seekable stream
-    S3SeekableInputStream stream = new S3SeekableInputStream(fakeLogicalIO);
+    S3SeekableInputStream stream = getTestStream();
 
     // When: 1) we are reading from the stream, 2) reading the tail of the stream, 3) reading more
     // from the stream
@@ -321,7 +365,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     when(mockLogicalIO.metadata())
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(200).build()));
-    S3SeekableInputStream stream = new S3SeekableInputStream(mockLogicalIO);
+    S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, mockLogicalIO);
 
     // When: logical IO returns with a -1 read
     final int INITIAL_POS = 123;
@@ -355,8 +399,12 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 try {
                   PhysicalIO physicalIO = new PhysicalIOImpl(new BlockManager(blockManager, s3URI));
                   LogicalIO logicalIO =
-                      new ParquetLogicalIOImpl(physicalIO, LogicalIOConfiguration.DEFAULT);
-                  SeekableInputStream stream = new S3SeekableInputStream(logicalIO);
+                      new ParquetLogicalIOImpl(
+                          TEST_OBJECT,
+                          physicalIO,
+                          LogicalIOConfiguration.DEFAULT,
+                          new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
+                  SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, logicalIO);
                   byte[] buffer = new byte[4];
                   stream.readTail(buffer, 0, 4);
                   stream.read(buffer, 0, 4);
@@ -369,7 +417,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Start all the threads
     threads.forEach(Thread::start);
 
-    ArrayList<Thread> threadsWithException = new ArrayList<>();
     for (Thread thread : threads) {
       try {
         thread.join();
@@ -379,5 +426,24 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     }
     boolean completedWithException = haveException.get();
     assertFalse(completedWithException, "Have exception in one of the threads");
+  }
+
+  private S3SeekableInputStream getTestStream() {
+    return new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
+  }
+
+  private S3SeekableInputStream getTestStreamWithContent(String content) {
+    LogicalIOConfiguration configuration =
+        LogicalIOConfiguration.builder().footerCachingEnabled(false).build();
+
+    return new S3SeekableInputStream(
+        TEST_OBJECT,
+        new ParquetLogicalIOImpl(
+            TEST_OBJECT,
+            new PhysicalIOImpl(
+                new BlockManager(
+                    new FakeObjectClient(content), TEST_OBJECT, BlockManagerConfiguration.DEFAULT)),
+            configuration,
+            new ParquetMetadataStore(configuration)));
   }
 }

@@ -1,11 +1,12 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.PhysicalIO;
+import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
+import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
@@ -15,69 +16,72 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Task for parsing the footer bytes to get the parquet FileMetaData and build maps which can be
- * used to track current columns being read. Best effort only, any exceptions in parsing will be
- * swallowed.
+ * used to track current columns being read. Best effort only, exceptions in parsing should be
+ * suppressed by the calling class
  */
-public class ParquetMetadataTask {
+public class ParquetMetadataParsingTask {
+  private final S3URI s3URI;
   private final ParquetParser parquetParser;
-  private final PhysicalIO physicalIO;
+  private final ParquetMetadataStore parquetMetadataStore;
   private final LogicalIOConfiguration logicalIOConfiguration;
 
-  private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataTask.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataParsingTask.class);
 
   /**
-   * Creates a new instance of {@link ParquetMetadataTask}.
+   * Creates a new instance of {@link ParquetMetadataParsingTask}.
    *
-   * @param physicalIO PhysicalIO instance
+   * @param s3URI the S3Uri of the object
    * @param logicalIOConfiguration logical io configuration
+   * @param parquetMetadataStore object containing Parquet usage information
    */
-  public ParquetMetadataTask(
-      @NonNull LogicalIOConfiguration logicalIOConfiguration, @NonNull PhysicalIO physicalIO) {
-    this(physicalIO, logicalIOConfiguration, new ParquetParser());
+  public ParquetMetadataParsingTask(
+      S3URI s3URI,
+      LogicalIOConfiguration logicalIOConfiguration,
+      ParquetMetadataStore parquetMetadataStore) {
+    this(s3URI, parquetMetadataStore, logicalIOConfiguration, new ParquetParser());
   }
 
   /**
-   * Creates a new instance of {@link ParquetMetadataTask}. This version of the constructor is
-   * useful for testing as it allows dependency injection.
+   * Creates a new instance of {@link ParquetMetadataParsingTask}. This version of the constructor
+   * is useful for testing as it allows dependency injection.
    *
-   * @param physicalIO PhysicalIO instance
+   * @param s3URI the S3Uri of the object
+   * @param parquetMetadataStore object containing Parquet usage information
    * @param logicalIOConfiguration logical io configuration
    * @param parquetParser parser for getting the file metadata
    */
-  protected ParquetMetadataTask(
-      @NonNull PhysicalIO physicalIO,
+  protected ParquetMetadataParsingTask(
+      @NonNull S3URI s3URI,
+      @NonNull ParquetMetadataStore parquetMetadataStore,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
-      ParquetParser parquetParser) {
+      @NonNull ParquetParser parquetParser) {
+    this.s3URI = s3URI;
     this.parquetParser = parquetParser;
-    this.physicalIO = physicalIO;
+    this.parquetMetadataStore = parquetMetadataStore;
     this.logicalIOConfiguration = logicalIOConfiguration;
   }
 
   /**
    * Stores parquet metadata column mappings for future use
    *
-   * @param fileTailOptional Optional for tail of parquet file to be parsed
+   * @param fileTail tail of parquet file to be parsed
    * @return Column mappings
    */
-  public Optional<ColumnMappers> storeColumnMappers(Optional<FileTail> fileTailOptional) {
+  public ColumnMappers storeColumnMappers(FileTail fileTail) {
 
     try {
-      if (fileTailOptional.isPresent()) {
-        FileTail fileTail = fileTailOptional.get();
-        FileMetaData fileMetaData =
-            parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
-        ColumnMappers columnMappers = buildColumnMaps(fileMetaData);
-        physicalIO.putColumnMappers(columnMappers);
-        return Optional.of(columnMappers);
-      }
+      FileMetaData fileMetaData =
+          parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
+      ColumnMappers columnMappers = buildColumnMaps(fileMetaData);
+      parquetMetadataStore.putColumnMappers(this.s3URI, columnMappers);
+      return columnMappers;
     } catch (Exception e) {
       LOG.error(
           "Error parsing parquet footer for {}. Will fallback to synchronous reading for this key.",
-          physicalIO.getS3URI().getKey(),
+          this.s3URI.getKey(),
           e);
+      throw new CompletionException("Error parsing parquet footer", e);
     }
-
-    return Optional.empty();
   }
 
   private ColumnMappers buildColumnMaps(FileMetaData fileMetaData) {

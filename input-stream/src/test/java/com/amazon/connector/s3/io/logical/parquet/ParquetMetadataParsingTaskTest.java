@@ -1,18 +1,16 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.PhysicalIO;
+import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -21,8 +19,8 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
@@ -34,20 +32,31 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.utils.ImmutableMap;
 
-public class ParquetMetadataTaskTest {
+public class ParquetMetadataParsingTaskTest {
+
+  private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
   @Test
   void testContructor() {
-    assertNotNull(new ParquetMetadataTask(LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
+    assertNotNull(
+        new ParquetMetadataParsingTask(
+            TEST_URI,
+            LogicalIOConfiguration.DEFAULT,
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }
 
   @Test
   void testConstructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetMetadataTask(LogicalIOConfiguration.DEFAULT, null));
+        () -> new ParquetMetadataParsingTask(TEST_URI, LogicalIOConfiguration.DEFAULT, null));
     assertThrows(
-        NullPointerException.class, () -> new ParquetMetadataTask(null, mock(PhysicalIO.class)));
+        NullPointerException.class,
+        () ->
+            new ParquetMetadataParsingTask(
+                null,
+                LogicalIOConfiguration.DEFAULT,
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }
 
   @ParameterizedTest
@@ -58,19 +67,12 @@ public class ParquetMetadataTaskTest {
       })
   void testColumnMapCreation(String fileMetadata) throws IOException, ClassNotFoundException {
 
-    PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     FileMetaData fileMetaData = getFileMetadata(fileMetadata);
-    Optional<ColumnMappers> columnMappersOptional =
-        getColumnMappers(fileMetaData, mockedPhysicalIO);
+    ColumnMappers columnMappers = getColumnMappers(fileMetaData);
 
-    assertTrue(columnMappersOptional.isPresent());
-
-    ColumnMappers columnMappers = columnMappersOptional.get();
     assertEquals(
         fileMetaData.getRow_groups().get(0).getColumns().size(),
         columnMappers.getOffsetIndexToColumnMap().size());
-
-    verify(mockedPhysicalIO).putColumnMappers(any(ColumnMappers.class));
 
     for (ColumnChunk columnChunk : fileMetaData.getRow_groups().get(0).getColumns()) {
       Long key;
@@ -100,14 +102,8 @@ public class ParquetMetadataTaskTest {
       String filename, Map<String, Integer> expectedColToRowGroup, int expectedColumns)
       throws IOException, ClassNotFoundException {
     // Deserialize fileMetaData object
-    PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     FileMetaData fileMetaData = getFileMetadata(filename);
-    Optional<ColumnMappers> columnMappersOptional =
-        getColumnMappers(fileMetaData, mockedPhysicalIO);
-
-    assertTrue(columnMappersOptional.isPresent());
-
-    ColumnMappers columnMappers = columnMappersOptional.get();
+    ColumnMappers columnMappers = getColumnMappers(fileMetaData);
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap =
         columnMappers.getColumnNameToColumnMap();
 
@@ -172,14 +168,9 @@ public class ParquetMetadataTaskTest {
   @Test
   void testColumnMapCreationNestedSchema() throws IOException, ClassNotFoundException {
     // Deserialize fileMetaData object
-    PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     FileMetaData fileMetaData = getFileMetadata("src/test/resources/nested_data_metadata.ser");
-    Optional<ColumnMappers> columnMappersOptional =
-        getColumnMappers(fileMetaData, mockedPhysicalIO);
+    ColumnMappers columnMappers = getColumnMappers(fileMetaData);
 
-    assertTrue(columnMappersOptional.isPresent());
-
-    ColumnMappers columnMappers = columnMappersOptional.get();
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap =
         columnMappers.getColumnNameToColumnMap();
     assertEquals(8, columnNameToColumnMap.size());
@@ -208,34 +199,24 @@ public class ParquetMetadataTaskTest {
   }
 
   @Test
-  void testParsingExceptionsSwallowed() throws IOException {
+  void testParsingExceptionsRemappedToCompletionException() throws IOException {
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
     when(mockedParquetParser.parseParquetFooter(any(ByteBuffer.class), anyInt()))
         .thenThrow(new IOException("can not read FileMetaData"));
 
-    PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
-    when(mockedPhysicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
-
-    ParquetMetadataTask parquetMetadataTask =
-        new ParquetMetadataTask(
-            mockedPhysicalIO, LogicalIOConfiguration.DEFAULT, mockedParquetParser);
-    CompletableFuture<Optional<ColumnMappers>> parquetMetadataTaskFuture =
+    ParquetMetadataParsingTask parquetMetadataParsingTask =
+        new ParquetMetadataParsingTask(
+            TEST_URI,
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
+            LogicalIOConfiguration.DEFAULT,
+            mockedParquetParser);
+    CompletableFuture<ColumnMappers> parquetMetadataTaskFuture =
         CompletableFuture.supplyAsync(
             () ->
-                parquetMetadataTask.storeColumnMappers(
-                    Optional.of(new FileTail(ByteBuffer.allocate(0), 0))));
+                parquetMetadataParsingTask.storeColumnMappers(
+                    new FileTail(ByteBuffer.allocate(0), 0)));
 
-    // Any errors in parsing should be swallowed
-    assertFalse(parquetMetadataTaskFuture.join().isPresent());
-  }
-
-  @Test
-  void testEmptyFileTail() {
-    ParquetMetadataTask parquetMetadataTask =
-        new ParquetMetadataTask(
-            mock(PhysicalIO.class), LogicalIOConfiguration.DEFAULT, mock(ParquetParser.class));
-
-    assertFalse(parquetMetadataTask.storeColumnMappers(Optional.empty()).isPresent());
+    assertThrows(CompletionException.class, () -> parquetMetadataTaskFuture.join());
   }
 
   private FileMetaData getFileMetadata(String filePath) throws IOException, ClassNotFoundException {
@@ -248,18 +229,19 @@ public class ParquetMetadataTaskTest {
     return fileMetaData;
   }
 
-  private Optional<ColumnMappers> getColumnMappers(
-      FileMetaData fileMetaData, PhysicalIO mockedPhysicalIO) throws IOException {
+  private ColumnMappers getColumnMappers(FileMetaData fileMetaData) throws IOException {
 
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
     when(mockedParquetParser.parseParquetFooter(any(ByteBuffer.class), anyInt()))
         .thenReturn(fileMetaData);
 
-    ParquetMetadataTask parquetMetadataTask =
-        new ParquetMetadataTask(
-            mockedPhysicalIO, LogicalIOConfiguration.DEFAULT, mockedParquetParser);
+    ParquetMetadataParsingTask parquetMetadataParsingTask =
+        new ParquetMetadataParsingTask(
+            TEST_URI,
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
+            LogicalIOConfiguration.DEFAULT,
+            mockedParquetParser);
 
-    return parquetMetadataTask.storeColumnMappers(
-        Optional.of(new FileTail(ByteBuffer.allocate(0), 0)));
+    return parquetMetadataParsingTask.storeColumnMappers(new FileTail(ByteBuffer.allocate(0), 0));
   }
 }

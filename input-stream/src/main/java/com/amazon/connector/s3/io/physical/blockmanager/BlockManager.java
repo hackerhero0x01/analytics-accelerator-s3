@@ -2,13 +2,11 @@ package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.io.logical.ObjectStatus;
-import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 
@@ -67,31 +65,6 @@ public class BlockManager implements BlockManagerInterface {
   @Override
   public CompletableFuture<ObjectMetadata> getMetadata() {
     return objectStatus.getObjectMetadata();
-  }
-
-  @Override
-  public ColumnMappers getColumnMappers() {
-    return multiObjectsBlockManager.getColumnMappers(objectStatus.getS3URI());
-  }
-
-  @Override
-  public void putColumnMappers(ColumnMappers columnMappers) {
-    multiObjectsBlockManager.putColumnMappers(objectStatus.getS3URI(), columnMappers);
-  }
-
-  @Override
-  public void addRecentColumn(String columnName) {
-    multiObjectsBlockManager.addRecentColumn(columnName);
-  }
-
-  @Override
-  public Set<String> getRecentColumns() {
-    return multiObjectsBlockManager.getRecentColumns();
-  }
-
-  @Override
-  public S3URI getS3URI() {
-    return s3URI;
   }
 
   @Override

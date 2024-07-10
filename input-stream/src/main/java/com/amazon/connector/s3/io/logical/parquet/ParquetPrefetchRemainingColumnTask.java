@@ -1,13 +1,17 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
+import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
+import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
+import com.amazon.connector.s3.io.physical.plan.IOPlanState;
 import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,7 +19,9 @@ import org.apache.logging.log4j.Logger;
 /** Task for prefetching the remainder of a column chunk. */
 public class ParquetPrefetchRemainingColumnTask {
 
+  private final S3URI s3Uri;
   private final PhysicalIO physicalIO;
+  private final ParquetMetadataStore parquetMetadataStore;
   private final LogicalIOConfiguration logicalIOConfiguration;
 
   private static final Logger LOG = LogManager.getLogger(ParquetPrefetchRemainingColumnTask.class);
@@ -23,13 +29,20 @@ public class ParquetPrefetchRemainingColumnTask {
   /**
    * When a column chunk at position x is read partially, prefetch the remaining bytes of the chunk.
    *
+   * @param s3URI the object's S3 URI
    * @param physicalIO physicalIO instance
    * @param logicalIOConfiguration logicalIO configuration
+   * @param parquetMetadataStore object containing Parquet usage information
    */
   public ParquetPrefetchRemainingColumnTask(
-      @NonNull LogicalIOConfiguration logicalIOConfiguration, @NonNull PhysicalIO physicalIO) {
+      @NonNull S3URI s3URI,
+      @NonNull LogicalIOConfiguration logicalIOConfiguration,
+      @NonNull PhysicalIO physicalIO,
+      ParquetMetadataStore parquetMetadataStore) {
+    this.s3Uri = s3URI;
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
+    this.parquetMetadataStore = parquetMetadataStore;
   }
 
   /**
@@ -39,8 +52,8 @@ public class ParquetPrefetchRemainingColumnTask {
    * @param len length of read
    * @return ranges prefetched
    */
-  public Optional<List<Range>> prefetchRemainingColumnChunk(long position, int len) {
-    ColumnMappers columnMappers = physicalIO.columnMappers();
+  public IOPlanExecution prefetchRemainingColumnChunk(long position, int len) {
+    ColumnMappers columnMappers = parquetMetadataStore.getColumnMappers(s3Uri);
 
     if (columnMappers != null) {
       HashMap<Long, ColumnMetadata> offsetIndexToColumnMap =
@@ -51,12 +64,11 @@ public class ParquetPrefetchRemainingColumnTask {
       }
     }
 
-    return Optional.empty();
+    return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
   }
 
-  private Optional<List<Range>> createRemainingColumnPrefetchPlan(
+  private IOPlanExecution createRemainingColumnPrefetchPlan(
       ColumnMetadata columnMetadata, long position, int len) {
-
     if (len < columnMetadata.getCompressedSize()) {
       long startRange = position + len;
       long endRange = startRange + (columnMetadata.getCompressedSize() - len);
@@ -64,17 +76,16 @@ public class ParquetPrefetchRemainingColumnTask {
       prefetchRanges.add(new Range(startRange, endRange));
       IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
       try {
-        LOG.debug("Prefetching remaining column chunk for {}", physicalIO.getS3URI().getKey());
-        physicalIO.execute(ioPlan);
-        return Optional.of(prefetchRanges);
+        return physicalIO.execute(ioPlan);
       } catch (Exception e) {
         LOG.error(
             "Error in executing remaining column chunk prefetch plan for {}. Will fallback to synchronous reading for this column.",
-            physicalIO.getS3URI().getKey(),
+            this.s3Uri.getKey(),
             e);
+        throw new CompletionException("Error in executing remaining column prefetch plan", e);
       }
     }
 
-    return Optional.empty();
+    return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
   }
 }

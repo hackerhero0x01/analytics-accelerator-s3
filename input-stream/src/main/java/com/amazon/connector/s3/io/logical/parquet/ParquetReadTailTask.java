@@ -3,8 +3,9 @@ package com.amazon.connector.s3.io.logical.parquet;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.util.S3URI;
 import java.nio.ByteBuffer;
-import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,17 +13,22 @@ import org.slf4j.LoggerFactory;
 /** Task for reading the tail of a parquet file. */
 public class ParquetReadTailTask {
 
+  private final S3URI s3URI;
   private final LogicalIOConfiguration logicalIOConfiguration;
   private final PhysicalIO physicalIO;
 
   /**
    * Creates a new instance of {@link ParquetReadTailTask}.
    *
-   * @param logicalIOConfiguration logical io configuration
-   * @param physicalIO physicalIO instance
+   * @param s3URI the S3URI of the object to read
+   * @param logicalIOConfiguration LogicalIO configuration
+   * @param physicalIO PhysicalIO instance
    */
   public ParquetReadTailTask(
-      @NonNull LogicalIOConfiguration logicalIOConfiguration, @NonNull PhysicalIO physicalIO) {
+      @NonNull S3URI s3URI,
+      @NonNull LogicalIOConfiguration logicalIOConfiguration,
+      @NonNull PhysicalIO physicalIO) {
+    this.s3URI = s3URI;
     this.logicalIOConfiguration = logicalIOConfiguration;
     this.physicalIO = physicalIO;
   }
@@ -34,21 +40,21 @@ public class ParquetReadTailTask {
    *
    * @return tail of parquet file
    */
-  public Optional<FileTail> readFileTail() {
+  public FileTail readFileTail() {
     long contentLength = physicalIO.metadata().join().getContentLength();
     Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
     int tailLength = (int) tailRange.getLength() + 1;
+
     try {
       byte[] fileTail = new byte[tailLength];
       physicalIO.readTail(fileTail, 0, tailLength);
-      return Optional.of(new FileTail(ByteBuffer.wrap(fileTail), tailLength));
+      return new FileTail(ByteBuffer.wrap(fileTail), tailLength);
     } catch (Exception e) {
       LOG.error(
           "Error in reading tail for {}. Will fallback to synchronous reading for this key.",
-          physicalIO.getS3URI().getKey(),
+          s3URI.getKey(),
           e);
+      throw new CompletionException("Error in getting file tail", e);
     }
-
-    return Optional.empty();
   }
 }

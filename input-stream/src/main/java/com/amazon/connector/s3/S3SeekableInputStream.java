@@ -3,6 +3,7 @@ package com.amazon.connector.s3;
 import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
+import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerInterface;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
@@ -21,6 +22,7 @@ import lombok.NonNull;
  */
 public class S3SeekableInputStream extends SeekableInputStream {
 
+  private final S3URI s3URI;
   private final LogicalIO logicalIO;
   private long position;
 
@@ -31,38 +33,56 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param objectClient Object client
    * @param s3URI S3 Uri
    * @param configuration configuration
+   * @param parquetMetadataStore object storing Parquet usage data
    */
   protected S3SeekableInputStream(
-      ObjectClient objectClient, S3URI s3URI, S3SeekableInputStreamConfiguration configuration) {
+      ObjectClient objectClient,
+      S3URI s3URI,
+      S3SeekableInputStreamConfiguration configuration,
+      ParquetMetadataStore parquetMetadataStore) {
     this(
+        s3URI,
         new ParquetLogicalIOImpl(
+            s3URI,
             new PhysicalIOImpl(
                 new BlockManager(
                     objectClient, s3URI, configuration.getBlockManagerConfiguration())),
-            configuration.getLogicalIOConfiguration()));
+            configuration.getLogicalIOConfiguration(),
+            parquetMetadataStore));
   }
 
   /**
    * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
    * initialises the stream with sensible defaults.
    *
+   * @param s3URI the object this stream is using
    * @param blockManager provides instance of {@link BlockManagerInterface}
    * @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
+   * @param parquetMetadataStore object containing Parquet usage information
    */
   protected S3SeekableInputStream(
-      BlockManagerInterface blockManager, S3SeekableInputStreamConfiguration configuration) {
+      S3URI s3URI,
+      BlockManagerInterface blockManager,
+      S3SeekableInputStreamConfiguration configuration,
+      ParquetMetadataStore parquetMetadataStore) {
     this(
+        s3URI,
         new ParquetLogicalIOImpl(
-            new PhysicalIOImpl(blockManager), configuration.getLogicalIOConfiguration()));
+            s3URI,
+            new PhysicalIOImpl(blockManager),
+            configuration.getLogicalIOConfiguration(),
+            parquetMetadataStore));
   }
 
   /**
    * Given a LogicalIO, creates a new instance of {@link S3SeekableInputStream}. This version of the
    * constructor is useful for testing as it allows dependency injection.
    *
+   * @param s3URI s3Uri pointing to the object to fetch from S3
    * @param logicalIO already initialised LogicalIO
    */
-  protected S3SeekableInputStream(@NonNull LogicalIO logicalIO) {
+  protected S3SeekableInputStream(@NonNull S3URI s3URI, @NonNull LogicalIO logicalIO) {
+    this.s3URI = s3URI;
     this.logicalIO = logicalIO;
     this.position = 0;
   }

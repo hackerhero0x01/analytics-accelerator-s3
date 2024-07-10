@@ -2,17 +2,17 @@ package com.amazon.connector.s3.io.physical.impl;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
-import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerInterface;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
+import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
+import com.amazon.connector.s3.io.physical.plan.IOPlanState;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.security.InvalidParameterException;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /** An implementation of a physical IO layer. */
@@ -47,37 +47,13 @@ public class PhysicalIOImpl implements PhysicalIO {
   }
 
   @Override
-  public void execute(IOPlan logicalIOPlan) throws InvalidParameterException {
+  public IOPlanExecution execute(IOPlan logicalIOPlan) throws InvalidParameterException {
     if (logicalIOPlan.getPrefetchRanges() == null)
       throw new InvalidParameterException(
           "logicalIOPlan doesn't provide information about file to read");
 
     this.blockManager.queuePrefetch(logicalIOPlan.getPrefetchRanges());
-  }
-
-  @Override
-  public ColumnMappers columnMappers() {
-    return this.blockManager.getColumnMappers();
-  }
-
-  @Override
-  public void putColumnMappers(ColumnMappers columnMappers) {
-    this.blockManager.putColumnMappers(columnMappers);
-  }
-
-  @Override
-  public void addRecentColumn(String columnName) {
-    this.blockManager.addRecentColumn(columnName);
-  }
-
-  @Override
-  public Set<String> getRecentColumns() {
-    return this.blockManager.getRecentColumns();
-  }
-
-  @Override
-  public S3URI getS3URI() {
-    return this.blockManager.getS3URI();
+    return IOPlanExecution.builder().state(IOPlanState.SUBMITTED).build();
   }
 
   @Override

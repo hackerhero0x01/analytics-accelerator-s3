@@ -13,7 +13,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
@@ -21,11 +20,7 @@ import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
@@ -264,45 +259,6 @@ public class MultiObjectsBlockManagerTest {
     multiObjectsBlockManager.getMetadata(s3URI1);
     multiObjectsBlockManager.getMetadata(s3URI2);
     verify(objectClient, times(2)).headObject(any());
-  }
-
-  @Test
-  public void testColumnMappers() {
-    ObjectClient objectClient = mock(ObjectClient.class);
-    Map<S3URI, CompletableFuture<ObjectMetadata>> metadata = new HashMap<>();
-    Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks = new HashMap<>();
-    Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache = new HashMap<>();
-    Map<S3URI, ColumnMappers> columnMappersStore = new HashMap<>();
-    Map<String, String> recentColumns = new HashMap<>();
-
-    MultiObjectsBlockManager multiObjectsBlockManager =
-        new MultiObjectsBlockManager(
-            objectClient,
-            BlockManagerConfiguration.DEFAULT,
-            metadata,
-            ioBlocks,
-            prefetchCache,
-            columnMappersStore,
-            recentColumns);
-
-    S3URI s3URI = S3URI.of("test", "test1");
-    ColumnMappers columnMappers = new ColumnMappers(new HashMap<>(), new HashMap<>());
-
-    multiObjectsBlockManager.putColumnMappers(s3URI, columnMappers);
-    assertEquals(columnMappers, multiObjectsBlockManager.getColumnMappers(s3URI));
-
-    Set<String> keys =
-        new HashSet() {
-          {
-            add("column1");
-            add("column2");
-            add("column3");
-          }
-        };
-    for (String key : keys) {
-      multiObjectsBlockManager.addRecentColumn(key);
-    }
-    assertEquals(keys, multiObjectsBlockManager.getRecentColumns());
   }
 
   @Test

@@ -1,6 +1,5 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,24 +21,29 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
 public class ParquetPrefetchTailTaskTest {
 
+  private static final S3URI TEST_URI = S3URI.of("foo", "bar");
+
   @Test
   void testContructor() {
     assertNotNull(
-        new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
+        new ParquetPrefetchTailTask(
+            TEST_URI, LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
   }
 
   @Test
   void testContructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetPrefetchTailTask(null, mock(PhysicalIO.class)));
+        () -> new ParquetPrefetchTailTask(TEST_URI, null, mock(PhysicalIO.class)));
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, null));
+        () -> new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, null));
   }
 
   @Test
@@ -60,7 +64,7 @@ public class ParquetPrefetchTailTaskTest {
       when(mockedPhysicalIO.metadata()).thenReturn(metadata);
 
       ParquetPrefetchTailTask parquetPrefetchTailTask =
-          new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+          new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
       parquetPrefetchTailTask.prefetchTail();
 
       verify(mockedPhysicalIO).execute(any(IOPlan.class));
@@ -70,19 +74,21 @@ public class ParquetPrefetchTailTaskTest {
   }
 
   @Test
-  void testExceptionSwallowed() throws IOException {
+  @SneakyThrows
+  void testExceptionRemappedToCompletionException() {
+    // Given: Parquet Tail Prefetching task
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
-    when(mockedPhysicalIO.getS3URI()).thenReturn(S3URI.of("test", "data"));
     ParquetPrefetchTailTask parquetPrefetchTailTask =
-        new ParquetPrefetchTailTask(LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+        new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
+    // When: task executes but PhysicalIO throws
     CompletableFuture<ObjectMetadata> metadata =
         CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(600).build());
     when(mockedPhysicalIO.metadata()).thenReturn(metadata);
-
     doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
 
-    assertFalse(parquetPrefetchTailTask.prefetchTail().isPresent());
+    // Then: exception is re-mapped to CompletionException
+    assertThrows(CompletionException.class, () -> parquetPrefetchTailTask.prefetchTail());
   }
 
   private HashMap<Long, List<Range>> getPrefetchRangeList(long footerSize, long smallFileSize) {
