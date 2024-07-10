@@ -12,4 +12,7 @@ public class Constants {
 
   public static final long DEFAULT_FOOTER_CACHING_SIZE = ONE_MB;
   public static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 3 * ONE_MB;
+  public static final long DEFAULT_PARQUET_METADATA_PROCESSING_TIMEOUT_MS = 500;
+  public static final int DEFAULT_PARQUET_PARSING_POOL_SIZE = 5;
+  public static final long DEFAULT_PARQUET_METADATA_SIZE_LIMIT_BYTES = 10485760;
 }

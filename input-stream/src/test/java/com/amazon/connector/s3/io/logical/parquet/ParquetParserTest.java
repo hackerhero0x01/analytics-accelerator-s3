@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -21,7 +22,7 @@ public class ParquetParserTest {
 
   @Test
   void testContructor() {
-    assertNotNull(new ParquetParser());
+    assertNotNull(new ParquetParser(LogicalIOConfiguration.DEFAULT));
   }
 
   @ParameterizedTest
@@ -34,7 +35,7 @@ public class ParquetParserTest {
     byte[] buffer = new byte[ONE_KB * 20];
     inputStream.read(buffer, 0, (int) file.length());
 
-    ParquetParser parquetParser = new ParquetParser();
+    ParquetParser parquetParser = new ParquetParser(LogicalIOConfiguration.DEFAULT);
     FileMetaData fileMetaData =
         parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
 
@@ -65,7 +66,7 @@ public class ParquetParserTest {
     byte[] buffer = new byte[ONE_KB * 20];
     inputStream.read(buffer, 0, (int) file.length());
 
-    ParquetParser parquetParser = new ParquetParser();
+    ParquetParser parquetParser = new ParquetParser(LogicalIOConfiguration.DEFAULT);
     FileMetaData fileMetaData =
         parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
 
@@ -76,7 +77,7 @@ public class ParquetParserTest {
   @Test
   void testParquetMetadataParsingInvalidData() {
 
-    ParquetParser parquetParserInvalidLength = new ParquetParser();
+    ParquetParser parquetParserInvalidLength = new ParquetParser(LogicalIOConfiguration.DEFAULT);
     assertThrows(
         IllegalArgumentException.class,
         () -> {
@@ -84,11 +85,13 @@ public class ParquetParserTest {
         });
 
     // Empty buffer, will throw thrift exception
-    ParquetParser parquetParserInvalidBuffer = new ParquetParser();
+    ParquetParser parquetParserInvalidBuffer = new ParquetParser(LogicalIOConfiguration.DEFAULT);
     assertThrows(
         IOException.class,
         () -> {
           parquetParserInvalidBuffer.parseParquetFooter(ByteBuffer.allocate(ONE_KB), 9);
         });
+
+    ParquetParser parquetParser = new ParquetParser(LogicalIOConfiguration.DEFAULT);
   }
 }

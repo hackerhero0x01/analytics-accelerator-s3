@@ -12,6 +12,7 @@ import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 
@@ -41,6 +42,7 @@ public class ParquetPrefetcher {
   private final ParquetReadTailTask parquetReadTailTask;
   private final ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask;
   private final ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask;
+  private final ExecutorService asyncProcessingPool;
 
   /**
    * Constructs a ParquetPrefetcher.
@@ -50,24 +52,28 @@ public class ParquetPrefetcher {
    *     object store
    * @param logicalIOConfiguration the LogicalIO's configuration
    * @param parquetMetadataStore a common place for Parquet usage information
+   * @param asyncParsingPool Custom thread pool for async processing
    */
   public ParquetPrefetcher(
       S3URI s3Uri,
       PhysicalIO physicalIO,
       LogicalIOConfiguration logicalIOConfiguration,
-      ParquetMetadataStore parquetMetadataStore) {
+      ParquetMetadataStore parquetMetadataStore,
+      ExecutorService asyncParsingPool) {
     this(
         s3Uri,
         logicalIOConfiguration,
         physicalIO,
         parquetMetadataStore,
-        new ParquetMetadataParsingTask(s3Uri, logicalIOConfiguration, parquetMetadataStore),
+        new ParquetMetadataParsingTask(
+            s3Uri, logicalIOConfiguration, parquetMetadataStore, asyncParsingPool),
         new ParquetPrefetchTailTask(s3Uri, logicalIOConfiguration, physicalIO),
         new ParquetReadTailTask(s3Uri, logicalIOConfiguration, physicalIO),
         new ParquetPrefetchRemainingColumnTask(
             s3Uri, logicalIOConfiguration, physicalIO, parquetMetadataStore),
         new ParquetPredictivePrefetchingTask(
-            s3Uri, logicalIOConfiguration, physicalIO, parquetMetadataStore));
+            s3Uri, logicalIOConfiguration, physicalIO, parquetMetadataStore),
+        asyncParsingPool);
   }
 
   /**
@@ -82,7 +88,8 @@ public class ParquetPrefetcher {
     if (logicalIOConfiguration.isMetadataAwarePrefetchingEnabled()
         && !logicalIOConfiguration.isPredictivePrefetchingEnabled()) {
       return CompletableFuture.supplyAsync(
-          () -> parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(position, len));
+          () -> parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(position, len),
+          asyncProcessingPool);
     }
 
     return CompletableFuture.completedFuture(
@@ -102,7 +109,7 @@ public class ParquetPrefetcher {
 
     if (shouldPrefetch()) {
       CompletableFuture<ColumnMappers> columnMappersCompletableFuture =
-          CompletableFuture.supplyAsync(parquetReadTailTask::readFileTail)
+          CompletableFuture.supplyAsync(parquetReadTailTask::readFileTail, asyncProcessingPool)
               .thenApply(parquetMetadataParsingTask::storeColumnMappers);
 
       return prefetchPredictedColumns(columnMappersCompletableFuture);

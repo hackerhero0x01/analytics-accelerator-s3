@@ -10,6 +10,7 @@ import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import lombok.NonNull;
 
 /**
@@ -34,12 +35,14 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param s3URI S3 Uri
    * @param configuration configuration
    * @param parquetMetadataStore object storing Parquet usage data
+   * @param asyncProcessingPool Custom thread pool for async processing
    */
   protected S3SeekableInputStream(
       ObjectClient objectClient,
       S3URI s3URI,
       S3SeekableInputStreamConfiguration configuration,
-      ParquetMetadataStore parquetMetadataStore) {
+      ParquetMetadataStore parquetMetadataStore,
+      ExecutorService asyncProcessingPool) {
     this(
         s3URI,
         new ParquetLogicalIOImpl(
@@ -48,7 +51,8 @@ public class S3SeekableInputStream extends SeekableInputStream {
                 new BlockManager(
                     objectClient, s3URI, configuration.getBlockManagerConfiguration())),
             configuration.getLogicalIOConfiguration(),
-            parquetMetadataStore));
+            parquetMetadataStore,
+            asyncProcessingPool));
   }
 
   /**
@@ -59,19 +63,22 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param blockManager provides instance of {@link BlockManagerInterface}
    * @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
    * @param parquetMetadataStore object containing Parquet usage information
+   * @param asyncProcessingPool Custom thread pool for async processing
    */
   protected S3SeekableInputStream(
       S3URI s3URI,
       BlockManagerInterface blockManager,
       S3SeekableInputStreamConfiguration configuration,
-      ParquetMetadataStore parquetMetadataStore) {
+      ParquetMetadataStore parquetMetadataStore,
+      ExecutorService asyncProcessingPool) {
     this(
         s3URI,
         new ParquetLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(blockManager),
             configuration.getLogicalIOConfiguration(),
-            parquetMetadataStore));
+            parquetMetadataStore,
+            asyncProcessingPool));
   }
 
   /**

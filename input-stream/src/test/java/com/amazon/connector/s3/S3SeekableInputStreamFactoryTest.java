@@ -6,6 +6,8 @@ import static org.mockito.Mockito.mock;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.util.S3URI;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
 public class S3SeekableInputStreamFactoryTest {
@@ -14,6 +16,19 @@ public class S3SeekableInputStreamFactoryTest {
     ObjectClient objectClient = mock(ObjectClient.class);
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(objectClient, S3SeekableInputStreamConfiguration.DEFAULT);
+    assertEquals(
+        S3SeekableInputStreamConfiguration.DEFAULT,
+        s3SeekableInputStreamFactory.getConfiguration());
+    assertEquals(objectClient, s3SeekableInputStreamFactory.getObjectClient());
+  }
+
+  @Test
+  void testConstructorCustomThreadPool() {
+    ObjectClient objectClient = mock(ObjectClient.class);
+    ExecutorService executorService = Executors.newFixedThreadPool(1);
+    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            objectClient, S3SeekableInputStreamConfiguration.DEFAULT, executorService);
     assertEquals(
         S3SeekableInputStreamConfiguration.DEFAULT,
         s3SeekableInputStreamFactory.getConfiguration());
@@ -32,6 +47,19 @@ public class S3SeekableInputStreamFactoryTest {
         NullPointerException.class,
         () -> {
           new S3SeekableInputStreamFactory(mock(ObjectClient.class), null);
+        });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new S3SeekableInputStreamFactory(
+              mock(ObjectClient.class), S3SeekableInputStreamConfiguration.DEFAULT, null);
+        });
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new S3SeekableInputStreamFactory(
+              mock(ObjectClient.class), null, mock(ExecutorService.class));
         });
   }
 

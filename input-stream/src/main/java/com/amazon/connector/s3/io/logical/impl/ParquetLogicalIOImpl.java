@@ -7,6 +7,7 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 /**
  * A Parquet-aware implementation of a LogicalIO layer. It is capable of prefetching file tails,
@@ -23,6 +24,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
   private final ParquetPrefetcher parquetPrefetcher;
   private final ParquetMetadataStore parquetMetadataStore;
   private final PhysicalIO physicalIO;
+  private final ExecutorService asyncProcessingPool;
 
   /**
    * Constructs an instance of LogicalIOImpl.
@@ -31,20 +33,24 @@ public class ParquetLogicalIOImpl implements LogicalIO {
    * @param physicalIO underlying physical IO that knows how to fetch bytes
    * @param logicalIOConfiguration configuration for this logical IO implementation
    * @param parquetMetadataStore object where Parquet usage information is aggregated
+   * @param asyncProcessingPool Custom thread pool for async processing
    */
   public ParquetLogicalIOImpl(
       S3URI s3Uri,
       PhysicalIO physicalIO,
       LogicalIOConfiguration logicalIOConfiguration,
-      ParquetMetadataStore parquetMetadataStore) {
+      ParquetMetadataStore parquetMetadataStore,
+      ExecutorService asyncProcessingPool) {
     this.s3Uri = s3Uri;
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
     this.parquetMetadataStore = parquetMetadataStore;
+    this.asyncProcessingPool = asyncProcessingPool;
 
     // Initialise prefetcher and start prefetching
     this.parquetPrefetcher =
-        new ParquetPrefetcher(s3Uri, physicalIO, logicalIOConfiguration, parquetMetadataStore);
+        new ParquetPrefetcher(
+            s3Uri, physicalIO, logicalIOConfiguration, parquetMetadataStore, asyncProcessingPool);
     this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
   }
 

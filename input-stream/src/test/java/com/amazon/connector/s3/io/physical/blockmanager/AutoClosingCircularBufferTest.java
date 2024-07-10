@@ -65,6 +65,7 @@ public class AutoClosingCircularBufferTest {
     // assertThrows(IllegalArgumentException.class, () ->
     // circularBuffer.add(mock(Closeable.class)));
     // assertThrows(IllegalArgumentException.class, () -> circularBuffer.stream());
+    circularBuffer.add(c1);
   }
 
   @Test

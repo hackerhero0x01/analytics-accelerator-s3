@@ -25,6 +25,8 @@ import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
 import com.amazon.connector.s3.util.S3URI;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -43,7 +45,8 @@ public class ParquetPrefetcherTest {
             mock(S3URI.class),
             mock(PhysicalIO.class),
             mock(LogicalIOConfiguration.class),
-            mock(ParquetMetadataStore.class)));
+            mock(ParquetMetadataStore.class),
+            mock(ExecutorService.class)));
   }
 
   @Test
@@ -314,6 +317,7 @@ public class ParquetPrefetcherTest {
         parquetPrefetchTailTask,
         parquetReadTailTask,
         parquetPrefetchRemainingColumnTask,
-        parquetPredictivePrefetchingTask);
+        parquetPredictivePrefetchingTask,
+        Executors.newFixedThreadPool(1));
   }
 }

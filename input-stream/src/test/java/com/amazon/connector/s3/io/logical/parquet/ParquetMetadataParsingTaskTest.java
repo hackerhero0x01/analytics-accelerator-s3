@@ -11,9 +11,12 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
+import com.amazon.connector.s3.util.Constants;
 import com.amazon.connector.s3.util.S3URI;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -21,10 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
 import org.apache.parquet.format.RowGroup;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -42,21 +47,25 @@ public class ParquetMetadataParsingTaskTest {
         new ParquetMetadataParsingTask(
             TEST_URI,
             LogicalIOConfiguration.DEFAULT,
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
+            Executors.newFixedThreadPool(1)));
   }
 
   @Test
   void testConstructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetMetadataParsingTask(TEST_URI, LogicalIOConfiguration.DEFAULT, null));
+        () ->
+            new ParquetMetadataParsingTask(
+                TEST_URI, LogicalIOConfiguration.DEFAULT, null, Executors.newFixedThreadPool(1)));
     assertThrows(
         NullPointerException.class,
         () ->
             new ParquetMetadataParsingTask(
                 null,
                 LogicalIOConfiguration.DEFAULT,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
+                Executors.newFixedThreadPool(1)));
   }
 
   @ParameterizedTest
@@ -198,6 +207,14 @@ public class ParquetMetadataParsingTaskTest {
     assertTrue(columnNameToColumnMap.containsKey("phone_numbers.list.element.number"));
   }
 
+  void testLargeParquetMetadataFile() throws IOException, ClassNotFoundException {
+
+    // Deserialize fileMetaData object
+    FileMetaData fileMetaData = getFileMetadata("src/test/resources/large_columns_metadata.ser");
+
+    ColumnMappers columns = getColumnMappers(fileMetaData);
+  }
+
   @Test
   void testParsingExceptionsRemappedToCompletionException() throws IOException {
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
@@ -209,7 +226,8 @@ public class ParquetMetadataParsingTaskTest {
             TEST_URI,
             new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
             LogicalIOConfiguration.DEFAULT,
-            mockedParquetParser);
+            mockedParquetParser,
+            Executors.newFixedThreadPool(1));
     CompletableFuture<ColumnMappers> parquetMetadataTaskFuture =
         CompletableFuture.supplyAsync(
             () ->
@@ -240,8 +258,23 @@ public class ParquetMetadataParsingTaskTest {
             TEST_URI,
             new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
             LogicalIOConfiguration.DEFAULT,
-            mockedParquetParser);
+            mockedParquetParser,
+            Executors.newFixedThreadPool(1));
 
     return parquetMetadataParsingTask.storeColumnMappers(new FileTail(ByteBuffer.allocate(0), 0));
+  }
+
+  @Test
+  public void testLargeFileMetadataThrowsError() throws IOException {
+    File file = new File("src/test/resources/large_columns_metadata.ser");
+    InputStream inputStream = new FileInputStream(file);
+
+    ByteBuffer buffer = ByteBuffer.wrap(new byte[Constants.ONE_MB * 300]);
+    inputStream.read(buffer.array(), 0, (int) file.length());
+
+    ParquetParser parquetParser = new ParquetParser(LogicalIOConfiguration.builder().build());
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () -> parquetParser.parseParquetFooter(buffer, (int) file.length()));
   }
 }

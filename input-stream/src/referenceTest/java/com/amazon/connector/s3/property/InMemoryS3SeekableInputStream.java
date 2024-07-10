@@ -15,11 +15,13 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class InMemoryS3SeekableInputStream extends SeekableInputStream {
 
   private final SeekableInputStream delegate;
-
+  private final ExecutorService executorService = Executors.newFixedThreadPool(1);
   /**
    * Returns an in memory S3 seekable stream. Pretends to point at s3://bucket/key and generates
    * `len` number of random bytes which will be then served back as object bytes.
@@ -33,7 +35,8 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
     ObjectClient objectClient = new InMemoryObjectClient(len);
 
     S3SeekableInputStreamFactory factory =
-        new S3SeekableInputStreamFactory(objectClient, S3SeekableInputStreamConfiguration.DEFAULT);
+        new S3SeekableInputStreamFactory(
+            objectClient, S3SeekableInputStreamConfiguration.DEFAULT, executorService);
     this.delegate = factory.createStream(s3URI);
   }
 
