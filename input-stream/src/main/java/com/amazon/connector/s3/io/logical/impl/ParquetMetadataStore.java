@@ -2,11 +2,19 @@ package com.amazon.connector.s3.io.logical.impl;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
+import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchTailTask;
 import com.amazon.connector.s3.util.S3URI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.amazon.connector.s3.util.Constants.DEFAULT_PARQUET_METADATA_STORE_SIZE;
 
 /** Object to aggregate column usage statistics from Parquet files */
 public class ParquetMetadataStore {
@@ -15,11 +23,11 @@ public class ParquetMetadataStore {
 
   private final Map<S3URI, ColumnMappers> columnMappersStore;
 
-  // This should be a memory-limited Set but lacking better fitting abstract data types in the
-  // standard library we implement this as a memory-limited Map where elements are mapped to a
-  // constant marking presence.
-  private final Map<String, Object> recentColumns;
-  private static final Object RECENT_COLUMN_PRESENT = new Object();
+  private final Map<String, Integer> recentColumns;
+
+  private AtomicInteger cleanCounter = new AtomicInteger(0);
+
+  private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataStore.class);
 
   /**
    * Creates a new instance of ParquetMetadataStore.
@@ -40,7 +48,7 @@ public class ParquetMetadataStore {
 
     this.recentColumns =
         Collections.synchronizedMap(
-            new LinkedHashMap<String, Object>() {
+            new LinkedHashMap<String, Integer>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getParquetMetadataStoreSize();
@@ -74,7 +82,35 @@ public class ParquetMetadataStore {
    * @param columnName column to be added
    */
   public void addRecentColumn(String columnName) {
-    recentColumns.put(columnName, RECENT_COLUMN_PRESENT);
+    synchronized (recentColumns) {
+      int columnAccessCount = recentColumns.getOrDefault(columnName, 0);
+      LOG.info("ADDDING RECENT COLUMN {}", columnName);
+      recentColumns.put(columnName, columnAccessCount + 1);
+      maybeCleanRecentColumnList();
+    }
+
+  }
+
+  private void maybeCleanRecentColumnList() {
+    int currentCleanCount = cleanCounter.incrementAndGet();
+
+    LOG.info("Incrementing counter, current count {}", currentCleanCount);
+
+    synchronized (recentColumns) {
+      if (currentCleanCount == 20) {
+        LOG.info("Cleaning recent columns list");
+        Iterator<Map.Entry<String,Integer>> iter = recentColumns.entrySet().iterator();
+        while (iter.hasNext()) {
+          Map.Entry<String,Integer> entry = iter.next();
+          LOG.info("RECENT COLUMNS IN LIST {}", entry.getKey());
+          if (entry.getValue() < 3) {
+            LOG.info("REMOVING COLUMN {} with CoUNT {}", entry.getKey(), entry.getValue());
+            iter.remove();
+          }
+        }
+        cleanCounter.set(0);
+      }
+    }
   }
 
   /**
