@@ -23,7 +23,7 @@ class ParquetParser {
   private final LogicalIOConfiguration logicalIOConfiguration;
 
   /**
-   * @param logicalIOConfiguration
+   * @param logicalIOConfiguration logical io configuration
    */
   ParquetParser(LogicalIOConfiguration logicalIOConfiguration) {
     this.logicalIOConfiguration = logicalIOConfiguration;
@@ -54,8 +54,6 @@ class ParquetParser {
     fileTail.get(buff, 0, PARQUET_FOOTER_LENGTH_SIZE);
 
     int fileMetadataLength = readIntLittleEndian(new ByteArrayInputStream(buff));
-
-    System.out.println("Filemetadata length =" + fileMetadataLength);
 
     if (fileMetadataLength > logicalIOConfiguration.getParquetMetadataSizeLimit()) {
       throw new IllegalArgumentException(

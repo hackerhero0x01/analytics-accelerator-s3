@@ -91,7 +91,6 @@ public class ParquetMetadataParsingTask {
                   return parquetParser.parseParquetFooter(
                       fileTail.getFileTail(), fileTail.getFileTailLength());
                 } catch (Exception e) {
-                  e.printStackTrace();
                   throw new RuntimeException(e);
                 }
               },
@@ -104,7 +103,6 @@ public class ParquetMetadataParsingTask {
       parquetMetadataStore.putColumnMappers(this.s3URI, columnMappers);
       return columnMappers;
     } catch (Exception e) {
-      e.printStackTrace();
       LOG.error(
           "Error parsing parquet footer for {}. Will fallback to synchronous reading for this key.",
           this.s3URI.getKey(),
