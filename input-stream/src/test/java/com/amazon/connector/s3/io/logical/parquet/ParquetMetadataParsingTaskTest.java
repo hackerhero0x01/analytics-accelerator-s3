@@ -206,15 +206,6 @@ public class ParquetMetadataParsingTaskTest {
     assertTrue(columnNameToColumnMap.containsKey("phone_numbers.list.element.type"));
     assertTrue(columnNameToColumnMap.containsKey("phone_numbers.list.element.number"));
   }
-
-  void testLargeParquetMetadataFile() throws IOException, ClassNotFoundException {
-
-    // Deserialize fileMetaData object
-    FileMetaData fileMetaData = getFileMetadata("src/test/resources/large_columns_metadata.ser");
-
-    ColumnMappers columns = getColumnMappers(fileMetaData);
-  }
-
   @Test
   void testParsingExceptionsRemappedToCompletionException() throws IOException {
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
