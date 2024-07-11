@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -148,5 +149,20 @@ public class ParquetPredictivePrefetchingTaskTest {
         () ->
             parquetPredictivePrefetchingTask.prefetchRecentColumns(
                 new ColumnMappers(new HashMap<>(), new HashMap<>())));
+  }
+
+  @Test
+  void testParquetMetadataStoreCacheEviction() {
+    ParquetMetadataStore parquetMetadataStore =
+        new ParquetMetadataStore(
+            LogicalIOConfiguration.builder().parquetMetadataStoreSize(2).build());
+
+    parquetMetadataStore.addRecentColumn("column1");
+    parquetMetadataStore.addRecentColumn("column2");
+    parquetMetadataStore.addRecentColumn("column3");
+
+    Assertions.assertTrue(parquetMetadataStore.getRecentColumns().size() == 2);
+    Assertions.assertFalse(parquetMetadataStore.getRecentColumns().contains("column1"));
+    Assertions.assertTrue(parquetMetadataStore.getRecentColumns().contains("column2"));
   }
 }

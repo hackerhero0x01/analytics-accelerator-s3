@@ -206,6 +206,7 @@ public class ParquetMetadataParsingTaskTest {
     assertTrue(columnNameToColumnMap.containsKey("phone_numbers.list.element.type"));
     assertTrue(columnNameToColumnMap.containsKey("phone_numbers.list.element.number"));
   }
+
   @Test
   void testParsingExceptionsRemappedToCompletionException() throws IOException {
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
