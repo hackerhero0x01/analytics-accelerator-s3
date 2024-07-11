@@ -2,19 +2,12 @@ package com.amazon.connector.s3.io.logical.impl;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
-import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchTailTask;
 import com.amazon.connector.s3.util.S3URI;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.amazon.connector.s3.util.Constants.DEFAULT_PARQUET_METADATA_STORE_SIZE;
+import lombok.Getter;
 
 /** Object to aggregate column usage statistics from Parquet files */
 public class ParquetMetadataStore {
@@ -25,9 +18,7 @@ public class ParquetMetadataStore {
 
   private final Map<String, Integer> recentColumns;
 
-  private AtomicInteger cleanCounter = new AtomicInteger(0);
-
-  private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataStore.class);
+  @Getter private int maxColumnAccessCount = 1;
 
   /**
    * Creates a new instance of ParquetMetadataStore.
@@ -82,35 +73,9 @@ public class ParquetMetadataStore {
    * @param columnName column to be added
    */
   public void addRecentColumn(String columnName) {
-    synchronized (recentColumns) {
-      int columnAccessCount = recentColumns.getOrDefault(columnName, 0);
-      LOG.info("ADDDING RECENT COLUMN {}", columnName);
-      recentColumns.put(columnName, columnAccessCount + 1);
-      maybeCleanRecentColumnList();
-    }
-
-  }
-
-  private void maybeCleanRecentColumnList() {
-    int currentCleanCount = cleanCounter.incrementAndGet();
-
-    LOG.info("Incrementing counter, current count {}", currentCleanCount);
-
-    synchronized (recentColumns) {
-      if (currentCleanCount == 20) {
-        LOG.info("Cleaning recent columns list");
-        Iterator<Map.Entry<String,Integer>> iter = recentColumns.entrySet().iterator();
-        while (iter.hasNext()) {
-          Map.Entry<String,Integer> entry = iter.next();
-          LOG.info("RECENT COLUMNS IN LIST {}", entry.getKey());
-          if (entry.getValue() < 3) {
-            LOG.info("REMOVING COLUMN {} with CoUNT {}", entry.getKey(), entry.getValue());
-            iter.remove();
-          }
-        }
-        cleanCounter.set(0);
-      }
-    }
+    int columnAccessCount = recentColumns.getOrDefault(columnName, 0) + 1;
+    recentColumns.put(columnName, columnAccessCount);
+    maxColumnAccessCount = Math.max(maxColumnAccessCount, columnAccessCount);
   }
 
   /**
@@ -118,7 +83,7 @@ public class ParquetMetadataStore {
    *
    * @return Set of recent columns being
    */
-  public Set<String> getRecentColumns() {
-    return recentColumns.keySet();
+  public Set<Map.Entry<String, Integer>> getRecentColumns() {
+    return recentColumns.entrySet();
   }
 }

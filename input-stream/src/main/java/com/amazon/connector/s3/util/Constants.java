@@ -12,4 +12,6 @@ public class Constants {
 
   public static final long DEFAULT_FOOTER_CACHING_SIZE = ONE_MB;
   public static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 3 * ONE_MB;
+
+  public static final double DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO = 0.1;
 }

@@ -22,9 +22,8 @@ import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -107,9 +106,9 @@ public class ParquetPredictivePrefetchingTaskTest {
     columnMetadataList.add(new ColumnMetadata(0, "sk_test", 100, 500));
     columnNameToColumnMap.put("sk_test", columnMetadataList);
 
-    Set<String> recentColumns = new HashSet<>();
-    recentColumns.add("sk_test");
-    when(parquetMetadataStore.getRecentColumns()).thenReturn(recentColumns);
+    Map<String, Integer> recentColumns = new HashMap<>();
+    recentColumns.put("sk_test", 1);
+    when(parquetMetadataStore.getRecentColumns()).thenReturn(recentColumns.entrySet());
 
     // When: recent columns get prefetched
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =

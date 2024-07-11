@@ -2,7 +2,6 @@ package com.amazon.connector.s3.io.physical.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
-import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
@@ -69,20 +68,6 @@ public class MultiObjectsBlockManager implements AutoCloseable {
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getCapacityPrefetchCache();
               }
-            }),
-        Collections.synchronizedMap(
-            new LinkedHashMap<S3URI, ColumnMappers>() {
-              @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > configuration.getCapacityMultiObjects();
-              }
-            }),
-        Collections.synchronizedMap(
-            new LinkedHashMap<String, String>() {
-              @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > configuration.getCapacityMultiObjects();
-              }
             }));
   }
 
@@ -95,17 +80,13 @@ public class MultiObjectsBlockManager implements AutoCloseable {
    * @param metadata the metadata cache
    * @param ioBlocks the IOBlock cache
    * @param prefetchCache the prefetch cache
-   * @param columnMappersStore store for parquet metadata column mappings
-   * @param recentColumns recent parquet columns read
    */
   protected MultiObjectsBlockManager(
       @NonNull ObjectClient objectClient,
       @NonNull BlockManagerConfiguration configuration,
       Map<S3URI, CompletableFuture<ObjectMetadata>> metadata,
       Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks,
-      Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache,
-      Map<S3URI, ColumnMappers> columnMappersStore,
-      Map<String, String> recentColumns) {
+      Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache) {
     this.objectClient = objectClient;
     this.configuration = configuration;
     this.metadata = metadata;

@@ -15,7 +15,6 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.io.logical.ObjectStatus;
-import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.object.ObjectMetadata;
@@ -376,8 +375,6 @@ public class BlockManagerTest {
     Map<S3URI, CompletableFuture<ObjectMetadata>> metadata = new LinkedHashMap<>();
     Map<S3URI, AutoClosingCircularBuffer<IOBlock>> ioBlocks = new LinkedHashMap<>();
     Map<S3URI, AutoClosingCircularBuffer<PrefetchIOBlock>> prefetchCache = new LinkedHashMap<>();
-    Map<S3URI, ColumnMappers> columnMappersStore = new LinkedHashMap<>();
-    Map<String, String> recentColumns = new LinkedHashMap<>();
 
     StringBuilder sb = new StringBuilder(300);
     sb.append(StringUtils.repeat("1", 300));
@@ -385,13 +382,7 @@ public class BlockManagerTest {
 
     MultiObjectsBlockManager multiObjectsBlockManager =
         new MultiObjectsBlockManager(
-            objectClient,
-            BlockManagerConfiguration.DEFAULT,
-            metadata,
-            ioBlocks,
-            prefetchCache,
-            columnMappersStore,
-            recentColumns);
+            objectClient, BlockManagerConfiguration.DEFAULT, metadata, ioBlocks, prefetchCache);
     BlockManager blockManager = new BlockManager(multiObjectsBlockManager, URI);
 
     // When: Queue prefetch

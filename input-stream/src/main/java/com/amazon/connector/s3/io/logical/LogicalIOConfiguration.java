@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.logical;
 
 import static com.amazon.connector.s3.util.Constants.DEFAULT_FOOTER_CACHING_SIZE;
 import static com.amazon.connector.s3.util.Constants.DEFAULT_PARQUET_METADATA_STORE_SIZE;
+import static com.amazon.connector.s3.util.Constants.DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO;
 import static com.amazon.connector.s3.util.Constants.DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD;
 
 import lombok.Builder;
@@ -26,6 +27,10 @@ public class LogicalIOConfiguration {
   @Builder.Default private boolean predictivePrefetchingEnabled = true;
 
   @Builder.Default private int parquetMetadataStoreSize = DEFAULT_PARQUET_METADATA_STORE_SIZE;
+
+  @Builder.Default
+  private double minPredictivePrefetchingConfidenceRatio =
+      DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO;
 
   public static LogicalIOConfiguration DEFAULT = LogicalIOConfiguration.builder().build();
 }
