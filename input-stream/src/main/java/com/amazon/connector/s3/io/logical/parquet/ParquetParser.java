@@ -23,9 +23,11 @@ class ParquetParser {
   private final LogicalIOConfiguration logicalIOConfiguration;
 
   /**
+   * Created a new instance of {@link ParquetParser}
+   *
    * @param logicalIOConfiguration logical io configuration
    */
-  ParquetParser(LogicalIOConfiguration logicalIOConfiguration) {
+  public ParquetParser(LogicalIOConfiguration logicalIOConfiguration) {
     this.logicalIOConfiguration = logicalIOConfiguration;
   }
 
