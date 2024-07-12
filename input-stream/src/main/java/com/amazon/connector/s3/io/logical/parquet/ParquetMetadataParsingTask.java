@@ -98,7 +98,7 @@ public class ParquetMetadataParsingTask {
       ColumnMappers columnMappers =
           buildColumnMaps(
               fileMetaData.get(
-                  LogicalIOConfiguration.DEFAULT.getParquetMetadataProcessingTimeoutMs(),
+                  logicalIOConfiguration.getParquetMetadataProcessingTimeoutMs(),
                   TimeUnit.MILLISECONDS));
       parquetMetadataStore.putColumnMappers(this.s3URI, columnMappers);
       return columnMappers;

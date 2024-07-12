@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import org.apache.parquet.format.ColumnChunk;
@@ -268,5 +269,32 @@ public class ParquetMetadataParsingTaskTest {
     Assertions.assertThrows(
         IllegalArgumentException.class,
         () -> parquetParser.parseParquetFooter(buffer, (int) file.length()));
+  }
+
+  @Test
+  public void testParquetMetadataParsingTimeout()
+      throws IOException, ExecutionException, InterruptedException {
+    File file = new File("src/test/resources/multi_row_group.parquet");
+    InputStream inputStream = new FileInputStream(file);
+
+    ByteBuffer buffer = ByteBuffer.wrap(new byte[Constants.ONE_KB * 20]);
+    inputStream.read(buffer.array(), 0, (int) file.length());
+
+    ParquetParser parquetParser =
+        new ParquetParser(
+            LogicalIOConfiguration.builder().parquetMetadataProcessingTimeoutMs(0).build());
+    ParquetMetadataParsingTask parquetMetadataParsingTask =
+        new ParquetMetadataParsingTask(
+            TEST_URI,
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
+            LogicalIOConfiguration.builder().parquetMetadataProcessingTimeoutMs(0).build(),
+            parquetParser,
+            Executors.newFixedThreadPool(1));
+    CompletableFuture<ColumnMappers> parquetMetadataTaskFuture =
+        CompletableFuture.supplyAsync(
+            () ->
+                parquetMetadataParsingTask.storeColumnMappers(
+                    new FileTail(ByteBuffer.wrap(buffer.array()), (int) file.length())));
+    Assertions.assertThrows(ExecutionException.class, () -> parquetMetadataTaskFuture.get());
   }
 }

@@ -91,7 +91,5 @@ public class ParquetParserTest {
         () -> {
           parquetParserInvalidBuffer.parseParquetFooter(ByteBuffer.allocate(ONE_KB), 9);
         });
-
-    ParquetParser parquetParser = new ParquetParser(LogicalIOConfiguration.DEFAULT);
   }
 }
