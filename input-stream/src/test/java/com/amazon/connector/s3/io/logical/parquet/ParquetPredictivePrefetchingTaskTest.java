@@ -179,7 +179,11 @@ public class ParquetPredictivePrefetchingTaskTest {
     parquetMetadataStore.addRecentColumn("column3");
 
     Assertions.assertTrue(parquetMetadataStore.getRecentColumns().size() == 2);
-    Assertions.assertFalse(parquetMetadataStore.getRecentColumns().contains("column1"));
-    Assertions.assertTrue(parquetMetadataStore.getRecentColumns().contains("column2"));
+    Assertions.assertFalse(
+        parquetMetadataStore.getRecentColumns().stream()
+            .anyMatch(entry -> entry.getKey().contains("column1")));
+    Assertions.assertTrue(
+        parquetMetadataStore.getRecentColumns().stream()
+            .anyMatch(entry -> entry.getKey().contains("column2")));
   }
 }

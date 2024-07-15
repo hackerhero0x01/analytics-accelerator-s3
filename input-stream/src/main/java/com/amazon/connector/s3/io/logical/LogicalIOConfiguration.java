@@ -38,8 +38,7 @@ public class LogicalIOConfiguration {
   @Builder.Default
   private long parquetMetadataProcessingTimeoutMs = DEFAULT_PARQUET_METADATA_PROCESSING_TIMEOUT_MS;
 
-  @Builder.Default 
-  private int parquetParsingPoolSize = DEFAULT_PARQUET_PARSING_POOL_SIZE;
+  @Builder.Default private int parquetParsingPoolSize = DEFAULT_PARQUET_PARSING_POOL_SIZE;
 
   @Builder.Default
   private long parquetMetadataSizeLimit = DEFAULT_PARQUET_METADATA_SIZE_LIMIT_BYTES;
