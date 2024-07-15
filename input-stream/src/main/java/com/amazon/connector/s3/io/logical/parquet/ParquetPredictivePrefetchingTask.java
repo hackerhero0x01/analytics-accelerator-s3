@@ -84,9 +84,17 @@ public class ParquetPredictivePrefetchingTask {
       double accessRatio =
           (double) recentColumn.getValue() / parquetMetadataStore.getMaxColumnAccessCount();
 
-      if (accessRatio > logicalIOConfiguration.getMinPredictivePrefetchingConfidenceRatio()
+      // TODO:  Preventing overfetching enabled under temporary feature flag, to be fixed in
+      // https://app.asana.com/0/1206885953994785/1207811274063025
+      boolean shouldPrefetch =
+          !logicalIOConfiguration.isPreventOverFetchingEnabled()
+              || (logicalIOConfiguration.isPreventOverFetchingEnabled()
+                  && accessRatio
+                      > logicalIOConfiguration.getMinPredictivePrefetchingConfidenceRatio());
+
+      if (shouldPrefetch
           && columnMappers.getColumnNameToColumnMap().containsKey(recentColumn.getKey())) {
-        LOG.info(
+        LOG.debug(
             "Column {} found in schema for {}, with confidence ratio {}, adding to prefetch list",
             recentColumn.getKey(),
             this.s3Uri.getKey(),
