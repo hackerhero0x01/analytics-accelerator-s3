@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import lombok.Getter;
 
 /** Object to aggregate column usage statistics from Parquet files */
 public class ParquetMetadataStore {
@@ -15,11 +16,9 @@ public class ParquetMetadataStore {
 
   private final Map<S3URI, ColumnMappers> columnMappersStore;
 
-  // This should be a memory-limited Set but lacking better fitting abstract data types in the
-  // standard library we implement this as a memory-limited Map where elements are mapped to a
-  // constant marking presence.
-  private final Map<String, Object> recentColumns;
-  private static final Object RECENT_COLUMN_PRESENT = new Object();
+  private final Map<String, Integer> recentColumns;
+
+  @Getter private int maxColumnAccessCount = 1;
 
   /**
    * Creates a new instance of ParquetMetadataStore.
@@ -40,7 +39,7 @@ public class ParquetMetadataStore {
 
     this.recentColumns =
         Collections.synchronizedMap(
-            new LinkedHashMap<String, Object>() {
+            new LinkedHashMap<String, Integer>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getParquetMetadataStoreSize();
@@ -74,7 +73,9 @@ public class ParquetMetadataStore {
    * @param columnName column to be added
    */
   public void addRecentColumn(String columnName) {
-    recentColumns.put(columnName, RECENT_COLUMN_PRESENT);
+    int columnAccessCount = recentColumns.getOrDefault(columnName, 0) + 1;
+    recentColumns.put(columnName, columnAccessCount);
+    maxColumnAccessCount = Math.max(maxColumnAccessCount, columnAccessCount);
   }
 
   /**
@@ -82,7 +83,7 @@ public class ParquetMetadataStore {
    *
    * @return Set of recent columns being
    */
-  public Set<String> getRecentColumns() {
-    return recentColumns.keySet();
+  public Set<Map.Entry<String, Integer>> getRecentColumns() {
+    return recentColumns.entrySet();
   }
 }

@@ -15,4 +15,5 @@ public class Constants {
   public static final long DEFAULT_PARQUET_METADATA_PROCESSING_TIMEOUT_MS = 500;
   public static final int DEFAULT_PARQUET_PARSING_POOL_SIZE = 5;
   public static final long DEFAULT_PARQUET_METADATA_SIZE_LIMIT_BYTES = 10 * ONE_MB;
+  public static final double DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO = 0.1;
 }

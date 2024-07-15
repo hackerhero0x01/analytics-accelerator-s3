@@ -9,6 +9,7 @@ import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
@@ -78,14 +79,29 @@ public class ParquetPredictivePrefetchingTask {
    */
   public IOPlanExecution prefetchRecentColumns(ColumnMappers columnMappers) {
     List<Range> prefetchRanges = new ArrayList<>();
-    for (String recentColumn : parquetMetadataStore.getRecentColumns()) {
-      if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
+    for (Map.Entry<String, Integer> recentColumn : parquetMetadataStore.getRecentColumns()) {
+
+      double accessRatio =
+          (double) recentColumn.getValue() / parquetMetadataStore.getMaxColumnAccessCount();
+
+      // TODO:  Preventing overfetching enabled under temporary feature flag, to be fixed in
+      // https://app.asana.com/0/1206885953994785/1207811274063025
+      boolean shouldPrefetch =
+          !logicalIOConfiguration.isPreventOverFetchingEnabled()
+              || (logicalIOConfiguration.isPreventOverFetchingEnabled()
+                  && accessRatio
+                      > logicalIOConfiguration.getMinPredictivePrefetchingConfidenceRatio());
+
+      if (shouldPrefetch
+          && columnMappers.getColumnNameToColumnMap().containsKey(recentColumn.getKey())) {
         LOG.debug(
-            "Column {} found in schema for {}, adding to prefetch list",
-            recentColumn,
-            this.s3Uri.getKey());
+            "Column {} found in schema for {}, with confidence ratio {}, adding to prefetch list",
+            recentColumn.getKey(),
+            this.s3Uri.getKey(),
+            accessRatio,
+            recentColumn.getValue());
         List<ColumnMetadata> columnMetadataList =
-            columnMappers.getColumnNameToColumnMap().get(recentColumn);
+            columnMappers.getColumnNameToColumnMap().get(recentColumn.getKey());
         for (ColumnMetadata columnMetadata : columnMetadataList) {
           prefetchRanges.add(
               new Range(

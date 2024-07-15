@@ -22,9 +22,8 @@ import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -102,15 +101,31 @@ public class ParquetPredictivePrefetchingTaskTest {
     // Given: prefetching task with some recent columns
     PhysicalIO physicalIO = mock(PhysicalIO.class);
     ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
+    when(parquetMetadataStore.getMaxColumnAccessCount()).thenReturn(11);
 
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
-    List<ColumnMetadata> columnMetadataList = new ArrayList<>();
-    columnMetadataList.add(new ColumnMetadata(0, "sk_test", 100, 500));
-    columnNameToColumnMap.put("sk_test", columnMetadataList);
 
-    Set<String> recentColumns = new HashSet<>();
-    recentColumns.add("sk_test");
-    when(parquetMetadataStore.getRecentColumns()).thenReturn(recentColumns);
+    // High confidence column
+    List<ColumnMetadata> sk_testColumnMetadataList = new ArrayList<>();
+    sk_testColumnMetadataList.add(new ColumnMetadata(0, "sk_test", 100, 500));
+
+    // Low confidence column
+    List<ColumnMetadata> sk_test_2ColumnMetadataList = new ArrayList<>();
+    sk_test_2ColumnMetadataList.add(new ColumnMetadata(0, "sk_test_2", 600, 500));
+
+    // High confidence column
+    List<ColumnMetadata> sk_test_3ColumnMetadataList = new ArrayList<>();
+    sk_test_3ColumnMetadataList.add(new ColumnMetadata(0, "sk_test_3", 1100, 500));
+
+    columnNameToColumnMap.put("sk_test", sk_testColumnMetadataList);
+    columnNameToColumnMap.put("sk_test_2", sk_test_2ColumnMetadataList);
+    columnNameToColumnMap.put("sk_test_3", sk_test_3ColumnMetadataList);
+
+    Map<String, Integer> recentColumns = new HashMap<>();
+    recentColumns.put("sk_test", 11);
+    recentColumns.put("sk_test_2", 1);
+    recentColumns.put("sk_test_3", 5);
+    when(parquetMetadataStore.getRecentColumns()).thenReturn(recentColumns.entrySet());
 
     // When: recent columns get prefetched
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
@@ -125,7 +140,9 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
     List<Range> expectedRanges = new ArrayList<>();
+    // Only ranges that have high confidence are prefetched
     expectedRanges.add(new Range(100, 600));
+    expectedRanges.add(new Range(1100, 1600));
     assertEquals(ioPlan.getPrefetchRanges(), expectedRanges);
   }
 
