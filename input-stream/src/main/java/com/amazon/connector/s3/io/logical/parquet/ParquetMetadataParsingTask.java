@@ -115,14 +115,10 @@ public class ParquetMetadataParsingTask {
 
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
-    String concatenatedColumnNames = new String();
+    String concatenatedColumnNames = concatColumnNames(fileMetaData);
 
     int rowGroupIndex = 0;
     for (RowGroup rowGroup : fileMetaData.getRow_groups()) {
-
-      if (rowGroupIndex == 0) {
-        concatenatedColumnNames = concatColumnNames(rowGroup);
-      }
 
       for (ColumnChunk columnChunk : rowGroup.getColumns()) {
 
@@ -163,9 +159,9 @@ public class ParquetMetadataParsingTask {
     return new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap);
   }
 
-  private String concatColumnNames(RowGroup rowGroup) {
+  private String concatColumnNames(FileMetaData fileMetaData) {
     StringBuilder concatenatedColumnNames = new StringBuilder();
-
+    RowGroup rowGroup = fileMetaData.getRow_groups().get(0);
     // Concat all column names in a string from which schema hash can be constructed
     for (ColumnChunk columnChunk : rowGroup.getColumns()) {
       // Get the full path to support nested schema
