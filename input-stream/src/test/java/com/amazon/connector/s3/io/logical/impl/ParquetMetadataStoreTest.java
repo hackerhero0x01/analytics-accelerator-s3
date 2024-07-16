@@ -24,9 +24,9 @@ public class ParquetMetadataStoreTest {
 
   @Test
   void addRecentColumn() {
-    StringBuilder concatedCoumnString =
+    StringBuilder concatedColumnString =
         new StringBuilder().append("sk_test").append("sk_test_2").append("sk_test_3");
-    int schemaHash = concatedCoumnString.toString().hashCode();
+    int schemaHash = concatedColumnString.toString().hashCode();
     Map<S3URI, ColumnMappers> columnMappersStore = new HashMap<>();
 
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
