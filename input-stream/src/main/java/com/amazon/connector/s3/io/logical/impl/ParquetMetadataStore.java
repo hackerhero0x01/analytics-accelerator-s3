@@ -2,9 +2,11 @@ package com.amazon.connector.s3.io.logical.impl;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
+import com.amazon.connector.s3.io.logical.parquet.ColumnMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
@@ -18,7 +20,7 @@ public class ParquetMetadataStore {
 
   private final Map<String, Integer> recentColumns;
 
-  @Getter private int maxColumnAccessCount = 1;
+  @Getter private final Map<Integer, Integer> maxColumnAccessCounts;
 
   /**
    * Creates a new instance of ParquetMetadataStore.
@@ -26,25 +28,49 @@ public class ParquetMetadataStore {
    * @param configuration object containing information about the metadata store size
    */
   public ParquetMetadataStore(LogicalIOConfiguration configuration) {
-    this.configuration = configuration;
-
-    this.columnMappersStore =
+    this(
+        configuration,
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, ColumnMappers>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getParquetMetadataStoreSize();
               }
-            });
-
-    this.recentColumns =
+            }),
         Collections.synchronizedMap(
             new LinkedHashMap<String, Integer>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getParquetMetadataStoreSize();
               }
-            });
+            }),
+        Collections.synchronizedMap(
+            new LinkedHashMap<Integer, Integer>() {
+              @Override
+              protected boolean removeEldestEntry(final Map.Entry eldest) {
+                return this.size() > configuration.getMaxColumnAccessCountStoreSize();
+              }
+            }));
+  }
+
+  /**
+   * Creates a new instance of ParquetMetadataStore. This constructor is used for dependency
+   * injection.
+   *
+   * @param logicalIOConfiguration The logical IO configuration
+   * @param columnMappersStore Store of column mappings
+   * @param recentColumns Recent columns being read
+   * @param maxColumnAccessCounts The maximum access count of a column per schema
+   */
+  protected ParquetMetadataStore(
+      LogicalIOConfiguration logicalIOConfiguration,
+      Map<S3URI, ColumnMappers> columnMappersStore,
+      Map<String, Integer> recentColumns,
+      Map<Integer, Integer> maxColumnAccessCounts) {
+    this.configuration = logicalIOConfiguration;
+    this.columnMappersStore = columnMappersStore;
+    this.recentColumns = recentColumns;
+    this.maxColumnAccessCounts = maxColumnAccessCounts;
   }
 
   /**
@@ -71,11 +97,12 @@ public class ParquetMetadataStore {
    * Adds column to list of recent columns.
    *
    * @param columnName column to be added
+   * @param s3URI s3URI of current object being read
    */
-  public void addRecentColumn(String columnName) {
+  public void addRecentColumn(String columnName, S3URI s3URI) {
     int columnAccessCount = recentColumns.getOrDefault(columnName, 0) + 1;
     recentColumns.put(columnName, columnAccessCount);
-    maxColumnAccessCount = Math.max(maxColumnAccessCount, columnAccessCount);
+    updateMaxColumnAccessCounts(columnAccessCount, s3URI, columnName);
   }
 
   /**
@@ -85,5 +112,16 @@ public class ParquetMetadataStore {
    */
   public Set<Map.Entry<String, Integer>> getRecentColumns() {
     return recentColumns.entrySet();
+  }
+
+  private void updateMaxColumnAccessCounts(int columnAccessCount, S3URI s3URI, String columnName) {
+    List<ColumnMetadata> columnMetadataList =
+        columnMappersStore.get(s3URI).getColumnNameToColumnMap().get(columnName);
+    // Update the max access of a column for a particular schema.
+    if (!columnMetadataList.isEmpty()) {
+      int schemaHash = columnMetadataList.get(0).getSchemaHash();
+      int currMaxColumnAccessCount = maxColumnAccessCounts.getOrDefault(schemaHash, 1);
+      maxColumnAccessCounts.put(schemaHash, Math.max(columnAccessCount, currMaxColumnAccessCount));
+    }
   }
 }

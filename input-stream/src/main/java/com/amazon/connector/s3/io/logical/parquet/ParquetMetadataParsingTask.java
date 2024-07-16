@@ -115,9 +115,19 @@ public class ParquetMetadataParsingTask {
 
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
+    StringBuilder concatedColumnNames = new StringBuilder();
 
     int rowGroupIndex = 0;
     for (RowGroup rowGroup : fileMetaData.getRow_groups()) {
+
+      // Concat all column names in a string from which schema hash can be constructed
+      if (rowGroupIndex == 0) {
+        for (ColumnChunk columnChunk : rowGroup.getColumns()) {
+          // Get the full path to support nested schema
+          String columnName = String.join(".", columnChunk.getMeta_data().getPath_in_schema());
+          concatedColumnNames.append(columnName);
+        }
+      }
 
       for (ColumnChunk columnChunk : rowGroup.getColumns()) {
 
@@ -130,7 +140,8 @@ public class ParquetMetadataParsingTask {
                   rowGroupIndex,
                   columnName,
                   columnChunk.getMeta_data().getDictionary_page_offset(),
-                  columnChunk.getMeta_data().getTotal_compressed_size());
+                  columnChunk.getMeta_data().getTotal_compressed_size(),
+                  concatedColumnNames.toString().hashCode());
           offsetIndexToColumnMap.put(
               columnChunk.getMeta_data().getDictionary_page_offset(), columnMetadata);
           List<ColumnMetadata> columnMetadataList =
@@ -142,7 +153,8 @@ public class ParquetMetadataParsingTask {
                   rowGroupIndex,
                   columnName,
                   columnChunk.getFile_offset(),
-                  columnChunk.getMeta_data().getTotal_compressed_size());
+                  columnChunk.getMeta_data().getTotal_compressed_size(),
+                  concatedColumnNames.toString().hashCode());
           offsetIndexToColumnMap.put(columnChunk.getFile_offset(), columnMetadata);
           List<ColumnMetadata> columnMetadataList =
               columnNameToColumnMap.computeIfAbsent(columnName, metadataList -> new ArrayList<>());

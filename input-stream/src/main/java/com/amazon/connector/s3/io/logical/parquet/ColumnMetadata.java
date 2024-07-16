@@ -9,4 +9,5 @@ public class ColumnMetadata {
   private final String columnName;
   private final long startPos;
   private final long compressedSize;
+  private final int schemaHash;
 }

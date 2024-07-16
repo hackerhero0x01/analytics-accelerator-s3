@@ -61,7 +61,9 @@ public class ParquetPrefetchRemainingColumnTaskTest {
   @Test
   void testRemainingColumnPrefetched() {
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
-    offsetIndexToColumnMap.put(200L, new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB));
+    offsetIndexToColumnMap.put(
+        200L,
+        new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB, "ss_sold_date_sk".hashCode()));
 
     ParquetMetadataStore mockedParquetMetadataStore = mock(ParquetMetadataStore.class);
     PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
@@ -88,7 +90,9 @@ public class ParquetPrefetchRemainingColumnTaskTest {
   @Test
   void testExceptionRemappedToCompletionException() {
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
-    offsetIndexToColumnMap.put(200L, new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB));
+    offsetIndexToColumnMap.put(
+        200L,
+        new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB, "ss_sold_date_sk".hashCode()));
 
     ParquetMetadataStore mockedParquetMetadataStore = mock(ParquetMetadataStore.class);
     PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);

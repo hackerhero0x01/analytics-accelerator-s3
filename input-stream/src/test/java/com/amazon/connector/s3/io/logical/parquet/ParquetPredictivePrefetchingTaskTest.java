@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -69,7 +70,8 @@ public class ParquetPredictivePrefetchingTaskTest {
     ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
 
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
-    offsetIndexToColumnMap.put(100L, new ColumnMetadata(0, "sk_test", 100, 500));
+    offsetIndexToColumnMap.put(
+        100L, new ColumnMetadata(0, "sk_test", 100, 500, "sk_test".hashCode()));
     ColumnMappers columnMappers = new ColumnMappers(offsetIndexToColumnMap, new HashMap<>());
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
         new ParquetPredictivePrefetchingTask(
@@ -78,7 +80,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     when(parquetMetadataStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
 
     assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
-    verify(parquetMetadataStore).addRecentColumn("sk_test");
+    verify(parquetMetadataStore).addRecentColumn(eq("sk_test"), any(S3URI.class));
   }
 
   @Test
@@ -93,7 +95,7 @@ public class ParquetPredictivePrefetchingTaskTest {
             TEST_URI, LogicalIOConfiguration.DEFAULT, physicalIO, parquetMetadataStore);
 
     assertFalse(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
-    verify(parquetMetadataStore, times(0)).addRecentColumn(anyString());
+    verify(parquetMetadataStore, times(0)).addRecentColumn(anyString(), any(S3URI.class));
   }
 
   @Test
@@ -101,21 +103,31 @@ public class ParquetPredictivePrefetchingTaskTest {
     // Given: prefetching task with some recent columns
     PhysicalIO physicalIO = mock(PhysicalIO.class);
     ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
-    when(parquetMetadataStore.getMaxColumnAccessCount()).thenReturn(11);
+
+    StringBuilder columnNames = new StringBuilder();
+    columnNames.append("sk_test").append("sk_test_2").append("sk_test_3");
+
+    Map<Integer, Integer> maxColumnAccessCounts = new HashMap<>();
+    maxColumnAccessCounts.put(columnNames.toString().hashCode(), 11);
+
+    when(parquetMetadataStore.getMaxColumnAccessCounts()).thenReturn(maxColumnAccessCounts);
 
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
 
     // High confidence column
     List<ColumnMetadata> sk_testColumnMetadataList = new ArrayList<>();
-    sk_testColumnMetadataList.add(new ColumnMetadata(0, "sk_test", 100, 500));
+    sk_testColumnMetadataList.add(
+        new ColumnMetadata(0, "sk_test", 100, 500, columnNames.toString().hashCode()));
 
     // Low confidence column
     List<ColumnMetadata> sk_test_2ColumnMetadataList = new ArrayList<>();
-    sk_test_2ColumnMetadataList.add(new ColumnMetadata(0, "sk_test_2", 600, 500));
+    sk_test_2ColumnMetadataList.add(
+        new ColumnMetadata(0, "sk_test_2", 600, 500, columnNames.toString().hashCode()));
 
     // High confidence column
     List<ColumnMetadata> sk_test_3ColumnMetadataList = new ArrayList<>();
-    sk_test_3ColumnMetadataList.add(new ColumnMetadata(0, "sk_test_3", 1100, 500));
+    sk_test_3ColumnMetadataList.add(
+        new ColumnMetadata(0, "sk_test_3", 1100, 500, columnNames.toString().hashCode()));
 
     columnNameToColumnMap.put("sk_test", sk_testColumnMetadataList);
     columnNameToColumnMap.put("sk_test_2", sk_test_2ColumnMetadataList);
@@ -123,7 +135,7 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     Map<String, Integer> recentColumns = new HashMap<>();
     recentColumns.put("sk_test", 11);
-    recentColumns.put("sk_test_2", 1);
+    recentColumns.put("sk_test_2", 2);
     recentColumns.put("sk_test_3", 5);
     when(parquetMetadataStore.getRecentColumns()).thenReturn(recentColumns.entrySet());
 

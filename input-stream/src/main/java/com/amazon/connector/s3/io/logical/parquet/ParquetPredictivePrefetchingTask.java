@@ -63,7 +63,7 @@ public class ParquetPredictivePrefetchingTask {
       if (columnMappers.getOffsetIndexToColumnMap().containsKey(position)) {
         String recentColumnName =
             columnMappers.getOffsetIndexToColumnMap().get(position).getColumnName();
-        parquetMetadataStore.addRecentColumn(recentColumnName);
+        parquetMetadataStore.addRecentColumn(recentColumnName, s3Uri);
         return Optional.of(recentColumnName);
       }
     }
@@ -81,8 +81,20 @@ public class ParquetPredictivePrefetchingTask {
     List<Range> prefetchRanges = new ArrayList<>();
     for (Map.Entry<String, Integer> recentColumn : parquetMetadataStore.getRecentColumns()) {
 
-      double accessRatio =
-          (double) recentColumn.getValue() / parquetMetadataStore.getMaxColumnAccessCount();
+      double accessRatio = 0;
+
+      if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn.getKey())) {
+        List<ColumnMetadata> columnMetadataList =
+            columnMappers.getColumnNameToColumnMap().get(recentColumn.getKey());
+        if (!columnMetadataList.isEmpty()) {
+          ColumnMetadata columnMetadata = columnMetadataList.get(0);
+          accessRatio =
+              (double) recentColumn.getValue()
+                  / parquetMetadataStore
+                      .getMaxColumnAccessCounts()
+                      .get(columnMetadata.getSchemaHash());
+        }
+      }
 
       // TODO:  Preventing overfetching enabled under temporary feature flag, to be fixed in
       // https://app.asana.com/0/1206885953994785/1207811274063025
@@ -94,12 +106,11 @@ public class ParquetPredictivePrefetchingTask {
 
       if (shouldPrefetch
           && columnMappers.getColumnNameToColumnMap().containsKey(recentColumn.getKey())) {
-        LOG.debug(
+        LOG.info(
             "Column {} found in schema for {}, with confidence ratio {}, adding to prefetch list",
             recentColumn.getKey(),
             this.s3Uri.getKey(),
-            accessRatio,
-            recentColumn.getValue());
+            accessRatio);
         List<ColumnMetadata> columnMetadataList =
             columnMappers.getColumnNameToColumnMap().get(recentColumn.getKey());
         for (ColumnMetadata columnMetadata : columnMetadataList) {
