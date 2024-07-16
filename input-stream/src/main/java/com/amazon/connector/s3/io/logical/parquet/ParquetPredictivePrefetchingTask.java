@@ -106,7 +106,7 @@ public class ParquetPredictivePrefetchingTask {
 
       if (shouldPrefetch
           && columnMappers.getColumnNameToColumnMap().containsKey(recentColumn.getKey())) {
-        LOG.info(
+        LOG.debug(
             "Column {} found in schema for {}, with confidence ratio {}, adding to prefetch list",
             recentColumn.getKey(),
             this.s3Uri.getKey(),
