@@ -1,9 +1,9 @@
 package com.amazon.connector.s3.io.logical;
 
 import static com.amazon.connector.s3.util.Constants.DEFAULT_FOOTER_CACHING_SIZE;
+import static com.amazon.connector.s3.util.Constants.DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE;
 import static com.amazon.connector.s3.util.Constants.DEFAULT_PARQUET_METADATA_PROCESSING_TIMEOUT_MS;
 import static com.amazon.connector.s3.util.Constants.DEFAULT_PARQUET_METADATA_SIZE_LIMIT_BYTES;
-import static com.amazon.connector.s3.util.Constants.DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE;
 import static com.amazon.connector.s3.util.Constants.DEFAULT_PARQUET_METADATA_STORE_SIZE;
 import static com.amazon.connector.s3.util.Constants.DEFAULT_PARQUET_PARSING_POOL_SIZE;
 import static com.amazon.connector.s3.util.Constants.DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO;

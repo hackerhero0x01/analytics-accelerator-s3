@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -117,17 +116,17 @@ public class ParquetPredictivePrefetchingTaskTest {
     // High confidence column
     List<ColumnMetadata> sk_testColumnMetadataList = new ArrayList<>();
     sk_testColumnMetadataList.add(
-        new ColumnMetadata(0, "sk_test", 100, 500, columnNames.toString().hashCode()));
+        new ColumnMetadata(0, "sk_test", 100, 500, getHashCode(columnNames)));
 
     // Low confidence column
     List<ColumnMetadata> sk_test_2ColumnMetadataList = new ArrayList<>();
     sk_test_2ColumnMetadataList.add(
-        new ColumnMetadata(0, "sk_test_2", 600, 500, columnNames.toString().hashCode()));
+        new ColumnMetadata(0, "sk_test_2", 600, 500, getHashCode(columnNames)));
 
     // High confidence column
     List<ColumnMetadata> sk_test_3ColumnMetadataList = new ArrayList<>();
     sk_test_3ColumnMetadataList.add(
-        new ColumnMetadata(0, "sk_test_3", 1100, 500, columnNames.toString().hashCode()));
+        new ColumnMetadata(0, "sk_test_3", 1100, 500, getHashCode(columnNames)));
 
     columnNameToColumnMap.put("sk_test", sk_testColumnMetadataList);
     columnNameToColumnMap.put("sk_test_2", sk_test_2ColumnMetadataList);
@@ -180,22 +179,7 @@ public class ParquetPredictivePrefetchingTaskTest {
                 new ColumnMappers(new HashMap<>(), new HashMap<>())));
   }
 
-  @Test
-  void testParquetMetadataStoreCacheEviction() {
-    ParquetMetadataStore parquetMetadataStore =
-        new ParquetMetadataStore(
-            LogicalIOConfiguration.builder().parquetMetadataStoreSize(2).build());
-
-    parquetMetadataStore.addRecentColumn("column1");
-    parquetMetadataStore.addRecentColumn("column2");
-    parquetMetadataStore.addRecentColumn("column3");
-
-    Assertions.assertTrue(parquetMetadataStore.getRecentColumns().size() == 2);
-    Assertions.assertFalse(
-        parquetMetadataStore.getRecentColumns().stream()
-            .anyMatch(entry -> entry.getKey().contains("column1")));
-    Assertions.assertTrue(
-        parquetMetadataStore.getRecentColumns().stream()
-            .anyMatch(entry -> entry.getKey().contains("column2")));
+  private int getHashCode(StringBuilder stringToHash) {
+    return stringToHash.toString().hashCode();
   }
 }

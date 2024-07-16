@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.io.logical.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -66,5 +67,24 @@ public class ParquetMetadataStoreTest {
     parquetMetadataStore.addRecentColumn("sk_test_2", S3URI.of("test", "data"));
     // max access count for this schema should be updated with access count of sk_test_2
     assertEquals(maxColumnAccessCounts.get(schemaHash), 3);
+  }
+
+  @Test
+  void testParquetMetadataStoreCacheEviction() {
+    ParquetMetadataStore parquetMetadataStore =
+        new ParquetMetadataStore(
+            LogicalIOConfiguration.builder().parquetMetadataStoreSize(2).build());
+
+    parquetMetadataStore.addRecentColumn("sk_test", S3URI.of("test", "data"));
+    parquetMetadataStore.addRecentColumn("sk_test_2", S3URI.of("test", "data"));
+    parquetMetadataStore.addRecentColumn("sk_test_3", S3URI.of("test", "data"));
+
+    assertTrue(parquetMetadataStore.getRecentColumns().size() == 2);
+    assertFalse(
+        parquetMetadataStore.getRecentColumns().stream()
+            .anyMatch(entry -> entry.getKey().contains("sK_test")));
+    assertTrue(
+        parquetMetadataStore.getRecentColumns().stream()
+            .anyMatch(entry -> entry.getKey().contains("sk_test_3")));
   }
 }

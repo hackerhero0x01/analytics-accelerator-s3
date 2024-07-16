@@ -115,13 +115,16 @@ public class ParquetMetadataStore {
   }
 
   private void updateMaxColumnAccessCounts(int columnAccessCount, S3URI s3URI, String columnName) {
-    List<ColumnMetadata> columnMetadataList =
-        columnMappersStore.get(s3URI).getColumnNameToColumnMap().get(columnName);
-    // Update the max access of a column for a particular schema.
-    if (!columnMetadataList.isEmpty()) {
-      int schemaHash = columnMetadataList.get(0).getSchemaHash();
-      int currMaxColumnAccessCount = maxColumnAccessCounts.getOrDefault(schemaHash, 1);
-      maxColumnAccessCounts.put(schemaHash, Math.max(columnAccessCount, currMaxColumnAccessCount));
+    if (columnMappersStore.containsKey(s3URI)) {
+      List<ColumnMetadata> columnMetadataList =
+          columnMappersStore.get(s3URI).getColumnNameToColumnMap().get(columnName);
+      // Update the max access of a column for a particular schema.
+      if (!columnMetadataList.isEmpty()) {
+        int schemaHash = columnMetadataList.get(0).getSchemaHash();
+        int currMaxColumnAccessCount = maxColumnAccessCounts.getOrDefault(schemaHash, 0);
+        maxColumnAccessCounts.put(
+            schemaHash, Math.max(columnAccessCount, currMaxColumnAccessCount));
+      }
     }
   }
 }
