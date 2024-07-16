@@ -13,11 +13,12 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
-import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
-import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
-import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerInterface;
-import com.amazon.connector.s3.io.physical.blockmanager.MultiObjectsBlockManager;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
+import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManager;
+import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManagerConfiguration;
+import com.amazon.connector.s3.io.physical.v1.blockmanager.MultiObjectsBlockManager;
+import com.amazon.connector.s3.io.physical.v2.data.BlobStore;
+import com.amazon.connector.s3.io.physical.v2.data.MetadataStore;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
@@ -45,99 +46,17 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testDefaultConstructor() throws IOException {
     S3URI s3URI = S3URI.of("bucket", "key");
 
+    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
+    BlobStore blobStore = new BlobStore(metadataStore, fakeObjectClient);
+
     S3SeekableInputStream inputStream =
         new S3SeekableInputStream(
-            fakeObjectClient,
             s3URI,
+            metadataStore,
+            blobStore,
             S3SeekableInputStreamConfiguration.DEFAULT,
             new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
     assertNotNull(inputStream);
-
-    BlockManager blockManager =
-        new BlockManager(fakeObjectClient, s3URI, BlockManagerConfiguration.DEFAULT);
-    inputStream =
-        new S3SeekableInputStream(
-            TEST_OBJECT,
-            blockManager,
-            S3SeekableInputStreamConfiguration.DEFAULT,
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
-    assertNotNull(inputStream);
-  }
-
-  @Test
-  void testConstructorThrowsOnNullArgument() {
-    S3SeekableInputStreamConfiguration conf = S3SeekableInputStreamConfiguration.DEFAULT;
-    S3URI s3URI = S3URI.of("bucket", "key");
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                fakeObjectClient,
-                (S3URI) null,
-                conf,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
-
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                null, s3URI, conf, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
-
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                fakeObjectClient,
-                s3URI,
-                null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
-
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                null,
-                (S3URI) null,
-                conf,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
-
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                null, s3URI, null, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
-
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                fakeObjectClient,
-                null,
-                null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
-
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                TEST_OBJECT,
-                (BlockManagerInterface) null,
-                conf,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
-    BlockManager blockManager =
-        new BlockManager(fakeObjectClient, s3URI, BlockManagerConfiguration.DEFAULT);
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                null,
-                blockManager,
-                null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
-    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(null, null));
-
-    assertThrows(
-        NullPointerException.class, () -> new S3SeekableInputStream(TEST_OBJECT, (LogicalIO) null));
   }
 
   @Test

@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.io.physical.blockmanager;
+package com.amazon.connector.s3.io.physical.v1.blockmanager;
 
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;

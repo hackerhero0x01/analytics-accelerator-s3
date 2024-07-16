@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.io.physical.blockmanager;
+package com.amazon.connector.s3.io.physical.v1.blockmanager;
 
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -142,8 +142,8 @@ public class BlockManagerTest {
     // Then: only object size is requested
     verify(objectClient).getObject(requestCaptor.capture());
     GetRequest getRequest = requestCaptor.getValue();
-    assertEquals(0L, getRequest.getRange().getStart().getAsLong());
-    assertEquals(ONE_MB - 1, getRequest.getRange().getEnd().getAsLong());
+    assertEquals(0L, getRequest.getRange().getStart());
+    assertEquals(ONE_MB - 1, getRequest.getRange().getEnd());
   }
 
   @Test
@@ -195,8 +195,8 @@ public class BlockManagerTest {
     // Then: only object size is requested
     verify(objectClient).getObject(requestCaptor.capture());
     GetRequest getRequest = requestCaptor.getValue();
-    assertEquals(0L, getRequest.getRange().getStart().getAsLong());
-    assertEquals(readAheadConfig - 1, getRequest.getRange().getEnd().getAsLong());
+    assertEquals(0L, getRequest.getRange().getStart());
+    assertEquals(readAheadConfig - 1, getRequest.getRange().getEnd());
   }
 
   @Test

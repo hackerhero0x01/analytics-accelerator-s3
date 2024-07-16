@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.io.physical.blockmanager;
+package com.amazon.connector.s3.io.physical.v1.blockmanager;
 
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -122,8 +122,8 @@ public class MultiObjectsBlockManagerTest {
     prefetchResults.forEach(prefetchBlock -> prefetchBlock.join());
 
     assertEquals(1, objectClient.getRequestedRanges().size());
-    assertEquals(0, objectClient.getRequestedRanges().getFirst().getStart().orElse(-1));
-    assertEquals(0, objectClient.getRequestedRanges().getFirst().getEnd().orElse(-1));
+    assertEquals(0, objectClient.getRequestedRanges().getFirst().getStart());
+    assertEquals(0, objectClient.getRequestedRanges().getFirst().getEnd());
   }
 
   @Test
@@ -147,16 +147,16 @@ public class MultiObjectsBlockManagerTest {
 
     assertEquals(2, objectClient.getRequestedRanges().size());
     // ensure that Get ranges is not overlapping
-    assertEquals(0, objectClient.getRequestedRanges().getFirst().getStart().orElse(-1));
+    assertEquals(0, objectClient.getRequestedRanges().getFirst().getStart());
     assertEquals(
         BlockManagerConfiguration.DEFAULT_READ_AHEAD_BYTES - 1,
-        objectClient.getRequestedRanges().getFirst().getEnd().orElse(-1));
+        objectClient.getRequestedRanges().getFirst().getEnd());
     assertEquals(
         BlockManagerConfiguration.DEFAULT_READ_AHEAD_BYTES,
-        objectClient.getRequestedRanges().getLast().getStart().orElse(-1));
+        objectClient.getRequestedRanges().getLast().getStart());
     assertEquals(
         BlockManagerConfiguration.DEFAULT_READ_AHEAD_BYTES * 2 - 1,
-        objectClient.getRequestedRanges().getLast().getEnd().orElse(-1));
+        objectClient.getRequestedRanges().getLast().getEnd());
 
     multiObjectsBlockManager.read(
         buffer, 0, (int) BlockManagerConfiguration.DEFAULT_READ_AHEAD_BYTES, 1000, s3URI);
@@ -170,10 +170,10 @@ public class MultiObjectsBlockManagerTest {
     assertEquals(3, objectClient.getGetRequestCount().get());
     assertEquals(
         BlockManagerConfiguration.DEFAULT_READ_AHEAD_BYTES * 2,
-        objectClient.getRequestedRanges().getLast().getStart().orElse(-1));
+        objectClient.getRequestedRanges().getLast().getStart());
     assertEquals(
         BlockManagerConfiguration.DEFAULT_READ_AHEAD_BYTES * 3 + 999,
-        objectClient.getRequestedRanges().getLast().getEnd().orElse(-1));
+        objectClient.getRequestedRanges().getLast().getEnd());
   }
 
   @Test

@@ -10,7 +10,7 @@
     <module name="TreeWalker">
         <module name="MissingJavadocMethod">
             <property name="scope" value="public"/>
-            <property name="allowedAnnotations" value="Override,BeforeAll,Before,Test,Property,ParameterizedTest"/>
+            <property name="allowedAnnotations" value="Override,BeforeAll,Before,Test,Property,ParameterizedTest,SneakyThrows,Benchmark"/>
         </module>
         <module name="MissingJavadocPackage"/>
         <module name="MissingJavadocType">

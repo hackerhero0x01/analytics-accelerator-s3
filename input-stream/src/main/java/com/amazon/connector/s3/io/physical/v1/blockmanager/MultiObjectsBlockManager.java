@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.io.physical.blockmanager;
+package com.amazon.connector.s3.io.physical.v1.blockmanager;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
@@ -16,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
@@ -284,7 +283,7 @@ public class MultiObjectsBlockManager implements AutoCloseable {
         s3URI.getKey(),
         isPrefetch);
 
-    Range range = new Range(OptionalLong.of(start), OptionalLong.of(end));
+    Range range = new Range(start, end);
 
     CompletableFuture<ObjectContent> objectContent =
         this.objectClient.getObject(

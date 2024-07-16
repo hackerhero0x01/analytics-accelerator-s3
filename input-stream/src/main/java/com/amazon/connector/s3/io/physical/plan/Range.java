@@ -14,6 +14,6 @@ public class Range {
    * @return length of range
    */
   public long getLength() {
-    return end - start;
+    return end - start + 1;
   }
 }

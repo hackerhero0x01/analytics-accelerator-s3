@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
+import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.util.S3URI;
 import org.junit.jupiter.api.Test;
 

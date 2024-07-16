@@ -22,7 +22,6 @@ import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.utils.IoUtils;
 
 /**
  * Benchmarks which just read data sequentially. Useful for catching regressions in prefetching and
@@ -31,27 +30,23 @@ import software.amazon.awssdk.utils.IoUtils;
 @Fork(1)
 @State(Scope.Benchmark)
 @Warmup(iterations = 2)
-@Measurement(iterations = 3)
+@Measurement(iterations = 7)
 @BenchmarkMode(Mode.SingleShotTime)
 public class SequentialReadBenchmark {
-
-  private static final S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
-      new S3SeekableInputStreamFactory(
-          new S3SdkObjectClient(S3AsyncClient.crtBuilder().maxConcurrency(300).build()),
-          S3SeekableInputStreamConfiguration.DEFAULT);
 
   @Param(
       value = {
         "random-1mb.txt",
         "random-4mb.txt",
         "random-16mb.txt",
-        // TODO: Extend this parameter to bigger objects once we improve performance
-        // https://app.asana.com/0/1206885953994785/1207212328457565/f
-        // "random-64mb.txt",
-        // "random-128mb.txt",
-        // "random-256mb.txt"
+        "random-64mb.txt",
+        "random-128mb.txt",
+        "random-256mb.txt",
+        "random-1G.txt"
       })
   private String key;
+
+  private static final int BUFFER_SIZE = 4096;
 
   /**
    * Not a perfect baseline but will do for now. Use the standard S3Async client for sequential
@@ -59,7 +54,7 @@ public class SequentialReadBenchmark {
    */
   @Benchmark
   public void testSequentialRead__withStandardAsyncClient() throws IOException {
-    S3AsyncClient client = S3AsyncClient.create();
+    S3AsyncClient client = S3AsyncClient.crtCreate();
     CompletableFuture<ResponseInputStream<GetObjectResponse>> response =
         client.getObject(
             GetObjectRequest.builder()
@@ -68,18 +63,32 @@ public class SequentialReadBenchmark {
                 .build(),
             AsyncResponseTransformer.toBlockingInputStream());
 
-    String content = IoUtils.toUtf8String(response.join());
-    System.out.println(content.hashCode());
+    byte[] b = new byte[BUFFER_SIZE];
+
+    while (response.join().read(b) != -1) {}
+
+    client.close();
+    response.cancel(false);
   }
 
   /** Test sequential reads with seekable streams. */
   @Benchmark
   public void testSequentialRead__withSeekableStream() throws IOException {
+
+    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            new S3SdkObjectClient(S3AsyncClient.crtBuilder().maxConcurrency(300).build()),
+            S3SeekableInputStreamConfiguration.DEFAULT);
+
     S3SeekableInputStream stream =
         s3SeekableInputStreamFactory.createStream(
             S3URI.of(Constants.BENCHMARK_BUCKET, Constants.BENCHMARK_DATA_PREFIX_SEQUENTIAL + key));
 
-    String content = IoUtils.toUtf8String(stream);
-    System.out.println(content.hashCode());
+    byte[] b = new byte[BUFFER_SIZE];
+
+    while (stream.read(b, 0, b.length) != -1) {}
+
+    stream.close();
+    s3SeekableInputStreamFactory.close();
   }
 }

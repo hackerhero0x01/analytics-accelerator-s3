@@ -58,10 +58,7 @@ public class FakeObjectClient implements ObjectClient {
 
   private InputStream getTestInputStream(Range range) {
     byte[] requestedRange =
-        Arrays.copyOfRange(
-            contentBytes,
-            (int) range.getStart().orElse(0),
-            (int) range.getEnd().orElse(this.content.length() - 1) + 1);
+        Arrays.copyOfRange(contentBytes, (int) range.getStart(), (int) range.getEnd() + 1);
 
     return new ByteArrayInputStream(requestedRange);
   }

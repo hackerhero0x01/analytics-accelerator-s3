@@ -12,7 +12,6 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
-import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -92,11 +91,7 @@ public class S3SdkObjectClientTest {
     assertInstanceOf(
         CompletableFuture.class,
         client.getObject(
-            GetRequest.builder()
-                .bucket("bucket")
-                .key("key")
-                .range(new Range(OptionalLong.of(0), OptionalLong.of(20)))
-                .build()));
+            GetRequest.builder().bucket("bucket").key("key").range(new Range(0, 20)).build()));
   }
 
   @Test

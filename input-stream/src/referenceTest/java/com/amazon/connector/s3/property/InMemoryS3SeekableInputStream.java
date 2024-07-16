@@ -63,8 +63,8 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
       int end = size - 1;
 
       if (Objects.nonNull(getRequest.getRange())) {
-        start = (int) getRequest.getRange().getStart().orElse(start);
-        end = (int) getRequest.getRange().getEnd().orElse(end);
+        start = (int) getRequest.getRange().getStart();
+        end = (int) getRequest.getRange().getEnd();
       }
 
       byte[] range = Arrays.copyOfRange(this.content, start, end + 1);

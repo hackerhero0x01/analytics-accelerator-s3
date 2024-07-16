@@ -35,6 +35,10 @@ dependencies {
     implementation(libs.log4j.api)
     implementation(libs.log4j.core)
 
+    // I know, I know. Will hoist out the needed parts but helps so much with prototyping!
+    implementation("commons-io:commons-io:2.16.1")
+
+
     jmhImplementation(libs.s3)
 
     testImplementation(libs.s3)

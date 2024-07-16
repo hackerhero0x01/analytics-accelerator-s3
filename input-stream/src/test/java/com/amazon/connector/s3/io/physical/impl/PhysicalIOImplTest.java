@@ -7,9 +7,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
-import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
+import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManager;
+import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.security.InvalidParameterException;

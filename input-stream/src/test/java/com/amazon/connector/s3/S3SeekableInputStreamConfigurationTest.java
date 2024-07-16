@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguration;
+import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManagerConfiguration;
 import org.junit.jupiter.api.Test;
 
 public class S3SeekableInputStreamConfigurationTest {
