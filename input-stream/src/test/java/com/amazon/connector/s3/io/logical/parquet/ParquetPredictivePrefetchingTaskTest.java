@@ -107,7 +107,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     columnNames.append("sk_test").append("sk_test_2").append("sk_test_3");
 
     Map<Integer, Integer> maxColumnAccessCounts = new HashMap<>();
-    maxColumnAccessCounts.put(columnNames.toString().hashCode(), 11);
+    maxColumnAccessCounts.put(getHashCode(columnNames), 11);
 
     when(parquetMetadataStore.getMaxColumnAccessCounts()).thenReturn(maxColumnAccessCounts);
 
