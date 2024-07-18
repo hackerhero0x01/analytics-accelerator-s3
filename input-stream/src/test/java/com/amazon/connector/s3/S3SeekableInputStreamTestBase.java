@@ -9,7 +9,6 @@ import com.amazon.connector.s3.io.physical.blockmanager.BlockManagerConfiguratio
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
-import java.util.concurrent.Executors;
 
 public class S3SeekableInputStreamTestBase {
 
@@ -26,6 +25,5 @@ public class S3SeekableInputStreamTestBase {
           TEST_OBJECT,
           new PhysicalIOImpl(fakeBlockManager),
           logicalIOConfiguration,
-          new ParquetMetadataStore(logicalIOConfiguration),
-          Executors.newFixedThreadPool(1));
+          new ParquetMetadataStore(logicalIOConfiguration));
 }

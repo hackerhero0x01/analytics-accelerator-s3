@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -22,7 +21,7 @@ public class ParquetParserTest {
 
   @Test
   void testContructor() {
-    assertNotNull(new ParquetParser(LogicalIOConfiguration.DEFAULT));
+    assertNotNull(new ParquetParser());
   }
 
   @ParameterizedTest
@@ -35,7 +34,7 @@ public class ParquetParserTest {
     byte[] buffer = new byte[ONE_KB * 20];
     inputStream.read(buffer, 0, (int) file.length());
 
-    ParquetParser parquetParser = new ParquetParser(LogicalIOConfiguration.DEFAULT);
+    ParquetParser parquetParser = new ParquetParser();
     FileMetaData fileMetaData =
         parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
 
@@ -66,7 +65,7 @@ public class ParquetParserTest {
     byte[] buffer = new byte[ONE_KB * 20];
     inputStream.read(buffer, 0, (int) file.length());
 
-    ParquetParser parquetParser = new ParquetParser(LogicalIOConfiguration.DEFAULT);
+    ParquetParser parquetParser = new ParquetParser();
     FileMetaData fileMetaData =
         parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
 
@@ -77,7 +76,7 @@ public class ParquetParserTest {
   @Test
   void testParquetMetadataParsingInvalidData() {
 
-    ParquetParser parquetParserInvalidLength = new ParquetParser(LogicalIOConfiguration.DEFAULT);
+    ParquetParser parquetParserInvalidLength = new ParquetParser();
     assertThrows(
         IllegalArgumentException.class,
         () -> {
@@ -85,7 +84,7 @@ public class ParquetParserTest {
         });
 
     // Empty buffer, will throw thrift exception
-    ParquetParser parquetParserInvalidBuffer = new ParquetParser(LogicalIOConfiguration.DEFAULT);
+    ParquetParser parquetParserInvalidBuffer = new ParquetParser();
     assertThrows(
         IOException.class,
         () -> {

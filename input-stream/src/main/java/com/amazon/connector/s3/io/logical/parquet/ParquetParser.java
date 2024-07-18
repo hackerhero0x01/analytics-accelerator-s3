@@ -4,7 +4,6 @@ import static com.amazon.connector.s3.util.Constants.PARQUET_FOOTER_LENGTH_SIZE;
 import static com.amazon.connector.s3.util.Constants.PARQUET_MAGIC_STR_LENGTH;
 
 import com.amazon.connector.s3.common.Preconditions;
-import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,17 +18,6 @@ import shaded.parquet.org.apache.thrift.transport.TTransportException;
 
 /** Allows for parsing a tail of a parquet file to get its FileMetadata. */
 class ParquetParser {
-
-  private final LogicalIOConfiguration logicalIOConfiguration;
-
-  /**
-   * Created a new instance of {@link ParquetParser}
-   *
-   * @param logicalIOConfiguration logical io configuration
-   */
-  public ParquetParser(LogicalIOConfiguration logicalIOConfiguration) {
-    this.logicalIOConfiguration = logicalIOConfiguration;
-  }
 
   /**
    * Parses the tail of a parquet file to obtain its FileMetaData.
@@ -56,13 +44,6 @@ class ParquetParser {
     fileTail.get(buff, 0, PARQUET_FOOTER_LENGTH_SIZE);
 
     int fileMetadataLength = readIntLittleEndian(new ByteArrayInputStream(buff));
-
-    if (fileMetadataLength > logicalIOConfiguration.getParquetMetadataSizeLimit()) {
-      throw new IllegalArgumentException(
-          "File metadata of length > "
-              + logicalIOConfiguration.getParquetMetadataSizeLimit()
-              + " not supported for parquet metadata processing");
-    }
     int fileMetadataIndex = fileMetadataLengthIndex - fileMetadataLength;
     fileTail.position(fileMetadataIndex);
     byte[] footer = new byte[fileMetadataLength];

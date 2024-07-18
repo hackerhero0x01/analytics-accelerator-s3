@@ -78,17 +78,10 @@ val shadowJar = tasks.withType<ShadowJar> {
     relocate("shaded.parquet.org.apache.thrift", "com.amazon.shaded.parquet.org.apache.thrift")
 }
 
-tasks.withType<Test> {
-    minHeapSize = "1024m"
-    maxHeapSize = "2048m"
-}
-
 
 val refTest = task<Test>("referenceTest") {
     description = "Runs reference tests."
     group = "verification"
-    minHeapSize = "1024m"
-    maxHeapSize = "2048m"
 
     testClassesDirs = sourceSets["referenceTest"].output.classesDirs
     classpath = sourceSets["referenceTest"].runtimeClasspath

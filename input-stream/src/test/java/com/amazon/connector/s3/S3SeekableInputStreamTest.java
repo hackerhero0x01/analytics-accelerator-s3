@@ -28,17 +28,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.utils.IoUtils;
 import software.amazon.awssdk.utils.StringUtils;
 
 public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
-
-  private final ExecutorService asyncProcessingPool =
-      Executors.newFixedThreadPool(LogicalIOConfiguration.DEFAULT.getParquetParsingPoolSize());
 
   @Test
   void testConstructor() {
@@ -55,8 +50,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             fakeObjectClient,
             s3URI,
             S3SeekableInputStreamConfiguration.DEFAULT,
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-            asyncProcessingPool);
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
     assertNotNull(inputStream);
 
     BlockManager blockManager =
@@ -66,8 +60,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             TEST_OBJECT,
             blockManager,
             S3SeekableInputStreamConfiguration.DEFAULT,
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-            asyncProcessingPool);
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
     assertNotNull(inputStream);
   }
 
@@ -82,18 +75,13 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 fakeObjectClient,
                 (S3URI) null,
                 conf,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                asyncProcessingPool));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
 
     assertThrows(
         NullPointerException.class,
         () ->
             new S3SeekableInputStream(
-                null,
-                s3URI,
-                conf,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                asyncProcessingPool));
+                null, s3URI, conf, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
 
     assertThrows(
         NullPointerException.class,
@@ -102,8 +90,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 fakeObjectClient,
                 s3URI,
                 null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                asyncProcessingPool));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
 
     assertThrows(
         NullPointerException.class,
@@ -112,18 +99,13 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 null,
                 (S3URI) null,
                 conf,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                asyncProcessingPool));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
 
     assertThrows(
         NullPointerException.class,
         () ->
             new S3SeekableInputStream(
-                null,
-                s3URI,
-                null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                asyncProcessingPool));
+                null, s3URI, null, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
 
     assertThrows(
         NullPointerException.class,
@@ -132,8 +114,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 fakeObjectClient,
                 null,
                 null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                asyncProcessingPool));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
 
     assertThrows(
         NullPointerException.class,
@@ -142,8 +123,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 TEST_OBJECT,
                 (BlockManagerInterface) null,
                 conf,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                asyncProcessingPool));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
     BlockManager blockManager =
         new BlockManager(fakeObjectClient, s3URI, BlockManagerConfiguration.DEFAULT);
     assertThrows(
@@ -153,8 +133,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 null,
                 blockManager,
                 null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                asyncProcessingPool));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
     assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(null, null));
 
     assertThrows(
@@ -424,8 +403,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                           TEST_OBJECT,
                           physicalIO,
                           LogicalIOConfiguration.DEFAULT,
-                          new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                          asyncProcessingPool);
+                          new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
                   SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, logicalIO);
                   byte[] buffer = new byte[4];
                   stream.readTail(buffer, 0, 4);
@@ -466,7 +444,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 new BlockManager(
                     new FakeObjectClient(content), TEST_OBJECT, BlockManagerConfiguration.DEFAULT)),
             configuration,
-            new ParquetMetadataStore(configuration),
-            asyncProcessingPool));
+            new ParquetMetadataStore(configuration)));
   }
 }

@@ -6,10 +6,7 @@ import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
@@ -27,7 +24,6 @@ public class ParquetMetadataParsingTask {
   private final ParquetParser parquetParser;
   private final ParquetMetadataStore parquetMetadataStore;
   private final LogicalIOConfiguration logicalIOConfiguration;
-  private final ExecutorService asyncProcessingPool;
 
   private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataParsingTask.class);
 
@@ -37,19 +33,12 @@ public class ParquetMetadataParsingTask {
    * @param s3URI the S3Uri of the object
    * @param logicalIOConfiguration logical io configuration
    * @param parquetMetadataStore object containing Parquet usage information
-   * @param asyncProcessingPool
    */
   public ParquetMetadataParsingTask(
       S3URI s3URI,
       LogicalIOConfiguration logicalIOConfiguration,
-      ParquetMetadataStore parquetMetadataStore,
-      ExecutorService asyncProcessingPool) {
-    this(
-        s3URI,
-        parquetMetadataStore,
-        logicalIOConfiguration,
-        new ParquetParser(logicalIOConfiguration),
-        asyncProcessingPool);
+      ParquetMetadataStore parquetMetadataStore) {
+    this(s3URI, parquetMetadataStore, logicalIOConfiguration, new ParquetParser());
   }
 
   /**
@@ -60,19 +49,16 @@ public class ParquetMetadataParsingTask {
    * @param parquetMetadataStore object containing Parquet usage information
    * @param logicalIOConfiguration logical io configuration
    * @param parquetParser parser for getting the file metadata
-   * @param asyncProcessingPool Custom thread pool for asynchronous processing
    */
   protected ParquetMetadataParsingTask(
       @NonNull S3URI s3URI,
       @NonNull ParquetMetadataStore parquetMetadataStore,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
-      @NonNull ParquetParser parquetParser,
-      @NonNull ExecutorService asyncProcessingPool) {
+      @NonNull ParquetParser parquetParser) {
     this.s3URI = s3URI;
     this.parquetParser = parquetParser;
     this.parquetMetadataStore = parquetMetadataStore;
     this.logicalIOConfiguration = logicalIOConfiguration;
-    this.asyncProcessingPool = asyncProcessingPool;
   }
 
   /**
@@ -84,22 +70,9 @@ public class ParquetMetadataParsingTask {
   public ColumnMappers storeColumnMappers(FileTail fileTail) {
 
     try {
-      CompletableFuture<FileMetaData> fileMetaData =
-          CompletableFuture.supplyAsync(
-              () -> {
-                try {
-                  return parquetParser.parseParquetFooter(
-                      fileTail.getFileTail(), fileTail.getFileTailLength());
-                } catch (Exception e) {
-                  throw new RuntimeException(e);
-                }
-              },
-              asyncProcessingPool);
-      ColumnMappers columnMappers =
-          buildColumnMaps(
-              fileMetaData.get(
-                  logicalIOConfiguration.getParquetMetadataProcessingTimeoutMs(),
-                  TimeUnit.MILLISECONDS));
+      FileMetaData fileMetaData =
+          parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
+      ColumnMappers columnMappers = buildColumnMaps(fileMetaData);
       parquetMetadataStore.putColumnMappers(this.s3URI, columnMappers);
       return columnMappers;
     } catch (Exception e) {

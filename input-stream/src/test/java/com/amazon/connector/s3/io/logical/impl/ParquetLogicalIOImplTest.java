@@ -16,8 +16,6 @@ import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
 public class ParquetLogicalIOImplTest {
@@ -31,8 +29,7 @@ public class ParquetLogicalIOImplTest {
             S3URI.of("foo", "bar"),
             mock(PhysicalIO.class),
             mock(LogicalIOConfiguration.class),
-            mock(ParquetMetadataStore.class),
-            mock(ExecutorService.class)));
+            mock(ParquetMetadataStore.class)));
   }
 
   @Test
@@ -44,17 +41,12 @@ public class ParquetLogicalIOImplTest {
                 TEST_URI,
                 null,
                 mock(LogicalIOConfiguration.class),
-                mock(ParquetMetadataStore.class),
-                mock(ExecutorService.class)));
+                mock(ParquetMetadataStore.class)));
     assertThrows(
         NullPointerException.class,
         () ->
             new ParquetLogicalIOImpl(
-                TEST_URI,
-                mock(PhysicalIO.class),
-                null,
-                mock(ParquetMetadataStore.class),
-                mock(ExecutorService.class)));
+                TEST_URI, mock(PhysicalIO.class), null, mock(ParquetMetadataStore.class)));
   }
 
   @Test
@@ -69,11 +61,7 @@ public class ParquetLogicalIOImplTest {
 
     ParquetLogicalIOImpl logicalIO =
         new ParquetLogicalIOImpl(
-            TEST_URI,
-            physicalIO,
-            configuration,
-            new ParquetMetadataStore(configuration),
-            Executors.newFixedThreadPool(1));
+            TEST_URI, physicalIO, configuration, new ParquetMetadataStore(configuration));
 
     // When: close called
     logicalIO.close();
@@ -98,8 +86,7 @@ public class ParquetLogicalIOImplTest {
                 TEST_URI,
                 physicalIO,
                 LogicalIOConfiguration.DEFAULT,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                Executors.newFixedThreadPool(1)));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }
 
   @Test
@@ -118,7 +105,6 @@ public class ParquetLogicalIOImplTest {
                 TEST_URI,
                 physicalIO,
                 LogicalIOConfiguration.DEFAULT,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-                Executors.newFixedThreadPool(1)));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }
 }

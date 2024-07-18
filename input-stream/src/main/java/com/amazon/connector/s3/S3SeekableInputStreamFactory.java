@@ -5,8 +5,6 @@ import com.amazon.connector.s3.io.physical.blockmanager.BlockManager;
 import com.amazon.connector.s3.io.physical.blockmanager.MultiObjectsBlockManager;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -26,7 +24,6 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final S3SeekableInputStreamConfiguration configuration;
   private final MultiObjectsBlockManager multiObjectsBlockManager;
   private final ParquetMetadataStore parquetMetadataStore;
-  private final ExecutorService asyncProcessingPool;
 
   /**
    * Creates a new instance of {@link S3SeekableInputStreamFactory}. This factory should be used to
@@ -39,28 +36,11 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   public S3SeekableInputStreamFactory(
       @NonNull ObjectClient objectClient,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
-    this(
-        objectClient,
-        configuration,
-        Executors.newFixedThreadPool(
-            configuration.getLogicalIOConfiguration().getParquetParsingPoolSize()));
-  }
-
-  /**
-   * @param objectClient Object client
-   * @param configuration {@link S3SeekableInputStream} configuration
-   * @param asyncProcessingPool Thread pool for parquet parsing
-   */
-  public S3SeekableInputStreamFactory(
-      @NonNull ObjectClient objectClient,
-      @NonNull S3SeekableInputStreamConfiguration configuration,
-      @NonNull ExecutorService asyncProcessingPool) {
     this.objectClient = objectClient;
     this.configuration = configuration;
     this.multiObjectsBlockManager =
         new MultiObjectsBlockManager(objectClient, configuration.getBlockManagerConfiguration());
     this.parquetMetadataStore = new ParquetMetadataStore(configuration.getLogicalIOConfiguration());
-    this.asyncProcessingPool = asyncProcessingPool;
   }
 
   /**
@@ -73,12 +53,10 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     if (configuration.getBlockManagerConfiguration().isUseSingleCache()) {
       BlockManager blockManager = new BlockManager(multiObjectsBlockManager, s3URI);
 
-      return new S3SeekableInputStream(
-          s3URI, blockManager, configuration, parquetMetadataStore, asyncProcessingPool);
+      return new S3SeekableInputStream(s3URI, blockManager, configuration, parquetMetadataStore);
     }
 
-    return new S3SeekableInputStream(
-        objectClient, s3URI, configuration, parquetMetadataStore, asyncProcessingPool);
+    return new S3SeekableInputStream(objectClient, s3URI, configuration, parquetMetadataStore);
   }
 
   /**
@@ -89,6 +67,5 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   @Override
   public void close() throws IOException {
     multiObjectsBlockManager.close();
-    asyncProcessingPool.shutdownNow();
   }
 }
