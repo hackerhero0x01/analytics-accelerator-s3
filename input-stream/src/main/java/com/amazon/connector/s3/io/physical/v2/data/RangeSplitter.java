@@ -17,7 +17,7 @@ import java.util.List;
 public class RangeSplitter {
 
   // TODO: these should come from configurations
-  private static final long SPLITBACK_THRESHOLD = 7 * ONE_MB;
+  private static final long SPLITBACK_THRESHOLD = 8 * ONE_MB;
 
   /**
    * Given a list of ranges, return a potentially new set of ranges which is more optimal to fetch
@@ -58,6 +58,6 @@ public class RangeSplitter {
   private static long getSplitbackBlockSize(int index) {
     // TODO: we should fine tune this
     // Progression is: 4,4,4,4,8,8,8,8,16,16,16,16...
-    return 4 * ONE_MB * (long) Math.pow(2, Math.floor(index / 4.0));
+    return 4 * ONE_MB;
   }
 }

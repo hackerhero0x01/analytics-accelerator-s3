@@ -27,6 +27,11 @@ public class Range {
     this.end = end;
   }
 
+  /**
+   * Return the size of the range.
+   *
+   * @return the size of the range in bytes
+   */
   public long getSize() {
     return this.end - this.start + 1;
   }

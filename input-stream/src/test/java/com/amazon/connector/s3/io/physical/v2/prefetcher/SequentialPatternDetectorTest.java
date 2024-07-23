@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.v2.prefetcher;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -69,5 +70,36 @@ public class SequentialPatternDetectorTest {
 
     // Then: generation is one higher than the previous block's generation
     assertEquals(GEN + 1, generation);
+  }
+
+  @Test
+  public void test__getGeneration__zeroWhenNotSequentialRead() {
+    // Given: a pattern detector with an empty block store
+    final long GEN = 7;
+    Block mockBlock = mock(Block.class);
+    when(mockBlock.getGeneration()).thenReturn(GEN);
+    BlockStore mockBlockStore = mock(BlockStore.class);
+    when(mockBlockStore.getBlock(100)).thenReturn(Optional.empty());
+    SequentialPatternDetector sequentialPatternDetector =
+        new SequentialPatternDetector(mockBlockStore);
+
+    // When: any position's generation is requested
+    long generation = sequentialPatternDetector.getGeneration(101);
+
+    // Then: it should be zero because the read is not sequential
+    assertEquals(0, generation);
+  }
+
+  @Test
+  public void test__patternDetector__verifiesPos() {
+    // Given: an pattern detector
+    SequentialPatternDetector sequentialPatternDetector =
+        new SequentialPatternDetector(mock(BlockStore.class));
+
+    // When & Then: pattern detector verifies its arguments
+    assertThrows(
+        IllegalArgumentException.class, () -> sequentialPatternDetector.isSequentialRead(-100));
+    assertThrows(
+        IllegalArgumentException.class, () -> sequentialPatternDetector.getGeneration(-100));
   }
 }

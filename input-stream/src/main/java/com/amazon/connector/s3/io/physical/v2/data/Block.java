@@ -1,11 +1,11 @@
 package com.amazon.connector.s3.io.physical.v2.data;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.io.physical.v2.utils.StreamUtils;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
+import com.amazon.connector.s3.util.StreamUtils;
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
@@ -37,7 +37,6 @@ public class Block implements Closeable {
     this.end = end;
     this.generation = generation;
 
-    final long startTs = System.currentTimeMillis();
     this.source =
         objectClient.getObject(
             GetRequest.builder()

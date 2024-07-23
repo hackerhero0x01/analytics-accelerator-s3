@@ -46,9 +46,9 @@ public class MetadataStore implements Closeable {
 
     return this.cache.computeIfAbsent(
         s3URI,
-        s3URI1 ->
+        uri ->
             objectClient.headObject(
-                HeadRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build()));
+                HeadRequest.builder().bucket(uri.getBucket()).key(uri.getKey()).build()));
   }
 
   @Override

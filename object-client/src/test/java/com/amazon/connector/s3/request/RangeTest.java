@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,6 +23,12 @@ public class RangeTest {
     assertEquals(expected, new Range(start, end).toString());
   }
 
+  @Test
+  void testSize() {
+    assertEquals(1, new Range(0, 0).getSize());
+    assertEquals(100, new Range(0, 99).getSize());
+  }
+
   static Stream<Arguments> validRanges() {
     return Stream.of(
         Arguments.of(1, 5, "bytes=1-5"),
@@ -30,6 +37,7 @@ public class RangeTest {
   }
 
   static Stream<Arguments> invalidRanges() {
-    return Stream.of(Arguments.of(-100, 5), Arguments.of(1, -100), Arguments.of(-1, 1));
+    return Stream.of(
+        Arguments.of(7, 5), Arguments.of(-100, 5), Arguments.of(1, -100), Arguments.of(-1, 1));
   }
 }

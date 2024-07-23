@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.io.physical.v2.utils;
+package com.amazon.connector.s3.util;
 
 import com.amazon.connector.s3.object.ObjectContent;
 import java.io.IOException;

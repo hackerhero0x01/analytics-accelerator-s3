@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.io.physical.v2.prefetcher;
 
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.physical.v2.data.BlockStore;
 import lombok.RequiredArgsConstructor;
 
@@ -27,11 +28,13 @@ public class SequentialPatternDetector {
    * @return returns true if this read is part of a sequential read pattern
    */
   public boolean isSequentialRead(long pos) {
-    if (pos > 0) {
-      return blockStore.getBlock(pos - 1).isPresent();
+    Preconditions.checkArgument(pos >= 0, "position must be bigger than or equal to 0");
+
+    if (pos == 0) {
+      return false;
     }
 
-    return false;
+    return blockStore.getBlock(pos - 1).isPresent();
   }
 
   /**
@@ -41,10 +44,10 @@ public class SequentialPatternDetector {
    * @return returns the generation of the byte
    */
   public long getGeneration(long pos) {
-    if (pos > 0) {
-      if (blockStore.getBlock(pos - 1).isPresent()) {
-        return blockStore.getBlock(pos - 1).get().getGeneration() + 1;
-      }
+    Preconditions.checkArgument(pos >= 0, "position must be bigger than or equal to 0");
+
+    if (isSequentialRead(pos)) {
+      return blockStore.getBlock(pos - 1).get().getGeneration() + 1;
     }
 
     return 0;

@@ -60,6 +60,47 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   }
 
   @Test
+  void testConstructorThrowsOnNullArgument() {
+    S3URI s3URI = mock(S3URI.class);
+    MetadataStore metadataStore = mock(MetadataStore.class);
+    BlobStore blobStore = mock(BlobStore.class);
+    S3SeekableInputStreamConfiguration configuration =
+        mock(S3SeekableInputStreamConfiguration.class);
+    ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(
+                s3URI, metadataStore, blobStore, configuration, parquetMetadataStore));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(s3URI, null, blobStore, configuration, parquetMetadataStore));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(
+                s3URI, metadataStore, null, configuration, parquetMetadataStore));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new S3SeekableInputStream(s3URI, metadataStore, blobStore, null, parquetMetadataStore));
+
+    assertThrows(
+        NullPointerException.class,
+        () -> new S3SeekableInputStream(s3URI, metadataStore, blobStore, configuration, null));
+
+    assertThrows(
+        NullPointerException.class, () -> new S3SeekableInputStream(null, mock(LogicalIO.class)));
+
+    assertThrows(NullPointerException.class, () -> new S3SeekableInputStream(s3URI, null));
+  }
+
+  @Test
   void testInitialGetPosition() throws IOException {
     // Given
     S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO);
