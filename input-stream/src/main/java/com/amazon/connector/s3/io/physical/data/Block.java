@@ -19,9 +19,9 @@ public class Block implements Closeable {
   private CompletableFuture<ObjectContent> source;
   private CompletableFuture<byte[]> data;
 
-  @Getter private long start;
-  @Getter private long end;
-  @Getter private long generation;
+  @Getter private final long start;
+  @Getter private final long end;
+  @Getter private final long generation;
 
   /**
    * Constructs a Block. data.
