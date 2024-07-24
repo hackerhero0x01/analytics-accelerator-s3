@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
@@ -49,7 +50,7 @@ public class BlockManagerTest {
   @Test
   void test__makePositionAvailable__respectsReadAhead() {
     // Given
-    final int objectSize = (int) BlockManagerConfiguration.DEFAULT.getReadAheadBytes() + ONE_KB;
+    final int objectSize = (int) PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() + ONE_KB;
     ObjectClient objectClient = mock(ObjectClient.class);
     BlockManager blockManager = getTestBlockManager(objectClient, objectSize);
 
@@ -62,7 +63,7 @@ public class BlockManagerTest {
 
     assertEquals(0, requestCaptor.getValue().getRange().getStart());
     assertEquals(
-        BlockManagerConfiguration.DEFAULT.getReadAheadBytes() - 1,
+        PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() - 1,
         requestCaptor.getValue().getRange().getEnd());
   }
 

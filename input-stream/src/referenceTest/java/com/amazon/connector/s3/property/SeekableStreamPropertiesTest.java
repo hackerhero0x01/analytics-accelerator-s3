@@ -57,4 +57,13 @@ public class SeekableStreamPropertiesTest extends StreamArbitraries {
 
     assertThrows(IllegalArgumentException.class, () -> s.seek(invalidPos));
   }
+
+  @Property
+  void canCloseStreamMultipleTimes(@ForAll("streamSizes") int size) throws IOException {
+    InMemoryS3SeekableInputStream s =
+        new InMemoryS3SeekableInputStream("test-bucket", "test-key", size);
+
+    s.close();
+    s.close();
+  }
 }

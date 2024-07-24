@@ -45,7 +45,7 @@ public class PhysicalIOImpl implements PhysicalIO {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
 
-    return blobStore.open(s3URI).read(pos);
+    return blobStore.get(s3URI).read(pos);
   }
 
   @Override
@@ -56,7 +56,7 @@ public class PhysicalIOImpl implements PhysicalIO {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    return blobStore.open(s3URI).read(buf, off, len, pos);
+    return blobStore.get(s3URI).read(buf, off, len, pos);
   }
 
   @Override
@@ -64,12 +64,12 @@ public class PhysicalIOImpl implements PhysicalIO {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
     long contentLength = metadataStore.get(s3URI).join().getContentLength();
-    return blobStore.open(s3URI).read(buf, off, len, contentLength - len);
+    return blobStore.get(s3URI).read(buf, off, len, contentLength - len);
   }
 
   @Override
   public IOPlanExecution execute(IOPlan ioPlan) {
-    return blobStore.open(s3URI).execute(ioPlan);
+    return blobStore.get(s3URI).execute(ioPlan);
   }
 
   private long contentLength() {

@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.io.physical.prefetcher.SequentialPatternDetector;
 import com.amazon.connector.s3.io.physical.prefetcher.SequentialReadProgression;
@@ -86,7 +87,7 @@ public class BlockManager implements Closeable {
     }
 
     // TODO: use the proper value from the configuration
-    len = Math.max(len, BlockManagerConfiguration.DEFAULT_READ_AHEAD_BYTES);
+    len = Math.max(len, PhysicalIOConfiguration.DEFAULT_READ_AHEAD_BYTES);
 
     // In case of a sequential reading pattern, calculate the generation and adjust the requested
     // end of the requested range

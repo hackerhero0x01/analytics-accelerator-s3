@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.Optional;
@@ -20,7 +21,8 @@ public class BlockStoreTest {
   public void test__blockStore__getBlockAfterAddBlock() {
     // Given: empty BlockStore
     FakeObjectClient fakeObjectClient = new FakeObjectClient("test-data");
-    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
     // When: a new block is added
@@ -40,7 +42,8 @@ public class BlockStoreTest {
     // Given: BlockStore with blocks (2,3), (5,10), (12,15)
     final String X_TIMES_16 = "xxxxxxxxxxxxxxxx";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);
-    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
     blockStore.add(new Block(TEST_URI, fakeObjectClient, 2, 3, 0));
@@ -63,7 +66,8 @@ public class BlockStoreTest {
     // Given: BlockStore with blocks (2,3), (5,10), (12,15)
     final String X_TIMES_16 = "xxxxxxxxxxxxxxxx";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);
-    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
     blockStore.add(new Block(TEST_URI, fakeObjectClient, 2, 3, 0));

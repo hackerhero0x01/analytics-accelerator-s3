@@ -1,7 +1,7 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.data.BlockManagerConfiguration;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -13,7 +13,7 @@ import lombok.NonNull;
 @EqualsAndHashCode
 public class S3SeekableInputStreamConfiguration {
   @Builder.Default
-  private BlockManagerConfiguration blockManagerConfiguration = BlockManagerConfiguration.DEFAULT;
+  private PhysicalIOConfiguration physicalIOConfiguration = PhysicalIOConfiguration.DEFAULT;
 
   @Builder.Default
   private LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
@@ -25,13 +25,13 @@ public class S3SeekableInputStreamConfiguration {
   /**
    * Creates a new instance of
    *
-   * @param blockManagerConfiguration - {@link BlockManagerConfiguration} configuration
+   * @param physicalIOConfiguration - {@link PhysicalIOConfiguration} configuration
    * @param logicalIOConfiguration - {@link LogicalIOConfiguration} configuration
    */
   private S3SeekableInputStreamConfiguration(
-      @NonNull BlockManagerConfiguration blockManagerConfiguration,
+      @NonNull PhysicalIOConfiguration physicalIOConfiguration,
       @NonNull LogicalIOConfiguration logicalIOConfiguration) {
-    this.blockManagerConfiguration = blockManagerConfiguration;
+    this.physicalIOConfiguration = physicalIOConfiguration;
     this.logicalIOConfiguration = logicalIOConfiguration;
   }
 }

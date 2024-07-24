@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.data.BlockManagerConfiguration;
 import com.amazon.connector.s3.util.S3URI;
 import org.junit.jupiter.api.Test;
 
@@ -55,8 +54,6 @@ public class S3SeekableInputStreamFactoryTest {
         S3SeekableInputStreamConfiguration.builder()
             .logicalIOConfiguration(
                 LogicalIOConfiguration.builder().footerCachingEnabled(false).build())
-            .blockManagerConfiguration(
-                BlockManagerConfiguration.builder().useSingleCache(false).build())
             .build();
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(mock(ObjectClient.class), configuration);

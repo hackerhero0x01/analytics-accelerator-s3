@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
@@ -15,7 +16,7 @@ import org.junit.jupiter.api.Test;
 public class BlobStoreTest {
 
   @Test
-  public void test__open__returnsReadableBlob() {
+  public void test__get__returnsReadableBlob() {
     // Given: a BlobStore with an underlying metadata store and object client
     final String TEST_DATA = "test-data";
     ObjectClient objectClient = new FakeObjectClient("test-data");
@@ -24,10 +25,11 @@ public class BlobStoreTest {
         .thenReturn(
             CompletableFuture.completedFuture(
                 ObjectMetadata.builder().contentLength(TEST_DATA.length()).build()));
-    BlobStore blobStore = new BlobStore(metadataStore, objectClient);
+    BlobStore blobStore =
+        new BlobStore(metadataStore, objectClient, PhysicalIOConfiguration.DEFAULT);
 
-    // When: a Blob is opened
-    Blob blob = blobStore.open(S3URI.of("test", "test"));
+    // When: a Blob is asked for
+    Blob blob = blobStore.get(S3URI.of("test", "test"));
 
     // Then:
     byte[] b = new byte[TEST_DATA.length()];

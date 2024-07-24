@@ -5,7 +5,6 @@ import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
-import java.util.OptionalInt;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -55,28 +54,26 @@ public class Blob implements Closeable {
     blockManager.makeRangeAvailable(pos, len);
 
     long nextPosition = pos;
-    OptionalInt numBytesRead = OptionalInt.empty();
+    int numBytesRead = 0;
 
-    while (numBytesRead.orElse(0) < len && nextPosition < contentLength()) {
+    while (numBytesRead < len && nextPosition < contentLength()) {
       Block nextBlock =
           blockManager
               .getBlock(nextPosition)
               .orElseThrow(
                   () -> new IllegalStateException("This block should have been available."));
 
-      int bytesRead =
-          nextBlock.read(
-              buf, off + numBytesRead.orElse(0), len - numBytesRead.orElse(0), nextPosition);
+      int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
 
       if (bytesRead == -1) {
-        return numBytesRead.orElse(-1);
+        return numBytesRead;
       }
 
-      numBytesRead = OptionalInt.of(numBytesRead.orElse(0) + bytesRead);
+      numBytesRead = numBytesRead + bytesRead;
       nextPosition += bytesRead;
     }
 
-    return numBytesRead.orElse(0);
+    return numBytesRead;
   }
 
   /**

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.Range;
@@ -103,7 +104,8 @@ public class BlobTest {
 
   private Blob getTestBlob(String data) {
     FakeObjectClient fakeObjectClient = new FakeObjectClient(data);
-    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
     BlockManager blockManager = new BlockManager(TEST_URI, fakeObjectClient, metadataStore);
 
     return new Blob(TEST_URI, metadataStore, blockManager);

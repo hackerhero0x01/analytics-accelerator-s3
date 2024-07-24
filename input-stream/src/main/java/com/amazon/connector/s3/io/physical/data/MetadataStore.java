@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.util.S3URI;
@@ -21,16 +22,16 @@ public class MetadataStore implements Closeable {
    * Constructs a new MetadataStore.
    *
    * @param objectClient the object client to use for object store interactions
+   * @param physicalIOConfiguration a configuration of PhysicalIO
    */
-  public MetadataStore(ObjectClient objectClient) {
+  public MetadataStore(ObjectClient objectClient, PhysicalIOConfiguration physicalIOConfiguration) {
     this.objectClient = objectClient;
     this.cache =
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
-                // TODO: limit should come from configuration
-                return this.size() > 50;
+                return this.size() > physicalIOConfiguration.getMetadataStoreCapacity();
               }
             });
   }

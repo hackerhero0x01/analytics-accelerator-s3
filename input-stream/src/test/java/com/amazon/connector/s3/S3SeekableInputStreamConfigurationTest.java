@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
-import com.amazon.connector.s3.io.physical.data.BlockManagerConfiguration;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import org.junit.jupiter.api.Test;
 
 public class S3SeekableInputStreamConfigurationTest {
@@ -12,7 +12,7 @@ public class S3SeekableInputStreamConfigurationTest {
   void testDefaultBuilder() {
     S3SeekableInputStreamConfiguration configuration =
         S3SeekableInputStreamConfiguration.builder().build();
-    assertEquals(BlockManagerConfiguration.DEFAULT, configuration.getBlockManagerConfiguration());
+    assertEquals(PhysicalIOConfiguration.DEFAULT, configuration.getPhysicalIOConfiguration());
   }
 
   @Test
@@ -26,7 +26,7 @@ public class S3SeekableInputStreamConfigurationTest {
   void testNullBlockManagerConfiguration() {
     assertThrows(
         NullPointerException.class,
-        () -> S3SeekableInputStreamConfiguration.builder().blockManagerConfiguration(null).build());
+        () -> S3SeekableInputStreamConfiguration.builder().physicalIOConfiguration(null).build());
 
     assertThrows(
         NullPointerException.class,
@@ -35,11 +35,11 @@ public class S3SeekableInputStreamConfigurationTest {
 
   @Test
   void testNonDefaults() {
-    BlockManagerConfiguration blockManagerConfiguration = mock(BlockManagerConfiguration.class);
+    PhysicalIOConfiguration physicalIOConfiguration = mock(PhysicalIOConfiguration.class);
     S3SeekableInputStreamConfiguration configuration =
         S3SeekableInputStreamConfiguration.builder()
-            .blockManagerConfiguration(blockManagerConfiguration)
+            .physicalIOConfiguration(physicalIOConfiguration)
             .build();
-    assertEquals(blockManagerConfiguration, configuration.getBlockManagerConfiguration());
+    assertEquals(physicalIOConfiguration, configuration.getPhysicalIOConfiguration());
   }
 }

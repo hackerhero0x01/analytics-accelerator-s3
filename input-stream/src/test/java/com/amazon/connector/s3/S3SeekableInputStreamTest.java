@@ -13,6 +13,7 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
@@ -43,8 +44,10 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testDefaultConstructor() throws IOException {
     S3URI s3URI = S3URI.of("bucket", "key");
 
-    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
-    BlobStore blobStore = new BlobStore(metadataStore, fakeObjectClient);
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+    BlobStore blobStore =
+        new BlobStore(metadataStore, fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
 
     S3SeekableInputStream inputStream =
         new S3SeekableInputStream(
@@ -344,8 +347,10 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     S3URI s3URI = S3URI.of("test", "test");
 
     FakeObjectClient fakeObjectClient = new FakeObjectClient(sb.toString());
-    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
-    BlobStore blobStore = new BlobStore(metadataStore, fakeObjectClient);
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+    BlobStore blobStore =
+        new BlobStore(metadataStore, fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
 
     AtomicBoolean haveException = new AtomicBoolean(false);
 
@@ -396,8 +401,10 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
         LogicalIOConfiguration.builder().footerCachingEnabled(false).build();
 
     FakeObjectClient fakeObjectClient = new FakeObjectClient(content);
-    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
-    BlobStore blobStore = new BlobStore(metadataStore, fakeObjectClient);
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+    BlobStore blobStore =
+        new BlobStore(metadataStore, fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
 
     return new S3SeekableInputStream(
         TEST_OBJECT,

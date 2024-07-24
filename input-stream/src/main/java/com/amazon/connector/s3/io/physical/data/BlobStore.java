@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
 import java.util.Collections;
@@ -10,7 +11,7 @@ import java.util.Map;
 /** A BlobStore is a container for Blobs and functions as a data cache. */
 public class BlobStore implements Closeable {
 
-  private Map<S3URI, Blob> blobMap;
+  private final Map<S3URI, Blob> blobMap;
   private final MetadataStore metadataStore;
   private final ObjectClient objectClient;
 
@@ -19,8 +20,12 @@ public class BlobStore implements Closeable {
    *
    * @param metadataStore the MetadataStore storing object metadata information
    * @param objectClient object client capable of interacting with the underlying object store
+   * @param configuration the PhysicalIO configuration
    */
-  public BlobStore(MetadataStore metadataStore, ObjectClient objectClient) {
+  public BlobStore(
+      MetadataStore metadataStore,
+      ObjectClient objectClient,
+      PhysicalIOConfiguration configuration) {
     this.metadataStore = metadataStore;
     this.objectClient = objectClient;
     this.blobMap =
@@ -28,7 +33,7 @@ public class BlobStore implements Closeable {
             new LinkedHashMap<S3URI, Blob>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > 50;
+                return this.size() > configuration.getBlobStoreCapacity();
               }
             });
   }
@@ -39,7 +44,7 @@ public class BlobStore implements Closeable {
    * @param s3URI the S3 URI of the object
    * @return the blob representing the object from the BlobStore
    */
-  public Blob open(S3URI s3URI) {
+  public Blob get(S3URI s3URI) {
     return blobMap.computeIfAbsent(
         s3URI,
         uri -> new Blob(uri, metadataStore, new BlockManager(uri, objectClient, metadataStore)));
