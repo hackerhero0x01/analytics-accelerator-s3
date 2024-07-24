@@ -4,9 +4,9 @@ import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
-import com.amazon.connector.s3.io.physical.impl.PhysicalIOImplV2;
-import com.amazon.connector.s3.io.physical.v2.data.BlobStore;
-import com.amazon.connector.s3.io.physical.v2.data.MetadataStore;
+import com.amazon.connector.s3.io.physical.data.BlobStore;
+import com.amazon.connector.s3.io.physical.data.MetadataStore;
+import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.EOFException;
 import java.io.IOException;
@@ -46,7 +46,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
         s3URI,
         new ParquetLogicalIOImpl(
             s3URI,
-            new PhysicalIOImplV2(s3URI, metadataStore, blobStore),
+            new PhysicalIOImpl(s3URI, metadataStore, blobStore),
             configuration.getLogicalIOConfiguration(),
             parquetMetadataStore));
   }

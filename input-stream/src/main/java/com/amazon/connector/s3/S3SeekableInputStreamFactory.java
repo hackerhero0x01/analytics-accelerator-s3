@@ -1,9 +1,8 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.MultiObjectsBlockManager;
-import com.amazon.connector.s3.io.physical.v2.data.BlobStore;
-import com.amazon.connector.s3.io.physical.v2.data.MetadataStore;
+import com.amazon.connector.s3.io.physical.data.BlobStore;
+import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import lombok.Getter;
@@ -23,7 +22,6 @@ import lombok.NonNull;
 public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final ObjectClient objectClient;
   private final S3SeekableInputStreamConfiguration configuration;
-  private final MultiObjectsBlockManager multiObjectsBlockManager;
   private final ParquetMetadataStore parquetMetadataStore;
 
   private final MetadataStore objectMetadataStore;
@@ -42,8 +40,6 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     this.objectClient = objectClient;
     this.configuration = configuration;
-    this.multiObjectsBlockManager =
-        new MultiObjectsBlockManager(objectClient, configuration.getBlockManagerConfiguration());
     this.parquetMetadataStore = new ParquetMetadataStore(configuration.getLogicalIOConfiguration());
     this.objectMetadataStore = new MetadataStore(objectClient);
     this.objectBlobStore = new BlobStore(objectMetadataStore, objectClient);
@@ -67,6 +63,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   @Override
   public void close() throws IOException {
-    multiObjectsBlockManager.close();
+    this.objectMetadataStore.close();
+    this.objectBlobStore.close();
   }
 }

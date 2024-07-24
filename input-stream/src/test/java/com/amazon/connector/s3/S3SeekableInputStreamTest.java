@@ -13,12 +13,9 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
+import com.amazon.connector.s3.io.physical.data.BlobStore;
+import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManager;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManagerConfiguration;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.MultiObjectsBlockManager;
-import com.amazon.connector.s3.io.physical.v2.data.BlobStore;
-import com.amazon.connector.s3.io.physical.v2.data.MetadataStore;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
@@ -345,9 +342,11 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     StringBuilder sb = new StringBuilder(filesSize);
     sb.append(StringUtils.repeat("0", 8 * ONE_MB));
     S3URI s3URI = S3URI.of("test", "test");
-    MultiObjectsBlockManager blockManager =
-        new MultiObjectsBlockManager(
-            new FakeObjectClient(sb.toString()), BlockManagerConfiguration.DEFAULT);
+
+    FakeObjectClient fakeObjectClient = new FakeObjectClient(sb.toString());
+    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
+    BlobStore blobStore = new BlobStore(metadataStore, fakeObjectClient);
+
     AtomicBoolean haveException = new AtomicBoolean(false);
 
     // Create 20 threads to start multiple SeekableInputStream to read last and first 4 bytes
@@ -357,7 +356,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
           new Thread(
               () -> {
                 try {
-                  PhysicalIO physicalIO = new PhysicalIOImpl(new BlockManager(blockManager, s3URI));
+                  PhysicalIO physicalIO = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
                   LogicalIO logicalIO =
                       new ParquetLogicalIOImpl(
                           TEST_OBJECT,
@@ -396,13 +395,15 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     LogicalIOConfiguration configuration =
         LogicalIOConfiguration.builder().footerCachingEnabled(false).build();
 
+    FakeObjectClient fakeObjectClient = new FakeObjectClient(content);
+    MetadataStore metadataStore = new MetadataStore(fakeObjectClient);
+    BlobStore blobStore = new BlobStore(metadataStore, fakeObjectClient);
+
     return new S3SeekableInputStream(
         TEST_OBJECT,
         new ParquetLogicalIOImpl(
             TEST_OBJECT,
-            new PhysicalIOImpl(
-                new BlockManager(
-                    new FakeObjectClient(content), TEST_OBJECT, BlockManagerConfiguration.DEFAULT)),
+            new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore),
             configuration,
             new ParquetMetadataStore(configuration)));
   }

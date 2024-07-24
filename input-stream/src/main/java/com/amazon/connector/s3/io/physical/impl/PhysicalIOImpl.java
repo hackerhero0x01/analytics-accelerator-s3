@@ -1,87 +1,81 @@
 package com.amazon.connector.s3.io.physical.impl;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
+import com.amazon.connector.s3.io.physical.data.BlobStore;
+import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
-import com.amazon.connector.s3.io.physical.plan.IOPlanState;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManager;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManagerConfiguration;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManagerInterface;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
-import java.security.InvalidParameterException;
 import java.util.concurrent.CompletableFuture;
 
-/** An implementation of a physical IO layer. */
+/** A PhysicalIO frontend */
 public class PhysicalIOImpl implements PhysicalIO {
-  private final BlockManagerInterface blockManager;
+
+  private S3URI s3URI;
+  private MetadataStore metadataStore;
+  private BlobStore blobStore;
 
   /**
-   * Construct a PhysicalIOImpl for tests.
+   * Construct a new instance of PhysicalIOV2.
    *
-   * @param objectClient to use for physical reads
-   * @param s3URI the S3 location of the object
-   * @param blockManagerConfiguration configuration to use with Block Manager under the hood
+   * @param s3URI the S3 URI of the object
+   * @param metadataStore a metadata cache
+   * @param blobStore a data cache
    */
-  protected PhysicalIOImpl(
-      ObjectClient objectClient, S3URI s3URI, BlockManagerConfiguration blockManagerConfiguration) {
-    Preconditions.checkNotNull(objectClient, "objectClient should not be null");
-    Preconditions.checkNotNull(s3URI, "s3URI should not be null");
-    Preconditions.checkNotNull(
-        blockManagerConfiguration, "blockManagerConfiguration should not be null");
+  public PhysicalIOImpl(S3URI s3URI, MetadataStore metadataStore, BlobStore blobStore) {
+    Preconditions.checkNotNull(s3URI, "`s3URI` should not be null");
+    Preconditions.checkNotNull(metadataStore, "`metadataStore` should not be null");
+    Preconditions.checkNotNull(blobStore, "`blobStore` should not be null");
 
-    this.blockManager = new BlockManager(objectClient, s3URI, blockManagerConfiguration);
-  }
-
-  /**
-   * Construct a PhysicalIOImpl.
-   *
-   * @param blockManager to use
-   */
-  public PhysicalIOImpl(BlockManagerInterface blockManager) {
-    Preconditions.checkNotNull(blockManager, "BlockManager should not be null");
-    this.blockManager = blockManager;
-  }
-
-  @Override
-  public IOPlanExecution execute(IOPlan logicalIOPlan) throws InvalidParameterException {
-    if (logicalIOPlan.getPrefetchRanges() == null)
-      throw new InvalidParameterException(
-          "logicalIOPlan doesn't provide information about file to read");
-
-    this.blockManager.queuePrefetch(logicalIOPlan.getPrefetchRanges());
-    return IOPlanExecution.builder().state(IOPlanState.SUBMITTED).build();
+    this.s3URI = s3URI;
+    this.metadataStore = metadataStore;
+    this.blobStore = blobStore;
   }
 
   @Override
   public CompletableFuture<ObjectMetadata> metadata() {
-    return this.blockManager.getMetadata();
+    return metadataStore.get(s3URI);
   }
 
   @Override
-  public int read(long position) throws IOException {
-    return this.blockManager.read(position);
+  public int read(long pos) throws IOException {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+    Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
+
+    return blobStore.open(s3URI).read(pos);
   }
 
   @Override
-  public int read(byte[] buf, int off, int len, long position) throws IOException {
-    return this.blockManager.read(buf, off, len, position);
+  public int read(byte[] buf, int off, int len, long pos) throws IOException {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+    Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
+    Preconditions.checkArgument(0 <= off, "`off` must not be negative");
+    Preconditions.checkArgument(0 <= len, "`len` must not be negative");
+    Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
+
+    return blobStore.open(s3URI).read(buf, off, len, pos);
   }
 
   @Override
   public int readTail(byte[] buf, int off, int len) throws IOException {
-    return this.blockManager.readTail(buf, off, len);
+    Preconditions.checkArgument(0 <= len, "`len` must not be negative");
+
+    long contentLength = metadataStore.get(s3URI).join().getContentLength();
+    return blobStore.open(s3URI).read(buf, off, len, contentLength - len);
   }
 
   @Override
-  public void close() throws IOException {
-    try {
-      this.blockManager.close();
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
+  public IOPlanExecution execute(IOPlan ioPlan) {
+    return blobStore.open(s3URI).execute(ioPlan);
   }
+
+  private long contentLength() {
+    return metadata().join().getContentLength();
+  }
+
+  @Override
+  public void close() throws IOException {}
 }

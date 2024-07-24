@@ -8,9 +8,9 @@ import static org.mockito.Mockito.*;
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
+import com.amazon.connector.s3.io.physical.data.BlobStore;
+import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManager;
-import com.amazon.connector.s3.io.physical.v1.blockmanager.BlockManagerConfiguration;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.util.S3URI;
@@ -77,9 +77,9 @@ public class ParquetLogicalIOImplTest {
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(0).build()));
     S3URI s3URI = S3URI.of("test", "test");
-    BlockManager blockManager =
-        new BlockManager(mockClient, s3URI, BlockManagerConfiguration.DEFAULT);
-    PhysicalIOImpl physicalIO = new PhysicalIOImpl(blockManager);
+    MetadataStore metadataStore = new MetadataStore(mockClient);
+    BlobStore blobStore = new BlobStore(metadataStore, mockClient);
+    PhysicalIOImpl physicalIO = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
     assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(
@@ -90,15 +90,15 @@ public class ParquetLogicalIOImplTest {
   }
 
   @Test
-  void testMetadaWithNegativeContentLength() {
+  void testMetadataWithNegativeContentLength() {
     ObjectClient mockClient = mock(ObjectClient.class);
     when(mockClient.headObject(any(HeadRequest.class)))
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(-1).build()));
     S3URI s3URI = S3URI.of("test", "test");
-    BlockManager blockManager =
-        new BlockManager(mockClient, s3URI, BlockManagerConfiguration.DEFAULT);
-    PhysicalIOImpl physicalIO = new PhysicalIOImpl(blockManager);
+    MetadataStore metadataStore = new MetadataStore(mockClient);
+    BlobStore blobStore = new BlobStore(metadataStore, mockClient);
+    PhysicalIOImpl physicalIO = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
     assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(

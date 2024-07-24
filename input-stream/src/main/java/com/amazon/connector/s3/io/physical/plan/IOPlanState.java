@@ -7,5 +7,8 @@ public enum IOPlanState {
   SUBMITTED,
 
   /** No IOPlan was submitted to PhysicalIO */
-  SKIPPED
+  SKIPPED,
+
+  /** Failed to submit IOPlan to PhysicalIO */
+  FAILED
 }
