@@ -1,8 +1,8 @@
 package com.amazon.connector.s3.io.physical.prefetcher;
 
-import com.amazon.connector.s3.common.Preconditions;
-
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
+
+import com.amazon.connector.s3.common.Preconditions;
 
 /**
  * Class that implements a mathematical function telling us the size of blocks we should prefetch in

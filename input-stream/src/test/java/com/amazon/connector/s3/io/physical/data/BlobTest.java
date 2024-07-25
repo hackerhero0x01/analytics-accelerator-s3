@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.data;
 
 import static com.amazon.connector.s3.io.physical.plan.IOPlanState.SUBMITTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -57,16 +58,18 @@ public class BlobTest {
   }
 
   @Test
-  public void test__bufferedRead__readPastEnd() {
-    // Given: test Blob representing no data
+  public void test__bufferedRead__validatesArguments() {
+    // Given: test Blob
     Blob blob = getTestBlob("abc");
 
-    // When: buffered read is performed at the edge of the blob
+    // When & Then: read is called with illegal arguments, IllegalArgumentException is thrown
     byte[] b = new byte[4];
-    int r = blob.read(b, 0, b.length, 3);
 
-    // Then: buffered read returns 0
-    assertEquals(0, r);
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, b.length, -100));
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, b.length, 300));
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, -1, b.length, 3));
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, -10, 300));
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 100, b.length, 3));
   }
 
   @Test

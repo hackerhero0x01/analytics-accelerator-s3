@@ -1,7 +1,5 @@
 package com.amazon.connector.s3.io.physical.data;
 
-import static com.amazon.connector.s3.util.Constants.ONE_MB;
-
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import java.util.LinkedList;
