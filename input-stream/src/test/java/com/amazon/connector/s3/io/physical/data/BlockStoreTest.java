@@ -76,14 +76,14 @@ public class BlockStoreTest {
     blockStore.add(new Block(TEST_URI, fakeObjectClient, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next available byte, the result is correct
-    assertEquals(OptionalLong.of(2), blockStore.findNextAvailableByte(0));
-    assertEquals(OptionalLong.of(2), blockStore.findNextAvailableByte(1));
-    assertEquals(OptionalLong.of(2), blockStore.findNextAvailableByte(2));
-    assertEquals(OptionalLong.of(3), blockStore.findNextAvailableByte(3));
-    assertEquals(OptionalLong.of(5), blockStore.findNextAvailableByte(4));
-    assertEquals(OptionalLong.of(5), blockStore.findNextAvailableByte(5));
-    assertEquals(OptionalLong.of(12), blockStore.findNextAvailableByte(11));
-    assertEquals(OptionalLong.of(15), blockStore.findNextAvailableByte(15));
+    assertEquals(OptionalLong.of(2), blockStore.findNextLoadedByte(0));
+    assertEquals(OptionalLong.of(2), blockStore.findNextLoadedByte(1));
+    assertEquals(OptionalLong.of(2), blockStore.findNextLoadedByte(2));
+    assertEquals(OptionalLong.of(3), blockStore.findNextLoadedByte(3));
+    assertEquals(OptionalLong.of(5), blockStore.findNextLoadedByte(4));
+    assertEquals(OptionalLong.of(5), blockStore.findNextLoadedByte(5));
+    assertEquals(OptionalLong.of(12), blockStore.findNextLoadedByte(11));
+    assertEquals(OptionalLong.of(15), blockStore.findNextLoadedByte(15));
   }
 
   @Test

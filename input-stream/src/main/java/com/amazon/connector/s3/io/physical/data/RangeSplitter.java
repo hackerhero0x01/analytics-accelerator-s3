@@ -56,8 +56,6 @@ public class RangeSplitter {
   }
 
   private static long getSplitbackBlockSize(int index) {
-    // TODO: we should fine tune this
-    // Progression is: 4,4,4,4,8,8,8,8,16,16,16,16...
     return 4 * ONE_MB;
   }
 }

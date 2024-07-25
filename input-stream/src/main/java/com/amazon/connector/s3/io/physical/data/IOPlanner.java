@@ -31,8 +31,7 @@ public class IOPlanner {
 
     while (nextMissingByte.isPresent()
         && nextMissingByte.getAsLong() <= Math.min(end, lastObjectByte)) {
-      OptionalLong nextAvailableByte =
-          blockStore.findNextAvailableByte(nextMissingByte.getAsLong());
+      OptionalLong nextAvailableByte = blockStore.findNextLoadedByte(nextMissingByte.getAsLong());
 
       final long endOfRange;
       if (nextAvailableByte.isPresent()) {

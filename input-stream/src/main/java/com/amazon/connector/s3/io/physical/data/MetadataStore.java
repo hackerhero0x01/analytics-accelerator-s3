@@ -43,8 +43,6 @@ public class MetadataStore implements Closeable {
    * @return returns the object's metadata.
    */
   public synchronized CompletableFuture<ObjectMetadata> get(S3URI s3URI) {
-    Preconditions.checkNotNull(this.cache, "the cache must not be null");
-
     return this.cache.computeIfAbsent(
         s3URI,
         uri ->

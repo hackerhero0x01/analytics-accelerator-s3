@@ -14,9 +14,9 @@ import java.util.concurrent.CompletableFuture;
 /** A PhysicalIO frontend */
 public class PhysicalIOImpl implements PhysicalIO {
 
-  private S3URI s3URI;
-  private MetadataStore metadataStore;
-  private BlobStore blobStore;
+  private final S3URI s3URI;
+  private final MetadataStore metadataStore;
+  private final BlobStore blobStore;
 
   /**
    * Construct a new instance of PhysicalIOV2.

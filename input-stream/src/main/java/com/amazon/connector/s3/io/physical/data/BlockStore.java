@@ -39,12 +39,13 @@ public class BlockStore implements Closeable {
 
   /**
    * Given a position, return the position of the next available byte to the right of the given byte
-   * (or the position itself if it is present in the BlockStore).
+   * (or the position itself if it is present in the BlockStore). Available in this context means
+   * that we already have a block that has loaded or is about to load the byte in question.
    *
    * @param pos a byte position
    * @return the position of the next available byte or empty if there is no next available byte
    */
-  public OptionalLong findNextAvailableByte(long pos) {
+  public OptionalLong findNextLoadedByte(long pos) {
     if (getBlock(pos).isPresent()) {
       return OptionalLong.of(pos);
     }
