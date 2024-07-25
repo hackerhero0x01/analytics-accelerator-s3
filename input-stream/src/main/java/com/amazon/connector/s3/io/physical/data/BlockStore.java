@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.io.physical.data;
 
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
 import java.util.LinkedList;
@@ -21,6 +22,9 @@ public class BlockStore implements Closeable {
    * @param metadataStore the metadata cache
    */
   public BlockStore(S3URI s3URI, MetadataStore metadataStore) {
+    Preconditions.checkNotNull(s3URI, "`s3URI` must not be null");
+    Preconditions.checkNotNull(metadataStore, "`metadataStore` must not be null");
+
     this.s3URI = s3URI;
     this.metadataStore = metadataStore;
     this.blocks = new LinkedList<>();

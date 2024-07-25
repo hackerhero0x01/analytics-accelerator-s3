@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
@@ -27,6 +28,10 @@ public class BlobStore implements Closeable {
       MetadataStore metadataStore,
       ObjectClient objectClient,
       PhysicalIOConfiguration configuration) {
+    Preconditions.checkNotNull(metadataStore, "`metadataStore` should not be null");
+    Preconditions.checkNotNull(objectClient, "`objectClient` should not be null");
+    Preconditions.checkNotNull("`configuration` should not be null");
+
     this.metadataStore = metadataStore;
     this.objectClient = objectClient;
     this.blobMap =

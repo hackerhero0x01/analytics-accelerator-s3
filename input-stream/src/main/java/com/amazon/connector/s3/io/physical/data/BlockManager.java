@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.io.physical.prefetcher.SequentialPatternDetector;
@@ -22,6 +23,7 @@ public class BlockManager implements Closeable {
   private final SequentialReadProgression sequentialReadProgression;
   private final IOPlanner ioPlanner;
   private final PhysicalIOConfiguration configuration;
+  private final RangeOptimiser rangeOptimiser;
 
   /**
    * Constructs a new BlockManager.
@@ -36,6 +38,11 @@ public class BlockManager implements Closeable {
       ObjectClient objectClient,
       MetadataStore metadataStore,
       PhysicalIOConfiguration configuration) {
+    Preconditions.checkNotNull(s3URI, "`s3URI` must not be null");
+    Preconditions.checkNotNull(objectClient, "`objectClient` must not be null");
+    Preconditions.checkNotNull(metadataStore, "`metadataStore` must not be null");
+    Preconditions.checkNotNull(configuration, "`configuration` must not be null");
+
     this.s3URI = s3URI;
     this.objectClient = objectClient;
     this.metadataStore = metadataStore;
@@ -44,6 +51,7 @@ public class BlockManager implements Closeable {
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression();
     this.ioPlanner = new IOPlanner(blockStore);
+    this.rangeOptimiser = new RangeOptimiser(configuration);
   }
 
   /**
@@ -113,7 +121,7 @@ public class BlockManager implements Closeable {
 
     // Determine the missing ranges and fetch them
     List<Range> missingRanges = ioPlanner.planRead(pos, end, getLastObjectByte());
-    List<Range> splits = RangeSplitter.splitRanges(missingRanges);
+    List<Range> splits = rangeOptimiser.splitRanges(missingRanges);
     splits.forEach(
         r -> {
           Block block =

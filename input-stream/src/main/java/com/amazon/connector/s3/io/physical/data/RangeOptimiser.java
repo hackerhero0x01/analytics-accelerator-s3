@@ -2,9 +2,11 @@ package com.amazon.connector.s3.io.physical.data;
 
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import java.util.LinkedList;
 import java.util.List;
+import lombok.Value;
 
 /**
  * RangeSplitter is responsible for splitting up big ranges into smaller reads. The need for such
@@ -14,9 +16,11 @@ import java.util.List;
  * <p>This class is capable of implementing heuristics on how to fetch ranges of different sizes
  * optimally.
  */
-public class RangeSplitter {
+@Value
+public class RangeOptimiser {
 
-  // TODO: these should come from configurations
+  private final PhysicalIOConfiguration configuration;
+
   private static final long SPLITBACK_THRESHOLD = 8 * ONE_MB;
 
   /**
@@ -26,7 +30,7 @@ public class RangeSplitter {
    * @param ranges a list of ranges
    * @return a potentially different list of ranges with big ranges split up
    */
-  public static List<Range> splitRanges(List<Range> ranges) {
+  public List<Range> splitRanges(List<Range> ranges) {
     List<Range> splits = new LinkedList<>();
 
     for (Range range : ranges) {
@@ -40,7 +44,7 @@ public class RangeSplitter {
     return splits;
   }
 
-  private static List<Range> splitRange(long start, long end) {
+  private List<Range> splitRange(long start, long end) {
     long nextRangeStart = start;
     List<Range> generatedRanges = new LinkedList<>();
 

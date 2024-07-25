@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.io.physical.data;
 
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
@@ -26,6 +27,10 @@ public class Blob implements Closeable {
    * @param blockManager the BlockManager for this object
    */
   public Blob(S3URI s3URI, MetadataStore metadataStore, BlockManager blockManager) {
+    Preconditions.checkNotNull(s3URI, "`s3URI` should not be null");
+    Preconditions.checkNotNull(metadataStore, "`metadataStore` should not be null");
+    Preconditions.checkNotNull(blockManager, "`blockManager` should not be null");
+
     this.s3URI = s3URI;
     this.metadataStore = metadataStore;
     this.blockManager = blockManager;

@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.Range;
@@ -42,6 +43,17 @@ public class Block implements Closeable {
       long end,
       long generation,
       ReadMode readMode) {
+    Preconditions.checkNotNull(s3URI, "`s3URI` should not be null");
+    Preconditions.checkNotNull(objectClient, "`objectClient` should not be null");
+    Preconditions.checkNotNull(readMode, "`readMode` should not be null");
+
+    Preconditions.checkArgument(
+        0 <= generation, "`generation` must be non-negative; was: %s", generation);
+    Preconditions.checkArgument(0 <= start, "`start` must be non-negative; was: %s", start);
+    Preconditions.checkArgument(0 <= end, "`end` must be non-negative; was: %s", end);
+    Preconditions.checkArgument(
+        start <= end, "`start` must be less than `end`; %s is not less than %s", start, end);
+
     this.start = start;
     this.end = end;
     this.generation = generation;
