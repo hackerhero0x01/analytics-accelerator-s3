@@ -21,8 +21,6 @@ public class RangeOptimiser {
 
   private final PhysicalIOConfiguration configuration;
 
-  private static final long SPLITBACK_THRESHOLD = 8 * ONE_MB;
-
   /**
    * Given a list of ranges, return a potentially new set of ranges which is more optimal to fetch
    * (i.e., split up huge ranges based on a heuristic).
@@ -34,7 +32,7 @@ public class RangeOptimiser {
     List<Range> splits = new LinkedList<>();
 
     for (Range range : ranges) {
-      if (range.getLength() > SPLITBACK_THRESHOLD) {
+      if (range.getLength() > configuration.getMaxRangeSizeBytes()) {
         splitRange(range.getStart(), range.getEnd()).forEach(splits::add);
       } else {
         splits.add(range);
@@ -48,18 +46,12 @@ public class RangeOptimiser {
     long nextRangeStart = start;
     List<Range> generatedRanges = new LinkedList<>();
 
-    int splitBackIndex = 0;
     while (nextRangeStart < end) {
-      long rangeEnd = Math.min(nextRangeStart + getSplitbackBlockSize(splitBackIndex) - 1, end);
+      long rangeEnd = Math.min(nextRangeStart + configuration.getPartSizeBytes() - 1, end);
       generatedRanges.add(new Range(nextRangeStart, rangeEnd));
       nextRangeStart = rangeEnd + 1;
-      ++splitBackIndex;
     }
 
     return generatedRanges;
-  }
-
-  private static long getSplitbackBlockSize(int index) {
-    return 4 * ONE_MB;
   }
 }

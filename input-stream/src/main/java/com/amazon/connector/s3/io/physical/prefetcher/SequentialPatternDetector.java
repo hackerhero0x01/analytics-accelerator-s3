@@ -28,7 +28,7 @@ public class SequentialPatternDetector {
    * @return returns true if this read is part of a sequential read pattern
    */
   public boolean isSequentialRead(long pos) {
-    Preconditions.checkArgument(pos >= 0, "position must be bigger than or equal to 0");
+    Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
 
     if (pos == 0) {
       return false;
@@ -44,7 +44,7 @@ public class SequentialPatternDetector {
    * @return returns the generation of the byte
    */
   public long getGeneration(long pos) {
-    Preconditions.checkArgument(pos >= 0, "position must be bigger than or equal to 0");
+    Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
 
     if (isSequentialRead(pos)) {
       return blockStore.getBlock(pos - 1).get().getGeneration() + 1;

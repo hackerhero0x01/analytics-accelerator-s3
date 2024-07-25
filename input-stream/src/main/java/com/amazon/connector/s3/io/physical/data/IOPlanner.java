@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.io.physical.data;
 
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +26,9 @@ public class IOPlanner {
    * @return a list of Ranges that need to be fetched
    */
   public List<Range> planRead(long pos, long end, long lastObjectByte) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must be non-negative");
+    Preconditions.checkArgument(pos <= end, "`pos` must be less than or equal to `end`");
+
     List<Range> missingRanges = new LinkedList<>();
 
     OptionalLong nextMissingByte = blockStore.findNextMissingByte(pos);

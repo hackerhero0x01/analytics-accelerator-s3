@@ -78,6 +78,8 @@ public class Block implements Closeable {
    * @return an unsigned int representing the byte that was read
    */
   public int read(long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
     byte[] content = this.data.join();
     return Byte.toUnsignedInt(content[posToOffset(pos)]);
   }
@@ -92,6 +94,11 @@ public class Block implements Closeable {
    * @return the total number of bytes read into the buffer
    */
   public int read(byte[] buf, int off, int len, long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+    Preconditions.checkArgument(0 <= off, "`off` must not be negative");
+    Preconditions.checkArgument(0 <= len, "`len` must not be negative");
+    Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
+
     byte[] content = this.data.join();
     int available = content.length - posToOffset(pos);
     int bytesToCopy = Math.min(len, available);
@@ -110,9 +117,17 @@ public class Block implements Closeable {
    * @return true if the byte at the position is contained by this block
    */
   public boolean contains(long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
     return start <= pos && pos <= end;
   }
 
+  /**
+   * Determines the offset in the Block corresponding to a position in an object.
+   *
+   * @param pos the position of a byte in the object
+   * @return the offset in the byte buffer underlying this Block
+   */
   private int posToOffset(long pos) {
     return (int) (pos - start);
   }

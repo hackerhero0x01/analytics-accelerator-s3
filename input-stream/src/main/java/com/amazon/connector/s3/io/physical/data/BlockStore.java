@@ -38,6 +38,8 @@ public class BlockStore implements Closeable {
    *     in the BlockStore
    */
   public Optional<Block> getBlock(long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
     return blocks.stream().filter(b -> b.contains(pos)).findFirst();
   }
 
@@ -50,6 +52,8 @@ public class BlockStore implements Closeable {
    * @return the position of the next available byte or empty if there is no next available byte
    */
   public OptionalLong findNextLoadedByte(long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
     if (getBlock(pos).isPresent()) {
       return OptionalLong.of(pos);
     }
@@ -66,6 +70,8 @@ public class BlockStore implements Closeable {
    *     present
    */
   public OptionalLong findNextMissingByte(long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
     long nextMissingByte = pos;
 
     while (getBlock(nextMissingByte).isPresent()) {
@@ -83,6 +89,8 @@ public class BlockStore implements Closeable {
    * @param block the block to add to the BlockStore
    */
   public void add(Block block) {
+    Preconditions.checkNotNull(block, "`block` must not be null");
+
     this.blocks.add(block);
   }
 

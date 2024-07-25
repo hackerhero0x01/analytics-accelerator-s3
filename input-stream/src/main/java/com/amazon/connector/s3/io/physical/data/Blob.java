@@ -43,6 +43,8 @@ public class Blob implements Closeable {
    * @return an unsigned int representing the byte that was read
    */
   public int read(long pos) {
+    Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
+
     blockManager.makePositionAvailable(pos, ReadMode.SYNC);
     return blockManager.getBlock(pos).get().read(pos);
   }
@@ -57,6 +59,12 @@ public class Blob implements Closeable {
    * @return the total number of bytes read into the buffer
    */
   public int read(byte[] buf, int off, int len, long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+    Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
+    Preconditions.checkArgument(0 <= off, "`off` must not be negative");
+    Preconditions.checkArgument(0 <= len, "`len` must not be negative");
+    Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
+
     blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
     long nextPosition = pos;

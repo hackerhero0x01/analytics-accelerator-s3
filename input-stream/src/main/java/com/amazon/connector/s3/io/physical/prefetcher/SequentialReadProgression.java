@@ -1,5 +1,7 @@
 package com.amazon.connector.s3.io.physical.prefetcher;
 
+import com.amazon.connector.s3.common.Preconditions;
+
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 
 /**
@@ -20,6 +22,8 @@ public class SequentialReadProgression {
    * @return a block size in bytes
    */
   public long getSizeForGeneration(long generation) {
+    Preconditions.checkArgument(0 <= generation, "`generation` must be non-negative");
+
     // 2, 8, 32, 64
     return 2 * ONE_MB * (long) Math.pow(BASE, Math.floor(ALPHA * generation));
   }

@@ -71,6 +71,8 @@ public class BlockManager implements Closeable {
    * @param readMode whether this ask corresponds to a sync or async read
    */
   public synchronized void makePositionAvailable(long pos, ReadMode readMode) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
     // Position is already available --> return corresponding block
     if (getBlock(pos).isPresent()) {
       return;
@@ -80,6 +82,9 @@ public class BlockManager implements Closeable {
   }
 
   private boolean isRangeAvailable(long pos, long len) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+    Preconditions.checkArgument(0 <= len, "`len` must not be negative");
+
     long lastByteOfRange = pos + len - 1;
 
     if (blockStore.findNextMissingByte(pos).isPresent()) {
@@ -100,6 +105,9 @@ public class BlockManager implements Closeable {
    * @param readMode whether this ask corresponds to a sync or async read
    */
   public synchronized void makeRangeAvailable(long pos, long len, ReadMode readMode) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+    Preconditions.checkArgument(0 <= len, "`len` must not be negative");
+
     if (isRangeAvailable(pos, len)) {
       return;
     }
@@ -135,6 +143,8 @@ public class BlockManager implements Closeable {
   }
 
   private long truncatePos(long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
     return Math.min(pos, getLastObjectByte());
   }
 
