@@ -9,13 +9,13 @@ public class ReferrerTest {
 
   @Test
   void testConstructor() {
-    Referrer referrer = new Referrer(null, false);
+    Referrer referrer = new Referrer(null, ReadMode.SYNC);
     assertNotNull(referrer);
   }
 
   @Test
   void testReferrerToString() {
-    Referrer referrer = new Referrer("bytes=11083511-19472118", true);
-    assertEquals(referrer.toString(), "bytes=11083511-19472118,isPrefetch=true");
+    Referrer referrer = new Referrer("bytes=11083511-19472118", ReadMode.ASYNC);
+    assertEquals(referrer.toString(), "bytes=11083511-19472118,readMode=ASYNC");
   }
 }

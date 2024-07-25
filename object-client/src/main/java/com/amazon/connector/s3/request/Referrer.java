@@ -1,28 +1,29 @@
 package com.amazon.connector.s3.request;
 
-import lombok.Getter;
+import lombok.Value;
 
 /** Represents the referrer header to be passed in when making a request. */
+@Value
 public class Referrer {
-  @Getter private final String range;
-  @Getter private final boolean isPrefetch;
+  private final String range;
+  private final ReadMode readMode;
 
   /**
    * Construct a referrer object.
    *
    * @param range range of data requested
-   * @param isPrefetch is the request on the prefetch path?
+   * @param readMode is this a sync or async read?
    */
-  public Referrer(String range, boolean isPrefetch) {
+  public Referrer(String range, ReadMode readMode) {
     this.range = range;
-    this.isPrefetch = isPrefetch;
+    this.readMode = readMode;
   }
 
   @Override
   public String toString() {
     StringBuilder referrer = new StringBuilder();
     referrer.append(range);
-    referrer.append(",isPrefetch=").append(isPrefetch);
+    referrer.append(",readMode=").append(readMode);
     return referrer.toString();
   }
 }

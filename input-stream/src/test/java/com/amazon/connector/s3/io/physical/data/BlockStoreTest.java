@@ -7,6 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
+import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.Optional;
@@ -26,7 +27,7 @@ public class BlockStoreTest {
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
     // When: a new block is added
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 3, 5, 0));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, 3, 5, 0, ReadMode.SYNC));
 
     // Then: getBlock can retrieve the same block
     Optional<Block> b = blockStore.getBlock(4);
@@ -46,9 +47,9 @@ public class BlockStoreTest {
         new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 2, 3, 0));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 5, 10, 0));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 12, 15, 0));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, 2, 3, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, 5, 10, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next missing byte, the result is correct
     assertEquals(OptionalLong.of(0), blockStore.findNextMissingByte(0));
@@ -70,9 +71,9 @@ public class BlockStoreTest {
         new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 2, 3, 0));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 5, 10, 0));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 12, 15, 0));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, 2, 3, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, 5, 10, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next available byte, the result is correct
     assertEquals(OptionalLong.of(2), blockStore.findNextAvailableByte(0));

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.LinkedList;
@@ -48,7 +49,7 @@ public class IOPlannerTest {
     MetadataStore metadataStore = getTestMetadataStoreWithContentLength(OBJECT_SIZE);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
     FakeObjectClient fakeObjectClient = new FakeObjectClient(new String(content));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 100, 200, 0));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, 100, 200, 0, ReadMode.SYNC));
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range (0, 400)

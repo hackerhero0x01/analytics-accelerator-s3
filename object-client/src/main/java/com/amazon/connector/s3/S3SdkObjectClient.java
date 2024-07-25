@@ -17,6 +17,7 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
 
   public static final String HEADER_USER_AGENT = "User-Agent";
+  private static final String HEADER_REFERER = "Referer";
 
   private S3AsyncClient s3AsyncClient = null;
   private ObjectClientConfiguration objectClientConfiguration = null;
@@ -94,7 +95,7 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
 
       builder.overrideConfiguration(
           AwsRequestOverrideConfiguration.builder()
-              .putHeader("Referer", getRequest.getReferrer())
+              .putHeader(HEADER_REFERER, getRequest.getReferrer().toString())
               .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
               .build());
     }

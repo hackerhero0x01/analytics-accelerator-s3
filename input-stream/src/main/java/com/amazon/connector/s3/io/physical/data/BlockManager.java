@@ -5,6 +5,7 @@ import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.io.physical.prefetcher.SequentialPatternDetector;
 import com.amazon.connector.s3.io.physical.prefetcher.SequentialReadProgression;
+import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
 import java.util.List;
@@ -20,6 +21,7 @@ public class BlockManager implements Closeable {
   private final SequentialPatternDetector patternDetector;
   private final SequentialReadProgression sequentialReadProgression;
   private final IOPlanner ioPlanner;
+  private final PhysicalIOConfiguration configuration;
 
   /**
    * Constructs a new BlockManager.
@@ -27,11 +29,17 @@ public class BlockManager implements Closeable {
    * @param s3URI the S3 URI of the object
    * @param objectClient object client capable of interacting with the underlying object store
    * @param metadataStore the metadata cache
+   * @param configuration the physicalIO configuration
    */
-  public BlockManager(S3URI s3URI, ObjectClient objectClient, MetadataStore metadataStore) {
+  public BlockManager(
+      S3URI s3URI,
+      ObjectClient objectClient,
+      MetadataStore metadataStore,
+      PhysicalIOConfiguration configuration) {
     this.s3URI = s3URI;
     this.objectClient = objectClient;
     this.metadataStore = metadataStore;
+    this.configuration = configuration;
     this.blockStore = new BlockStore(s3URI, metadataStore);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression();
@@ -52,14 +60,15 @@ public class BlockManager implements Closeable {
    * Make sure that the byte at a give position is in the BlockStore.
    *
    * @param pos the position of the byte
+   * @param readMode whether this ask corresponds to a sync or async read
    */
-  public synchronized void makePositionAvailable(long pos) {
+  public synchronized void makePositionAvailable(long pos, ReadMode readMode) {
     // Position is already available --> return corresponding block
     if (getBlock(pos).isPresent()) {
       return;
     }
 
-    makeRangeAvailable(pos, 1);
+    makeRangeAvailable(pos, 1, readMode);
   }
 
   private boolean isRangeAvailable(long pos, long len) {
@@ -80,14 +89,14 @@ public class BlockManager implements Closeable {
    *
    * @param pos start of a read
    * @param len length of the read
+   * @param readMode whether this ask corresponds to a sync or async read
    */
-  public synchronized void makeRangeAvailable(long pos, long len) {
+  public synchronized void makeRangeAvailable(long pos, long len, ReadMode readMode) {
     if (isRangeAvailable(pos, len)) {
       return;
     }
 
-    // TODO: use the proper value from the configuration
-    len = Math.max(len, PhysicalIOConfiguration.DEFAULT_READ_AHEAD_BYTES);
+    len = Math.max(len, configuration.getReadAheadBytes());
 
     // In case of a sequential reading pattern, calculate the generation and adjust the requested
     // end of the requested range
@@ -107,7 +116,8 @@ public class BlockManager implements Closeable {
     List<Range> splits = RangeSplitter.splitRanges(missingRanges);
     splits.forEach(
         r -> {
-          Block block = new Block(s3URI, objectClient, r.getStart(), r.getEnd(), generation);
+          Block block =
+              new Block(s3URI, objectClient, r.getStart(), r.getEnd(), generation, readMode);
           blockStore.add(block);
         });
   }

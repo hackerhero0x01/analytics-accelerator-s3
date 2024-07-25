@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.physical.data;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,7 @@ public class BlockTest {
     // Given: a Block containing "test-data"
     final String TEST_DATA = "test-data";
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
-    Block block = new Block(TEST_URI, fakeObjectClient, 0, TEST_DATA.length(), 0);
+    Block block = new Block(TEST_URI, fakeObjectClient, 0, TEST_DATA.length(), 0, ReadMode.SYNC);
 
     // When: bytes are requested from the block
     int r1 = block.read(0);
@@ -34,7 +35,7 @@ public class BlockTest {
     // Given: a Block containing "test-data"
     final String TEST_DATA = "test-data";
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
-    Block block = new Block(TEST_URI, fakeObjectClient, 0, TEST_DATA.length(), 0);
+    Block block = new Block(TEST_URI, fakeObjectClient, 0, TEST_DATA.length(), 0, ReadMode.SYNC);
 
     // When: bytes are requested from the block
     byte[] b1 = new byte[4];

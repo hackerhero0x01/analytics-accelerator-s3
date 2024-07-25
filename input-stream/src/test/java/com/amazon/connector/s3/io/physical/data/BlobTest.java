@@ -10,6 +10,7 @@ import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.LinkedList;
@@ -84,8 +85,8 @@ public class BlobTest {
 
     // Then: correct ranges are submitted
     assertEquals(SUBMITTED, execution.getState());
-    verify(blockManager).makeRangeAvailable(0, 101);
-    verify(blockManager).makeRangeAvailable(999, 2);
+    verify(blockManager).makeRangeAvailable(0, 101, ReadMode.ASYNC);
+    verify(blockManager).makeRangeAvailable(999, 2, ReadMode.ASYNC);
   }
 
   @Test
@@ -106,7 +107,9 @@ public class BlobTest {
     FakeObjectClient fakeObjectClient = new FakeObjectClient(data);
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
-    BlockManager blockManager = new BlockManager(TEST_URI, fakeObjectClient, metadataStore);
+    BlockManager blockManager =
+        new BlockManager(
+            TEST_URI, fakeObjectClient, metadataStore, PhysicalIOConfiguration.DEFAULT);
 
     return new Blob(TEST_URI, metadataStore, blockManager);
   }

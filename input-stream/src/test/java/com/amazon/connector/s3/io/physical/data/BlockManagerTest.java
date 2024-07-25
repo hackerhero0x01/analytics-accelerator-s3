@@ -15,6 +15,7 @@ import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
+import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.ByteArrayInputStream;
 import java.util.concurrent.CompletableFuture;
@@ -40,7 +41,7 @@ public class BlockManagerTest {
     BlockManager blockManager = getTestBlockManager(65 * ONE_KB);
 
     // When: have a 64KB block available from 0
-    blockManager.makePositionAvailable(0);
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
 
     // Then: 0 returns a block but 64KB + 1 byte returns no block
     assertTrue(blockManager.getBlock(0).isPresent());
@@ -55,7 +56,7 @@ public class BlockManagerTest {
     BlockManager blockManager = getTestBlockManager(objectClient, objectSize);
 
     // When
-    blockManager.makePositionAvailable(0);
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
 
     // Then
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
@@ -75,7 +76,7 @@ public class BlockManagerTest {
     BlockManager blockManager = getTestBlockManager(objectClient, objectSize);
 
     // When
-    blockManager.makePositionAvailable(0);
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
 
     // Then
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
@@ -90,11 +91,11 @@ public class BlockManagerTest {
     // Given: BM with 0-64KB and 64KB+1 to 128KB
     ObjectClient objectClient = mock(ObjectClient.class);
     BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_KB);
-    blockManager.makePositionAvailable(0);
-    blockManager.makePositionAvailable(64 * ONE_KB + 1);
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
+    blockManager.makePositionAvailable(64 * ONE_KB + 1, ReadMode.SYNC);
 
     // When: requesting the byte at 64KB
-    blockManager.makeRangeAvailable(64 * ONE_KB, 100);
+    blockManager.makeRangeAvailable(64 * ONE_KB, 100, ReadMode.SYNC);
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
     verify(objectClient, times(3)).getObject(requestCaptor.capture());
 
@@ -124,6 +125,6 @@ public class BlockManagerTest {
         .thenReturn(
             CompletableFuture.completedFuture(
                 ObjectMetadata.builder().contentLength(size).build()));
-    return new BlockManager(testUri, objectClient, metadataStore);
+    return new BlockManager(testUri, objectClient, metadataStore, PhysicalIOConfiguration.DEFAULT);
   }
 }

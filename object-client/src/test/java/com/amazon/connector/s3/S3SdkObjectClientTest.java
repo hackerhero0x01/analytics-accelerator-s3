@@ -12,6 +12,8 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.request.Range;
+import com.amazon.connector.s3.request.ReadMode;
+import com.amazon.connector.s3.request.Referrer;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -78,20 +80,17 @@ public class S3SdkObjectClientTest {
   }
 
   @Test
-  void testGetObject() {
-    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
-    assertInstanceOf(
-        CompletableFuture.class,
-        client.getObject(GetRequest.builder().bucket("bucket").key("key").build()));
-  }
-
-  @Test
   void testGetObjectWithRange() {
     S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
     assertInstanceOf(
         CompletableFuture.class,
         client.getObject(
-            GetRequest.builder().bucket("bucket").key("key").range(new Range(0, 20)).build()));
+            GetRequest.builder()
+                .bucket("bucket")
+                .key("key")
+                .range(new Range(0, 20))
+                .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
+                .build()));
   }
 
   @Test

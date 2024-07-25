@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.physical.data;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
+import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
 import org.apache.logging.log4j.LogManager;
@@ -37,7 +38,7 @@ public class Blob implements Closeable {
    * @return an unsigned int representing the byte that was read
    */
   public int read(long pos) {
-    blockManager.makePositionAvailable(pos);
+    blockManager.makePositionAvailable(pos, ReadMode.SYNC);
     return blockManager.getBlock(pos).get().read(pos);
   }
 
@@ -51,7 +52,7 @@ public class Blob implements Closeable {
    * @return the total number of bytes read into the buffer
    */
   public int read(byte[] buf, int off, int len, long pos) {
-    blockManager.makeRangeAvailable(pos, len);
+    blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
     long nextPosition = pos;
     int numBytesRead = 0;
@@ -87,7 +88,8 @@ public class Blob implements Closeable {
       plan.getPrefetchRanges()
           .forEach(
               range -> {
-                this.blockManager.makeRangeAvailable(range.getStart(), range.getLength());
+                this.blockManager.makeRangeAvailable(
+                    range.getStart(), range.getLength(), ReadMode.ASYNC);
               });
 
       return IOPlanExecution.builder().state(IOPlanState.SUBMITTED).build();

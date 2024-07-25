@@ -4,6 +4,8 @@ import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.Range;
+import com.amazon.connector.s3.request.ReadMode;
+import com.amazon.connector.s3.request.Referrer;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamUtils;
 import java.io.Closeable;
@@ -31,20 +33,27 @@ public class Block implements Closeable {
    * @param start start of the block
    * @param end end of the block
    * @param generation generation of the block in a sequential read pattern (should be 0 by default)
+   * @param readMode read mode describing whether this is a sync or async fetch
    */
-  public Block(S3URI s3URI, ObjectClient objectClient, long start, long end, long generation) {
+  public Block(
+      S3URI s3URI,
+      ObjectClient objectClient,
+      long start,
+      long end,
+      long generation,
+      ReadMode readMode) {
     this.start = start;
     this.end = end;
     this.generation = generation;
 
+    Range range = new Range(start, end);
     this.source =
         objectClient.getObject(
             GetRequest.builder()
                 .bucket(s3URI.getBucket())
                 .key(s3URI.getKey())
-                .range(new Range(start, end))
-                // TODO: get the proper referrer
-                .referrer("prototype")
+                .range(range)
+                .referrer(new Referrer(range.toString(), readMode))
                 .build());
 
     this.data = this.source.thenApply(StreamUtils::toByteArray);

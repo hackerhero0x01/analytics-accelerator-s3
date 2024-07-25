@@ -14,6 +14,7 @@ public class BlobStore implements Closeable {
   private final Map<S3URI, Blob> blobMap;
   private final MetadataStore metadataStore;
   private final ObjectClient objectClient;
+  private final PhysicalIOConfiguration configuration;
 
   /**
    * Construct an instance of BlobStore.
@@ -36,6 +37,7 @@ public class BlobStore implements Closeable {
                 return this.size() > configuration.getBlobStoreCapacity();
               }
             });
+    this.configuration = configuration;
   }
 
   /**
@@ -47,7 +49,11 @@ public class BlobStore implements Closeable {
   public Blob get(S3URI s3URI) {
     return blobMap.computeIfAbsent(
         s3URI,
-        uri -> new Blob(uri, metadataStore, new BlockManager(uri, objectClient, metadataStore)));
+        uri ->
+            new Blob(
+                uri,
+                metadataStore,
+                new BlockManager(uri, objectClient, metadataStore, configuration)));
   }
 
   @Override
