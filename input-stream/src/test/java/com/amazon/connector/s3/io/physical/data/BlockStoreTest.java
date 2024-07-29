@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -98,5 +99,22 @@ public class BlockStoreTest {
 
     // Then: underlying block is also closed
     verify(block, times(1)).close();
+  }
+
+  @Test
+  public void test__blockStore__closeWorksWithExceptions() {
+    // Given: BlockStore with two blocks
+    BlockStore blockStore = new BlockStore(TEST_URI, mock(MetadataStore.class));
+    Block b1 = mock(Block.class);
+    Block b2 = mock(Block.class);
+    blockStore.add(b1);
+    blockStore.add(b2);
+
+    // When: b1 throws when closed
+    doThrow(new RuntimeException("something horrible")).when(b1).close();
+    blockStore.close();
+
+    // Then: 1\ blockStore.close did not throw, 2\ b2 was closed
+    verify(b2, times(1)).close();
   }
 }

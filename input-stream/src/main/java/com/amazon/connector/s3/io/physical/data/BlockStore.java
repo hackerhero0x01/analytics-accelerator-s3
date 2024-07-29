@@ -7,9 +7,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /** A BlockStore, which is a collection of Blocks. */
 public class BlockStore implements Closeable {
+
+  private static final Logger LOG = LogManager.getLogger(BlockStore.class);
 
   private final S3URI s3URI;
   private final MetadataStore metadataStore;
@@ -98,8 +102,16 @@ public class BlockStore implements Closeable {
     return this.metadataStore.get(s3URI).join().getContentLength() - 1;
   }
 
+  private void safeClose(Block block) {
+    try {
+      block.close();
+    } catch (Exception e) {
+      LOG.error("Exception when closing Block in the BlockStore", e);
+    }
+  }
+
   @Override
   public void close() {
-    blocks.forEach(Block::close);
+    blocks.forEach(this::safeClose);
   }
 }
