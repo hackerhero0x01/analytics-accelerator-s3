@@ -58,6 +58,22 @@ public class BlobTest {
   }
 
   @Test
+  public void test_bufferedRead__testOverlappingRanges() {
+    // Given: test Blob
+    Blob blob = getTestBlob(TEST_DATA);
+
+    // When: buffered reads are performed
+    byte[] b1 = new byte[4];
+    blob.read(b1, 0, b1.length, 0);
+    byte[] b2 = new byte[4];
+    blob.read(b2, 0, b2.length, 2);
+
+    // Then: correct bytes are returned
+    assertEquals("test", new String(b1));
+    assertEquals("st-d", new String(b2));
+  }
+
+  @Test
   public void test__bufferedRead__validatesArguments() {
     // Given: test Blob
     Blob blob = getTestBlob("abc");
