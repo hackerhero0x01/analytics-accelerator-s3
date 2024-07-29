@@ -11,6 +11,7 @@ import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 /** Implements a Block Manager responsible for planning and scheduling reads on a key. */
 public class BlockManager implements Closeable {
@@ -87,8 +88,9 @@ public class BlockManager implements Closeable {
 
     long lastByteOfRange = pos + len - 1;
 
-    if (blockStore.findNextMissingByte(pos).isPresent()) {
-      return lastByteOfRange < blockStore.findNextMissingByte(pos).getAsLong();
+    OptionalLong nextMissingByte = blockStore.findNextMissingByte(pos);
+    if (nextMissingByte.isPresent()) {
+      return lastByteOfRange < nextMissingByte.getAsLong();
     }
 
     // If there is no missing byte after pos, then the whole object is already fetched
