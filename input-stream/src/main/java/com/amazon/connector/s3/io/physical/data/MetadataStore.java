@@ -11,12 +11,16 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /** Class responsible for fetching and potentially caching object metadata. */
 public class MetadataStore implements Closeable {
 
   private final ObjectClient objectClient;
   private final Map<S3URI, CompletableFuture<ObjectMetadata>> cache;
+
+  private static final Logger LOG = LogManager.getLogger(MetadataStore.class);
 
   /**
    * Constructs a new MetadataStore.
@@ -53,9 +57,18 @@ public class MetadataStore implements Closeable {
                 HeadRequest.builder().bucket(uri.getBucket()).key(uri.getKey()).build()));
   }
 
+  private void safeClose(CompletableFuture<ObjectMetadata> future) {
+    if (!future.isDone()) {
+      try {
+        future.cancel(false);
+      } catch (Exception e) {
+        LOG.error("Error cancelling ObjectMetadata future", e);
+      }
+    }
+  }
+
   @Override
   public void close() {
-    this.cache.forEach((k, v) -> v.cancel(false));
-    this.cache.clear();
+    this.cache.forEach((k, v) -> safeClose(v));
   }
 }
