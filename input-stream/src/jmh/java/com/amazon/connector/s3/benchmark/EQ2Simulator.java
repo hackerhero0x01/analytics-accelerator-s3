@@ -17,7 +17,10 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
-/** Benchmark simulating an EQ2 query. */
+/**
+ * Test how a query similar to "SELECT * from store_sales where ss_customer_sk=<some_id>" would read
+ * from a Parquet object."
+ */
 @Fork(1)
 @State(Scope.Benchmark)
 @Warmup(iterations = 2)
@@ -27,7 +30,10 @@ public class EQ2Simulator {
 
   private static final String KEY = "part-0-c1c1ff96-e2fa-4ff6-81f2-80ac39bdafbf.parquet";
 
-  /** Test sequential reads with seekable streams. */
+  /**
+   * Test how a query similar to "SELECT * from store_sales where ss_customer_sk=<some_id>" would
+   * read from a Parquet object."
+   */
   @Benchmark
   public void testSequentialRead__withSeekableStream__eq2Parquet() throws IOException {
 

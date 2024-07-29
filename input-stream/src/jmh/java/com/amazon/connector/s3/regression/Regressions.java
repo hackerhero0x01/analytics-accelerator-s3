@@ -1,5 +1,7 @@
 package com.amazon.connector.s3.regression;
 
+import static com.amazon.connector.s3.util.MicrobenchmarkHelpers.consumeStream;
+
 import com.amazon.connector.s3.S3SdkObjectClient;
 import com.amazon.connector.s3.S3SeekableInputStream;
 import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
@@ -45,10 +47,7 @@ public class Regressions {
         s3SeekableInputStreamFactory.createStream(
             S3URI.of(Constants.BENCHMARK_BUCKET, Constants.BENCHMARK_DATA_PREFIX_SEQUENTIAL + key));
 
-    byte[] b = new byte[4096];
-
-    while (stream.read(b, 0, b.length) != -1) {}
-
+    consumeStream(stream);
     stream.close();
   }
 
@@ -73,10 +72,7 @@ public class Regressions {
                               Constants.BENCHMARK_BUCKET,
                               Constants.BENCHMARK_DATA_PREFIX_SEQUENTIAL + keyName));
 
-                  byte[] b = new byte[4096];
-
-                  while (stream.read(b, 0, b.length) != -1) {}
-
+                  consumeStream(stream);
                   stream.close();
                 } catch (Throwable t) {
                   throw new RuntimeException(t);

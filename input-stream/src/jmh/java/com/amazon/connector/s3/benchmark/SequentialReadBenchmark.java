@@ -1,5 +1,7 @@
 package com.amazon.connector.s3.benchmark;
 
+import static com.amazon.connector.s3.util.MicrobenchmarkHelpers.consumeStream;
+
 import com.amazon.connector.s3.S3SdkObjectClient;
 import com.amazon.connector.s3.S3SeekableInputStream;
 import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
@@ -46,15 +48,13 @@ public class SequentialReadBenchmark {
       })
   private String key;
 
-  private static final int BUFFER_SIZE = 4096;
-
   /**
-   * Not a perfect baseline but will do for now. Use the standard S3Async client for sequential
-   * reads and compare its performance to seekable stream.
+   * Not a perfect baseline but will do for now. Use the CRT async client for sequential reads and
+   * compare its performance to seekable stream.
    */
   @Benchmark
-  public void testSequentialRead__withStandardAsyncClient() throws IOException {
-    S3AsyncClient client = S3AsyncClient.crtCreate();
+  public void testSequentialRead__withCrtClient() throws IOException {
+    S3AsyncClient client = S3AsyncClient.crtBuilder().maxConcurrency(300).build();
     CompletableFuture<ResponseInputStream<GetObjectResponse>> response =
         client.getObject(
             GetObjectRequest.builder()
@@ -63,9 +63,7 @@ public class SequentialReadBenchmark {
                 .build(),
             AsyncResponseTransformer.toBlockingInputStream());
 
-    byte[] b = new byte[BUFFER_SIZE];
-
-    while (response.join().read(b) != -1) {}
+    consumeStream(response.join());
 
     client.close();
     response.cancel(false);
@@ -84,9 +82,7 @@ public class SequentialReadBenchmark {
         s3SeekableInputStreamFactory.createStream(
             S3URI.of(Constants.BENCHMARK_BUCKET, Constants.BENCHMARK_DATA_PREFIX_SEQUENTIAL + key));
 
-    byte[] b = new byte[BUFFER_SIZE];
-
-    while (stream.read(b, 0, b.length) != -1) {}
+    consumeStream(stream);
 
     stream.close();
     s3SeekableInputStreamFactory.close();
