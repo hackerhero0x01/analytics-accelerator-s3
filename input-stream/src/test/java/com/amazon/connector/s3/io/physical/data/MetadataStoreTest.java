@@ -1,5 +1,8 @@
 package com.amazon.connector.s3.io.physical.data;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
@@ -11,8 +14,12 @@ import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
+import com.amazon.connector.s3.util.HangingObjectClient;
 import com.amazon.connector.s3.util.S3URI;
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
 public class MetadataStoreTest {
@@ -63,5 +70,36 @@ public class MetadataStoreTest {
 
     // Then: nothing has thrown, all futures were cancelled
     verify(objectMetadataCompletableFuture, times(1)).cancel(false);
+  }
+
+  @Test
+  @SneakyThrows
+  public void test__contentLength() {
+    // Given: a metadata store backed by an object client
+    ObjectClient objectClient = mock(ObjectClient.class);
+    when(objectClient.headObject(any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(100).build()));
+    MetadataStore metadataStore = new MetadataStore(objectClient, PhysicalIOConfiguration.DEFAULT);
+
+    // When: contentLength is called
+    long contentLength = metadataStore.getContentLength(S3URI.of("bucket", "key"));
+
+    // Then: correct contentLength is returned
+    assertEquals(100, contentLength);
+  }
+
+  @Test
+  public void test__contentLength__doesNotHangWhenFutureDoesNotComplete() {
+    // Given: a metadata store backed by a never completing object client
+    ObjectClient objectClient = new HangingObjectClient();
+    MetadataStore metadataStore = new MetadataStore(objectClient, PhysicalIOConfiguration.DEFAULT);
+
+    // When: content length is asked for
+    // Then: we fast fail with an IOException rather than hang
+    Exception e =
+        assertThrows(
+            IOException.class, () -> metadataStore.getContentLength(S3URI.of("bucket", "key")));
+    assertInstanceOf(TimeoutException.class, e.getCause());
   }
 }

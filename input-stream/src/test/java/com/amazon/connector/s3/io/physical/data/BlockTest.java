@@ -78,7 +78,7 @@ public class BlockTest {
 
   @Test
   @SneakyThrows
-  public void test__bufferedRead__doesNotHangWhenFutureDoesNotComplete() {
+  public void test__read__doesNotHangWhenFutureDoesNotComplete() {
     // Given: Block backed by a never completing future
     ObjectClient objectClient = new HangingObjectClient();
     Block block =
@@ -94,6 +94,28 @@ public class BlockTest {
     // When: read(..) is performed on the Block
     // Then: rather than it hanging, it throws an IOException, with TimeoutException as cause
     Exception e = assertThrows(IOException.class, () -> block.read(50));
+    assertInstanceOf(TimeoutException.class, e.getCause());
+  }
+
+  @Test
+  @SneakyThrows
+  public void test__bufferedRead__doesNotHangWhenFutureDoesNotComplete() {
+    // Given: Block backed by a never completing future
+    ObjectClient objectClient = new HangingObjectClient();
+    Block block =
+        new Block(
+            TEST_URI,
+            objectClient,
+            0,
+            100,
+            0,
+            ReadMode.SYNC,
+            PhysicalIOConfiguration.builder().build());
+
+    // When: read(..) is performed on the Block
+    // Then: rather than it hanging, it throws an IOException, with TimeoutException as cause
+    byte b[] = new byte[10];
+    Exception e = assertThrows(IOException.class, () -> block.read(b, 0, b.length, 50));
     assertInstanceOf(TimeoutException.class, e.getCause());
   }
 }
