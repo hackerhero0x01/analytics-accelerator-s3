@@ -7,24 +7,21 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
-import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
-import java.util.concurrent.CompletableFuture;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
 public class BlobStoreTest {
 
   @Test
+  @SneakyThrows
   public void test__get__returnsReadableBlob() {
     // Given: a BlobStore with an underlying metadata store and object client
     final String TEST_DATA = "test-data";
     ObjectClient objectClient = new FakeObjectClient("test-data");
     MetadataStore metadataStore = mock(MetadataStore.class);
-    when(metadataStore.get(any()))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                ObjectMetadata.builder().contentLength(TEST_DATA.length()).build()));
+    when(metadataStore.getContentLength(any())).thenReturn((long) TEST_DATA.length());
     BlobStore blobStore =
         new BlobStore(metadataStore, objectClient, PhysicalIOConfiguration.DEFAULT);
 

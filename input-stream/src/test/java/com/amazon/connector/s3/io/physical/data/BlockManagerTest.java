@@ -19,6 +19,7 @@ import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.ByteArrayInputStream;
 import java.util.concurrent.CompletableFuture;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -36,6 +37,7 @@ public class BlockManagerTest {
   }
 
   @Test
+  @SneakyThrows
   void test__getBlock__returnsAvailableBlock() {
     // Given
     BlockManager blockManager = getTestBlockManager(65 * ONE_KB);
@@ -49,6 +51,7 @@ public class BlockManagerTest {
   }
 
   @Test
+  @SneakyThrows
   void test__makePositionAvailable__respectsReadAhead() {
     // Given
     final int objectSize = (int) PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() + ONE_KB;
@@ -69,6 +72,7 @@ public class BlockManagerTest {
   }
 
   @Test
+  @SneakyThrows
   void test__makePositionAvailable__respectsLastObjectByte() {
     // Given
     final int objectSize = 5 * ONE_KB;
@@ -87,6 +91,7 @@ public class BlockManagerTest {
   }
 
   @Test
+  @SneakyThrows
   void test__makeRangeAvailable__doesNotOverread() {
     // Given: BM with 0-64KB and 64KB+1 to 128KB
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -115,16 +120,18 @@ public class BlockManagerTest {
 
   private BlockManager getTestBlockManager(ObjectClient objectClient, int size) {
     S3URI testUri = S3URI.of("foo", "bar");
+
+    when(objectClient.headObject(any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectMetadata.builder().contentLength(size).build()));
     when(objectClient.getObject(any()))
         .thenReturn(
             CompletableFuture.completedFuture(
                 ObjectContent.builder().stream(new ByteArrayInputStream(new byte[size])).build()));
 
-    MetadataStore metadataStore = mock(MetadataStore.class);
-    when(metadataStore.get(any()))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                ObjectMetadata.builder().contentLength(size).build()));
+    MetadataStore metadataStore = new MetadataStore(objectClient, PhysicalIOConfiguration.DEFAULT);
+
     return new BlockManager(testUri, objectClient, metadataStore, PhysicalIOConfiguration.DEFAULT);
   }
 }

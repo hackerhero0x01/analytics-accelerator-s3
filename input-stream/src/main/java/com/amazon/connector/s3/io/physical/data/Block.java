@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.Range;
@@ -10,7 +11,9 @@ import com.amazon.connector.s3.request.Referrer;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamUtils;
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 
 /**
@@ -25,9 +28,10 @@ public class Block implements Closeable {
   @Getter private final long start;
   @Getter private final long end;
   @Getter private final long generation;
+  @Getter private final PhysicalIOConfiguration configuration;
 
   /**
-   * Constructs a Block. data.
+   * Constructs a Block.
    *
    * @param s3URI the S3 URI of the object
    * @param objectClient the object client to use to interact with the object store
@@ -35,6 +39,7 @@ public class Block implements Closeable {
    * @param end end of the block
    * @param generation generation of the block in a sequential read pattern (should be 0 by default)
    * @param readMode read mode describing whether this is a sync or async fetch
+   * @param configuration the PhysicalIO configuration
    */
   public Block(
       S3URI s3URI,
@@ -42,10 +47,12 @@ public class Block implements Closeable {
       long start,
       long end,
       long generation,
-      ReadMode readMode) {
+      ReadMode readMode,
+      PhysicalIOConfiguration configuration) {
     Preconditions.checkNotNull(s3URI, "`s3URI` should not be null");
     Preconditions.checkNotNull(objectClient, "`objectClient` should not be null");
     Preconditions.checkNotNull(readMode, "`readMode` should not be null");
+    Preconditions.checkNotNull(configuration, "`configuration` should not be null");
 
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
@@ -57,6 +64,7 @@ public class Block implements Closeable {
     this.start = start;
     this.end = end;
     this.generation = generation;
+    this.configuration = configuration;
 
     Range range = new Range(start, end);
     this.source =
@@ -77,10 +85,10 @@ public class Block implements Closeable {
    * @param pos The position to read
    * @return an unsigned int representing the byte that was read
    */
-  public int read(long pos) {
+  public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
-    byte[] content = this.data.join();
+    byte[] content = getContent();
     return Byte.toUnsignedInt(content[posToOffset(pos)]);
   }
 
@@ -93,13 +101,13 @@ public class Block implements Closeable {
    * @param pos the position to begin reading from
    * @return the total number of bytes read into the buffer
    */
-  public int read(byte[] buf, int off, int len, long pos) {
+  public int read(byte[] buf, int off, int len, long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(0 <= off, "`off` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    byte[] content = this.data.join();
+    byte[] content = getContent();
     int available = content.length - posToOffset(pos);
     int bytesToCopy = Math.min(len, available);
 
@@ -130,6 +138,14 @@ public class Block implements Closeable {
    */
   private int posToOffset(long pos) {
     return (int) (pos - start);
+  }
+
+  private byte[] getContent() throws IOException {
+    try {
+      return this.data.get(configuration.getRequestTimeoutMillis(), TimeUnit.MILLISECONDS);
+    } catch (Exception e) {
+      throw new IOException("Exception when retrieving data from the object store", e);
+    }
   }
 
   @Override

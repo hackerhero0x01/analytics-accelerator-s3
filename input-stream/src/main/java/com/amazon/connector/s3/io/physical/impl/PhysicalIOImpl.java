@@ -63,7 +63,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   public int readTail(byte[] buf, int off, int len) throws IOException {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
-    long contentLength = metadataStore.get(s3URI).join().getContentLength();
+    long contentLength = metadataStore.getContentLength(s3URI);
     return blobStore.get(s3URI).read(buf, off, len, contentLength - len);
   }
 
@@ -72,8 +72,8 @@ public class PhysicalIOImpl implements PhysicalIO {
     return blobStore.get(s3URI).execute(ioPlan);
   }
 
-  private long contentLength() {
-    return metadata().join().getContentLength();
+  private long contentLength() throws IOException {
+    return metadataStore.getContentLength(s3URI);
   }
 
   @Override

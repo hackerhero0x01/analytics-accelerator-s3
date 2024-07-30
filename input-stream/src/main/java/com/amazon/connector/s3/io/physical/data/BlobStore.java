@@ -58,7 +58,8 @@ public class BlobStore implements Closeable {
             new Blob(
                 uri,
                 metadataStore,
-                new BlockManager(uri, objectClient, metadataStore, configuration)));
+                new BlockManager(uri, objectClient, metadataStore, configuration),
+                configuration));
   }
 
   @Override

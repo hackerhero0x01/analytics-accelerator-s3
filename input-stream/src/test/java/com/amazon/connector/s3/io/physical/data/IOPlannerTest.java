@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.ReadMode;
@@ -13,6 +15,7 @@ import com.amazon.connector.s3.util.S3URI;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
 public class IOPlannerTest {
@@ -20,14 +23,17 @@ public class IOPlannerTest {
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
   @Test
+  @SneakyThrows
   public void test__planRead__noopWhenBlockStoreEmpty() {
     // Given: an empty BlockStore
     final int OBJECT_SIZE = 10_000;
-    MetadataStore mockMetadataStore = mock(MetadataStore.class);
-    when(mockMetadataStore.get(any()))
+    ObjectClient objectClient = mock(ObjectClient.class);
+    when(objectClient.headObject(any()))
         .thenReturn(
             CompletableFuture.completedFuture(
                 ObjectMetadata.builder().contentLength(OBJECT_SIZE).build()));
+    MetadataStore mockMetadataStore =
+        new MetadataStore(objectClient, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, mockMetadataStore);
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
@@ -42,6 +48,7 @@ public class IOPlannerTest {
   }
 
   @Test
+  @SneakyThrows
   public void test__planRead__doesNotDoubleRead() {
     // Given: a BlockStore with a (100,200) block in it
     final int OBJECT_SIZE = 10_000;
@@ -49,7 +56,15 @@ public class IOPlannerTest {
     MetadataStore metadataStore = getTestMetadataStoreWithContentLength(OBJECT_SIZE);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
     FakeObjectClient fakeObjectClient = new FakeObjectClient(new String(content));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 100, 200, 0, ReadMode.SYNC));
+    blockStore.add(
+        new Block(
+            TEST_URI,
+            fakeObjectClient,
+            100,
+            200,
+            0,
+            ReadMode.SYNC,
+            PhysicalIOConfiguration.DEFAULT));
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range (0, 400)
@@ -64,6 +79,7 @@ public class IOPlannerTest {
   }
 
   @Test
+  @SneakyThrows
   public void test__planRead__regression_singleByteObject() {
     // Given: a single byte object and an empty block store
     final int OBJECT_SIZE = 1;
@@ -82,12 +98,12 @@ public class IOPlannerTest {
   }
 
   private MetadataStore getTestMetadataStoreWithContentLength(long contentLength) {
-    MetadataStore mockMetadataStore = mock(MetadataStore.class);
-    when(mockMetadataStore.get(any()))
+    ObjectClient objectClient = mock(ObjectClient.class);
+    when(objectClient.headObject(any()))
         .thenReturn(
             CompletableFuture.completedFuture(
                 ObjectMetadata.builder().contentLength(contentLength).build()));
 
-    return mockMetadataStore;
+    return new MetadataStore(objectClient, PhysicalIOConfiguration.DEFAULT);
   }
 }

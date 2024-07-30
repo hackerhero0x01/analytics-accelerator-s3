@@ -16,6 +16,7 @@ import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.LinkedList;
 import java.util.List;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
 public class BlobTest {
@@ -24,6 +25,7 @@ public class BlobTest {
   private static final String TEST_DATA = "test-data-0123456789";
 
   @Test
+  @SneakyThrows
   public void test__singleByteRead__returnsCorrectByte() {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
@@ -42,6 +44,7 @@ public class BlobTest {
   }
 
   @Test
+  @SneakyThrows
   public void test__bufferedRead__returnsCorrectByte() {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
@@ -58,6 +61,7 @@ public class BlobTest {
   }
 
   @Test
+  @SneakyThrows
   public void test_bufferedRead__testOverlappingRanges() {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
@@ -89,11 +93,12 @@ public class BlobTest {
   }
 
   @Test
+  @SneakyThrows
   public void test__execute__submitsCorrectRanges() {
     // Given: test blob and an IOPlan
     MetadataStore metadataStore = mock(MetadataStore.class);
     BlockManager blockManager = mock(BlockManager.class);
-    Blob blob = new Blob(TEST_URI, metadataStore, blockManager);
+    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, PhysicalIOConfiguration.DEFAULT);
     List<Range> ranges = new LinkedList<>();
     ranges.add(new Range(0, 100));
     ranges.add(new Range(999, 1000));
@@ -113,7 +118,7 @@ public class BlobTest {
     // Given: test blob
     MetadataStore metadataStore = mock(MetadataStore.class);
     BlockManager blockManager = mock(BlockManager.class);
-    Blob blob = new Blob(TEST_URI, metadataStore, blockManager);
+    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, PhysicalIOConfiguration.DEFAULT);
 
     // When: blob is closed
     blob.close();
@@ -130,6 +135,6 @@ public class BlobTest {
         new BlockManager(
             TEST_URI, fakeObjectClient, metadataStore, PhysicalIOConfiguration.DEFAULT);
 
-    return new Blob(TEST_URI, metadataStore, blockManager);
+    return new Blob(TEST_URI, metadataStore, blockManager, PhysicalIOConfiguration.DEFAULT);
   }
 }

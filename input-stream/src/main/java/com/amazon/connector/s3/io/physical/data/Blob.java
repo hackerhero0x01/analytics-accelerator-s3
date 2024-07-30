@@ -1,12 +1,15 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
+import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
+import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,6 +21,7 @@ public class Blob implements Closeable {
   private final S3URI s3URI;
   private final BlockManager blockManager;
   private final MetadataStore metadataStore;
+  private final PhysicalIOConfiguration configuration;
 
   /**
    * Construct a new Blob.
@@ -25,15 +29,22 @@ public class Blob implements Closeable {
    * @param s3URI the S3 URI of the object
    * @param metadataStore the MetadataStore in the stream
    * @param blockManager the BlockManager for this object
+   * @param configuration the PhysicalIO configuration
    */
-  public Blob(S3URI s3URI, MetadataStore metadataStore, BlockManager blockManager) {
+  public Blob(
+      S3URI s3URI,
+      MetadataStore metadataStore,
+      BlockManager blockManager,
+      PhysicalIOConfiguration configuration) {
     Preconditions.checkNotNull(s3URI, "`s3URI` should not be null");
     Preconditions.checkNotNull(metadataStore, "`metadataStore` should not be null");
     Preconditions.checkNotNull(blockManager, "`blockManager` should not be null");
+    Preconditions.checkNotNull(configuration, "`configuration` should not be null");
 
     this.s3URI = s3URI;
     this.metadataStore = metadataStore;
     this.blockManager = blockManager;
+    this.configuration = configuration;
   }
 
   /**
@@ -42,7 +53,7 @@ public class Blob implements Closeable {
    * @param pos The position to read
    * @return an unsigned int representing the byte that was read
    */
-  public int read(long pos) {
+  public int read(long pos) throws IOException {
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
 
     blockManager.makePositionAvailable(pos, ReadMode.SYNC);
@@ -58,7 +69,7 @@ public class Blob implements Closeable {
    * @param pos the position to begin reading from
    * @return the total number of bytes read into the buffer
    */
-  public int read(byte[] buf, int off, int len, long pos) {
+  public int read(byte[] buf, int off, int len, long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
     Preconditions.checkArgument(0 <= off, "`off` must not be negative");
@@ -98,12 +109,9 @@ public class Blob implements Closeable {
    */
   public IOPlanExecution execute(IOPlan plan) {
     try {
-      plan.getPrefetchRanges()
-          .forEach(
-              range -> {
-                this.blockManager.makeRangeAvailable(
-                    range.getStart(), range.getLength(), ReadMode.ASYNC);
-              });
+      for (Range range : plan.getPrefetchRanges()) {
+        this.blockManager.makeRangeAvailable(range.getStart(), range.getLength(), ReadMode.ASYNC);
+      }
 
       return IOPlanExecution.builder().state(IOPlanState.SUBMITTED).build();
     } catch (Exception e) {
@@ -112,8 +120,8 @@ public class Blob implements Closeable {
     }
   }
 
-  private long contentLength() {
-    return metadataStore.get(s3URI).join().getContentLength();
+  private long contentLength() throws IOException {
+    return metadataStore.getContentLength(s3URI);
   }
 
   @Override

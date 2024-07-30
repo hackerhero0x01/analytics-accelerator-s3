@@ -20,6 +20,7 @@ public class PhysicalIOConfiguration {
   public static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
   public static final long DEFAULT_MAX_RANGE_SIZE = 8 * ONE_MB;
   public static final long DEFAULT_PART_SIZE = 4 * ONE_MB;
+  public static final long DEFAULT_REQUEST_TIMEOUT_MILLIS = 3_000;
 
   /** Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_BLOB_STORE} by default. */
   @Builder.Default private int blobStoreCapacity = DEFAULT_CAPACITY_BLOB_STORE;
@@ -44,6 +45,12 @@ public class PhysicalIOConfiguration {
   /** Part size, in bytes. {@link PhysicalIOConfiguration#DEFAULT_PART_SIZE} by default. */
   @Builder.Default private long partSizeBytes = DEFAULT_PART_SIZE;
 
+  /**
+   * S3 request timeout, in milliseconds. {@link
+   * PhysicalIOConfiguration#DEFAULT_REQUEST_TIMEOUT_MILLIS} by default.
+   */
+  @Builder.Default private long requestTimeoutMillis = DEFAULT_REQUEST_TIMEOUT_MILLIS;
+
   /** Default set of settings for {@link PhysicalIO} */
   public static final PhysicalIOConfiguration DEFAULT = PhysicalIOConfiguration.builder().build();
 
@@ -56,6 +63,7 @@ public class PhysicalIOConfiguration {
    * @param readAheadBytes Read ahead, in bytes
    * @param maxRangeSizeBytes Maximum physical read issued against the object store
    * @param partSizeBytes What part size to use when splitting up logical reads
+   * @param requestTimeoutMillis How many milliseconds should we wait for a single S3 request?
    */
   @Builder
   private PhysicalIOConfiguration(
@@ -64,7 +72,8 @@ public class PhysicalIOConfiguration {
       long blockSizeBytes,
       long readAheadBytes,
       long maxRangeSizeBytes,
-      long partSizeBytes) {
+      long partSizeBytes,
+      long requestTimeoutMillis) {
     Preconditions.checkArgument(blobStoreCapacity > 0, "`blobStoreCapacity` must be positive");
     Preconditions.checkArgument(
         metadataStoreCapacity > 0, "`metadataStoreCapacity` must be positive");
@@ -72,6 +81,8 @@ public class PhysicalIOConfiguration {
     Preconditions.checkArgument(readAheadBytes > 0, "`readAheadLengthBytes` must be positive");
     Preconditions.checkArgument(maxRangeSizeBytes > 0, "`maxRangeSize` must be positive");
     Preconditions.checkArgument(partSizeBytes > 0, "`partSize` must be positive");
+    Preconditions.checkArgument(
+        requestTimeoutMillis > 0, "`requestTimeoutMillis` must be positive");
 
     this.blobStoreCapacity = blobStoreCapacity;
     this.metadataStoreCapacity = metadataStoreCapacity;
@@ -79,5 +90,6 @@ public class PhysicalIOConfiguration {
     this.readAheadBytes = readAheadBytes;
     this.maxRangeSizeBytes = maxRangeSizeBytes;
     this.partSizeBytes = partSizeBytes;
+    this.requestTimeoutMillis = requestTimeoutMillis;
   }
 }

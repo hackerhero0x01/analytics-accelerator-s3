@@ -9,6 +9,7 @@ import com.amazon.connector.s3.io.physical.prefetcher.SequentialReadProgression;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -71,7 +72,7 @@ public class BlockManager implements Closeable {
    * @param pos the position of the byte
    * @param readMode whether this ask corresponds to a sync or async read
    */
-  public synchronized void makePositionAvailable(long pos, ReadMode readMode) {
+  public synchronized void makePositionAvailable(long pos, ReadMode readMode) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
     // Position is already available --> return corresponding block
@@ -82,7 +83,7 @@ public class BlockManager implements Closeable {
     makeRangeAvailable(pos, 1, readMode);
   }
 
-  private boolean isRangeAvailable(long pos, long len) {
+  private boolean isRangeAvailable(long pos, long len) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
@@ -106,7 +107,8 @@ public class BlockManager implements Closeable {
    * @param len length of the read
    * @param readMode whether this ask corresponds to a sync or async read
    */
-  public synchronized void makeRangeAvailable(long pos, long len, ReadMode readMode) {
+  public synchronized void makeRangeAvailable(long pos, long len, ReadMode readMode)
+      throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
@@ -135,16 +137,23 @@ public class BlockManager implements Closeable {
     splits.forEach(
         r -> {
           Block block =
-              new Block(s3URI, objectClient, r.getStart(), r.getEnd(), generation, readMode);
+              new Block(
+                  s3URI,
+                  objectClient,
+                  r.getStart(),
+                  r.getEnd(),
+                  generation,
+                  readMode,
+                  configuration);
           blockStore.add(block);
         });
   }
 
-  private long getLastObjectByte() {
-    return this.metadataStore.get(s3URI).join().getContentLength() - 1;
+  private long getLastObjectByte() throws IOException {
+    return this.metadataStore.getContentLength(s3URI) - 1;
   }
 
-  private long truncatePos(long pos) {
+  private long truncatePos(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
     return Math.min(pos, getLastObjectByte());
