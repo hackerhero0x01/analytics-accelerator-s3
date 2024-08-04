@@ -34,11 +34,7 @@ dependencies {
     implementation(libs.parquet.format)
     implementation(libs.log4j.api)
     implementation(libs.log4j.core)
-
-    // TODO: remove this dependency and move to 'common'
-    //  ticket: https://app.asana.com/0/1206885953994785/1207927953313329/f
-    implementation("commons-io:commons-io:2.16.1")
-
+    implementation(libs.commons.io)
 
     jmhImplementation(libs.s3)
 
@@ -54,9 +50,9 @@ dependencies {
     referenceTestImplementation(libs.s3mock.testcontainers)
     referenceTestImplementation(libs.testcontainers.junit.jupiter)
 
-    referenceTestImplementation("net.jqwik:jqwik:1.8.5")
-    referenceTestImplementation("net.jqwik:jqwik-testcontainers:0.5.2")
-    referenceTestImplementation("org.testcontainers:testcontainers:1.16.2")
+    referenceTestImplementation(libs.jqwik)
+    referenceTestImplementation(libs.jqwik.testcontainers)
+    referenceTestImplementation(libs.testcontainers)
 
     referenceTestRuntimeOnly(libs.junit.jupiter.launcher)
 }
@@ -81,6 +77,7 @@ tasks.named("compileReferenceTestJava", JavaCompile::class) {
 val shadowJar = tasks.withType<ShadowJar> {
     relocate("org.apache.parquet.format", "com.amazon.shaded.apache.parquet.format")
     relocate("shaded.parquet.org.apache.thrift", "com.amazon.shaded.parquet.org.apache.thrift")
+    relocate("org.apache.commons.io", "com.amazon.shaded.org.apache.commons.io")
 }
 
 
