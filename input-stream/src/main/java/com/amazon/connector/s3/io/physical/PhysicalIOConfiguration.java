@@ -19,7 +19,7 @@ public class PhysicalIOConfiguration {
   public static final long DEFAULT_BLOCK_SIZE_BYTES = 8 * ONE_MB;
   public static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
   public static final long DEFAULT_MAX_RANGE_SIZE = 8 * ONE_MB;
-  public static final long DEFAULT_PART_SIZE = 4 * ONE_MB;
+  public static final long DEFAULT_PART_SIZE = 8 * ONE_MB;
 
   /** Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_BLOB_STORE} by default. */
   @Builder.Default private int blobStoreCapacity = DEFAULT_CAPACITY_BLOB_STORE;
