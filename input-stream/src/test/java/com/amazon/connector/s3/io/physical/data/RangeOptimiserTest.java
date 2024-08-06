@@ -40,10 +40,8 @@ public class RangeOptimiserTest {
 
     // Then: 16MB range is split into 4x4MB ranges
     List<Range> expected = new LinkedList<>();
-    expected.add(new Range(0, 4 * ONE_MB - 1));
-    expected.add(new Range(4 * ONE_MB, 8 * ONE_MB - 1));
-    expected.add(new Range(8 * ONE_MB, 12 * ONE_MB - 1));
-    expected.add(new Range(12 * ONE_MB, 16 * ONE_MB - 1));
+    expected.add(new Range(0, 8 * ONE_MB - 1));
+    expected.add(new Range(8 * ONE_MB, 16 * ONE_MB - 1));
     assertEquals(expected, splitRanges);
   }
 }
