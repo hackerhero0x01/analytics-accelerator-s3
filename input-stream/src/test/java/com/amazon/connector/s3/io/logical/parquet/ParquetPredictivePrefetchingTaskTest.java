@@ -152,8 +152,8 @@ public class ParquetPredictivePrefetchingTaskTest {
     IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
     List<Range> expectedRanges = new ArrayList<>();
     // Only ranges that have high confidence are prefetched
-    expectedRanges.add(new Range(100, 600));
-    expectedRanges.add(new Range(1100, 1600));
+    expectedRanges.add(new Range(100, 599));
+    expectedRanges.add(new Range(1100, 1599));
     assertEquals(ioPlan.getPrefetchRanges(), expectedRanges);
   }
 

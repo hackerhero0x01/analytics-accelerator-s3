@@ -117,7 +117,7 @@ public class ParquetPredictivePrefetchingTask {
           prefetchRanges.add(
               new Range(
                   columnMetadata.getStartPos(),
-                  columnMetadata.getStartPos() + columnMetadata.getCompressedSize()));
+                  columnMetadata.getStartPos() + columnMetadata.getCompressedSize() - 1));
         }
       }
     }
