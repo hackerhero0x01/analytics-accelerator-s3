@@ -1,4 +1,4 @@
-package com.amazon.connector.s3;
+package com.amazon.connector.s3.request;
 
 import static org.junit.jupiter.api.Assertions.*;
 

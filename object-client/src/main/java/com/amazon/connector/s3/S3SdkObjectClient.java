@@ -6,6 +6,8 @@ import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+
+import com.amazon.connector.s3.request.UserAgent;
 import lombok.NonNull;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;

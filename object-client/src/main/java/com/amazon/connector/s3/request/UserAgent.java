@@ -1,4 +1,4 @@
-package com.amazon.connector.s3;
+package com.amazon.connector.s3.request;
 
 import java.util.Objects;
 import lombok.Getter;
@@ -27,7 +27,7 @@ public final class UserAgent {
    */
   public void prepend(String userAgentPrefix) {
     if (Objects.nonNull(userAgentPrefix))
-      this.userAgent = sanitizeInput(userAgentPrefix) + "/" + this.userAgent;
+      this.userAgent = sanitizeInput(userAgentPrefix) + ":" + this.userAgent;
   }
 
   private static String sanitizeInput(String input) {
