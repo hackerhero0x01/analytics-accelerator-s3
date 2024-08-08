@@ -16,7 +16,7 @@ public class ConfigurationTest {
     assertNotNull(configuration);
     assertEquals(
         "stringConfigValue",
-        configuration.getString(Configuration.getPrefix() + "." + "stringConfig", "randomString"));
+        configuration.getString(Configuration.getPrefix() + "stringConfig", "randomString"));
   }
 
   @Test
@@ -26,7 +26,7 @@ public class ConfigurationTest {
     assertNotNull(configuration);
     assertEquals(
         "stringConfigValue",
-        configuration.getString(Configuration.getPrefix() + "." + "stringConfig", "randomString"));
+        configuration.getString(Configuration.getPrefix() + "stringConfig", "randomString"));
   }
 
   @Test
@@ -38,7 +38,7 @@ public class ConfigurationTest {
     assertNotNull(configuration);
     assertEquals(
         "stringConfigValue",
-        configuration.getString(Configuration.getPrefix() + "." + "stringConfig", "randomString"));
+        configuration.getString(Configuration.getPrefix() + "stringConfig", "randomString"));
   }
 
   @Test
@@ -55,7 +55,7 @@ public class ConfigurationTest {
   @Test
   void testGetInt() {
     Configuration configuration = new Configuration(getDefaultConfigurationMap());
-    int intConfig = configuration.getInt(Configuration.getPrefix() + "." + "intConfig", 0);
+    int intConfig = configuration.getInt(Configuration.getPrefix() + "intConfig", 0);
     assertInstanceOf(Integer.class, intConfig);
     assertEquals(1, intConfig);
   }
@@ -63,7 +63,7 @@ public class ConfigurationTest {
   @Test
   void testGetLong() {
     Configuration configuration = new Configuration(getDefaultConfigurationMap());
-    long longConfig = configuration.getLong(Configuration.getPrefix() + "." + "longConfig", 0);
+    long longConfig = configuration.getLong(Configuration.getPrefix() + "longConfig", 0);
     assertInstanceOf(Long.class, longConfig);
     assertEquals(1, longConfig);
   }
@@ -71,8 +71,7 @@ public class ConfigurationTest {
   @Test
   void testGetDouble() {
     Configuration configuration = new Configuration(getDefaultConfigurationMap());
-    double doubleConfig =
-        configuration.getDouble(Configuration.getPrefix() + "." + "doubleConfig", 0.0);
+    double doubleConfig = configuration.getDouble(Configuration.getPrefix() + "doubleConfig", 0.0);
     assertInstanceOf(Double.class, doubleConfig);
     assertEquals(1.0, doubleConfig);
   }
@@ -81,7 +80,7 @@ public class ConfigurationTest {
   void testGetBoolean() {
     Configuration configuration = new Configuration(getDefaultConfigurationMap());
     boolean booleanConfig =
-        configuration.getBoolean(Configuration.getPrefix() + "." + "booleanConfig", false);
+        configuration.getBoolean(Configuration.getPrefix() + "booleanConfig", false);
     assertInstanceOf(Boolean.class, booleanConfig);
     assertTrue(booleanConfig);
   }
@@ -90,18 +89,18 @@ public class ConfigurationTest {
   void testGetString() {
     Configuration configuration = new Configuration(getDefaultConfigurationMap());
     String stringConfig =
-        configuration.getString(Configuration.getPrefix() + "." + "stringConfig", "randomString");
+        configuration.getString(Configuration.getPrefix() + "stringConfig", "randomString");
     assertInstanceOf(String.class, stringConfig);
     assertEquals("stringConfigValue", stringConfig);
   }
 
   private Map<String, String> getDefaultConfigurationMap() {
     Map<String, String> defaultMap = new HashMap<>();
-    defaultMap.put(Configuration.getPrefix() + "." + "intConfig", "1");
-    defaultMap.put(Configuration.getPrefix() + "." + "doubleConfig", "1.0");
-    defaultMap.put(Configuration.getPrefix() + "." + "longConfig", "1");
-    defaultMap.put(Configuration.getPrefix() + "." + "booleanConfig", "true");
-    defaultMap.put(Configuration.getPrefix() + "." + "stringConfig", "stringConfigValue");
+    defaultMap.put(Configuration.getPrefix() + "intConfig", "1");
+    defaultMap.put(Configuration.getPrefix() + "doubleConfig", "1.0");
+    defaultMap.put(Configuration.getPrefix() + "longConfig", "1");
+    defaultMap.put(Configuration.getPrefix() + "booleanConfig", "true");
+    defaultMap.put(Configuration.getPrefix() + "stringConfig", "stringConfigValue");
     return defaultMap;
   }
 
