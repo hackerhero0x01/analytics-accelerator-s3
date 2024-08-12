@@ -113,7 +113,7 @@ public class Blob implements Closeable {
   }
 
   private long contentLength() {
-    return metadataStore.get(s3URI).join().getContentLength();
+    return metadataStore.get(s3URI).getContentLength();
   }
 
   @Override

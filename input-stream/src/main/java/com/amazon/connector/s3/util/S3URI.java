@@ -1,31 +1,55 @@
 package com.amazon.connector.s3.util;
 
-import com.amazon.connector.s3.common.Preconditions;
-import lombok.Data;
+import java.net.URI;
+import lombok.NonNull;
+import lombok.Value;
 
 /** Container for representing an 's3://' or 's3a://'-style S3 location. */
-@Data
+@Value(staticConstructor = "of")
 public class S3URI {
+  @NonNull String bucket;
+  @NonNull String key;
 
-  private final String bucket;
-  private final String key;
+  private static String URI_FORMAT_STRING = "%s://%s/%s";
+  private static String URI_SCHEME_DEFAULT = "s3";
 
-  private S3URI(String bucket, String key) {
-    this.bucket = bucket;
-    this.key = key;
+  /**
+   * Creates the {@link URI} corresponding to this {@link S3URI}.
+   *
+   * @return the newly created {@link S3URI}
+   */
+  public URI toURI() {
+    return toURI(URI_SCHEME_DEFAULT);
   }
 
   /**
-   * Given a bucket and a key, creates an S3URI object.
+   * Creates the {@link URI} corresponding to this {@link S3URI}.
+   * @param scheme URI scheme to use
    *
-   * @param bucket the S3 bucket
-   * @param key the key in an S3 bucket
-   * @return an instance of S3URI
+   * @return the newly created {@link S3URI}
    */
-  public static S3URI of(String bucket, String key) {
-    Preconditions.checkNotNull(bucket, "bucket must be non-null");
-    Preconditions.checkNotNull(key, "key must be non-null");
-
-    return new S3URI(bucket, key);
+  public URI toURI(String scheme) {
+    return URI.create(this.toString(scheme));
   }
+
+  /**
+   * Creates the string representation of the {@link S3URI}.
+   *
+   * @return the string representation of the {@link URI}
+   */
+  @Override
+  public String toString() {
+    return toString(URI_SCHEME_DEFAULT);
+  }
+
+  /**
+   * Creates the string representation of the {@link S3URI}.
+   * @param scheme URI scheme to use
+   *
+   * @return the string representation of the {@link URI}
+   */
+  public String toString(@NonNull String scheme) {
+    return String.format(URI_FORMAT_STRING, scheme, this.getBucket(), this.getKey());
+  }
+
 }

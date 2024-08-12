@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
@@ -78,8 +79,8 @@ public class ParquetLogicalIOImplTest {
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(0).build()));
     S3URI s3URI = S3URI.of("test", "test");
-    MetadataStore metadataStore = new MetadataStore(mockClient, PhysicalIOConfiguration.DEFAULT);
-    BlobStore blobStore = new BlobStore(metadataStore, mockClient, PhysicalIOConfiguration.DEFAULT);
+    MetadataStore metadataStore = new MetadataStore(mockClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+    BlobStore blobStore = new BlobStore(metadataStore, mockClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
     assertDoesNotThrow(
         () ->
@@ -97,8 +98,8 @@ public class ParquetLogicalIOImplTest {
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(-1).build()));
     S3URI s3URI = S3URI.of("test", "test");
-    MetadataStore metadataStore = new MetadataStore(mockClient, PhysicalIOConfiguration.DEFAULT);
-    BlobStore blobStore = new BlobStore(metadataStore, mockClient, PhysicalIOConfiguration.DEFAULT);
+    MetadataStore metadataStore = new MetadataStore(mockClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+    BlobStore blobStore = new BlobStore(metadataStore, mockClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
     assertDoesNotThrow(
         () ->

@@ -35,14 +35,14 @@ public class RangeTest {
     assertEquals(100, new Range(0, 99).getSize());
   }
 
-  static Stream<Arguments> validHttpStringRanges() {
+  static Stream<Arguments> validStringRanges() {
     return Stream.of(
         Arguments.of(1, 5, "[1-5]"),
         Arguments.of(0, 0, "[0-0]"),
         Arguments.of(100, Long.MAX_VALUE, "[100-" + Long.MAX_VALUE + "]"));
   }
 
-  static Stream<Arguments> validStringRanges() {
+  static Stream<Arguments> validHttpStringRanges() {
     return Stream.of(
         Arguments.of(1, 5, "bytes=1-5"),
         Arguments.of(0, 0, "bytes=0-0"),

@@ -44,7 +44,7 @@ public class ParquetPrefetchTailTask {
    */
   public List<Range> prefetchTail() {
     try {
-      long contentLength = physicalIO.metadata().join().getContentLength();
+      long contentLength = physicalIO.metadata().getContentLength();
       Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
 
       List<Range> prefetchRanges = new ArrayList<>();

@@ -1,38 +1,45 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.common.telemetry.Operation;
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.util.S3URI;
+import com.amazon.connector.s3.util.StreamAttributes;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /** Class responsible for fetching and potentially caching object metadata. */
 public class MetadataStore implements Closeable {
-
   private final ObjectClient objectClient;
+  private final Telemetry telemetry;
   private final Map<S3URI, CompletableFuture<ObjectMetadata>> cache;
 
   private static final Logger LOG = LogManager.getLogger(MetadataStore.class);
+  private static final String OPERATION_METADATA_HEAD_ASYNC = "metadata.store.head.async";
+  private static final String OPERATION_METADATA_HEAD_JOIN = "metadata.store.head.join";
 
   /**
    * Constructs a new MetadataStore.
    *
-   * @param objectClient the object client to use for object store interactions
-   * @param configuration a configuration of PhysicalIO
+   * @param objectClient the object client to use for object store interactions.
+   * @param telemetry The {@link Telemetry} to use to report measurements.
+   * @param configuration a configuration of PhysicalIO.
    */
-  public MetadataStore(ObjectClient objectClient, PhysicalIOConfiguration configuration) {
-    Preconditions.checkNotNull(objectClient, "`objectClient` must not be null");
-    Preconditions.checkNotNull(configuration, "`configuration` must not be null");
-
+  public MetadataStore(
+      @NonNull ObjectClient objectClient,
+      @NonNull Telemetry telemetry,
+      @NonNull PhysicalIOConfiguration configuration) {
     this.objectClient = objectClient;
+    this.telemetry = telemetry;
     this.cache =
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>>() {
@@ -44,20 +51,47 @@ public class MetadataStore implements Closeable {
   }
 
   /**
-   * Get the metadata for an object (either from cache or the underlying object store).
+   * Get the metadata for an object synchronously (either from cache or the underlying object
+   * store).
    *
    * @param s3URI the object to fetch the metadata for
-   * @return returns the object's metadata.
+   * @return returns the {@link ObjectMetadata}.
    */
-  public synchronized CompletableFuture<ObjectMetadata> get(S3URI s3URI) {
+  public ObjectMetadata get(S3URI s3URI) {
+    return telemetry.measure(
+        Operation.builder()
+            .name(OPERATION_METADATA_HEAD_JOIN)
+            .attribute(StreamAttributes.uriAttribute(s3URI))
+            .build(),
+        () -> this.asyncGet(s3URI).join());
+  }
+
+  /**
+   * Get the metadata for an object asynchronously (either from cache or the underlying object
+   * store).
+   *
+   * @param s3URI the object to fetch the metadata for
+   * @return returns the {@link CompletableFuture} that holds object's metadata.
+   */
+  public synchronized CompletableFuture<ObjectMetadata> asyncGet(S3URI s3URI) {
     return this.cache.computeIfAbsent(
         s3URI,
         uri ->
-            objectClient.headObject(
-                HeadRequest.builder().bucket(uri.getBucket()).key(uri.getKey()).build()));
+            telemetry.measure(
+                Operation.builder()
+                    .name(OPERATION_METADATA_HEAD_ASYNC)
+                    .attribute(StreamAttributes.uriAttribute(s3URI))
+                    .build(),
+                objectClient.headObject(
+                    HeadRequest.builder().bucket(uri.getBucket()).key(uri.getKey()).build())));
   }
 
-  private void safeClose(CompletableFuture<ObjectMetadata> future) {
+  /**
+   * Utility method that cancels a {@link CompletableFuture} ignoring any exceptions.
+   *
+   * @param future an instance of {@link CompletableFuture} to cancel
+   */
+  private void safeCancel(CompletableFuture<ObjectMetadata> future) {
     if (!future.isDone()) {
       try {
         future.cancel(false);
@@ -67,8 +101,9 @@ public class MetadataStore implements Closeable {
     }
   }
 
+  /** Closes the {@link MetadataStore} and frees up all resources it holds. */
   @Override
   public void close() {
-    this.cache.forEach((k, v) -> safeClose(v));
+    this.cache.values().forEach(this::safeCancel);
   }
 }

@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.io.physical.prefetcher.SequentialPatternDetector;
@@ -12,6 +13,7 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import lombok.NonNull;
 
 /** Implements a Block Manager responsible for planning and scheduling reads on a key. */
 public class BlockManager implements Closeable {
@@ -20,6 +22,7 @@ public class BlockManager implements Closeable {
   private final MetadataStore metadataStore;
   private final BlockStore blockStore;
   private final ObjectClient objectClient;
+  private final Telemetry telemetry;
   private final SequentialPatternDetector patternDetector;
   private final SequentialReadProgression sequentialReadProgression;
   private final IOPlanner ioPlanner;
@@ -31,22 +34,20 @@ public class BlockManager implements Closeable {
    *
    * @param s3URI the S3 URI of the object
    * @param objectClient object client capable of interacting with the underlying object store
+   * @param telemetry an instance of {@link Telemetry} to use
    * @param metadataStore the metadata cache
    * @param configuration the physicalIO configuration
    */
   public BlockManager(
-      S3URI s3URI,
-      ObjectClient objectClient,
-      MetadataStore metadataStore,
-      PhysicalIOConfiguration configuration) {
-    Preconditions.checkNotNull(s3URI, "`s3URI` must not be null");
-    Preconditions.checkNotNull(objectClient, "`objectClient` must not be null");
-    Preconditions.checkNotNull(metadataStore, "`metadataStore` must not be null");
-    Preconditions.checkNotNull(configuration, "`configuration` must not be null");
-
+      @NonNull S3URI s3URI,
+      @NonNull ObjectClient objectClient,
+      @NonNull MetadataStore metadataStore,
+      @NonNull Telemetry telemetry,
+      @NonNull PhysicalIOConfiguration configuration) {
     this.s3URI = s3URI;
     this.objectClient = objectClient;
     this.metadataStore = metadataStore;
+    this.telemetry = telemetry;
     this.configuration = configuration;
     this.blockStore = new BlockStore(s3URI, metadataStore);
     this.patternDetector = new SequentialPatternDetector(blockStore);
@@ -135,13 +136,14 @@ public class BlockManager implements Closeable {
     splits.forEach(
         r -> {
           Block block =
-              new Block(s3URI, objectClient, r.getStart(), r.getEnd(), generation, readMode);
+              new Block(
+                  s3URI, objectClient, telemetry, r.getStart(), r.getEnd(), generation, readMode);
           blockStore.add(block);
         });
   }
 
   private long getLastObjectByte() {
-    return this.metadataStore.get(s3URI).join().getContentLength() - 1;
+    return this.metadataStore.get(s3URI).getContentLength() - 1;
   }
 
   private long truncatePos(long pos) {
@@ -150,6 +152,7 @@ public class BlockManager implements Closeable {
     return Math.min(pos, getLastObjectByte());
   }
 
+  /** Closes the {@link BlockManager} and frees up all resources it holds */
   @Override
   public void close() {
     blockStore.close();

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
@@ -45,9 +46,9 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     S3URI s3URI = S3URI.of("bucket", "key");
 
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
 
     S3SeekableInputStream inputStream =
         new S3SeekableInputStream(
@@ -324,7 +325,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     LogicalIO mockLogicalIO = mock(LogicalIO.class);
     when(mockLogicalIO.metadata())
         .thenReturn(
-            CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(200).build()));
+            ObjectMetadata.builder().contentLength(200).build());
     S3SeekableInputStream stream = new S3SeekableInputStream(TEST_OBJECT, mockLogicalIO);
 
     // When: logical IO returns with a -1 read
@@ -348,9 +349,9 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
     FakeObjectClient fakeObjectClient = new FakeObjectClient(sb.toString());
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
 
     AtomicBoolean haveException = new AtomicBoolean(false);
 
@@ -402,9 +403,9 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
     FakeObjectClient fakeObjectClient = new FakeObjectClient(content);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
 
     return new S3SeekableInputStream(
         TEST_OBJECT,

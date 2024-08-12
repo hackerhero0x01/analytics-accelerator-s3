@@ -36,7 +36,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   }
 
   @Override
-  public CompletableFuture<ObjectMetadata> metadata() {
+  public ObjectMetadata metadata() {
     return metadataStore.get(s3URI);
   }
 
@@ -63,7 +63,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   public int readTail(byte[] buf, int off, int len) throws IOException {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
-    long contentLength = metadataStore.get(s3URI).join().getContentLength();
+    long contentLength = metadataStore.get(s3URI).getContentLength();
     return blobStore.get(s3URI).read(buf, off, len, contentLength - len);
   }
 
@@ -73,7 +73,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   }
 
   private long contentLength() {
-    return metadata().join().getContentLength();
+    return metadata().getContentLength();
   }
 
   @Override

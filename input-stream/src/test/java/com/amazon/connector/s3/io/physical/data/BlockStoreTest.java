@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
@@ -24,11 +25,11 @@ public class BlockStoreTest {
     // Given: empty BlockStore
     FakeObjectClient fakeObjectClient = new FakeObjectClient("test-data");
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
     // When: a new block is added
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 3, 5, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 3, 5, 0, ReadMode.SYNC));
 
     // Then: getBlock can retrieve the same block
     Optional<Block> b = blockStore.getBlock(4);
@@ -45,12 +46,12 @@ public class BlockStoreTest {
     final String X_TIMES_16 = "xxxxxxxxxxxxxxxx";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 2, 3, 0, ReadMode.SYNC));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 5, 10, 0, ReadMode.SYNC));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 12, 15, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 2, 3, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 5, 10, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient,  Telemetry.NOOP, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next missing byte, the result is correct
     assertEquals(OptionalLong.of(0), blockStore.findNextMissingByte(0));
@@ -69,12 +70,12 @@ public class BlockStoreTest {
     final String X_TIMES_16 = "xxxxxxxxxxxxxxxx";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 2, 3, 0, ReadMode.SYNC));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 5, 10, 0, ReadMode.SYNC));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 12, 15, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient,  Telemetry.NOOP, 2, 3, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 5, 10, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient,  Telemetry.NOOP, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next available byte, the result is correct
     assertEquals(OptionalLong.of(2), blockStore.findNextLoadedByte(0));

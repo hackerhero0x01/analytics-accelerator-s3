@@ -7,13 +7,12 @@ import java.util.concurrent.CompletableFuture;
 
 /** An InputStream-like entity implementing blocking random-access reads. */
 public interface RandomAccessReadable extends Closeable {
-
   /**
-   * Returns a future to the metadata of the object.
+   * Returns object metadata.
    *
-   * @return the metadata of the object
+   * @return the metadata of the object.
    */
-  CompletableFuture<ObjectMetadata> metadata();
+  ObjectMetadata metadata();
 
   /**
    * Reads a byte from the underlying object

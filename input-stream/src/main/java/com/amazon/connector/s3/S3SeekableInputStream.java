@@ -120,6 +120,6 @@ public class S3SeekableInputStream extends SeekableInputStream {
   }
 
   private long contentLength() {
-    return this.logicalIO.metadata().join().getContentLength();
+    return this.logicalIO.metadata().getContentLength();
   }
 }

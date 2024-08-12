@@ -1,5 +1,6 @@
 package com.amazon.connector.s3;
 
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
@@ -19,9 +20,9 @@ public class S3SeekableInputStreamTestBase {
   protected final PhysicalIOConfiguration physicalIOConfiguration = PhysicalIOConfiguration.DEFAULT;
   protected final FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
   protected final MetadataStore metadataStore =
-      new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+      new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
   protected final BlobStore blobStore =
-      new BlobStore(metadataStore, fakeObjectClient, physicalIOConfiguration);
+      new BlobStore(metadataStore, fakeObjectClient, Telemetry.NOOP, physicalIOConfiguration);
   protected final LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
 
   protected final LogicalIO fakeLogicalIO =

@@ -69,7 +69,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
   }
 
   @Override
-  public CompletableFuture<ObjectMetadata> metadata() {
+  public ObjectMetadata metadata() {
     return physicalIO.metadata();
   }
 

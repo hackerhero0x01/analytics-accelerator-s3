@@ -1,5 +1,6 @@
 package com.amazon.connector.s3;
 
+import com.amazon.connector.s3.common.telemetry.TelemetryConfiguration;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import lombok.Builder;
@@ -12,26 +13,16 @@ import lombok.NonNull;
 @Builder
 @EqualsAndHashCode
 public class S3SeekableInputStreamConfiguration {
-  @Builder.Default
+  @NonNull @Builder.Default
   private PhysicalIOConfiguration physicalIOConfiguration = PhysicalIOConfiguration.DEFAULT;
 
-  @Builder.Default
+  @NonNull @Builder.Default
   private LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
+
+  @NonNull @Builder.Default
+  private TelemetryConfiguration telemetryConfiguration = TelemetryConfiguration.DEFAULT;
 
   /** Default set of settings for {@link S3SeekableInputStream} */
   public static final S3SeekableInputStreamConfiguration DEFAULT =
       S3SeekableInputStreamConfiguration.builder().build();
-
-  /**
-   * Creates a new instance of
-   *
-   * @param physicalIOConfiguration - {@link PhysicalIOConfiguration} configuration
-   * @param logicalIOConfiguration - {@link LogicalIOConfiguration} configuration
-   */
-  private S3SeekableInputStreamConfiguration(
-      @NonNull PhysicalIOConfiguration physicalIOConfiguration,
-      @NonNull LogicalIOConfiguration logicalIOConfiguration) {
-    this.physicalIOConfiguration = physicalIOConfiguration;
-    this.logicalIOConfiguration = logicalIOConfiguration;
-  }
 }

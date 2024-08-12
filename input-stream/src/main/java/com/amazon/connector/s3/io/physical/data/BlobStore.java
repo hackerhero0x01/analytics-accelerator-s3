@@ -1,20 +1,21 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import lombok.NonNull;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
 public class BlobStore implements Closeable {
-
   private final Map<S3URI, Blob> blobMap;
   private final MetadataStore metadataStore;
   private final ObjectClient objectClient;
+  private final Telemetry telemetry;
   private final PhysicalIOConfiguration configuration;
 
   /**
@@ -22,18 +23,17 @@ public class BlobStore implements Closeable {
    *
    * @param metadataStore the MetadataStore storing object metadata information
    * @param objectClient object client capable of interacting with the underlying object store
+   * @param telemetry an instance of {@link Telemetry} to use
    * @param configuration the PhysicalIO configuration
    */
   public BlobStore(
-      MetadataStore metadataStore,
-      ObjectClient objectClient,
-      PhysicalIOConfiguration configuration) {
-    Preconditions.checkNotNull(metadataStore, "`metadataStore` should not be null");
-    Preconditions.checkNotNull(objectClient, "`objectClient` should not be null");
-    Preconditions.checkNotNull("`configuration` should not be null");
-
+      @NonNull MetadataStore metadataStore,
+      @NonNull ObjectClient objectClient,
+      @NonNull Telemetry telemetry,
+      @NonNull PhysicalIOConfiguration configuration) {
     this.metadataStore = metadataStore;
     this.objectClient = objectClient;
+    this.telemetry = telemetry;
     this.blobMap =
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, Blob>() {
@@ -58,9 +58,10 @@ public class BlobStore implements Closeable {
             new Blob(
                 uri,
                 metadataStore,
-                new BlockManager(uri, objectClient, metadataStore, configuration)));
+                new BlockManager(uri, objectClient, metadataStore, telemetry, configuration)));
   }
 
+  /** Closes the {@link BlobStore} and frees up all resources it holds. */
   @Override
   public void close() {
     blobMap.forEach((k, v) -> v.close());

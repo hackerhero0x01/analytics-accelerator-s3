@@ -25,9 +25,6 @@ public class SequentialReadDataGenerator {
    */
   public static void main(String[] args) {
     Arrays.stream(BenchmarkObject.values()).forEach(SequentialReadDataGenerator::generateObject);
-
-    // TODO: Fix up System.out after logging is introduced
-    //  Ticket: https://app.asana.com/0/1206885953994785/1207386741212336/f
     System.out.println("Done.");
   }
 
@@ -36,12 +33,13 @@ public class SequentialReadDataGenerator {
     String fullKeyName = String.format("s3://%s/%s", Constants.BENCHMARK_BUCKET, key);
     System.out.println("Generating " + fullKeyName + " and uploading it to S3...");
 
-    S3AsyncClient s3AsyncClient = S3CrtAsyncClient.builder().maxConcurrency(300).build();
-    s3AsyncClient
-        .putObject(
-            PutObjectRequest.builder().bucket(Constants.BENCHMARK_BUCKET).key(key).build(),
-            AsyncRequestBody.fromBytes(generateBytes(benchmarkObject.getSize())))
-        .join();
+    try(S3AsyncClient s3AsyncClient = S3CrtAsyncClient.builder().maxConcurrency(300).build()) {
+      s3AsyncClient
+              .putObject(
+                      PutObjectRequest.builder().bucket(Constants.BENCHMARK_BUCKET).key(key).build(),
+                      AsyncRequestBody.fromBytes(generateBytes(benchmarkObject.getSize())))
+              .join();
+    }
   }
 
   private static byte[] generateBytes(long len) {

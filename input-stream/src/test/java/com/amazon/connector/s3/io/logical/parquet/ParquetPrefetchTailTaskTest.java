@@ -58,9 +58,7 @@ public class ParquetPrefetchTailTaskTest {
 
     for (Long contentLength : contentSizeToRanges.keySet()) {
       PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
-      CompletableFuture<ObjectMetadata> metadata =
-          CompletableFuture.completedFuture(
-              ObjectMetadata.builder().contentLength(contentLength).build());
+      ObjectMetadata metadata = ObjectMetadata.builder().contentLength(contentLength).build();
       when(mockedPhysicalIO.metadata()).thenReturn(metadata);
 
       ParquetPrefetchTailTask parquetPrefetchTailTask =
@@ -82,8 +80,8 @@ public class ParquetPrefetchTailTaskTest {
         new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
     // When: task executes but PhysicalIO throws
-    CompletableFuture<ObjectMetadata> metadata =
-        CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(600).build());
+    ObjectMetadata metadata =
+        ObjectMetadata.builder().contentLength(600).build();
     when(mockedPhysicalIO.metadata()).thenReturn(metadata);
     doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
 

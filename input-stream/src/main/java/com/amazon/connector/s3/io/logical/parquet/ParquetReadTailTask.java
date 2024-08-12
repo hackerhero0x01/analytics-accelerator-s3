@@ -41,7 +41,7 @@ public class ParquetReadTailTask {
    * @return tail of parquet file
    */
   public FileTail readFileTail() {
-    long contentLength = physicalIO.metadata().join().getContentLength();
+    long contentLength = physicalIO.metadata().getContentLength();
     Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
     int tailLength = (int) tailRange.getLength();
 

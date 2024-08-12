@@ -13,8 +13,8 @@ public class Range {
   long start;
   long end;
 
-  private static final String TO_HTTP_STRING_FORMAT = "[%d-%d]";
-  private static final String TO_STRING_FORMAT = "bytes=%d-%d";
+  private static final String TO_HTTP_STRING_FORMAT = "bytes=%d-%d";
+  private static final String TO_STRING_FORMAT = "[%d-%d]";
 
   /**
    * Construct a range. At least one of the start and end of range should be present.

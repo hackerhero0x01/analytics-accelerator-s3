@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.physical.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
@@ -20,9 +21,9 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "abcdef0123456789";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
 
     // When: we read
@@ -38,9 +39,9 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "x";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, fakeObjectClient, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
 
     // When: we read

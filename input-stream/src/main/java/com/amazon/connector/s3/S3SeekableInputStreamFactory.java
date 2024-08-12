@@ -1,5 +1,6 @@
 package com.amazon.connector.s3;
 
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
@@ -26,6 +27,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
 
   private final MetadataStore objectMetadataStore;
   private final BlobStore objectBlobStore;
+  private final Telemetry telemetry;
 
   /**
    * Creates a new instance of {@link S3SeekableInputStreamFactory}. This factory should be used to
@@ -40,12 +42,16 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     this.objectClient = objectClient;
     this.configuration = configuration;
+    this.telemetry = Telemetry.getTelemetry(configuration.getTelemetryConfiguration());
     this.parquetMetadataStore = new ParquetMetadataStore(configuration.getLogicalIOConfiguration());
     this.objectMetadataStore =
-        new MetadataStore(objectClient, configuration.getPhysicalIOConfiguration());
+        new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
     this.objectBlobStore =
         new BlobStore(
-            objectMetadataStore, objectClient, configuration.getPhysicalIOConfiguration());
+            objectMetadataStore,
+            objectClient,
+            telemetry,
+            configuration.getPhysicalIOConfiguration());
   }
 
   /**

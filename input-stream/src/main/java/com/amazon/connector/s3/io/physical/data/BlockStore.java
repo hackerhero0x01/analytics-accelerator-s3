@@ -99,7 +99,7 @@ public class BlockStore implements Closeable {
   }
 
   private long getLastObjectByte() {
-    return this.metadataStore.get(s3URI).join().getContentLength() - 1;
+    return this.metadataStore.get(s3URI).getContentLength() - 1;
   }
 
   private void safeClose(Block block) {

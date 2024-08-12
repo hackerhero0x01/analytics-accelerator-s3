@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.ReadMode;
@@ -12,7 +13,6 @@ import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
 public class IOPlannerTest {
@@ -25,9 +25,7 @@ public class IOPlannerTest {
     final int OBJECT_SIZE = 10_000;
     MetadataStore mockMetadataStore = mock(MetadataStore.class);
     when(mockMetadataStore.get(any()))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                ObjectMetadata.builder().contentLength(OBJECT_SIZE).build()));
+        .thenReturn(ObjectMetadata.builder().contentLength(OBJECT_SIZE).build());
     BlockStore blockStore = new BlockStore(TEST_URI, mockMetadataStore);
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
@@ -49,7 +47,7 @@ public class IOPlannerTest {
     MetadataStore metadataStore = getTestMetadataStoreWithContentLength(OBJECT_SIZE);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
     FakeObjectClient fakeObjectClient = new FakeObjectClient(new String(content));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient, 100, 200, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 100, 200, 0, ReadMode.SYNC));
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range (0, 400)
@@ -84,9 +82,7 @@ public class IOPlannerTest {
   private MetadataStore getTestMetadataStoreWithContentLength(long contentLength) {
     MetadataStore mockMetadataStore = mock(MetadataStore.class);
     when(mockMetadataStore.get(any()))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                ObjectMetadata.builder().contentLength(contentLength).build()));
+        .thenReturn(ObjectMetadata.builder().contentLength(contentLength).build());
 
     return mockMetadataStore;
   }

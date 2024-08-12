@@ -2,51 +2,58 @@ package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.common.telemetry.Operation;
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.request.Referrer;
 import com.amazon.connector.s3.util.S3URI;
+import com.amazon.connector.s3.util.StreamAttributes;
 import com.amazon.connector.s3.util.StreamUtils;
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * A Block holding part of an object's data and owning its own async process for fetching part of
  * the object.
  */
 public class Block implements Closeable {
-
   private CompletableFuture<ObjectContent> source;
   private CompletableFuture<byte[]> data;
+  private final S3URI s3URI;
+  private final Range range;
+  private final Telemetry telemetry;
 
   @Getter private final long start;
   @Getter private final long end;
   @Getter private final long generation;
+
+  private static final String OPERATION_BLOCK_GET_ASYNC = "block.get.async";
+  private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
 
   /**
    * Constructs a Block. data.
    *
    * @param s3URI the S3 URI of the object
    * @param objectClient the object client to use to interact with the object store
+   * @param telemetry an instance of {@link Telemetry} to use
    * @param start start of the block
    * @param end end of the block
    * @param generation generation of the block in a sequential read pattern (should be 0 by default)
    * @param readMode read mode describing whether this is a sync or async fetch
    */
   public Block(
-      S3URI s3URI,
-      ObjectClient objectClient,
+      @NonNull S3URI s3URI,
+      @NonNull ObjectClient objectClient,
+      @NonNull Telemetry telemetry,
       long start,
       long end,
       long generation,
-      ReadMode readMode) {
-    Preconditions.checkNotNull(s3URI, "`s3URI` should not be null");
-    Preconditions.checkNotNull(objectClient, "`objectClient` should not be null");
-    Preconditions.checkNotNull(readMode, "`readMode` should not be null");
-
+      @NonNull ReadMode readMode) {
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
     Preconditions.checkArgument(0 <= start, "`start` must be non-negative; was: %s", start);
@@ -57,17 +64,24 @@ public class Block implements Closeable {
     this.start = start;
     this.end = end;
     this.generation = generation;
+    this.telemetry = telemetry;
+    this.s3URI = s3URI;
+    this.range = new Range(start, end);
 
-    Range range = new Range(start, end);
     this.source =
-        objectClient.getObject(
-            GetRequest.builder()
-                .bucket(s3URI.getBucket())
-                .key(s3URI.getKey())
-                .range(range)
-                .referrer(new Referrer(range.toString(), readMode))
-                .build());
-
+        this.telemetry.measure(
+            Operation.builder()
+                .name(OPERATION_BLOCK_GET_ASYNC)
+                .attribute(StreamAttributes.uriAttribute(this.s3URI))
+                .attribute(StreamAttributes.rangeAttribute(this.range))
+                .build(),
+            objectClient.getObject(
+                GetRequest.builder()
+                    .bucket(this.s3URI.getBucket())
+                    .key(this.s3URI.getKey())
+                    .range(this.range)
+                    .referrer(new Referrer(range.toHttpString(), readMode))
+                    .build()));
     this.data = this.source.thenApply(StreamUtils::toByteArray);
   }
 
@@ -80,7 +94,7 @@ public class Block implements Closeable {
   public int read(long pos) {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
-    byte[] content = this.data.join();
+    byte[] content = this.getData();
     return Byte.toUnsignedInt(content[posToOffset(pos)]);
   }
 
@@ -99,7 +113,7 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    byte[] content = this.data.join();
+    byte[] content = this.getData();
     int available = content.length - posToOffset(pos);
     int bytesToCopy = Math.min(len, available);
 
@@ -132,6 +146,23 @@ public class Block implements Closeable {
     return (int) (pos - start);
   }
 
+  /**
+   * Returns the bytes fetched by the issued {@link GetRequest}. This method will block until the
+   * data is fully available.
+   *
+   * @return the bytes fetched by the issued {@link GetRequest}.
+   */
+  private byte[] getData() {
+    return this.telemetry.measure(
+        Operation.builder()
+            .name(OPERATION_BLOCK_GET_JOIN)
+            .attribute(StreamAttributes.uriAttribute(this.s3URI))
+            .attribute(StreamAttributes.rangeAttribute(this.range))
+            .build(),
+        () -> this.data.join());
+  }
+
+  /** Closes the {@link Block} and frees up all resources it holds */
   @Override
   public void close() {
     this.source.cancel(false);
