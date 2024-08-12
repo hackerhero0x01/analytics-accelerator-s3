@@ -90,7 +90,7 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
         GetObjectRequest.builder().bucket(getRequest.getBucket()).key(getRequest.getKey());
 
     if (Objects.nonNull(getRequest.getRange())) {
-      String range = getRequest.getRange().toString();
+      String range = getRequest.getRange().toHttpString();
       builder.range(range);
 
       builder.overrideConfiguration(
