@@ -3,7 +3,7 @@ package com.amazon.connector.s3.io.physical;
 import static com.amazon.connector.s3.util.Constants.ONE_KB;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 
-import com.amazon.connector.s3.common.Configuration;
+import com.amazon.connector.s3.common.ConnectorConfiguration;
 import com.amazon.connector.s3.common.Preconditions;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -14,9 +14,6 @@ import lombok.Getter;
 @Builder
 @EqualsAndHashCode
 public class PhysicalIOConfiguration {
-
-  private static final String PROPERTY_PREFIX = Configuration.getPrefix() + "physicalio.";
-
   private static final int DEFAULT_CAPACITY_BLOB_STORE = 50;
   private static final int DEFAULT_CAPACITY_METADATA_STORE = 50;
   private static final boolean DEFAULT_USE_SINGLE_CACHE = true;
@@ -64,28 +61,21 @@ public class PhysicalIOConfiguration {
   public static final PhysicalIOConfiguration DEFAULT = PhysicalIOConfiguration.builder().build();
 
   /**
-   * Constructs {@link PhysicalIOConfiguration} from {@link Configuration} object.
+   * Constructs {@link PhysicalIOConfiguration} from {@link ConnectorConfiguration} object.
    *
    * @param configuration Configuration object to generate PhysicalIOConfiguration from
    * @return PhysicalIOConfiguration
    */
-  public static PhysicalIOConfiguration fromConfiguration(Configuration configuration) {
+  public static PhysicalIOConfiguration fromConfiguration(ConnectorConfiguration configuration) {
     return PhysicalIOConfiguration.builder()
         .blobStoreCapacity(
-            configuration.getInt(
-                PROPERTY_PREFIX + BLOB_STORE_CAPACITY_KEY, DEFAULT_CAPACITY_BLOB_STORE))
+            configuration.getInt(BLOB_STORE_CAPACITY_KEY, DEFAULT_CAPACITY_BLOB_STORE))
         .metadataStoreCapacity(
-            configuration.getInt(
-                PROPERTY_PREFIX + METADATA_STORE_CAPACITY_KEY, DEFAULT_CAPACITY_METADATA_STORE))
-        .blockSizeBytes(
-            configuration.getLong(PROPERTY_PREFIX + BLOCK_SIZE_BYTES_KEY, DEFAULT_BLOCK_SIZE_BYTES))
-        .readAheadBytes(
-            configuration.getLong(PROPERTY_PREFIX + READ_AHEAD_BYTES_KEY, DEFAULT_READ_AHEAD_BYTES))
-        .maxRangeSizeBytes(
-            configuration.getLong(
-                PROPERTY_PREFIX + MAX_RANGE_SIZE_BYTES_KEY, DEFAULT_MAX_RANGE_SIZE))
-        .partSizeBytes(
-            configuration.getLong(PROPERTY_PREFIX + PART_SIZE_BYTES_KEY, DEFAULT_PART_SIZE))
+            configuration.getInt(METADATA_STORE_CAPACITY_KEY, DEFAULT_CAPACITY_METADATA_STORE))
+        .blockSizeBytes(configuration.getLong(BLOCK_SIZE_BYTES_KEY, DEFAULT_BLOCK_SIZE_BYTES))
+        .readAheadBytes(configuration.getLong(READ_AHEAD_BYTES_KEY, DEFAULT_READ_AHEAD_BYTES))
+        .maxRangeSizeBytes(configuration.getLong(MAX_RANGE_SIZE_BYTES_KEY, DEFAULT_MAX_RANGE_SIZE))
+        .partSizeBytes(configuration.getLong(PART_SIZE_BYTES_KEY, DEFAULT_PART_SIZE))
         .build();
   }
 

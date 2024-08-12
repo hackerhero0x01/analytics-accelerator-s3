@@ -2,9 +2,9 @@ package com.amazon.connector.s3.io.physical;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.amazon.connector.s3.common.Configuration;
-import java.util.HashMap;
-import java.util.Map;
+import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
+import com.amazon.connector.s3.S3SeekableInputStreamConfigurationTest;
+import com.amazon.connector.s3.common.ConnectorConfiguration;
 import org.junit.jupiter.api.Test;
 
 public class PhysicalIOConfigurationTest {
@@ -25,14 +25,13 @@ public class PhysicalIOConfigurationTest {
 
   @Test
   void testFromConfiguration() {
-    Map<String, String> properties = new HashMap<>();
-    properties.put("s3.connector.physicalio.metadatastore.capacity", "10");
-    properties.put("s3.connector.physicalio.blocksizebytes", "20");
-    properties.put("invalidPrefix.physicalio.blobstore.capacity", "3");
+    ConnectorConfiguration configuration =
+        S3SeekableInputStreamConfigurationTest.getConfiguration();
+    ConnectorConfiguration mappedConfiguration =
+        configuration.map(S3SeekableInputStreamConfiguration.PHYSICAL_IO_PREFIX);
 
-    Configuration configuration = new Configuration(properties);
     PhysicalIOConfiguration physicalIOConfiguration =
-        PhysicalIOConfiguration.fromConfiguration(configuration);
+        PhysicalIOConfiguration.fromConfiguration(mappedConfiguration);
 
     assertEquals(10, physicalIOConfiguration.getMetadataStoreCapacity());
     assertEquals(20, physicalIOConfiguration.getBlockSizeBytes());

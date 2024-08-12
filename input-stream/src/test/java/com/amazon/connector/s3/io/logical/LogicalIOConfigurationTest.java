@@ -2,9 +2,9 @@ package com.amazon.connector.s3.io.logical;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.amazon.connector.s3.common.Configuration;
-import java.util.HashMap;
-import java.util.Map;
+import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
+import com.amazon.connector.s3.S3SeekableInputStreamConfigurationTest;
+import com.amazon.connector.s3.common.ConnectorConfiguration;
 import org.junit.jupiter.api.Test;
 
 public class LogicalIOConfigurationTest {
@@ -30,14 +30,12 @@ public class LogicalIOConfigurationTest {
 
   @Test
   void testFromConfiguration() {
-    Map<String, String> properties = new HashMap<>();
-    properties.put("s3.connector.logicalio.footer.caching.enabled", "false");
-    properties.put("s3.connector.logicalio.footer.caching.size", "20");
-    properties.put("invalidPrefix.logicalio.predictive.prefetching.enabled", "false");
-
-    Configuration configuration = new Configuration(properties);
+    ConnectorConfiguration configuration =
+        S3SeekableInputStreamConfigurationTest.getConfiguration();
+    ConnectorConfiguration mappedConfiguration =
+        configuration.map(S3SeekableInputStreamConfiguration.LOGICAL_IO_PREFIX);
     LogicalIOConfiguration logicalIOConfiguration =
-        LogicalIOConfiguration.fromConfiguration(configuration);
+        LogicalIOConfiguration.fromConfiguration(mappedConfiguration);
 
     assertFalse(logicalIOConfiguration.isFooterCachingEnabled());
     assertEquals(20, logicalIOConfiguration.getFooterCachingSize());
