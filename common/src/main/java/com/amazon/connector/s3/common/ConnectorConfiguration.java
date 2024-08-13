@@ -4,10 +4,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * A map based Connector Framework Configuration to modify LogicalIO, PhysicalIO, and ObjectClient
- * for settings. Each configuration item is a Key-Value pair, where keys start with a common prefix.
+ * settings. Each configuration item is a Key-Value pair, where keys start with a common prefix.
  * Constructors lets to pass this common prefix as well.
  *
  * <p>Example: Assume we have the following map fs.s3a.connector.logicalio.a = 10
@@ -27,8 +28,8 @@ import lombok.Getter;
 public class ConnectorConfiguration {
 
   /**
-   * Expected prefix for properties related to Connector Framework for S3. * Get prefix for
-   * properties related to Connector Framework for S3.
+   * Expected prefix for properties related to Connector Framework for S3. Get prefix for properties
+   * related to Connector Framework for S3.
    *
    * @return String
    */
@@ -43,7 +44,8 @@ public class ConnectorConfiguration {
    * @param configurationMap configuration from upstream service
    * @param prefix prefix for properties related to Connector Framework for S3
    */
-  public ConnectorConfiguration(Map<String, String> configurationMap, String prefix) {
+  public ConnectorConfiguration(
+      @NonNull Map<String, String> configurationMap, @NonNull String prefix) {
     this(configurationMap.entrySet(), prefix);
   }
 
@@ -55,7 +57,7 @@ public class ConnectorConfiguration {
    * @param prefix prefix for properties related to Connector Framework for S3
    */
   public ConnectorConfiguration(
-      Iterable<Map.Entry<String, String>> iterableConfiguration, String prefix) {
+      @NonNull Iterable<Map.Entry<String, String>> iterableConfiguration, @NonNull String prefix) {
     this.prefix = prefix;
     this.configuration =
         StreamSupport.stream(iterableConfiguration.spliterator(), false)
@@ -70,8 +72,8 @@ public class ConnectorConfiguration {
    * @param appendPrefix prefix to append to the common prefix for keys
    * @return {@link ConnectorConfiguration}
    */
-  public ConnectorConfiguration map(String appendPrefix) {
-    return new ConnectorConfiguration(this.configuration, constructKey(appendPrefix));
+  public ConnectorConfiguration map(@NonNull String appendPrefix) {
+    return new ConnectorConfiguration(this.configuration, expandKey(appendPrefix));
   }
 
   /**
@@ -83,8 +85,8 @@ public class ConnectorConfiguration {
    * @param defaultValue default value if provided key does not exist
    * @return int
    */
-  public int getInt(String key, int defaultValue) throws NumberFormatException {
-    String value = configuration.get(constructKey(key));
+  public int getInt(@NonNull String key, int defaultValue) throws NumberFormatException {
+    String value = getValue(key);
     return value != null ? Integer.parseInt(value) : defaultValue;
   }
 
@@ -97,8 +99,8 @@ public class ConnectorConfiguration {
    * @param defaultValue default value if provided key does not exist
    * @return long
    */
-  public long getLong(String key, long defaultValue) throws NumberFormatException {
-    String value = configuration.get(constructKey(key));
+  public long getLong(@NonNull String key, long defaultValue) throws NumberFormatException {
+    String value = getValue(key);
     return value != null ? Long.parseLong(value) : defaultValue;
   }
 
@@ -110,8 +112,8 @@ public class ConnectorConfiguration {
    * @param defaultValue default value if provided key does not exist
    * @return String
    */
-  public String getString(String key, String defaultValue) {
-    String value = configuration.get(constructKey(key));
+  public String getString(@NonNull String key, String defaultValue) {
+    String value = getValue(key);
     return value != null ? value : defaultValue;
   }
 
@@ -123,8 +125,8 @@ public class ConnectorConfiguration {
    * @param defaultValue default value if provided key does not exist
    * @return boolean
    */
-  public boolean getBoolean(String key, boolean defaultValue) {
-    String value = configuration.get(constructKey(key));
+  public boolean getBoolean(@NonNull String key, boolean defaultValue) {
+    String value = getValue(key);
     return value != null ? Boolean.parseBoolean(value) : defaultValue;
   }
 
@@ -137,12 +139,16 @@ public class ConnectorConfiguration {
    * @param defaultValue default value if provided key does not exist
    * @return Double
    */
-  public double getDouble(String key, double defaultValue) throws NumberFormatException {
-    String value = configuration.get(constructKey(key));
+  public double getDouble(@NonNull String key, double defaultValue) throws NumberFormatException {
+    String value = getValue(key);
     return value != null ? Double.parseDouble(value) : defaultValue;
   }
 
-  private String constructKey(String key) {
+  private String getValue(String key) {
+    return configuration.get(expandKey(key));
+  }
+
+  private String expandKey(String key) {
     return this.prefix + '.' + key;
   }
 }
