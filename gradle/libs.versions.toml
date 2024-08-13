@@ -18,7 +18,6 @@ testcontainers-testcontainers = "1.16.2"
 # S3-related dependencies
 s3 = { module = "software.amazon.awssdk:s3", version.ref = "s3" }
 sdk-url-connection-client = { module = "software.amazon.awssdk:url-connection-client", version.ref = "s3" }
-sdk-bom = { group = "software.amazon.awssdk", name = "bom", version.ref = "s3" }
 crt = { module = "software.amazon.awssdk.crt:aws-crt", version.ref = "crt" }
 netty-nio-client = { module = "software.amazon.awssdk:netty-nio-client", version.ref = "s3" }
 parquet-format = { module = "org.apache.parquet:parquet-format", version.ref = "parquetFormat" }

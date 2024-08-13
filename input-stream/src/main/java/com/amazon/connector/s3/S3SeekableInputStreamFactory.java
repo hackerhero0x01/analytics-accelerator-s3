@@ -7,6 +7,8 @@ import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import lombok.Getter;
 import lombok.NonNull;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Initialises resources to prepare for reading from S3. Resources initialised in this class are
@@ -26,6 +28,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
 
   private final MetadataStore objectMetadataStore;
   private final BlobStore objectBlobStore;
+
+  private static final Logger LOG = LogManager.getLogger(S3SeekableInputStreamFactory.class);
 
   /**
    * Creates a new instance of {@link S3SeekableInputStreamFactory}. This factory should be used to
@@ -55,6 +59,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @return An instance of the input stream.
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI) {
+
     return new S3SeekableInputStream(
         s3URI, objectMetadataStore, objectBlobStore, configuration, parquetMetadataStore);
   }

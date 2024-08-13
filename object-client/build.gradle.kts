@@ -9,14 +9,16 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":common"))
-    implementation(platform(libs.sdk.bom))
-    implementation(libs.s3);
-    implementation(libs.crt);
+    compileOnly(libs.s3);
+    compileOnly(libs.crt);
+    compileOnly(project(":common"))
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.junit.jupiter)
+    testImplementation(libs.s3);
+    testImplementation(libs.crt);
+    testImplementation(project(":common"))
     testRuntimeOnly(libs.junit.jupiter.launcher)
 }
 

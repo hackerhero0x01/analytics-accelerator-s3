@@ -8,11 +8,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.parquet.format.ColumnChunk;
 import org.apache.parquet.format.FileMetaData;
 import org.apache.parquet.format.RowGroup;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Task for parsing the footer bytes to get the parquet FileMetaData and build maps which can be
@@ -25,7 +25,7 @@ public class ParquetMetadataParsingTask {
   private final ParquetMetadataStore parquetMetadataStore;
   private final LogicalIOConfiguration logicalIOConfiguration;
 
-  private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataParsingTask.class);
+  private static Logger LOG = LogManager.getLogger(ParquetMetadataStore.class);
 
   /**
    * Creates a new instance of {@link ParquetMetadataParsingTask}.

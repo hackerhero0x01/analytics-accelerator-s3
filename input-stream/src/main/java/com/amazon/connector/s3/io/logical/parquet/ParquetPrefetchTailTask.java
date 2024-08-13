@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /** Task for prefetching the tail of a parquet file. */
 public class ParquetPrefetchTailTask {
@@ -19,7 +19,7 @@ public class ParquetPrefetchTailTask {
   private final LogicalIOConfiguration logicalIOConfiguration;
   private final PhysicalIO physicalIO;
 
-  private static final Logger LOG = LoggerFactory.getLogger(ParquetPrefetchTailTask.class);
+  private static final Logger LOG = LogManager.getLogger(ParquetPrefetchTailTask.class);
 
   /**
    * Creates a new instance of {@link ParquetPrefetchTailTask}

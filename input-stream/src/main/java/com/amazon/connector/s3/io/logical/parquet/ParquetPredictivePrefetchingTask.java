@@ -13,8 +13,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Task for predictively prefetching columns of a parquet file. Works by keeping track of recent
@@ -28,7 +28,7 @@ public class ParquetPredictivePrefetchingTask {
   private final ParquetMetadataStore parquetMetadataStore;
   private final LogicalIOConfiguration logicalIOConfiguration;
 
-  private static final Logger LOG = LoggerFactory.getLogger(ParquetPredictivePrefetchingTask.class);
+  private static final Logger LOG = LogManager.getLogger(ParquetPredictivePrefetchingTask.class);
 
   /**
    * Creates a new instance of {@link ParquetPredictivePrefetchingTask}

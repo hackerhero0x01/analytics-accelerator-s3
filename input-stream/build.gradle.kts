@@ -12,6 +12,10 @@ plugins {
     `maven-publish`
 }
 
+configurations.runtimeClasspath {
+    exclude(group = "org.slf4j", module = "slf4j-api")
+}
+
 // Allow to separate dependencies for reference testing
 sourceSets {
     create("referenceTest") {
@@ -32,9 +36,10 @@ dependencies {
 
     implementation(project(":common"))
     implementation(libs.parquet.format)
-    implementation(libs.log4j.api)
-    implementation(libs.log4j.core)
     implementation(libs.commons.io)
+
+    compileOnly(libs.log4j.api)
+    compileOnly(libs.log4j.core)
 
     jmhImplementation(libs.s3)
 
@@ -45,6 +50,8 @@ dependencies {
     testImplementation(libs.mockito.junit.jupiter)
     testImplementation(libs.sdk.url.connection.client)
     testImplementation(libs.netty.nio.client)
+    testImplementation(libs.log4j.api)
+    testImplementation(libs.log4j.core)
     testRuntimeOnly(libs.junit.jupiter.launcher)
 
     referenceTestImplementation(libs.s3mock.testcontainers)
