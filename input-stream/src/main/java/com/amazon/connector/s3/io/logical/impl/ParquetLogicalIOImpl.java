@@ -29,7 +29,6 @@ public class ParquetLogicalIOImpl implements LogicalIO {
 
   private static final String OPERATION_READ = "logical.io.read";
   private static final String OPERATION_READ_TAIL = "logical.io.read.tail";
-  private static final String OPERATION_METADATA = "logical.io.metadata";
 
   /**
    * Constructs an instance of LogicalIOImpl.
@@ -127,12 +126,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
    */
   @Override
   public ObjectMetadata metadata() {
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_METADATA)
-            .attribute(StreamAttributes.uri(this.s3Uri))
-            .build(),
-        physicalIO::metadata);
+    return this.physicalIO.metadata();
   }
 
   /**

@@ -58,12 +58,12 @@ public class MetadataStore implements Closeable {
    * @return returns the {@link ObjectMetadata}.
    */
   public ObjectMetadata get(S3URI s3URI) {
-    return telemetry.measure(
+    return telemetry.measureJoin(
         Operation.builder()
             .name(OPERATION_METADATA_HEAD_JOIN)
             .attribute(StreamAttributes.uri(s3URI))
             .build(),
-        () -> this.asyncGet(s3URI).join());
+        this.asyncGet(s3URI));
   }
 
   /**

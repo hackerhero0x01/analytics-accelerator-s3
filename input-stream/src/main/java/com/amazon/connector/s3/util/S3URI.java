@@ -24,8 +24,8 @@ public class S3URI {
 
   /**
    * Creates the {@link URI} corresponding to this {@link S3URI}.
-   * @param scheme URI scheme to use
    *
+   * @param scheme URI scheme to use
    * @return the newly created {@link S3URI}
    */
   public URI toURI(String scheme) {
@@ -44,12 +44,11 @@ public class S3URI {
 
   /**
    * Creates the string representation of the {@link S3URI}.
-   * @param scheme URI scheme to use
    *
+   * @param scheme URI scheme to use
    * @return the string representation of the {@link URI}
    */
   public String toString(@NonNull String scheme) {
     return String.format(URI_FORMAT_STRING, scheme, this.getBucket(), this.getKey());
   }
-
 }

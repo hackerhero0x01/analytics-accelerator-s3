@@ -154,13 +154,13 @@ public class Block implements Closeable {
    * @return the bytes fetched by the issued {@link GetRequest}.
    */
   private byte[] getData() {
-    return this.telemetry.measure(
+    return this.telemetry.measureJoin(
         Operation.builder()
             .name(OPERATION_BLOCK_GET_JOIN)
             .attribute(StreamAttributes.uri(this.s3URI))
             .attribute(StreamAttributes.range(this.range))
             .build(),
-        () -> this.data.join());
+        this.data);
   }
 
   /** Closes the {@link Block} and frees up all resources it holds */

@@ -23,7 +23,6 @@ public class PhysicalIOImpl implements PhysicalIO {
 
   private static final String OPERATION_READ = "physical.io.read";
   private static final String OPERATION_READ_TAIL = "physical.io.read.tail";
-  private static final String OPERATION_METADATA = "physical.io.metadata";
   private static final String OPERATION_EXECUTE = "physical.io.execute";
 
   /**
@@ -47,12 +46,7 @@ public class PhysicalIOImpl implements PhysicalIO {
 
   @Override
   public ObjectMetadata metadata() {
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_METADATA)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .build(),
-        () -> metadataStore.get(s3URI));
+    return metadataStore.get(s3URI);
   }
 
   @Override

@@ -37,7 +37,29 @@ public interface Telemetry {
    * @param <T> - return type of the {@link CompletableFuture<T>}.
    */
   <T> CompletableFuture<T> measure(
-      @NonNull Operation operation, CompletableFuture<T> operationCode);
+      @NonNull Operation operation, @NonNull CompletableFuture<T> operationCode);
+
+  /**
+   * This is a helper method to reduce verbosity on completed futures. Blocks on the execution on
+   * {@link CompletableFuture#join()} and records the telemetry as {@link Operation}. We do not
+   * currently carry the operation into the context of any continuations, so any {@link Operation}s
+   * that are created in that context need to carry the parenting chain. The telemetry is only
+   * recorded if the future was not completed, which is checked via {@link
+   * CompletableFuture#isDone()}
+   *
+   * @param operation operation to record this execution as.
+   * @param operationCode the future to measure the execution of.
+   * @return an instance of {@link T} that returns the same result as the one passed in.
+   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   */
+  default <T> T measureJoin(
+      @NonNull Operation operation, @NonNull CompletableFuture<T> operationCode) {
+    if (operationCode.isDone()) {
+      return operationCode.join();
+    } else {
+      return this.measure(operation, operationCode::join);
+    }
+  }
 
   /**
    * Creates a new instance of {@link Telemetry} based on the configuration.
