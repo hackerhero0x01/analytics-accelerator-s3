@@ -62,7 +62,12 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI) {
     return new S3SeekableInputStream(
-        s3URI, objectMetadataStore, objectBlobStore, configuration, parquetMetadataStore);
+        s3URI,
+        objectMetadataStore,
+        objectBlobStore,
+        telemetry,
+        configuration,
+        parquetMetadataStore);
   }
 
   /**

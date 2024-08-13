@@ -72,8 +72,9 @@ public class Block implements Closeable {
         this.telemetry.measure(
             Operation.builder()
                 .name(OPERATION_BLOCK_GET_ASYNC)
-                .attribute(StreamAttributes.uriAttribute(this.s3URI))
-                .attribute(StreamAttributes.rangeAttribute(this.range))
+                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.range(this.range))
+                .attribute(StreamAttributes.generation(generation))
                 .build(),
             objectClient.getObject(
                 GetRequest.builder()
@@ -107,7 +108,7 @@ public class Block implements Closeable {
    * @param pos the position to begin reading from
    * @return the total number of bytes read into the buffer
    */
-  public int read(byte[] buf, int off, int len, long pos) {
+  public int read(byte @NonNull [] buf, int off, int len, long pos) {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(0 <= off, "`off` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
@@ -156,8 +157,8 @@ public class Block implements Closeable {
     return this.telemetry.measure(
         Operation.builder()
             .name(OPERATION_BLOCK_GET_JOIN)
-            .attribute(StreamAttributes.uriAttribute(this.s3URI))
-            .attribute(StreamAttributes.rangeAttribute(this.range))
+            .attribute(StreamAttributes.uri(this.s3URI))
+            .attribute(StreamAttributes.range(this.range))
             .build(),
         () -> this.data.join());
   }
@@ -165,10 +166,7 @@ public class Block implements Closeable {
   /** Closes the {@link Block} and frees up all resources it holds */
   @Override
   public void close() {
+    // Only the source needs to be canceled, the continuation will cancel on its own
     this.source.cancel(false);
-    this.data.cancel(false);
-
-    this.source = null;
-    this.data = null;
   }
 }

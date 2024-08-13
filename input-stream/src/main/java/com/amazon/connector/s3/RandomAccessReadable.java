@@ -3,7 +3,6 @@ package com.amazon.connector.s3;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 
 /** An InputStream-like entity implementing blocking random-access reads. */
 public interface RandomAccessReadable extends Closeable {

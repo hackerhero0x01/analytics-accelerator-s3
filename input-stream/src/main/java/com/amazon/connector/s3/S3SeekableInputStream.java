@@ -1,6 +1,7 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
@@ -21,10 +22,10 @@ import lombok.NonNull;
  * undefined.
  */
 public class S3SeekableInputStream extends SeekableInputStream {
-
   private final S3URI s3URI;
   private final LogicalIO logicalIO;
   private long position;
+  private Telemetry telemetry = null;
 
   /**
    * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
@@ -33,22 +34,26 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param s3URI the object this stream is using
    * @param metadataStore a MetadataStore instance being used as a HeadObject cache
    * @param blobStore a BlobStore instance being used as data cache
+   * @param telemetry The {@link Telemetry} to use to report measurements.
    * @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
    * @param parquetMetadataStore object containing Parquet usage information
    */
   protected S3SeekableInputStream(
-      S3URI s3URI,
-      MetadataStore metadataStore,
-      BlobStore blobStore,
-      S3SeekableInputStreamConfiguration configuration,
-      ParquetMetadataStore parquetMetadataStore) {
+      @NonNull S3URI s3URI,
+      @NonNull MetadataStore metadataStore,
+      @NonNull BlobStore blobStore,
+      @NonNull Telemetry telemetry,
+      @NonNull S3SeekableInputStreamConfiguration configuration,
+      @NonNull ParquetMetadataStore parquetMetadataStore) {
     this(
         s3URI,
         new ParquetLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(s3URI, metadataStore, blobStore),
+            new PhysicalIOImpl(s3URI, metadataStore, blobStore, telemetry),
+            telemetry,
             configuration.getLogicalIOConfiguration(),
-            parquetMetadataStore));
+            parquetMetadataStore),
+        telemetry);
   }
 
   /**
@@ -57,11 +62,14 @@ public class S3SeekableInputStream extends SeekableInputStream {
    *
    * @param s3URI s3Uri pointing to the object to fetch from S3
    * @param logicalIO already initialised LogicalIO
+   * @param telemetry The {@link Telemetry} to use to report measurements.
    */
-  protected S3SeekableInputStream(@NonNull S3URI s3URI, @NonNull LogicalIO logicalIO) {
+  S3SeekableInputStream(
+      @NonNull S3URI s3URI, @NonNull LogicalIO logicalIO, @NonNull Telemetry telemetry) {
     this.s3URI = s3URI;
     this.logicalIO = logicalIO;
     this.position = 0;
+    this.telemetry = telemetry;
   }
 
   @Override

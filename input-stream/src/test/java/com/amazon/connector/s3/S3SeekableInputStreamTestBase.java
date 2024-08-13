@@ -28,7 +28,8 @@ public class S3SeekableInputStreamTestBase {
   protected final LogicalIO fakeLogicalIO =
       new ParquetLogicalIOImpl(
           TEST_OBJECT,
-          new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore),
+          new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, Telemetry.NOOP),
+          Telemetry.NOOP,
           logicalIOConfiguration,
           new ParquetMetadataStore(logicalIOConfiguration));
 }

@@ -24,7 +24,8 @@ public class MetadataStoreTest {
     ObjectClient objectClient = mock(ObjectClient.class);
     when(objectClient.headObject(any()))
         .thenReturn(CompletableFuture.completedFuture(mock(ObjectMetadata.class)));
-    MetadataStore metadataStore = new MetadataStore(objectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+    MetadataStore metadataStore =
+        new MetadataStore(objectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     S3URI key = S3URI.of("foo", "bar");
 
     // When: get(..) is called multiple times
@@ -55,7 +56,8 @@ public class MetadataStoreTest {
         mock(CompletableFuture.class);
     when(objectClient.headObject(h2)).thenReturn(objectMetadataCompletableFuture);
 
-    MetadataStore metadataStore = new MetadataStore(objectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+    MetadataStore metadataStore =
+        new MetadataStore(objectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
 
     // When: MetadataStore is closed
     metadataStore.get(S3URI.of("b", "key1"));

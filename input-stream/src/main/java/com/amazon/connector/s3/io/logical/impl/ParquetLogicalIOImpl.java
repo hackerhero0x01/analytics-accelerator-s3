@@ -1,19 +1,21 @@
 package com.amazon.connector.s3.io.logical.impl;
 
+import com.amazon.connector.s3.common.telemetry.Operation;
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
+import com.amazon.connector.s3.util.StreamAttributes;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
+import lombok.NonNull;
 
 /**
  * A Parquet-aware implementation of a LogicalIO layer. It is capable of prefetching file tails,
  * parsing Parquet metadata and prefetching columns based on recent access patterns.
  */
 public class ParquetLogicalIOImpl implements LogicalIO {
-
   private final S3URI s3Uri;
 
   // Configuration
@@ -23,23 +25,31 @@ public class ParquetLogicalIOImpl implements LogicalIO {
   private final ParquetPrefetcher parquetPrefetcher;
   private final ParquetMetadataStore parquetMetadataStore;
   private final PhysicalIO physicalIO;
+  private final Telemetry telemetry;
+
+  private static final String OPERATION_READ = "logical.io.read";
+  private static final String OPERATION_READ_TAIL = "logical.io.read.tail";
+  private static final String OPERATION_METADATA = "logical.io.metadata";
 
   /**
    * Constructs an instance of LogicalIOImpl.
    *
    * @param s3Uri s3Uri pointing to object to fetch
    * @param physicalIO underlying physical IO that knows how to fetch bytes
+   * @param telemetry an instance of {@link Telemetry} to use
    * @param logicalIOConfiguration configuration for this logical IO implementation
    * @param parquetMetadataStore object where Parquet usage information is aggregated
    */
   public ParquetLogicalIOImpl(
-      S3URI s3Uri,
-      PhysicalIO physicalIO,
-      LogicalIOConfiguration logicalIOConfiguration,
-      ParquetMetadataStore parquetMetadataStore) {
+      @NonNull S3URI s3Uri,
+      @NonNull PhysicalIO physicalIO,
+      @NonNull Telemetry telemetry,
+      @NonNull LogicalIOConfiguration logicalIOConfiguration,
+      @NonNull ParquetMetadataStore parquetMetadataStore) {
     this.s3Uri = s3Uri;
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
+    this.telemetry = telemetry;
     this.parquetMetadataStore = parquetMetadataStore;
 
     // Initialise prefetcher and start prefetching
@@ -48,31 +58,88 @@ public class ParquetLogicalIOImpl implements LogicalIO {
     this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
   }
 
+  /**
+   * Reads a byte from the given position.
+   *
+   * @param position the position to read
+   * @return an unsigned int representing the byte that was read
+   * @throws IOException IO error, if incurred.
+   */
   @Override
   public int read(long position) throws IOException {
-    return physicalIO.read(position);
+    return telemetry.measure(
+        Operation.builder()
+            .name(OPERATION_READ)
+            .attribute(StreamAttributes.uri(this.s3Uri))
+            .attribute(StreamAttributes.position(position))
+            .attribute(StreamAttributes.length(1L))
+            .build(),
+        () -> physicalIO.read(position));
   }
 
+  /**
+   * Reads Reads data into the provided buffer
+   *
+   * @param buf buffer to read data into
+   * @param off start position in buffer at which data is written
+   * @param len length of data to be read
+   * @param position the position to begin reading from
+   * @return an unsigned int representing the byte that was read
+   * @throws IOException IO error, if incurred.
+   */
   @Override
   public int read(byte[] buf, int off, int len, long position) throws IOException {
-    // Perform async prefetching before doing the blocking read
-    this.parquetPrefetcher.prefetchRemainingColumnChunk(position, len);
-    this.parquetPrefetcher.addToRecentColumnList(position);
+    return telemetry.measure(
+        Operation.builder()
+            .name(OPERATION_READ)
+            .attribute(StreamAttributes.uri(this.s3Uri))
+            .attribute(StreamAttributes.position(position))
+            .attribute(StreamAttributes.offset(off))
+            .attribute(StreamAttributes.length(len))
+            .build(),
+        () -> {
 
-    // Perform read
-    return physicalIO.read(buf, off, len, position);
+          // Perform async prefetching before doing the blocking read
+          this.parquetPrefetcher.prefetchRemainingColumnChunk(position, len);
+          this.parquetPrefetcher.addToRecentColumnList(position);
+
+          // Perform read
+          return physicalIO.read(buf, off, len, position);
+        });
   }
 
   @Override
   public int readTail(byte[] buf, int off, int len) throws IOException {
-    return physicalIO.readTail(buf, off, len);
+    return telemetry.measure(
+        Operation.builder()
+            .name(OPERATION_READ_TAIL)
+            .attribute(StreamAttributes.uri(this.s3Uri))
+            .attribute(StreamAttributes.offset(off))
+            .attribute(StreamAttributes.length(len))
+            .build(),
+        () -> physicalIO.readTail(buf, off, len));
   }
 
+  /**
+   * Returns object metadata.
+   *
+   * @return object metadata
+   */
   @Override
   public ObjectMetadata metadata() {
-    return physicalIO.metadata();
+    return telemetry.measure(
+        Operation.builder()
+            .name(OPERATION_METADATA)
+            .attribute(StreamAttributes.uri(this.s3Uri))
+            .build(),
+        physicalIO::metadata);
   }
 
+  /**
+   * Closes the resources associated with the {@link ParquetLogicalIOImpl}.
+   *
+   * @throws IOException
+   */
   @Override
   public void close() throws IOException {
     physicalIO.close();

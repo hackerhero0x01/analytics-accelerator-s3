@@ -51,7 +51,7 @@ public class BlockStoreTest {
 
     blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 2, 3, 0, ReadMode.SYNC));
     blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 5, 10, 0, ReadMode.SYNC));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient,  Telemetry.NOOP, 12, 15, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next missing byte, the result is correct
     assertEquals(OptionalLong.of(0), blockStore.findNextMissingByte(0));
@@ -73,9 +73,9 @@ public class BlockStoreTest {
         new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
 
-    blockStore.add(new Block(TEST_URI, fakeObjectClient,  Telemetry.NOOP, 2, 3, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 2, 3, 0, ReadMode.SYNC));
     blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 5, 10, 0, ReadMode.SYNC));
-    blockStore.add(new Block(TEST_URI, fakeObjectClient,  Telemetry.NOOP, 12, 15, 0, ReadMode.SYNC));
+    blockStore.add(new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next available byte, the result is correct
     assertEquals(OptionalLong.of(2), blockStore.findNextLoadedByte(0));

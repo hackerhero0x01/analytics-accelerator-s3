@@ -1,6 +1,6 @@
 package com.amazon.connector.s3.io.physical.data;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -14,9 +14,41 @@ import com.amazon.connector.s3.util.S3URI;
 import org.junit.jupiter.api.Test;
 
 public class BlobStoreTest {
+  @Test
+  void testCreateBoundaries() {
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlobStore(
+                null,
+                mock(ObjectClient.class),
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlobStore(
+                mock(MetadataStore.class),
+                null,
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlobStore(
+                mock(MetadataStore.class),
+                mock(ObjectClient.class),
+                null,
+                mock(PhysicalIOConfiguration.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlobStore(
+                mock(MetadataStore.class), mock(ObjectClient.class), mock(Telemetry.class), null));
+  }
 
   @Test
-  public void test__get__returnsReadableBlob() {
+  public void testGetReturnsReadableBlob() {
     // Given: a BlobStore with an underlying metadata store and object client
     final String TEST_DATA = "test-data";
     ObjectClient objectClient = new FakeObjectClient("test-data");

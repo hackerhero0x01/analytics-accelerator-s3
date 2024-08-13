@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -80,8 +79,7 @@ public class ParquetPrefetchTailTaskTest {
         new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
     // When: task executes but PhysicalIO throws
-    ObjectMetadata metadata =
-        ObjectMetadata.builder().contentLength(600).build();
+    ObjectMetadata metadata = ObjectMetadata.builder().contentLength(600).build();
     when(mockedPhysicalIO.metadata()).thenReturn(metadata);
     doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
 

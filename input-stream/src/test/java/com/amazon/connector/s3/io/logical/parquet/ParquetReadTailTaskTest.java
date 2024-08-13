@@ -14,7 +14,6 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
@@ -44,8 +43,7 @@ public class ParquetReadTailTaskTest {
     // Given: read tail task
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     when(mockedPhysicalIO.metadata())
-        .thenReturn(
-            ObjectMetadata.builder().contentLength(800).build());
+        .thenReturn(ObjectMetadata.builder().contentLength(800).build());
     ParquetReadTailTask parquetReadTailTask =
         new ParquetReadTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
@@ -64,8 +62,7 @@ public class ParquetReadTailTaskTest {
     // Given: read tail task with a throwing physicalIO under the hood
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     when(mockedPhysicalIO.metadata())
-        .thenReturn(
-            ObjectMetadata.builder().contentLength(800).build());
+        .thenReturn(ObjectMetadata.builder().contentLength(800).build());
     when(mockedPhysicalIO.readTail(any(), anyInt(), anyInt()))
         .thenThrow(new IOException("Something went horribly wrong."));
     ParquetReadTailTask parquetReadTailTask =

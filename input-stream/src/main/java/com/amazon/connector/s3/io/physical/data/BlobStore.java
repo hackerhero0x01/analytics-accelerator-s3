@@ -58,7 +58,8 @@ public class BlobStore implements Closeable {
             new Blob(
                 uri,
                 metadataStore,
-                new BlockManager(uri, objectClient, metadataStore, telemetry, configuration)));
+                new BlockManager(uri, objectClient, metadataStore, telemetry, configuration),
+                telemetry));
   }
 
   /** Closes the {@link BlobStore} and frees up all resources it holds. */

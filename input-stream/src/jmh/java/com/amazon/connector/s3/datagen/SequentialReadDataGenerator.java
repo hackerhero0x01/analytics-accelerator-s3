@@ -33,12 +33,12 @@ public class SequentialReadDataGenerator {
     String fullKeyName = String.format("s3://%s/%s", Constants.BENCHMARK_BUCKET, key);
     System.out.println("Generating " + fullKeyName + " and uploading it to S3...");
 
-    try(S3AsyncClient s3AsyncClient = S3CrtAsyncClient.builder().maxConcurrency(300).build()) {
+    try (S3AsyncClient s3AsyncClient = S3CrtAsyncClient.builder().maxConcurrency(300).build()) {
       s3AsyncClient
-              .putObject(
-                      PutObjectRequest.builder().bucket(Constants.BENCHMARK_BUCKET).key(key).build(),
-                      AsyncRequestBody.fromBytes(generateBytes(benchmarkObject.getSize())))
-              .join();
+          .putObject(
+              PutObjectRequest.builder().bucket(Constants.BENCHMARK_BUCKET).key(key).build(),
+              AsyncRequestBody.fromBytes(generateBytes(benchmarkObject.getSize())))
+          .join();
     }
   }
 

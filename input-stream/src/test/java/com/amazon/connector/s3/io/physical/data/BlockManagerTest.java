@@ -1,9 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import static com.amazon.connector.s3.util.Constants.ONE_KB;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -26,7 +24,56 @@ import org.mockito.ArgumentCaptor;
 public class BlockManagerTest {
 
   @Test
-  void test__getBlock__isEmpty() {
+  void testCreateBoundaries() {
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                null,
+                mock(ObjectClient.class),
+                mock(MetadataStore.class),
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                mock(S3URI.class),
+                null,
+                mock(MetadataStore.class),
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                mock(S3URI.class),
+                mock(ObjectClient.class),
+                null,
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                mock(S3URI.class),
+                mock(ObjectClient.class),
+                mock(MetadataStore.class),
+                null,
+                mock(PhysicalIOConfiguration.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                mock(S3URI.class),
+                mock(ObjectClient.class),
+                mock(MetadataStore.class),
+                mock(Telemetry.class),
+                null));
+  }
+
+  @Test
+  void testGetBlockIsEmpty() {
     // Given
     BlockManager blockManager = getTestBlockManager(42);
 
@@ -37,7 +84,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void test__getBlock__returnsAvailableBlock() {
+  void testGetBlockReturnsAvailableBlock() {
     // Given
     BlockManager blockManager = getTestBlockManager(65 * ONE_KB);
 
@@ -50,7 +97,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void test__makePositionAvailable__respectsReadAhead() {
+  void testMakePositionAvailableRespectsReadAhead() {
     // Given
     final int objectSize = (int) PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() + ONE_KB;
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -70,7 +117,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void test__makePositionAvailable__respectsLastObjectByte() {
+  void testMakePositionAvailableRespectsLastObjectByte() {
     // Given
     final int objectSize = 5 * ONE_KB;
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -88,7 +135,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void test__makeRangeAvailable__doesNotOverread() {
+  void testMakeRangeAvailableDoesNotOverread() {
     // Given: BM with 0-64KB and 64KB+1 to 128KB
     ObjectClient objectClient = mock(ObjectClient.class);
     BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_KB);
@@ -123,6 +170,7 @@ public class BlockManagerTest {
 
     MetadataStore metadataStore = mock(MetadataStore.class);
     when(metadataStore.get(any())).thenReturn(ObjectMetadata.builder().contentLength(size).build());
-    return new BlockManager(testUri, objectClient, metadataStore, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+    return new BlockManager(
+        testUri, objectClient, metadataStore, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
   }
 }

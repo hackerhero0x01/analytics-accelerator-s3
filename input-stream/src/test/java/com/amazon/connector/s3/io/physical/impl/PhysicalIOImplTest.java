@@ -23,8 +23,10 @@ public class PhysicalIOImplTest {
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
-    PhysicalIOImpl physicalIOImplV2 = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
+        new BlobStore(
+            metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+    PhysicalIOImpl physicalIOImplV2 =
+        new PhysicalIOImpl(s3URI, metadataStore, blobStore, Telemetry.NOOP);
 
     // When: we read
     // Then: returned data is correct
@@ -41,8 +43,10 @@ public class PhysicalIOImplTest {
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
-    PhysicalIOImpl physicalIOImplV2 = new PhysicalIOImpl(s3URI, metadataStore, blobStore);
+        new BlobStore(
+            metadataStore, fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+    PhysicalIOImpl physicalIOImplV2 =
+        new PhysicalIOImpl(s3URI, metadataStore, blobStore, Telemetry.NOOP);
 
     // When: we read
     // Then: returned data is correct

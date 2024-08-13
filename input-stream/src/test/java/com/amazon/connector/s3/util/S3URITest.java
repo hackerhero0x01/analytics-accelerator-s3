@@ -3,9 +3,8 @@ package com.amazon.connector.s3.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.jupiter.api.Test;
-
 import java.net.URI;
+import org.junit.jupiter.api.Test;
 
 public class S3URITest {
 
@@ -22,6 +21,7 @@ public class S3URITest {
     assertEquals("bucket", s3URI.getBucket());
     assertEquals("key", s3URI.getKey());
   }
+
   @Test
   void testToString() {
     S3URI s3URI = S3URI.of("bucket", "key");

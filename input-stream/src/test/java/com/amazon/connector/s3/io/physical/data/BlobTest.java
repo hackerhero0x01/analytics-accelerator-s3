@@ -1,8 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import static com.amazon.connector.s3.io.physical.plan.IOPlanState.SUBMITTED;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,7 +24,24 @@ public class BlobTest {
   private static final String TEST_DATA = "test-data-0123456789";
 
   @Test
-  public void test__singleByteRead__returnsCorrectByte() {
+  void testCreateBoundaries() {
+    assertThrows(
+        NullPointerException.class,
+        () -> new Blob(null, mock(MetadataStore.class), mock(BlockManager.class), Telemetry.NOOP));
+    assertThrows(
+        NullPointerException.class,
+        () -> new Blob(TEST_URI, null, mock(BlockManager.class), Telemetry.NOOP));
+
+    assertThrows(
+        NullPointerException.class,
+        () -> new Blob(TEST_URI, mock(MetadataStore.class), null, Telemetry.NOOP));
+    assertThrows(
+        NullPointerException.class,
+        () -> new Blob(TEST_URI, mock(MetadataStore.class), mock(BlockManager.class), null));
+  }
+
+  @Test
+  public void testSingleByteReadReturnsCorrectByte() {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
 
@@ -43,7 +59,7 @@ public class BlobTest {
   }
 
   @Test
-  public void test__bufferedRead__returnsCorrectByte() {
+  public void testBufferedReadReturnsCorrectByte() {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
 
@@ -59,7 +75,7 @@ public class BlobTest {
   }
 
   @Test
-  public void test_bufferedRead__testOverlappingRanges() {
+  public void testBufferedReadTestOverlappingRanges() {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
 
@@ -75,26 +91,27 @@ public class BlobTest {
   }
 
   @Test
-  public void test__bufferedRead__validatesArguments() {
+  public void testBufferedReadValidatesArguments() {
     // Given: test Blob
     Blob blob = getTestBlob("abc");
 
     // When & Then: read is called with illegal arguments, IllegalArgumentException is thrown
     byte[] b = new byte[4];
 
+    assertThrows(IllegalArgumentException.class, () -> blob.read(-100));
     assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, b.length, -100));
-    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, b.length, 300));
-    assertThrows(IllegalArgumentException.class, () -> blob.read(b, -1, b.length, 3));
-    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, -10, 300));
-    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 100, b.length, 3));
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, b.length, b.length + 1));
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, -1, b.length, 1));
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, -1, 1));
+    assertThrows(IllegalArgumentException.class, () -> blob.read(b, b.length + 1, b.length, 1));
   }
 
   @Test
-  public void test__execute__submitsCorrectRanges() {
+  public void testExecuteSubmitsCorrectRanges() {
     // Given: test blob and an IOPlan
     MetadataStore metadataStore = mock(MetadataStore.class);
     BlockManager blockManager = mock(BlockManager.class);
-    Blob blob = new Blob(TEST_URI, metadataStore, blockManager);
+    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, Telemetry.NOOP);
     List<Range> ranges = new LinkedList<>();
     ranges.add(new Range(0, 100));
     ranges.add(new Range(999, 1000));
@@ -110,11 +127,11 @@ public class BlobTest {
   }
 
   @Test
-  public void test__close__closesBlockManager() {
+  public void testCloseClosesBlockManager() {
     // Given: test blob
     MetadataStore metadataStore = mock(MetadataStore.class);
     BlockManager blockManager = mock(BlockManager.class);
-    Blob blob = new Blob(TEST_URI, metadataStore, blockManager);
+    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, Telemetry.NOOP);
 
     // When: blob is closed
     blob.close();
@@ -129,8 +146,12 @@ public class BlobTest {
         new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
     BlockManager blockManager =
         new BlockManager(
-            TEST_URI, fakeObjectClient, metadataStore, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+            TEST_URI,
+            fakeObjectClient,
+            metadataStore,
+            Telemetry.NOOP,
+            PhysicalIOConfiguration.DEFAULT);
 
-    return new Blob(TEST_URI, metadataStore, blockManager);
+    return new Blob(TEST_URI, metadataStore, blockManager, Telemetry.NOOP);
   }
 }
