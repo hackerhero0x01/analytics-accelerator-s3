@@ -105,8 +105,8 @@ public class TelemetryTest {
     CompletableFuture<Long> completableFuture = new CompletableFuture<>();
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
 
-
-    assertThrows(NullPointerException.class, () -> defaultTelemetry.measureJoin(null, completableFuture));
+    assertThrows(
+        NullPointerException.class, () -> defaultTelemetry.measureJoin(null, completableFuture));
     assertThrows(NullPointerException.class, () -> defaultTelemetry.measureJoin(operation, null));
   }
 }
