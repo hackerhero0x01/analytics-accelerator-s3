@@ -1,11 +1,11 @@
 package com.amazon.connector.s3;
 
-import static com.amazon.connector.s3.S3SeekableInputStreamConfiguration.LOGICAL_IO_PREFIX;
-import static com.amazon.connector.s3.S3SeekableInputStreamConfiguration.PHYSICAL_IO_PREFIX;
+import static com.amazon.connector.s3.S3SeekableInputStreamConfiguration.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 import com.amazon.connector.s3.common.ConnectorConfiguration;
+import com.amazon.connector.s3.common.telemetry.TelemetryConfiguration;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import java.util.HashMap;
@@ -31,7 +31,7 @@ public class S3SeekableInputStreamConfigurationTest {
   }
 
   @Test
-  void testNullBlockManagerConfiguration() {
+  void testNulls() {
     assertThrows(
         NullPointerException.class,
         () -> S3SeekableInputStreamConfiguration.builder().physicalIOConfiguration(null).build());
@@ -39,6 +39,10 @@ public class S3SeekableInputStreamConfigurationTest {
     assertThrows(
         NullPointerException.class,
         () -> S3SeekableInputStreamConfiguration.builder().logicalIOConfiguration(null).build());
+
+    assertThrows(
+        NullPointerException.class,
+        () -> S3SeekableInputStreamConfiguration.builder().telemetryConfiguration(null).build());
   }
 
   @Test
@@ -72,6 +76,11 @@ public class S3SeekableInputStreamConfigurationTest {
     assertEquals(
         PhysicalIOConfiguration.DEFAULT.getBlobStoreCapacity(),
         streamConfiguration.getPhysicalIOConfiguration().getBlobStoreCapacity());
+
+    assertFalse(streamConfiguration.getTelemetryConfiguration().isStdOutEnabled());
+    assertFalse(streamConfiguration.getTelemetryConfiguration().isLoggingEnabled());
+    assertEquals("foo", streamConfiguration.getTelemetryConfiguration().getLoggingName());
+    assertEquals("debug", streamConfiguration.getTelemetryConfiguration().getLoggingLevel());
   }
 
   /**
@@ -86,6 +95,19 @@ public class S3SeekableInputStreamConfigurationTest {
     properties.put("invalidPrefix.logicalio.predictive.prefetching.enabled", "false");
     properties.put(TEST_PREFIX + "." + PHYSICAL_IO_PREFIX + ".metadatastore.capacity", "10");
     properties.put(TEST_PREFIX + "." + PHYSICAL_IO_PREFIX + ".blocksizebytes", "20");
+    properties.put(
+        TEST_PREFIX + "." + TELEMETRY_PREFIX + "." + TelemetryConfiguration.STD_OUT_ENABLED_KEY,
+        "false");
+    properties.put(
+        TEST_PREFIX + "." + TELEMETRY_PREFIX + "." + TelemetryConfiguration.LOGGING_ENABLED_KEY,
+        "false");
+    properties.put(
+        TEST_PREFIX + "." + TELEMETRY_PREFIX + "." + TelemetryConfiguration.LOGGING_LEVEL_KEY,
+        "debug");
+    properties.put(
+        TEST_PREFIX + "." + TELEMETRY_PREFIX + "." + TelemetryConfiguration.LOGGING_NAME_KEY,
+        "foo");
+
     properties.put("invalidPrefix.physicalio.blobstore.capacity", "3");
 
     return new ConnectorConfiguration(properties, TEST_PREFIX);

@@ -33,7 +33,7 @@ public class TelemetryTest {
     assertSame(loggingTelemetryReporter.getEpochFormatter(), EpochFormatter.DEFAULT);
     assertEquals(loggingTelemetryReporter.getLoggerLevel(), Level.INFO);
     assertEquals(
-        loggingTelemetryReporter.getLoggerName(), LoggingTelemetryReporter.DEFAULT_LOGGER_NAME);
+        loggingTelemetryReporter.getLoggerName(), LoggingTelemetryReporter.DEFAULT_LOGGING_NAME);
   }
 
   @Test

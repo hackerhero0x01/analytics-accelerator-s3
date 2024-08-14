@@ -34,13 +34,16 @@ public class ConfigurableTelemetryTest {
     assertSame(loggingTelemetryReporter.getEpochFormatter(), EpochFormatter.DEFAULT);
     assertEquals(loggingTelemetryReporter.getLoggerLevel(), Level.INFO);
     assertEquals(
-        loggingTelemetryReporter.getLoggerName(), LoggingTelemetryReporter.DEFAULT_LOGGER_NAME);
+        loggingTelemetryReporter.getLoggerName(), LoggingTelemetryReporter.DEFAULT_LOGGING_NAME);
   }
 
   @Test
   void testCreateCustomizeParameters() {
     TelemetryConfiguration configuration =
-        TelemetryConfiguration.builder().loggerName("foo").logLevel(Level.DEBUG.toString()).build();
+        TelemetryConfiguration.builder()
+            .loggingName("foo")
+            .loggingLevel(Level.DEBUG.toString())
+            .build();
 
     ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
 
@@ -72,7 +75,7 @@ public class ConfigurableTelemetryTest {
   @Test
   void testCreateConsoleOnly() {
     TelemetryConfiguration configuration =
-        TelemetryConfiguration.builder().enableLogging(false).build();
+        TelemetryConfiguration.builder().loggingEnabled(false).build();
 
     ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
 
@@ -91,9 +94,9 @@ public class ConfigurableTelemetryTest {
   void testCreateLoggingOnly() {
     TelemetryConfiguration configuration =
         TelemetryConfiguration.builder()
-            .loggerName("foo")
-            .logLevel(Level.DEBUG.toString())
-            .enableStdOut(false)
+            .loggingName("foo")
+            .loggingLevel(Level.DEBUG.toString())
+            .stdOutEnabled(false)
             .build();
 
     ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
@@ -114,7 +117,7 @@ public class ConfigurableTelemetryTest {
   @Test
   void testCreateNeither() {
     TelemetryConfiguration configuration =
-        TelemetryConfiguration.builder().enableLogging(false).enableStdOut(false).build();
+        TelemetryConfiguration.builder().loggingEnabled(false).stdOutEnabled(false).build();
 
     ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
 

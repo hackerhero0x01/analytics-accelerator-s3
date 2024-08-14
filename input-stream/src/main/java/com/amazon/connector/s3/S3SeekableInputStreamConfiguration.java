@@ -1,6 +1,7 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.common.ConnectorConfiguration;
+import com.amazon.connector.s3.common.telemetry.TelemetryConfiguration;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import lombok.Builder;
@@ -13,15 +14,15 @@ import lombok.NonNull;
 @Builder
 @EqualsAndHashCode
 public class S3SeekableInputStreamConfiguration {
-
   public static final String PHYSICAL_IO_PREFIX = "physicalio";
   public static final String LOGICAL_IO_PREFIX = "logicalio";
+  public static final String TELEMETRY_PREFIX = "telemetry";
 
-  @Builder.Default
-  private PhysicalIOConfiguration physicalIOConfiguration = PhysicalIOConfiguration.DEFAULT;
+  @Builder.Default @NonNull private PhysicalIOConfiguration physicalIOConfiguration = PhysicalIOConfiguration.DEFAULT;
 
-  @Builder.Default
-  private LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
+  @Builder.Default @NonNull private LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
+
+  @Builder.Default @NonNull private TelemetryConfiguration telemetryConfiguration = TelemetryConfiguration.DEFAULT;
 
   /** Default set of settings for {@link S3SeekableInputStream} */
   public static final S3SeekableInputStreamConfiguration DEFAULT =
@@ -40,19 +41,8 @@ public class S3SeekableInputStreamConfiguration {
             PhysicalIOConfiguration.fromConfiguration(configuration.map(PHYSICAL_IO_PREFIX)))
         .logicalIOConfiguration(
             LogicalIOConfiguration.fromConfiguration(configuration.map(LOGICAL_IO_PREFIX)))
+        .telemetryConfiguration(
+            TelemetryConfiguration.fromConfiguration(configuration.map(TELEMETRY_PREFIX)))
         .build();
-  }
-
-  /**
-   * Creates a new instance of
-   *
-   * @param physicalIOConfiguration - {@link PhysicalIOConfiguration} configuration
-   * @param logicalIOConfiguration - {@link LogicalIOConfiguration} configuration
-   */
-  private S3SeekableInputStreamConfiguration(
-      @NonNull PhysicalIOConfiguration physicalIOConfiguration,
-      @NonNull LogicalIOConfiguration logicalIOConfiguration) {
-    this.physicalIOConfiguration = physicalIOConfiguration;
-    this.logicalIOConfiguration = logicalIOConfiguration;
   }
 }

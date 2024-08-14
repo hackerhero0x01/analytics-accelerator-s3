@@ -8,8 +8,8 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * This {@link TelemetryReporter} outputs telemetry into a log with a given name and level. {@link
- * LoggingTelemetryReporter#DEFAULT_LOGGER_NAME} and {@link LoggingTelemetryReporter#DEFAULT_LEVEL}
- * are used by default.
+ * LoggingTelemetryReporter#DEFAULT_LOGGING_NAME} and {@link
+ * LoggingTelemetryReporter#DEFAULT_LOGGING_LEVEL} are used by default.
  */
 class LoggingTelemetryReporter implements TelemetryReporter {
   @Getter @NonNull private final EpochFormatter epochFormatter;
@@ -18,14 +18,14 @@ class LoggingTelemetryReporter implements TelemetryReporter {
   @NonNull private final Logger logger;
 
   /** Default logging loggerLevel */
-  public static Level DEFAULT_LEVEL = Level.INFO;
+  public static Level DEFAULT_LOGGING_LEVEL = Level.INFO;
 
   /** Default logger name */
-  public static String DEFAULT_LOGGER_NAME = "com.amazon.connector.s3.telemetry";
+  public static String DEFAULT_LOGGING_NAME = "com.amazon.connector.s3.telemetry";
 
   /** Creates a new instance of {@link LoggingTelemetryReporter} with sensible defaults. */
   public LoggingTelemetryReporter() {
-    this(DEFAULT_LOGGER_NAME, DEFAULT_LEVEL, EpochFormatter.DEFAULT);
+    this(DEFAULT_LOGGING_NAME, DEFAULT_LOGGING_LEVEL, EpochFormatter.DEFAULT);
   }
 
   /**
