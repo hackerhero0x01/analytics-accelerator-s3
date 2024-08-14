@@ -37,7 +37,7 @@ public class BlobStore implements Closeable {
     this.blobMap =
         Caffeine.newBuilder()
             .maximumSize(configuration.getBlobStoreCapacity())
-            .expireAfterWrite(Duration.ofMillis(configuration.getCacheEvictionTime()))
+            .expireAfterWrite(Duration.ofMillis(configuration.getCacheEvictionTimeMillis()))
             .build();
     this.configuration = configuration;
   }

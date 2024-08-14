@@ -59,10 +59,10 @@ public class PhysicalIOConfiguration {
   private static final String PART_SIZE_BYTES_KEY = "partsizebytes";
 
   /**
-   * Cache eviction time in seconds. {@link PhysicalIOConfiguration#DEFAULT_CACHE_EVICTION_TIME_MILLIS} by
-   * default.
+   * Cache eviction time in milliseconds. {@link
+   * PhysicalIOConfiguration#DEFAULT_CACHE_EVICTION_TIME_MILLIS} by default.
    */
-  @Builder.Default private int cacheEvictionTime = DEFAULT_CACHE_EVICTION_TIME_MILLIS;
+  @Builder.Default private int cacheEvictionTimeMillis = DEFAULT_CACHE_EVICTION_TIME_MILLIS;
 
   private static final String CACHE_EVICTION_TIME_KEY = "cache.eviction.time";
 
@@ -85,7 +85,7 @@ public class PhysicalIOConfiguration {
         .readAheadBytes(configuration.getLong(READ_AHEAD_BYTES_KEY, DEFAULT_READ_AHEAD_BYTES))
         .maxRangeSizeBytes(configuration.getLong(MAX_RANGE_SIZE_BYTES_KEY, DEFAULT_MAX_RANGE_SIZE))
         .partSizeBytes(configuration.getLong(PART_SIZE_BYTES_KEY, DEFAULT_PART_SIZE))
-        .cacheEvictionTime(
+        .cacheEvictionTimeMillis(
             configuration.getInt(CACHE_EVICTION_TIME_KEY, DEFAULT_CACHE_EVICTION_TIME_MILLIS))
         .build();
   }
@@ -99,7 +99,7 @@ public class PhysicalIOConfiguration {
    * @param readAheadBytes Read ahead, in bytes
    * @param maxRangeSizeBytes Maximum physical read issued against the object store
    * @param partSizeBytes What part size to use when splitting up logical reads
-   * @param cacheEvictionTime Cache eviction time in seconds
+   * @param cacheEvictionTimeMillis Cache eviction time in milliseconds
    */
   @Builder
   private PhysicalIOConfiguration(
@@ -109,7 +109,7 @@ public class PhysicalIOConfiguration {
       long readAheadBytes,
       long maxRangeSizeBytes,
       long partSizeBytes,
-      int cacheEvictionTime) {
+      int cacheEvictionTimeMillis) {
     Preconditions.checkArgument(blobStoreCapacity > 0, "`blobStoreCapacity` must be positive");
     Preconditions.checkArgument(
         metadataStoreCapacity > 0, "`metadataStoreCapacity` must be positive");
@@ -117,7 +117,8 @@ public class PhysicalIOConfiguration {
     Preconditions.checkArgument(readAheadBytes > 0, "`readAheadLengthBytes` must be positive");
     Preconditions.checkArgument(maxRangeSizeBytes > 0, "`maxRangeSize` must be positive");
     Preconditions.checkArgument(partSizeBytes > 0, "`partSize` must be positive");
-    Preconditions.checkArgument(cacheEvictionTime > 0, "`cacheEvictionTime` must be positive");
+    Preconditions.checkArgument(
+        cacheEvictionTimeMillis > 0, "`cacheEvictionTime` must be positive");
 
     this.blobStoreCapacity = blobStoreCapacity;
     this.metadataStoreCapacity = metadataStoreCapacity;
@@ -125,6 +126,6 @@ public class PhysicalIOConfiguration {
     this.readAheadBytes = readAheadBytes;
     this.maxRangeSizeBytes = maxRangeSizeBytes;
     this.partSizeBytes = partSizeBytes;
-    this.cacheEvictionTime = cacheEvictionTime;
+    this.cacheEvictionTimeMillis = cacheEvictionTimeMillis;
   }
 }
