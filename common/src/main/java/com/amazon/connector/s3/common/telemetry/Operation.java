@@ -1,8 +1,8 @@
 package com.amazon.connector.s3.common.telemetry;
 
 import com.amazon.connector.s3.common.Preconditions;
-import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -141,8 +141,8 @@ public class Operation {
 
   /** Builder for {@link Operation} */
   public static class OperationBuilder {
-    private static final int UUID_BYTE_SIZE = 16;
-    private static final int UUID_STRING_SIZE = 22;
+    private static final int ID_BYTE_SIZE = 8;
+    private static final int ID_STRING_SIZE = 11;
     private String id;
     private String name;
     private final Map<String, Attribute> attributes = new HashMap<String, Attribute>();
@@ -239,22 +239,15 @@ public class Operation {
     }
 
     /**
-     * This generates a unique ID. The implementation uses Base64 encoding of a UUID
+     * This generates a unique ID. The implementation uses Base64 encoding of a random Long
      *
      * @return unique id.
      */
     private String generateID() {
-      // Generate UUID
-      UUID uuid = UUID.randomUUID();
-
-      // Base64 encode it, for compactness
-      ByteBuffer buffer = ByteBuffer.wrap(new byte[UUID_BYTE_SIZE]);
-      buffer.putLong(uuid.getMostSignificantBits());
-      buffer.putLong(uuid.getLeastSignificantBits());
-      String encodedUUID = Base64.getUrlEncoder().encodeToString(buffer.array());
-
-      // Strip trailing characters and return
-      return encodedUUID.substring(0, UUID_STRING_SIZE);
+      // Generate a random long and base64 it, stripping the trailing padding
+      byte[] buffer = new byte[8];
+      ThreadLocalRandom.current().nextBytes(buffer);
+      return Base64.getUrlEncoder().encodeToString(buffer).substring(0, ID_STRING_SIZE);
     }
   }
 }
