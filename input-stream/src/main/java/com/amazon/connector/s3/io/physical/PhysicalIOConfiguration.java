@@ -21,7 +21,7 @@ public class PhysicalIOConfiguration {
   private static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
   private static final long DEFAULT_MAX_RANGE_SIZE = 8 * ONE_MB;
   private static final long DEFAULT_PART_SIZE = 8 * ONE_MB;
-  public static final int DEFAULT_CACHE_EVICTION_TIME = 30;
+  public static final int DEFAULT_CACHE_EVICTION_TIME_MILLIS = 30 * 1000;
 
   /** Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_BLOB_STORE} by default. */
   @Builder.Default private int blobStoreCapacity = DEFAULT_CAPACITY_BLOB_STORE;
@@ -59,10 +59,10 @@ public class PhysicalIOConfiguration {
   private static final String PART_SIZE_BYTES_KEY = "partsizebytes";
 
   /**
-   * Cache eviction time in seconds. {@link PhysicalIOConfiguration#DEFAULT_CACHE_EVICTION_TIME} by
+   * Cache eviction time in seconds. {@link PhysicalIOConfiguration#DEFAULT_CACHE_EVICTION_TIME_MILLIS} by
    * default.
    */
-  @Builder.Default private int cacheEvictionTime = DEFAULT_CACHE_EVICTION_TIME;
+  @Builder.Default private int cacheEvictionTime = DEFAULT_CACHE_EVICTION_TIME_MILLIS;
 
   private static final String CACHE_EVICTION_TIME_KEY = "cache.eviction.time";
 
@@ -86,7 +86,7 @@ public class PhysicalIOConfiguration {
         .maxRangeSizeBytes(configuration.getLong(MAX_RANGE_SIZE_BYTES_KEY, DEFAULT_MAX_RANGE_SIZE))
         .partSizeBytes(configuration.getLong(PART_SIZE_BYTES_KEY, DEFAULT_PART_SIZE))
         .cacheEvictionTime(
-            configuration.getInt(CACHE_EVICTION_TIME_KEY, DEFAULT_CACHE_EVICTION_TIME))
+            configuration.getInt(CACHE_EVICTION_TIME_KEY, DEFAULT_CACHE_EVICTION_TIME_MILLIS))
         .build();
   }
 
