@@ -52,6 +52,14 @@ class LoggingTelemetryReporter implements TelemetryReporter {
    */
   @Override
   public void report(@NonNull OperationMeasurement operationMeasurement) {
-    this.logger.log(this.loggerLevel, operationMeasurement.toString(epochFormatter));
+    if (operationMeasurement.getError().isPresent()) {
+      // If the operation failed, always record as error.
+      this.logger.log(
+          Level.ERROR,
+          operationMeasurement.toString(epochFormatter),
+          operationMeasurement.getError().get());
+    } else {
+      this.logger.log(this.loggerLevel, operationMeasurement.toString(epochFormatter));
+    }
   }
 }

@@ -140,7 +140,7 @@ public class OperationMeasurementTest {
 
   @Test
   void testToString() {
-    Operation operation = Operation.builder().name("foo").build();
+    Operation operation = Operation.builder().id("123").name("foo").build();
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
@@ -152,7 +152,29 @@ public class OperationMeasurementTest {
     String threadAttributeAsString =
         CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
     String toString = operationMeasurement.toString();
-    assertTrue(toString.contains("foo(" + threadAttributeAsString + "): 4,999,990 ns"));
+    assertEquals(
+        toString, "[2024-08-06T12:46:19.101Z] [success] [123] foo(thread_id=1): 4,999,990 ns");
+  }
+
+  @Test
+  void testToStringWithError() {
+    Operation operation = Operation.builder().id("123").name("foo").build();
+    Exception error = new IllegalStateException("Error");
+    OperationMeasurement operationMeasurement =
+        OperationMeasurement.builder()
+            .operation(operation)
+            .error(error)
+            .epochTimestampNanos(1722944779101123456L)
+            .elapsedStartTimeNanos(10)
+            .elapsedCompleteTimeNanos(5000000)
+            .build();
+
+    String threadAttributeAsString =
+        CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
+    String toString = operationMeasurement.toString();
+    assertEquals(
+        toString,
+        "[2024-08-06T12:46:19.101Z] [failure] [123] foo(thread_id=1): 4,999,990 ns [java.lang.IllegalStateException: 'Error']");
   }
 
   @Test
@@ -197,7 +219,7 @@ public class OperationMeasurementTest {
     String threadAttributeAsString =
         CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
 
-    String toString = operationMeasurement.toString(epochFormatter, "<%s> <%s> <%d>");
+    String toString = operationMeasurement.toString(epochFormatter, "<%s> <%s> <%s> <%d>");
     assertTrue(toString.contains("foo(A=42, " + threadAttributeAsString + ")> <4999990>"));
   }
 

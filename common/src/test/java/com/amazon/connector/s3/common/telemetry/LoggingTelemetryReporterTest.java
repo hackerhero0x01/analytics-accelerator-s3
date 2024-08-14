@@ -58,6 +58,22 @@ public class LoggingTelemetryReporterTest {
   }
 
   @Test
+  public void testReportWithException() {
+    Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
+    OperationMeasurement operationMeasurement =
+        OperationMeasurement.builder()
+            .operation(operation)
+            .error(new IllegalStateException("Error"))
+            .epochTimestampNanos(1722944779101123456L)
+            .elapsedStartTimeNanos(10)
+            .elapsedCompleteTimeNanos(5000000)
+            .build();
+
+    LoggingTelemetryReporter reporter = new LoggingTelemetryReporter();
+    reporter.report(operationMeasurement);
+  }
+
+  @Test
   void testCreateWithNulls() {
     assertThrows(
         NullPointerException.class,

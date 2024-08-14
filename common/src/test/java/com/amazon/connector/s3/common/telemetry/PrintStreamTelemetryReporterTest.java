@@ -93,7 +93,9 @@ public class PrintStreamTelemetryReporterTest {
     String threadAttributeAsString =
         CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
     assertEquals(
-        "[2024/08/06T11;46;19,101Z] [123] foo(A=42, " + threadAttributeAsString + "): 4,999,990 ns",
+        "[2024/08/06T11;46;19,101Z] [success] [123] foo(A=42, "
+            + threadAttributeAsString
+            + "): 4,999,990 ns",
         stringCaptor.getValue());
   }
 

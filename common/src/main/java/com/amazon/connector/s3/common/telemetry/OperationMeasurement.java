@@ -19,13 +19,17 @@ public class OperationMeasurement {
   /** Exception thrown as part of the execution. */
   @NonNull Optional<Throwable> error;
 
-  public static final String DEFAULT_FORMAT_STRING = "[%s] %s: %,d ns";
+  public static final String DEFAULT_FORMAT_STRING = "[%s] [%s] %s: %,d ns";
+  private static final String DEFAULT_ERROR_FORMAT_STRING = " [%s: '%s']";
+  private static final String EXCEPTION_FORMAT = "";
+  private static final String SUCCESS = "success";
+  private static final String FAILURE = "failure";
 
   /**
    * Returns the String representation of the {@link OperationMeasurement}. {@link
    * OperationMeasurement#DEFAULT_FORMAT_STRING} will be used to format the string. The parameters
-   * are supplied in the following order: 1 - start epoch, String 2 - operation, String 3 - elapsed
-   * time in nanos, Long.
+   * are supplied in the following order: 1 - start epoch, String 2 - success of failure, String 3 -
+   * operation, String 4 - elapsed time in nanos, Long.
    *
    * @return the String representation of the {@link OperationMeasurement}.
    */
@@ -59,11 +63,22 @@ public class OperationMeasurement {
    * @return the String representation of the {@link OperationMeasurement}.
    */
   public String toString(@NonNull EpochFormatter epochFormatter, @NonNull String formatString) {
-    return String.format(
-        formatString,
-        epochFormatter.formatNanos(this.getEpochTimestampNanos()),
-        this.getOperation(),
-        this.getElapsedTimeNanos());
+    String result =
+        String.format(
+            formatString,
+            epochFormatter.formatNanos(this.getEpochTimestampNanos()),
+            this.succeeded() ? SUCCESS : FAILURE,
+            this.getOperation(),
+            this.getElapsedTimeNanos());
+
+    if (this.getError().isPresent()) {
+      result +=
+          String.format(
+              DEFAULT_ERROR_FORMAT_STRING,
+              this.getError().get().getClass().getCanonicalName(),
+              this.getError().get().getMessage());
+    }
+    return result;
   }
 
   /**
