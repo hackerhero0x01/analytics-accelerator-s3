@@ -149,15 +149,38 @@ public class OperationMeasurementTest {
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
-    String threadAttributeAsString =
-        CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
     String toString = operationMeasurement.toString();
-    assertEquals(
-        toString, "[2024-08-06T12:46:19.101Z] [success] [123] foo(thread_id=1): 4,999,990 ns");
+    assertTrue(toString.contains(" [success] [123] foo(thread_id=1): 4,999,990 ns"));
   }
 
   @Test
-  void testToStringWithError() {
+  void testFullToString() {
+    EpochFormatter epochFormatter =
+        new EpochFormatter(
+            EpochFormatter.DEFAULT_PATTERN,
+            TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
+            Locale.ENGLISH);
+    Operation operation = Operation.builder().id("123").name("foo").build();
+    OperationMeasurement operationMeasurement =
+        OperationMeasurement.builder()
+            .operation(operation)
+            .epochTimestampNanos(1722944779101123456L)
+            .elapsedStartTimeNanos(10)
+            .elapsedCompleteTimeNanos(5000000)
+            .build();
+
+    String toString = operationMeasurement.toString(epochFormatter);
+    assertEquals(
+        toString, "[2024-08-06T17:46:19.101Z] [success] [123] foo(thread_id=1): 4,999,990 ns");
+  }
+
+  @Test
+  void testFullToStringWithError() {
+    EpochFormatter epochFormatter =
+        new EpochFormatter(
+            EpochFormatter.DEFAULT_PATTERN,
+            TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
+            Locale.ENGLISH);
     Operation operation = Operation.builder().id("123").name("foo").build();
     Exception error = new IllegalStateException("Error");
     OperationMeasurement operationMeasurement =
@@ -169,12 +192,10 @@ public class OperationMeasurementTest {
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
-    String threadAttributeAsString =
-        CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
-    String toString = operationMeasurement.toString();
+    String toString = operationMeasurement.toString(epochFormatter);
     assertEquals(
         toString,
-        "[2024-08-06T12:46:19.101Z] [failure] [123] foo(thread_id=1): 4,999,990 ns [java.lang.IllegalStateException: 'Error']");
+        "[2024-08-06T17:46:19.101Z] [failure] [123] foo(thread_id=1): 4,999,990 ns [java.lang.IllegalStateException: 'Error']");
   }
 
   @Test
