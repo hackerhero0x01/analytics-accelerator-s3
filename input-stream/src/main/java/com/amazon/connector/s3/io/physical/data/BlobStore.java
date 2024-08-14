@@ -4,15 +4,15 @@ import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.util.S3URI;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.io.Closeable;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.time.Duration;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
 public class BlobStore implements Closeable {
 
-  private final Map<S3URI, Blob> blobMap;
+  private final Cache<S3URI, Blob> blobMap;
   private final MetadataStore metadataStore;
   private final ObjectClient objectClient;
   private final PhysicalIOConfiguration configuration;
@@ -35,13 +35,10 @@ public class BlobStore implements Closeable {
     this.metadataStore = metadataStore;
     this.objectClient = objectClient;
     this.blobMap =
-        Collections.synchronizedMap(
-            new LinkedHashMap<S3URI, Blob>() {
-              @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > configuration.getBlobStoreCapacity();
-              }
-            });
+        Caffeine.newBuilder()
+            .maximumSize(configuration.getBlobStoreCapacity())
+            .expireAfterWrite(Duration.ofSeconds(configuration.getCacheEvictionTime()))
+            .build();
     this.configuration = configuration;
   }
 
@@ -52,17 +49,19 @@ public class BlobStore implements Closeable {
    * @return the blob representing the object from the BlobStore
    */
   public Blob get(S3URI s3URI) {
-    return blobMap.computeIfAbsent(
-        s3URI,
-        uri ->
-            new Blob(
-                uri,
-                metadataStore,
-                new BlockManager(uri, objectClient, metadataStore, configuration)));
+    return blobMap
+        .asMap()
+        .computeIfAbsent(
+            s3URI,
+            uri ->
+                new Blob(
+                    uri,
+                    metadataStore,
+                    new BlockManager(uri, objectClient, metadataStore, configuration)));
   }
 
   @Override
   public void close() {
-    blobMap.forEach((k, v) -> v.close());
+    blobMap.asMap().forEach((k, v) -> v.close());
   }
 }
