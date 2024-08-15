@@ -22,7 +22,7 @@ public enum StreamAttributes {
   private final String name;
 
   /**
-   * Creates a and {@link Attribute} for a {@link S3URI}.
+   * Creates an {@link Attribute} for a {@link S3URI}.
    *
    * @param s3URI the {@link S3URI} to create the attribute from.
    * @return The new instance of the {@link Attribute}.
@@ -32,7 +32,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates a and {@link Attribute} for a {@link Range}.
+   * Creates an {@link Attribute} for a {@link Range}.
    *
    * @param range the {@link Range} to create the attribute from.
    * @return The new instance of the {@link Attribute}.
@@ -42,7 +42,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates a and {@link Attribute} for a position.
+   * Creates an {@link Attribute} for a position.
    *
    * @param position the position to create the attribute from.
    * @return The new instance of the {@link Attribute}.
@@ -52,7 +52,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates a and {@link Attribute} for a length.
+   * Creates an {@link Attribute} for a length.
    *
    * @param length the position to create the attribute from.
    * @return The new instance of the {@link Attribute}.
@@ -62,7 +62,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates a and {@link Attribute} for a length.
+   * Creates an {@link Attribute} for a length.
    *
    * @param offset the position to create the attribute from.
    * @return The new instance of the {@link Attribute}.
@@ -72,7 +72,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates a and {@link Attribute} for start.
+   * Creates an {@link Attribute} for start.
    *
    * @param start the position to create the attribute from.
    * @return The new instance of the {@link Attribute}.
@@ -82,7 +82,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates a and {@link Attribute} for end.
+   * Creates an {@link Attribute} for end.
    *
    * @param end the position to create the attribute from.
    * @return The new instance of the {@link Attribute}.
@@ -92,7 +92,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates a and {@link Attribute} for generation.
+   * Creates an {@link Attribute} for generation.
    *
    * @param generation the position to create the attribute from.
    * @return The new instance of the {@link Attribute}.
@@ -102,7 +102,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates a and {@link Attribute} for ioPlan.
+   * Creates an {@link Attribute} for ioPlan.
    *
    * @param ioPlan the position to create the attribute from.
    * @return The new instance of the {@link Attribute}.

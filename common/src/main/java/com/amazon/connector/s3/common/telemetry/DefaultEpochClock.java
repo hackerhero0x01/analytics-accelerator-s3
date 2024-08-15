@@ -2,7 +2,7 @@ package com.amazon.connector.s3.common.telemetry;
 
 /**
  * Default clock used in all non-test contexts to measure wall clock time. Uses `{@link
- * System#nanoTime()}.
+ * System#currentTimeMillis()}.
  */
 final class DefaultEpochClock implements Clock {
   /**

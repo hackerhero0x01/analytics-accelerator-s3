@@ -245,7 +245,7 @@ public class Operation {
      */
     private String generateID() {
       // Generate a random long and base64 it, stripping the trailing padding
-      byte[] buffer = new byte[8];
+      byte[] buffer = new byte[ID_BYTE_SIZE];
       ThreadLocalRandom.current().nextBytes(buffer);
       return Base64.getUrlEncoder().encodeToString(buffer).substring(0, ID_STRING_SIZE);
     }
