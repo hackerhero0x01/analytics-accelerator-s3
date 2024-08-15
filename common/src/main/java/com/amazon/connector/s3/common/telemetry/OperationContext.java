@@ -28,7 +28,7 @@ public final class OperationContext {
    * time a new operation is "started", it is pushed on the stack. After the execution is completed,
    * the operation is "popped". This helps with implicit parenting - if the parent is not
    * specifically set, the stack is consulted, and the latest operation on the stack is used as a
-   * parent. This allows
+   * parent. This allows for implicit parenting of operations.
    */
   private final ThreadLocal<Stack<Operation>> operationsStack =
       ThreadLocal.withInitial(
@@ -85,7 +85,7 @@ public final class OperationContext {
 
   /**
    * This pops the {@link Operation} off the current thread stack, presuming it is the latest one.
-   * if it isn't, {@link IllegalArgumentException} is thrown.
+   * if it isn't, {@link IllegalStateException} is thrown.
    *
    * @param operation the {@link Operation} to pop pff the stack.
    */

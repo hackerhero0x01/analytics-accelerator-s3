@@ -69,7 +69,7 @@ public class IOPlannerTest {
   }
 
   @Test
-  public void testPlanRead_oesNotDoubleRead() {
+  public void testPlanReadDoesNotDoubleRead() {
     // Given: a BlockStore with a (100,200) block in it
     final int OBJECT_SIZE = 10_000;
     byte[] content = new byte[OBJECT_SIZE];

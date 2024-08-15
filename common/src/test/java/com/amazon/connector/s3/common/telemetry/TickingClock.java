@@ -2,7 +2,7 @@ package com.amazon.connector.s3.common.telemetry;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-/** It's basically a Lamport Clock, that progresses only ahead and only does so when told. */
+/** This is a logical clock, that progresses only ahead and only does so when told. */
 class TickingClock implements Clock {
   private final AtomicLong ticks = new AtomicLong();
 

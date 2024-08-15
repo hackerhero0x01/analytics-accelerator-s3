@@ -182,7 +182,7 @@ public class OperationMeasurement {
 
   /** Builder for {@link OperationMeasurement} */
   public static class OperationMeasurementBuilder {
-    private static final long UNSET_NANOS = -1L;
+    private static final long UNSET_NANOS = Long.MIN_VALUE;
     private Operation operation;
     private long epochTimestampNanos = UNSET_NANOS;
     private long elapsedStartTimeNanos = UNSET_NANOS;
