@@ -46,20 +46,32 @@ class LoggingTelemetryReporter implements TelemetryReporter {
   }
 
   /**
+   * Reports the start of an operation
+   *
+   * @param epochTimestampNanos wall clock time for the operation start
+   * @param operation and instance of {@link Operation} to start
+   */
+  @Override
+  public void reportStart(long epochTimestampNanos, Operation operation) {
+    this.logger.log(
+        this.loggerLevel,
+        OperationMeasurement.getOperationStartingString(
+            operation, epochTimestampNanos, this.epochFormatter));
+  }
+
+  /**
    * Outputs the current contents of {@link OperationMeasurement} into a log.
    *
    * @param operationMeasurement operation execution.
    */
   @Override
-  public void report(@NonNull OperationMeasurement operationMeasurement) {
+  public void reportComplete(@NonNull OperationMeasurement operationMeasurement) {
+    String message = operationMeasurement.toString(epochFormatter);
     if (operationMeasurement.getError().isPresent()) {
       // If the operation failed, always record as error.
-      this.logger.log(
-          Level.ERROR,
-          operationMeasurement.toString(epochFormatter),
-          operationMeasurement.getError().get());
+      this.logger.log(Level.ERROR, message, operationMeasurement.getError().get());
     } else {
-      this.logger.log(this.loggerLevel, operationMeasurement.toString(epochFormatter));
+      this.logger.log(this.loggerLevel, message);
     }
   }
 }

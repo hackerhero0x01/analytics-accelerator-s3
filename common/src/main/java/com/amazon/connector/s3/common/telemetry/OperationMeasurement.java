@@ -19,7 +19,8 @@ public class OperationMeasurement {
   /** Exception thrown as part of the execution. */
   @NonNull Optional<Throwable> error;
 
-  public static final String DEFAULT_FORMAT_STRING = "[%s] [%s] %s: %,d ns";
+  public static final String DEFAULT_START_FORMAT_STRING = "[%s] [  start] %s";
+  public static final String DEFAULT_COMPLETE_FORMAT_STRING = "[%s] [%s] %s: %,d ns";
   private static final String DEFAULT_ERROR_FORMAT_STRING = " [%s: '%s']";
   private static final String EXCEPTION_FORMAT = "";
   private static final String SUCCESS = "success";
@@ -27,9 +28,9 @@ public class OperationMeasurement {
 
   /**
    * Returns the String representation of the {@link OperationMeasurement}. {@link
-   * OperationMeasurement#DEFAULT_FORMAT_STRING} will be used to format the string. The parameters
-   * are supplied in the following order: 1 - start epoch, String 2 - success of failure, String 3 -
-   * operation, String 4 - elapsed time in nanos, Long.
+   * OperationMeasurement#DEFAULT_COMPLETE_FORMAT_STRING} will be used to format the string. The
+   * parameters are supplied in the following order: 1 - start epoch, String 2 - success of failure,
+   * String 3 - operation, String 4 - elapsed time in nanos, Long.
    *
    * @return the String representation of the {@link OperationMeasurement}.
    */
@@ -40,16 +41,16 @@ public class OperationMeasurement {
 
   /**
    * Returns the String representation of the {@link OperationMeasurement}. {@link
-   * OperationMeasurement#DEFAULT_FORMAT_STRING} will be used to format the string. The parameters
-   * are supplied in the following order: 1 - start epoch, String 2 - operation, String 3 - elapsed
-   * time in nanos, Long.
+   * OperationMeasurement#DEFAULT_COMPLETE_FORMAT_STRING} will be used to format the string. The
+   * parameters are supplied in the following order: 1 - start epoch, String 2 - operation, String 3
+   * - elapsed time in nanos, Long.
    *
    * @param epochFormatter an instance of {@link EpochFormatter} to format the {@link
    *     OperationMeasurement#epochTimestampNanos}.
    * @return the String representation of the {@link OperationMeasurement}.
    */
   public String toString(@NonNull EpochFormatter epochFormatter) {
-    return toString(epochFormatter, DEFAULT_FORMAT_STRING);
+    return toString(epochFormatter, DEFAULT_COMPLETE_FORMAT_STRING);
   }
 
   /**
@@ -115,6 +116,68 @@ public class OperationMeasurement {
    */
   public long getElapsedTimeNanos() {
     return elapsedCompleteTimeNanos - elapsedStartTimeNanos;
+  }
+
+  /**
+   * Returns the String representation of the {@link Operation} and epochTimestampNanos. This is
+   * used to format the "operation starting" message.
+   *
+   * @param operation {@link Operation} that is starting operation.
+   * @param epochTimestampNanos wall clock epoch of the operation start, in nanos.
+   * @return formatted string.
+   */
+  public static String getOperationStartingString(Operation operation, long epochTimestampNanos) {
+    return getOperationStartingString(operation, epochTimestampNanos, DEFAULT_START_FORMAT_STRING);
+  }
+
+  /**
+   * Returns the String representation of the {@link Operation} and epochTimestampNanos. This is
+   * used to format the "operation starting" message.
+   *
+   * @param operation {@link Operation} that is starting operation.
+   * @param epochTimestampNanos wall clock epoch of the operation start, in nanos.
+   * @param formatString format string to use. The parameters are supplied in the following order: 1
+   *     - start epoch, String 2 - operation.
+   * @return formatted string.
+   */
+  public static String getOperationStartingString(
+      Operation operation, long epochTimestampNanos, String formatString) {
+    return getOperationStartingString(
+        operation, epochTimestampNanos, EpochFormatter.DEFAULT, formatString);
+  }
+
+  /**
+   * Returns the String representation of the {@link Operation} and epochTimestampNanos. This is
+   * used to format the "operation starting" message.
+   *
+   * @param operation {@link Operation} that is starting operation.
+   * @param epochTimestampNanos wall clock epoch of the operation start, in nanos.
+   * @param epochFormatter {@link EpochFormatter} to use to format epochTimestampNanos
+   * @return formatted string.
+   */
+  public static String getOperationStartingString(
+      Operation operation, long epochTimestampNanos, EpochFormatter epochFormatter) {
+    return getOperationStartingString(
+        operation, epochTimestampNanos, epochFormatter, DEFAULT_START_FORMAT_STRING);
+  }
+
+  /**
+   * Returns the String representation of the {@link Operation} and epochTimestampNanos. This is
+   * used to format the "operation starting" message.
+   *
+   * @param operation {@link Operation} that is starting operation.
+   * @param epochTimestampNanos wall clock epoch of the operation start, in nanos.
+   * @param epochFormatter {@link EpochFormatter} to use to format epochTimestampNanos
+   * @param formatString format string to use.The parameters are supplied in the following order: 1
+   *     - start epoch, String 2 - operation.
+   * @return formatted string.
+   */
+  public static String getOperationStartingString(
+      @NonNull Operation operation,
+      long epochTimestampNanos,
+      @NonNull EpochFormatter epochFormatter,
+      @NonNull String formatString) {
+    return String.format(formatString, epochFormatter.formatNanos(epochTimestampNanos), operation);
   }
 
   /** Builder for {@link OperationMeasurement} */

@@ -8,6 +8,8 @@ import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
 
 public class OperationMeasurementTest {
+  private static final long TEST_EPOCH_NANOS = 1722944779101123456L;
+
   @Test
   void testCreateOperationMeasurement() {
     Operation operation = Operation.builder().name("foo").build();
@@ -144,7 +146,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
@@ -164,14 +166,17 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
     String toString = operationMeasurement.toString(epochFormatter);
     assertEquals(
-        toString, "[2024-08-06T17:46:19.101Z] [success] [123] foo(thread_id=1): 4,999,990 ns");
+        toString,
+        "[2024-08-06T17:46:19.101Z] [success] [123] foo(thread_id="
+            + +Thread.currentThread().getId()
+            + "): 4,999,990 ns");
   }
 
   @Test
@@ -187,7 +192,7 @@ public class OperationMeasurementTest {
         OperationMeasurement.builder()
             .operation(operation)
             .error(error)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
@@ -195,7 +200,9 @@ public class OperationMeasurementTest {
     String toString = operationMeasurement.toString(epochFormatter);
     assertEquals(
         toString,
-        "[2024-08-06T17:46:19.101Z] [failure] [123] foo(thread_id=1): 4,999,990 ns [java.lang.IllegalStateException: 'Error']");
+        "[2024-08-06T17:46:19.101Z] [failure] [123] foo(thread_id="
+            + Thread.currentThread().getId()
+            + "): 4,999,990 ns [java.lang.IllegalStateException: 'Error']");
   }
 
   @Test
@@ -210,7 +217,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
@@ -233,7 +240,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
@@ -256,7 +263,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
@@ -265,5 +272,58 @@ public class OperationMeasurementTest {
     assertThrows(NullPointerException.class, () -> operationMeasurement.toString(null, "foo"));
     assertThrows(
         NullPointerException.class, () -> operationMeasurement.toString(epochFormatter, null));
+  }
+
+  @Test
+  void testGetOperationStartingString() {
+    EpochFormatter epochFormatter =
+        new EpochFormatter(
+            EpochFormatter.DEFAULT_PATTERN,
+            TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
+            Locale.ENGLISH);
+    Operation operation = Operation.builder().id("123").name("foo").build();
+
+    assertEquals(
+        "[2024-08-06T17:46:19.101Z] [  start] [123] foo(thread_id="
+            + Thread.currentThread().getId()
+            + ")",
+        OperationMeasurement.getOperationStartingString(
+            operation, TEST_EPOCH_NANOS, epochFormatter, "[%s] [  start] %s"));
+
+    assertEquals(
+        "[2024-08-06T17:46:19.101Z] [  start] [123] foo(thread_id="
+            + Thread.currentThread().getId()
+            + ")",
+        OperationMeasurement.getOperationStartingString(
+            operation, TEST_EPOCH_NANOS, epochFormatter));
+    assertTrue(
+        OperationMeasurement.getOperationStartingString(operation, TEST_EPOCH_NANOS)
+            .contains("[  start] [123] foo(thread_id=" + Thread.currentThread().getId() + ")"));
+  }
+
+  @Test
+  void testGetOperationStartingStringNulls() {
+    EpochFormatter epochFormatter =
+        new EpochFormatter(
+            EpochFormatter.DEFAULT_PATTERN,
+            TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
+            Locale.ENGLISH);
+    Operation operation = Operation.builder().id("123").name("foo").build();
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            OperationMeasurement.getOperationStartingString(
+                null, TEST_EPOCH_NANOS, epochFormatter, "%s, %s"));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            OperationMeasurement.getOperationStartingString(
+                operation, TEST_EPOCH_NANOS, null, "%s, %s"));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            OperationMeasurement.getOperationStartingString(
+                operation, TEST_EPOCH_NANOS, epochFormatter, null));
   }
 }

@@ -9,6 +9,8 @@ import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
 
 public class LoggingTelemetryReporterTest {
+  private static final long TEST_EPOCH_NANOS = 1722944779101123456L;
+
   @Test
   void testCreate() {
     LoggingTelemetryReporter reporter = new LoggingTelemetryReporter();
@@ -20,12 +22,13 @@ public class LoggingTelemetryReporterTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
-    reporter.report(operationMeasurement);
+    reporter.reportStart(TEST_EPOCH_NANOS, operation);
+    reporter.reportComplete(operationMeasurement);
   }
 
   @Test
@@ -43,34 +46,34 @@ public class LoggingTelemetryReporterTest {
   }
 
   @Test
-  public void testReport() {
+  public void testReportComplete() {
     Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
     LoggingTelemetryReporter reporter = new LoggingTelemetryReporter();
-    reporter.report(operationMeasurement);
+    reporter.reportComplete(operationMeasurement);
   }
 
   @Test
-  public void testReportWithException() {
+  public void testReportCompleteWithException() {
     Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
             .error(new IllegalStateException("Error"))
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
     LoggingTelemetryReporter reporter = new LoggingTelemetryReporter();
-    reporter.report(operationMeasurement);
+    reporter.reportComplete(operationMeasurement);
   }
 
   @Test
@@ -93,7 +96,8 @@ public class LoggingTelemetryReporterTest {
   }
 
   @Test
-  public void testReportThrowsOnNull() {
-    assertThrows(NullPointerException.class, () -> new LoggingTelemetryReporter().report(null));
+  public void testReportCompleteThrowsOnNull() {
+    assertThrows(
+        NullPointerException.class, () -> new LoggingTelemetryReporter().reportComplete(null));
   }
 }

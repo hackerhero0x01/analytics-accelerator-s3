@@ -100,9 +100,12 @@ public class DefaultTelemetry implements Telemetry {
     OperationMeasurement.OperationMeasurementBuilder builder = OperationMeasurement.builder();
 
     // Record start times
+    long epochTimestampNanos = epochClock.getCurrentTimeNanos();
     builder.operation(operation);
-    builder.epochTimestampNanos(epochClock.getCurrentTimeNanos());
+    builder.epochTimestampNanos(epochTimestampNanos);
     builder.elapsedStartTimeNanos(elapsedClock.getCurrentTimeNanos());
+
+    this.recordOperationStart(epochTimestampNanos, operation);
 
     return builder;
   }
@@ -119,22 +122,39 @@ public class DefaultTelemetry implements Telemetry {
       OperationMeasurement.OperationMeasurementBuilder builder, Optional<Throwable> error) {
     builder.elapsedCompleteTimeNanos(elapsedClock.getCurrentTimeNanos());
     error.ifPresent(builder::error);
-    recordOperationMeasurement(builder.build());
+    recordOperationCompletion(builder.build());
   }
 
   /**
-   * Records operation execution.
+   * Records operation completion.
    *
    * @param operationMeasurement an instance of {@link OperationMeasurement}.
    */
-  private void recordOperationMeasurement(OperationMeasurement operationMeasurement) {
+  private void recordOperationCompletion(OperationMeasurement operationMeasurement) {
     try {
-      this.reporter.report(operationMeasurement);
+      this.reporter.reportComplete(operationMeasurement);
     } catch (Throwable error) {
       LOG.error(
           String.format(
-              "Unexpected error reporting operation execution of `%s`.",
+              "Unexpected error reporting operation completion of `%s`.",
               operationMeasurement.getOperation().toString()),
+          error);
+    }
+  }
+
+  /**
+   * Records operation start.
+   *
+   * @param epochTimestampNanos wall clock epoch time of operation start.
+   * @param operation an instance of {@link Operation}.
+   */
+  private void recordOperationStart(long epochTimestampNanos, Operation operation) {
+    try {
+      this.reporter.reportStart(epochTimestampNanos, operation);
+    } catch (Throwable error) {
+      LOG.error(
+          String.format(
+              "Unexpected error reporting operation start of `%s`.", operation.toString()),
           error);
     }
   }

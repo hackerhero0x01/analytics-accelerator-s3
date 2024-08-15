@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 public class PrintStreamTelemetryReporterTest {
+  private static final long TEST_EPOCH_NANOS = 1722944779101123456L;
+
   @Test
   public void testCreate() {
     PrintStreamTelemetryReporter reporter = new PrintStreamTelemetryReporter(System.out);
@@ -42,19 +44,19 @@ public class PrintStreamTelemetryReporterTest {
   }
 
   @Test
-  public void testReport() {
+  public void testReportComplete() {
     Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
     PrintStream printStream = mock(PrintStream.class);
     PrintStreamTelemetryReporter reporter = new PrintStreamTelemetryReporter(printStream);
-    reporter.report(operationMeasurement);
+    reporter.reportComplete(operationMeasurement);
     ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
 
     verify(printStream).println(stringCaptor.capture());
@@ -67,12 +69,12 @@ public class PrintStreamTelemetryReporterTest {
   }
 
   @Test
-  public void testReportEpochFormatter() {
+  public void testReportCompleteEpochFormatter() {
     Operation operation = Operation.builder().id("123").name("foo").attribute("A", 42).build();
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
-            .epochTimestampNanos(1722944779101123456L)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();
@@ -86,7 +88,7 @@ public class PrintStreamTelemetryReporterTest {
     PrintStream printStream = mock(PrintStream.class);
     PrintStreamTelemetryReporter reporter =
         new PrintStreamTelemetryReporter(printStream, epochFormatter);
-    reporter.report(operationMeasurement);
+    reporter.reportComplete(operationMeasurement);
     ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
 
     verify(printStream).println(stringCaptor.capture());
@@ -100,9 +102,54 @@ public class PrintStreamTelemetryReporterTest {
   }
 
   @Test
-  public void testReportThrowsOnNull() {
+  public void testReportCompleteThrowsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new PrintStreamTelemetryReporter(System.out).report(null));
+        () -> new PrintStreamTelemetryReporter(System.out).reportComplete(null));
+  }
+
+  @Test
+  public void testReportStart() {
+    Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
+    PrintStream printStream = mock(PrintStream.class);
+    PrintStreamTelemetryReporter reporter = new PrintStreamTelemetryReporter(printStream);
+    reporter.reportStart(TEST_EPOCH_NANOS, operation);
+    ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+
+    verify(printStream).println(stringCaptor.capture());
+    String threadAttributeAsString =
+        CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
+    assertTrue(stringCaptor.getValue().contains("foo(A=42, " + threadAttributeAsString + ")"));
+    assertTrue(stringCaptor.getValue().contains("[  start]"));
+  }
+
+  @Test
+  public void testReportStartEpochFormatter() {
+    Operation operation = Operation.builder().id("123").name("foo").attribute("A", 42).build();
+    EpochFormatter epochFormatter =
+        new EpochFormatter(
+            "yyyy/MM/dd'T'HH;mm;ss,SSS'Z'",
+            TimeZone.getTimeZone(ZoneId.of("GMT", ZoneId.SHORT_IDS)),
+            Locale.ENGLISH);
+
+    PrintStream printStream = mock(PrintStream.class);
+    PrintStreamTelemetryReporter reporter =
+        new PrintStreamTelemetryReporter(printStream, epochFormatter);
+    reporter.reportStart(TEST_EPOCH_NANOS, operation);
+    ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
+
+    verify(printStream).println(stringCaptor.capture());
+    String threadAttributeAsString =
+        CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
+    assertEquals(
+        "[2024/08/06T11;46;19,101Z] [  start] [123] foo(A=42, " + threadAttributeAsString + ")",
+        stringCaptor.getValue());
+  }
+
+  @Test
+  public void testReportStartThrowsOnNull() {
+    assertThrows(
+        NullPointerException.class,
+        () -> new PrintStreamTelemetryReporter(System.out).reportStart(TEST_EPOCH_NANOS, null));
   }
 }

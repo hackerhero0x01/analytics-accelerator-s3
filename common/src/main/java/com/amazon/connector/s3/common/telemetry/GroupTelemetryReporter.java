@@ -20,14 +20,27 @@ class GroupTelemetryReporter implements TelemetryReporter {
   }
 
   /**
+   * Reports the start of an operation
+   *
+   * @param epochTimestampNanos wall clock time for the operation start
+   * @param operation and instance of {@link Operation} to start
+   */
+  @Override
+  public void reportStart(long epochTimestampNanos, Operation operation) {
+    for (TelemetryReporter reporter : reporters) {
+      reporter.reportStart(epochTimestampNanos, operation);
+    }
+  }
+
+  /**
    * Outputs the current contents of {@link OperationMeasurement} to each of the supplied reporters.
    *
    * @param operationMeasurement operation execution.
    */
   @Override
-  public void report(OperationMeasurement operationMeasurement) {
+  public void reportComplete(OperationMeasurement operationMeasurement) {
     for (TelemetryReporter reporter : reporters) {
-      reporter.report(operationMeasurement);
+      reporter.reportComplete(operationMeasurement);
     }
   }
 }

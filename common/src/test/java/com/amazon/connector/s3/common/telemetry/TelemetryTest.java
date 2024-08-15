@@ -80,9 +80,9 @@ public class TelemetryTest {
     assertFalse(completableFuture.isCompletedExceptionally());
     assertEquals(42, completableFuture.get());
 
-    assertEquals(1, reporter.getOperationMeasurements().size());
+    assertEquals(1, reporter.getOperationCompletions().size());
     OperationMeasurement operationMeasurement =
-        reporter.getOperationMeasurements().stream().findFirst().get();
+        reporter.getOperationCompletions().stream().findFirst().get();
     assertEquals(operation, operationMeasurement.getOperation());
     assertEquals(10, operationMeasurement.getElapsedStartTimeNanos());
     assertEquals(15, operationMeasurement.getElapsedCompleteTimeNanos());
@@ -92,7 +92,7 @@ public class TelemetryTest {
 
     // Try again - nothing should be recorded
     result = defaultTelemetry.measureJoin(operation, completableFuture);
-    assertEquals(1, reporter.getOperationMeasurements().size());
+    assertEquals(1, reporter.getOperationCompletions().size());
     assertEquals(42, result);
   }
 

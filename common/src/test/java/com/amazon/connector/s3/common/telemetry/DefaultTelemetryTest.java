@@ -50,9 +50,9 @@ public class DefaultTelemetryTest {
           elapsedClock.tick(5);
         });
 
-    assertEquals(1, reporter.getOperationMeasurements().size());
+    assertEquals(1, reporter.getOperationCompletions().size());
     OperationMeasurement operationMeasurement =
-        reporter.getOperationMeasurements().stream().findFirst().get();
+        reporter.getOperationCompletions().stream().findFirst().get();
     assertEquals(operation, operationMeasurement.getOperation());
     assertEquals(10, operationMeasurement.getElapsedStartTimeNanos());
     assertEquals(15, operationMeasurement.getElapsedCompleteTimeNanos());
@@ -85,9 +85,9 @@ public class DefaultTelemetryTest {
           defaultTelemetry.measure(operation, action);
         });
 
-    assertEquals(1, reporter.getOperationMeasurements().size());
+    assertEquals(1, reporter.getOperationCompletions().size());
     OperationMeasurement operationMeasurement =
-        reporter.getOperationMeasurements().stream().findFirst().get();
+        reporter.getOperationCompletions().stream().findFirst().get();
     assertEquals(operation, operationMeasurement.getOperation());
     assertEquals(10, operationMeasurement.getElapsedStartTimeNanos());
     assertEquals(15, operationMeasurement.getElapsedCompleteTimeNanos());
@@ -120,9 +120,9 @@ public class DefaultTelemetryTest {
             });
 
     assertSame(telemetryResult, result);
-    assertEquals(1, reporter.getOperationMeasurements().size());
+    assertEquals(1, reporter.getOperationCompletions().size());
     OperationMeasurement operationMeasurement =
-        reporter.getOperationMeasurements().stream().findFirst().get();
+        reporter.getOperationCompletions().stream().findFirst().get();
     assertEquals(operation, operationMeasurement.getOperation());
     assertEquals(10, operationMeasurement.getElapsedStartTimeNanos());
     assertEquals(15, operationMeasurement.getElapsedCompleteTimeNanos());
@@ -157,9 +157,9 @@ public class DefaultTelemetryTest {
           defaultTelemetry.measure(operation, supplier);
         });
 
-    assertEquals(1, reporter.getOperationMeasurements().size());
+    assertEquals(1, reporter.getOperationCompletions().size());
     OperationMeasurement operationMeasurement =
-        reporter.getOperationMeasurements().stream().findFirst().get();
+        reporter.getOperationCompletions().stream().findFirst().get();
     assertEquals(operation, operationMeasurement.getOperation());
     assertEquals(10, operationMeasurement.getElapsedStartTimeNanos());
     assertEquals(15, operationMeasurement.getElapsedCompleteTimeNanos());
@@ -169,13 +169,13 @@ public class DefaultTelemetryTest {
   }
 
   @Test
-  void testMeasureActionThrowingReporter() {
+  void testMeasureActionThrowingReporterOnStart() {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter =
         new CollectingTelemetryReporter() {
           @Override
-          public void report(OperationMeasurement operationMeasurement) {
+          public void reportStart(long epochTimestampNanos, Operation operation) {
             throw new IllegalStateException("Error");
           }
         };
@@ -193,7 +193,35 @@ public class DefaultTelemetryTest {
           elapsedClock.tick(5);
         });
 
-    assertEquals(0, reporter.getOperationMeasurements().size());
+    assertEquals(0, reporter.getOperationStarts().size());
+  }
+
+  @Test
+  void testMeasureActionThrowingReporterOnComplete() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    CollectingTelemetryReporter reporter =
+        new CollectingTelemetryReporter() {
+          @Override
+          public void reportComplete(OperationMeasurement operationMeasurement) {
+            throw new IllegalStateException("Error");
+          }
+        };
+
+    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
+
+    // Tick elapsed clock to 10 and wall clock to 5.
+    elapsedClock.tick(10);
+    wallClock.tick(5);
+    defaultTelemetry.measure(
+        operation,
+        () -> {
+          // This amounts to 5 ns wait.
+          elapsedClock.tick(5);
+        });
+
+    assertEquals(0, reporter.getOperationCompletions().size());
   }
 
   @Test
@@ -249,7 +277,7 @@ public class DefaultTelemetryTest {
     wallClock.tick(5);
     CompletableFuture<Long> result = defaultTelemetry.measure(operation, completableFuture);
     assertFalse(result.isDone());
-    assertEquals(0, reporter.getOperationMeasurements().size());
+    assertEquals(0, reporter.getOperationCompletions().size());
 
     // Tick ahead
     elapsedClock.tick(5);
@@ -260,9 +288,9 @@ public class DefaultTelemetryTest {
     assertFalse(result.isCompletedExceptionally());
     assertEquals(42, result.get());
 
-    assertEquals(1, reporter.getOperationMeasurements().size());
+    assertEquals(1, reporter.getOperationCompletions().size());
     OperationMeasurement operationMeasurement =
-        reporter.getOperationMeasurements().stream().findFirst().get();
+        reporter.getOperationCompletions().stream().findFirst().get();
     assertEquals(operation, operationMeasurement.getOperation());
     assertEquals(10, operationMeasurement.getElapsedStartTimeNanos());
     assertEquals(15, operationMeasurement.getElapsedCompleteTimeNanos());
@@ -285,7 +313,7 @@ public class DefaultTelemetryTest {
     wallClock.tick(5);
     CompletableFuture<Long> result = defaultTelemetry.measure(operation, completableFuture);
     assertFalse(result.isDone());
-    assertEquals(0, reporter.getOperationMeasurements().size());
+    assertEquals(0, reporter.getOperationCompletions().size());
 
     // Tick ahead
     elapsedClock.tick(5);
@@ -298,9 +326,9 @@ public class DefaultTelemetryTest {
     assertTrue(result.isDone());
     assertTrue(result.isCompletedExceptionally());
 
-    assertEquals(1, reporter.getOperationMeasurements().size());
+    assertEquals(1, reporter.getOperationCompletions().size());
     OperationMeasurement operationMeasurement =
-        reporter.getOperationMeasurements().stream().findFirst().get();
+        reporter.getOperationCompletions().stream().findFirst().get();
     assertEquals(operation, operationMeasurement.getOperation());
     assertEquals(10, operationMeasurement.getElapsedStartTimeNanos());
     assertEquals(15, operationMeasurement.getElapsedCompleteTimeNanos());

@@ -8,6 +8,8 @@ import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
 
 public class EpochFormatterTest {
+  private static final long TEST_EPOCH_NANOS = 1722944779101123456L;
+
   @Test
   public void testCreateWithArguments() {
     EpochFormatter epochFormatter =
@@ -79,7 +81,7 @@ public class EpochFormatterTest {
             "yyyy/MM/dd'T'HH;mm;ss,SSS'Z'",
             TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
             Locale.ENGLISH);
-    String result = epochFormatter.formatNanos(1722944779101123456L);
+    String result = epochFormatter.formatNanos(TEST_EPOCH_NANOS);
     assertEquals("2024/08/06T17;46;19,101Z", result);
   }
 }

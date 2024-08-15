@@ -33,12 +33,25 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
   }
 
   /**
+   * Reports the start of an operation
+   *
+   * @param epochTimestampNanos wall clock time for the operation start
+   * @param operation and instance of {@link Operation} to start
+   */
+  @Override
+  public void reportStart(long epochTimestampNanos, Operation operation) {
+    printStream.println(
+        OperationMeasurement.getOperationStartingString(
+            operation, epochTimestampNanos, this.epochFormatter));
+  }
+
+  /**
    * Outputs the current contents of {@link OperationMeasurement} into a {@link PrintStream}.
    *
    * @param operationMeasurement operation execution.
    */
   @Override
-  public void report(@NonNull OperationMeasurement operationMeasurement) {
+  public void reportComplete(@NonNull OperationMeasurement operationMeasurement) {
     printStream.println(operationMeasurement.toString(epochFormatter));
   }
 }

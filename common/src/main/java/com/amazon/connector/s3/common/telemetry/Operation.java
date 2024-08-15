@@ -84,7 +84,7 @@ public class Operation {
    * @return an updated collection of attributes.
    */
   private static Map<String, Attribute> addStandardAttributes(Map<String, Attribute> attributes) {
-    Attribute threadIdAttribute = CommonAttributes.threadIdAttribute(Thread.currentThread());
+    Attribute threadIdAttribute = CommonAttributes.threadId(Thread.currentThread());
     attributes.put(threadIdAttribute.getName(), threadIdAttribute);
 
     return attributes;

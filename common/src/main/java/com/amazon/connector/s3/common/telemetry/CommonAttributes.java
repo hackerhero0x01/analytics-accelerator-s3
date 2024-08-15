@@ -16,7 +16,7 @@ public enum CommonAttributes {
    * @param thread the {@link CommonAttributes#THREAD_ID} to create the attribute from.
    * @return The new instance of the {@link Attribute}.
    */
-  public static Attribute threadIdAttribute(Thread thread) {
+  public static Attribute threadId(Thread thread) {
     return Attribute.of(CommonAttributes.THREAD_ID.getName(), thread.getId());
   }
 }

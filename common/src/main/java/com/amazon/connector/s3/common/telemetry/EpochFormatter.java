@@ -8,7 +8,7 @@ import lombok.NonNull;
 import org.apache.logging.log4j.core.util.datetime.FastDateFormat;
 
 /** Formatter used to output dates and times */
-final class EpochFormatter {
+public final class EpochFormatter {
   private final @Getter @NonNull String pattern;
   private final @Getter @NonNull Locale locale;
   private final @Getter @NonNull TimeZone timeZone;
