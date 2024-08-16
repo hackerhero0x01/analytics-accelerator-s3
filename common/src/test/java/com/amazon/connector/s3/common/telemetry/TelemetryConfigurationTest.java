@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.amazon.connector.s3.common.ConnectorConfiguration;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
 
 public class TelemetryConfigurationTest {
@@ -14,6 +15,15 @@ public class TelemetryConfigurationTest {
   void testDefault() {
     TelemetryConfiguration configuration = TelemetryConfiguration.builder().build();
     assertEquals(TelemetryConfiguration.DEFAULT, configuration);
+  }
+
+  @Test
+  void testDefaultValues() {
+    TelemetryConfiguration configuration = TelemetryConfiguration.DEFAULT;
+    assertFalse(configuration.isStdOutEnabled());
+    assertTrue(configuration.isLoggingEnabled());
+    assertEquals(Level.INFO.toString(), configuration.getLoggingLevel());
+    assertEquals(TelemetryConfiguration.DEFAULT_LOGGING_NAME, configuration.getLoggingName());
   }
 
   @Test

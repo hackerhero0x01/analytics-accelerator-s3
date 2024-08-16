@@ -7,8 +7,9 @@ import org.junit.jupiter.api.Test;
 
 public class ConfigurableTelemetryTest {
   @Test
-  void testCreateDefault() {
-    TelemetryConfiguration configuration = TelemetryConfiguration.DEFAULT;
+  void testCreateAllEnabled() {
+    TelemetryConfiguration configuration =
+        TelemetryConfiguration.builder().stdOutEnabled(true).stdOutEnabled(true).build();
     ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
 
     // verify correct clocks
@@ -41,6 +42,8 @@ public class ConfigurableTelemetryTest {
   void testCreateCustomizeParameters() {
     TelemetryConfiguration configuration =
         TelemetryConfiguration.builder()
+            .loggingEnabled(true)
+            .stdOutEnabled(true)
             .loggingName("foo")
             .loggingLevel(Level.DEBUG.toString())
             .build();
@@ -75,7 +78,7 @@ public class ConfigurableTelemetryTest {
   @Test
   void testCreateConsoleOnly() {
     TelemetryConfiguration configuration =
-        TelemetryConfiguration.builder().loggingEnabled(false).build();
+        TelemetryConfiguration.builder().loggingEnabled(false).stdOutEnabled(true).build();
 
     ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
 
@@ -97,6 +100,7 @@ public class ConfigurableTelemetryTest {
             .loggingName("foo")
             .loggingLevel(Level.DEBUG.toString())
             .stdOutEnabled(false)
+            .loggingEnabled(true)
             .build();
 
     ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);

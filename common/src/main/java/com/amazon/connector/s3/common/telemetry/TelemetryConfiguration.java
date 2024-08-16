@@ -14,9 +14,11 @@ import lombok.Value;
 @Value
 @Builder
 public class TelemetryConfiguration {
+  // Console reporting is off by default
   public static final String STD_OUT_ENABLED_KEY = "std.out.enabled";
-  public static final boolean DEFAULT_STD_OUT_ENABLED = true;
+  public static final boolean DEFAULT_STD_OUT_ENABLED = false;
 
+  // Logging reporting is on by default
   public static final String LOGGING_ENABLED_KEY = "logging.enabled";
   public static final boolean DEFAULT_LOGGING_ENABLED = true;
 
