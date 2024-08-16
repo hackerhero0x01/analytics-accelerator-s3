@@ -6,7 +6,6 @@ import com.amazon.connector.s3.request.ObjectContent;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import org.apache.commons.io.input.NullInputStream;
 import org.junit.jupiter.api.Test;
 
 public class StreamUtilsTest {
@@ -14,7 +13,8 @@ public class StreamUtilsTest {
   @Test
   public void testToByteArrayWorksWithEmptyStream() {
     // Given: objectContent with an empty stream
-    ObjectContent objectContent = ObjectContent.builder().stream(NullInputStream.INSTANCE).build();
+    ObjectContent objectContent =
+        ObjectContent.builder().stream(new ByteArrayInputStream(new byte[0])).build();
 
     // When: toByteArray is called
     byte[] buf = StreamUtils.toByteArray(objectContent);
