@@ -115,7 +115,7 @@ public class BlobTest {
     List<Range> ranges = new LinkedList<>();
     ranges.add(new Range(0, 100));
     ranges.add(new Range(999, 1000));
-    IOPlan ioPlan = IOPlan.builder().prefetchRanges(ranges).build();
+    IOPlan ioPlan = new IOPlan(ranges);
 
     // When: the IOPlan is executed
     IOPlanExecution execution = blob.execute(ioPlan);

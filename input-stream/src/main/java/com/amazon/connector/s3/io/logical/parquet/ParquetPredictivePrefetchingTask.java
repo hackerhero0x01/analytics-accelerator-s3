@@ -122,7 +122,7 @@ public class ParquetPredictivePrefetchingTask {
       }
     }
 
-    IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
+    IOPlan ioPlan = (prefetchRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(prefetchRanges);
     try {
       return physicalIO.execute(ioPlan);
     } catch (Exception e) {

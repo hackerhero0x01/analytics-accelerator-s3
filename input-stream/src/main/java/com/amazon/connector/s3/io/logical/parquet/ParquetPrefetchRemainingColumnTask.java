@@ -8,9 +8,7 @@ import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.util.S3URI;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
@@ -72,9 +70,7 @@ public class ParquetPrefetchRemainingColumnTask {
     if (len < columnMetadata.getCompressedSize()) {
       long startRange = position + len;
       long endRange = startRange + (columnMetadata.getCompressedSize() - len);
-      List<Range> prefetchRanges = new ArrayList<>();
-      prefetchRanges.add(new Range(startRange, endRange));
-      IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
+      IOPlan ioPlan = new IOPlan(new Range(startRange, endRange));
       try {
         return physicalIO.execute(ioPlan);
       } catch (Exception e) {

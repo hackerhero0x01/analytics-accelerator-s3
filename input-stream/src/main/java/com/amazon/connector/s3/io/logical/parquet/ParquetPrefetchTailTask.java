@@ -5,7 +5,6 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.util.S3URI;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
@@ -47,11 +46,9 @@ public class ParquetPrefetchTailTask {
       long contentLength = physicalIO.metadata().getContentLength();
       Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
 
-      List<Range> prefetchRanges = new ArrayList<>();
-      prefetchRanges.add(tailRange);
-      IOPlan ioPlan = IOPlan.builder().prefetchRanges(prefetchRanges).build();
+      IOPlan ioPlan = new IOPlan(tailRange);
       physicalIO.execute(ioPlan);
-      return prefetchRanges;
+      return ioPlan.getPrefetchRanges();
     } catch (Exception e) {
       LOG.error(
           "Error in executing tail prefetch plan for {}. Will fallback to reading footer synchronously.",
