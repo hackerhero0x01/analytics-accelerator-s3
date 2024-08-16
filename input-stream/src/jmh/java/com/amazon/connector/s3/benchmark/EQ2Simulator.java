@@ -4,6 +4,7 @@ import com.amazon.connector.s3.S3SdkObjectClient;
 import com.amazon.connector.s3.S3SeekableInputStream;
 import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
 import com.amazon.connector.s3.S3SeekableInputStreamFactory;
+import com.amazon.connector.s3.common.telemetry.TelemetryConfiguration;
 import com.amazon.connector.s3.datagen.Constants;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
@@ -40,7 +41,10 @@ public class EQ2Simulator {
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(
             new S3SdkObjectClient(S3AsyncClient.crtBuilder().maxConcurrency(300).build()),
-            S3SeekableInputStreamConfiguration.DEFAULT);
+            S3SeekableInputStreamConfiguration.builder()
+                .telemetryConfiguration(
+                    TelemetryConfiguration.builder().stdOutEnabled(true).build())
+                .build());
 
     S3SeekableInputStream stream =
         s3SeekableInputStreamFactory.createStream(

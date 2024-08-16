@@ -21,7 +21,6 @@ public class PhysicalIOImpl implements PhysicalIO {
   private final BlobStore blobStore;
   private final Telemetry telemetry;
 
-  private static final String OPERATION_READ = "physical.io.read";
   private static final String OPERATION_READ_TAIL = "physical.io.read.tail";
   private static final String OPERATION_EXECUTE = "physical.io.execute";
 
@@ -54,14 +53,7 @@ public class PhysicalIOImpl implements PhysicalIO {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
 
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_READ)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .attribute(StreamAttributes.position(pos))
-            .attribute(StreamAttributes.length(1L))
-            .build(),
-        () -> blobStore.get(s3URI).read(pos));
+    return blobStore.get(s3URI).read(pos);
   }
 
   @Override
@@ -72,15 +64,7 @@ public class PhysicalIOImpl implements PhysicalIO {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_READ)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .attribute(StreamAttributes.position(pos))
-            .attribute(StreamAttributes.offset(off))
-            .attribute(StreamAttributes.length(len))
-            .build(),
-        () -> blobStore.get(s3URI).read(buf, off, len, pos));
+    return blobStore.get(s3URI).read(buf, off, len, pos);
   }
 
   @Override

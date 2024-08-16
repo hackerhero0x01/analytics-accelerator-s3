@@ -27,7 +27,6 @@ public class ParquetLogicalIOImpl implements LogicalIO {
   private final PhysicalIO physicalIO;
   private final Telemetry telemetry;
 
-  private static final String OPERATION_READ = "logical.io.read";
   private static final String OPERATION_READ_TAIL = "logical.io.read.tail";
 
   /**
@@ -66,14 +65,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
    */
   @Override
   public int read(long position) throws IOException {
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_READ)
-            .attribute(StreamAttributes.uri(this.s3Uri))
-            .attribute(StreamAttributes.position(position))
-            .attribute(StreamAttributes.length(1L))
-            .build(),
-        () -> physicalIO.read(position));
+    return physicalIO.read(position);
   }
 
   /**
@@ -88,23 +80,12 @@ public class ParquetLogicalIOImpl implements LogicalIO {
    */
   @Override
   public int read(byte[] buf, int off, int len, long position) throws IOException {
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_READ)
-            .attribute(StreamAttributes.uri(this.s3Uri))
-            .attribute(StreamAttributes.position(position))
-            .attribute(StreamAttributes.offset(off))
-            .attribute(StreamAttributes.length(len))
-            .build(),
-        () -> {
+    // Perform async prefetching before doing the blocking read
+    this.parquetPrefetcher.prefetchRemainingColumnChunk(position, len);
+    this.parquetPrefetcher.addToRecentColumnList(position);
 
-          // Perform async prefetching before doing the blocking read
-          this.parquetPrefetcher.prefetchRemainingColumnChunk(position, len);
-          this.parquetPrefetcher.addToRecentColumnList(position);
-
-          // Perform read
-          return physicalIO.read(buf, off, len, position);
-        });
+    // Perform read
+    return physicalIO.read(buf, off, len, position);
   }
 
   @Override

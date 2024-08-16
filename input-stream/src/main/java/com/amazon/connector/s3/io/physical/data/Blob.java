@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 /** A Blob representing an object. */
 public class Blob implements Closeable {
   private static final Logger LOG = LogManager.getLogger(Blob.class);
-  private static final String OPERATION_READ = "blob.read";
   private static final String OPERATION_EXECUTE = "blob.execute";
 
   private final S3URI s3URI;
@@ -53,17 +52,8 @@ public class Blob implements Closeable {
    */
   public int read(long pos) {
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
-
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_READ)
-            .attribute(StreamAttributes.position(pos))
-            .attribute(StreamAttributes.length(1))
-            .build(),
-        () -> {
-          blockManager.makePositionAvailable(pos, ReadMode.SYNC);
-          return blockManager.getBlock(pos).get().read(pos);
-        });
+    blockManager.makePositionAvailable(pos, ReadMode.SYNC);
+    return blockManager.getBlock(pos).get().read(pos);
   }
 
   /**
@@ -82,39 +72,29 @@ public class Blob implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_READ)
-            .attribute(StreamAttributes.position(pos))
-            .attribute(StreamAttributes.offset(off))
-            .attribute(StreamAttributes.length(len))
-            .build(),
-        () -> {
-          blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
+    blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
-          long nextPosition = pos;
-          int numBytesRead = 0;
+    long nextPosition = pos;
+    int numBytesRead = 0;
 
-          while (numBytesRead < len && nextPosition < contentLength()) {
-            Block nextBlock =
-                blockManager
-                    .getBlock(nextPosition)
-                    .orElseThrow(
-                        () -> new IllegalStateException("This block should have been available."));
+    while (numBytesRead < len && nextPosition < contentLength()) {
+      Block nextBlock =
+          blockManager
+              .getBlock(nextPosition)
+              .orElseThrow(
+                  () -> new IllegalStateException("This block should have been available."));
 
-            int bytesRead =
-                nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
+      int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
 
-            if (bytesRead == -1) {
-              return numBytesRead;
-            }
+      if (bytesRead == -1) {
+        return numBytesRead;
+      }
 
-            numBytesRead = numBytesRead + bytesRead;
-            nextPosition += bytesRead;
-          }
+      numBytesRead = numBytesRead + bytesRead;
+      nextPosition += bytesRead;
+    }
 
-          return numBytesRead;
-        });
+    return numBytesRead;
   }
 
   /**
