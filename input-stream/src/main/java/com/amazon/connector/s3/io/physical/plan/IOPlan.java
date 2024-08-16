@@ -1,6 +1,8 @@
 package com.amazon.connector.s3.io.physical.plan;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import lombok.Getter;
 import lombok.NonNull;
 
