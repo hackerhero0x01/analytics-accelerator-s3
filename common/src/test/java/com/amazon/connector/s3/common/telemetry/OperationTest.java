@@ -40,10 +40,13 @@ public class OperationTest {
     attributes.put("Foo", Attribute.of("Foo", 42));
     Operation parent = Operation.builder().name("S3.GET").build();
     OperationContext context = new OperationContext();
-    Operation operation = new Operation("id", "name", attributes, context, Optional.of(parent));
+    Operation operation =
+        new Operation(
+            "id", "name", TelemetryLevel.CRITICAL, attributes, context, Optional.of(parent));
 
     assertEquals("id", operation.getId());
     assertEquals("name", operation.getName());
+    assertEquals(TelemetryLevel.CRITICAL, operation.getLevel());
     assertEquals(
         Thread.currentThread().getId(),
         operation.getAttributes().get(CommonAttributes.THREAD_ID.getName()).getValue());
@@ -58,21 +61,32 @@ public class OperationTest {
     attributes.put("Foo", Attribute.of("Foo", 42));
     Operation parent = Operation.builder().name("S3.GET").build();
     OperationContext context = new OperationContext();
-
     assertThrows(
         NullPointerException.class,
-        () -> new Operation(null, "name", attributes, context, Optional.of(parent)));
+        () ->
+            new Operation(
+                null, "name", TelemetryLevel.STANDARD, attributes, context, Optional.of(parent)));
     assertThrows(
         NullPointerException.class,
-        () -> new Operation("id", null, attributes, context, Optional.of(parent)));
+        () ->
+            new Operation(
+                "id", null, TelemetryLevel.STANDARD, attributes, context, Optional.of(parent)));
     assertThrows(
         NullPointerException.class,
-        () -> new Operation("id", "name", null, context, Optional.of(parent)));
+        () -> new Operation("id", "name", null, attributes, context, Optional.of(parent)));
     assertThrows(
         NullPointerException.class,
-        () -> new Operation("id", "name", attributes, null, Optional.of(parent)));
+        () ->
+            new Operation(
+                "id", "name", TelemetryLevel.STANDARD, null, context, Optional.of(parent)));
     assertThrows(
-        NullPointerException.class, () -> new Operation("id", "name", attributes, context, null));
+        NullPointerException.class,
+        () ->
+            new Operation(
+                "id", "name", TelemetryLevel.STANDARD, attributes, null, Optional.of(parent)));
+    assertThrows(
+        NullPointerException.class,
+        () -> new Operation("id", "name", TelemetryLevel.STANDARD, attributes, context, null));
   }
 
   @Test
@@ -82,10 +96,12 @@ public class OperationTest {
     Operation parent = Operation.builder().name("S3.GET").build();
     OperationContext context = new OperationContext();
     Operation operation =
-        new Operation("id", "name", attributes, context, Optional.of(parent), true);
+        new Operation(
+            "id", "name", TelemetryLevel.CRITICAL, attributes, context, Optional.of(parent), true);
 
     assertEquals("id", operation.getId());
     assertEquals("name", operation.getName());
+    assertEquals(TelemetryLevel.CRITICAL, operation.getLevel());
     assertEquals(
         Thread.currentThread().getId(),
         operation.getAttributes().get(CommonAttributes.THREAD_ID.getName()).getValue());
@@ -103,19 +119,49 @@ public class OperationTest {
 
     assertThrows(
         NullPointerException.class,
-        () -> new Operation(null, "name", attributes, context, Optional.of(parent), true));
+        () ->
+            new Operation(
+                null,
+                "name",
+                TelemetryLevel.STANDARD,
+                attributes,
+                context,
+                Optional.of(parent),
+                true));
     assertThrows(
         NullPointerException.class,
-        () -> new Operation("id", null, attributes, context, Optional.of(parent), true));
+        () ->
+            new Operation(
+                "id",
+                null,
+                TelemetryLevel.STANDARD,
+                attributes,
+                context,
+                Optional.of(parent),
+                true));
     assertThrows(
         NullPointerException.class,
-        () -> new Operation("id", "name", null, context, Optional.of(parent), true));
+        () -> new Operation("id", "name", null, attributes, context, Optional.of(parent), true));
     assertThrows(
         NullPointerException.class,
-        () -> new Operation("id", "name", attributes, null, Optional.of(parent), true));
+        () ->
+            new Operation(
+                "id", "name", TelemetryLevel.STANDARD, null, context, Optional.of(parent), true));
     assertThrows(
         NullPointerException.class,
-        () -> new Operation("id", "name", attributes, context, null, true));
+        () ->
+            new Operation(
+                "id",
+                "name",
+                TelemetryLevel.STANDARD,
+                attributes,
+                null,
+                Optional.of(parent),
+                true));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new Operation("id", "name", TelemetryLevel.STANDARD, attributes, context, null, true));
   }
 
   @Test
@@ -186,6 +232,41 @@ public class OperationTest {
             .build();
     assertNotNull(operation.getId());
     assertEquals("S3.GET", operation.getName());
+    assertSame(OperationContext.DEFAULT, operation.getContext());
+
+    assertEquals(3, operation.getAttributes().size());
+    assertEquals("bucket", operation.getAttributes().get("s3.bucket").getValue());
+    assertEquals("key", operation.getAttributes().get("s3.key").getValue());
+    assertEquals(
+        Thread.currentThread().getId(),
+        operation.getAttributes().get(CommonAttributes.THREAD_ID.getName()).getValue());
+    assertFalse(operation.getParent().isPresent());
+
+    // Assert immutability
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> {
+          operation.getAttributes().put("Foo", Attribute.of("Foo", "Bar"));
+        });
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> {
+          operation.getAttributes().clear();
+        });
+  }
+
+  @Test
+  void testCreateOperationWithAttributesAndLevel() {
+    Operation operation =
+        Operation.builder()
+            .name("S3.GET")
+            .level(TelemetryLevel.CRITICAL)
+            .attribute(Attribute.of("s3.bucket", "bucket"))
+            .attribute(Attribute.of("s3.key", "key"))
+            .build();
+    assertNotNull(operation.getId());
+    assertEquals("S3.GET", operation.getName());
+    assertEquals(TelemetryLevel.CRITICAL, operation.getLevel());
     assertSame(OperationContext.DEFAULT, operation.getContext());
 
     assertEquals(3, operation.getAttributes().size());
@@ -423,6 +504,11 @@ public class OperationTest {
         NullPointerException.class,
         () -> {
           Operation.builder().name("foo").context(null).build();
+        });
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          Operation.builder().name("foo").level(null).build();
         });
   }
 

@@ -19,6 +19,7 @@ public final class OperationContext {
       new Operation(
           DEFAULT_OPERATION_NAME,
           DEFAULT_OPERATION_NAME,
+          TelemetryLevel.STANDARD,
           new HashMap<String, Attribute>(),
           this,
           Optional.empty(),

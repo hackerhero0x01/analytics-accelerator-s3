@@ -23,6 +23,9 @@ public class Operation {
   /** Operation attributes */
   @NonNull Map<String, Attribute> attributes;
 
+  /** Telemetry level. `STANDARD` by default */
+  @NonNull TelemetryLevel level;
+
   /** Parent operation. Optional. */
   @NonNull Optional<Operation> parent;
 
@@ -34,6 +37,7 @@ public class Operation {
    *
    * @param id operation id.
    * @param name operation name.
+   * @param level telemetry level
    * @param attributes operation attributes.
    * @param context operation context.
    * @param parent operation parent.
@@ -41,11 +45,12 @@ public class Operation {
   Operation(
       String id,
       String name,
+      TelemetryLevel level,
       Map<String, Attribute> attributes,
       OperationContext context,
       Optional<Operation> parent) {
     // Set the parent automatically in the constructor called by the builder
-    this(id, name, attributes, context, parent, true);
+    this(id, name, level, attributes, context, parent, true);
   }
 
   /**
@@ -53,6 +58,7 @@ public class Operation {
    *
    * @param id operation id.
    * @param name operation name.
+   * @param level telemetry level
    * @param attributes operation attributes.
    * @param context operation context.
    * @param parent operation parent.
@@ -61,12 +67,14 @@ public class Operation {
   Operation(
       @NonNull String id,
       @NonNull String name,
+      @NonNull TelemetryLevel level,
       @NonNull Map<String, Attribute> attributes,
       @NonNull OperationContext context,
       @NonNull Optional<Operation> parent,
       boolean inferParent) {
     this.id = id;
     this.name = name;
+    this.level = level;
     this.context = context;
     this.attributes = Collections.unmodifiableMap(addStandardAttributes(attributes));
     // If the parent is not supplied, and we are allowed to infer it, use the OperationContext
@@ -146,6 +154,7 @@ public class Operation {
     private String id;
     private String name;
     private final Map<String, Attribute> attributes = new HashMap<String, Attribute>();
+    private TelemetryLevel level = TelemetryLevel.STANDARD;
     private Optional<Operation> parent = Optional.empty();
     private OperationContext context = OperationContext.DEFAULT;
 
@@ -199,6 +208,17 @@ public class Operation {
     }
 
     /**
+     * Sets the operation level. Defaults to `STANDARD`.
+     *
+     * @param level operation level. Must not be null.
+     * @return the current instance of {@link OperationBuilder}.
+     */
+    public OperationBuilder level(@NonNull TelemetryLevel level) {
+      this.level = level;
+      return this;
+    }
+
+    /**
      * Sets the operation parent
      *
      * @param parent operation parent. Must not be null.
@@ -235,7 +255,8 @@ public class Operation {
       }
 
       // Create the operation
-      return new Operation(this.id, this.name, this.attributes, this.context, this.parent);
+      return new Operation(
+          this.id, this.name, this.level, this.attributes, this.context, this.parent);
     }
 
     /**

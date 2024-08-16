@@ -17,9 +17,11 @@ public class DefaultTelemetry implements Telemetry {
   /** Elapsed clock. Used to measure the duration for {@link Operation}. */
   @NonNull @Getter(AccessLevel.PACKAGE)
   private final Clock elapsedClock;
-
+  /** Telemetry reporter */
   @NonNull @Getter(AccessLevel.PACKAGE)
   private final TelemetryReporter reporter;
+  /** Telemetry level */
+  @NonNull @Getter private final TelemetryLevel level;
 
   private static final Logger LOG = LogManager.getLogger(DefaultTelemetry.class);
 
@@ -31,6 +33,60 @@ public class DefaultTelemetry implements Telemetry {
    */
   @SneakyThrows
   public void measure(@NonNull Operation operation, @NonNull TelemetryAction operationCode) {
+    if (produceTelemetryFor(operation)) {
+      measureImpl(operation, operationCode);
+    } else {
+      operationCode.apply();
+    }
+  }
+
+  /**
+   * Executes a given {@link Supplier<T>} and records the telemetry as {@link Operation}.
+   *
+   * @param operation operation to record this execution as.
+   * @param operationCode code to execute.
+   * @param <T> return type of the {@link Supplier<T>}.
+   * @return the value that {@link Supplier<T>} returns.
+   */
+  @SneakyThrows
+  public <T> T measure(@NonNull Operation operation, @NonNull TelemetrySupplier<T> operationCode) {
+    if (produceTelemetryFor(operation)) {
+      return measureImpl(operation, operationCode);
+    } else {
+      return operationCode.apply();
+    }
+  }
+
+  /**
+   * Measures the execution of the given {@link CompletableFuture} and records the telemetry as
+   * {@link Operation}. We do not currently carry the operation into the context of any
+   * continuations, so any {@link Operation}s that are created in that context need to carry the
+   * parenting chain.
+   *
+   * @param operation operation to record this execution as.
+   * @param operationCode the future to measure the execution of.
+   * @return an instance of {@link CompletableFuture} that returns the same result as the one passed
+   *     in.
+   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   */
+  @SneakyThrows
+  public <T> CompletableFuture<T> measure(
+      @NonNull Operation operation, @NonNull CompletableFuture<T> operationCode) {
+    if (produceTelemetryFor(operation)) {
+      return measureImpl(operation, operationCode);
+    } else {
+      return operationCode;
+    }
+  }
+
+  /**
+   * Executes a given {@link Runnable} and record the telemetry as {@link Operation}.
+   *
+   * @param operation operation to record this execution as.
+   * @param operationCode code to execute.
+   */
+  @SneakyThrows
+  private void measureImpl(Operation operation, TelemetryAction operationCode) {
     OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(operation);
     try {
       operation.getContext().pushOperation(operation);
@@ -53,7 +109,7 @@ public class DefaultTelemetry implements Telemetry {
    * @return the value that {@link Supplier<T>} returns.
    */
   @SneakyThrows
-  public <T> T measure(@NonNull Operation operation, @NonNull TelemetrySupplier<T> operationCode) {
+  private <T> T measureImpl(Operation operation, TelemetrySupplier<T> operationCode) {
     OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(operation);
     try {
       operation.getContext().pushOperation(operation);
@@ -81,8 +137,8 @@ public class DefaultTelemetry implements Telemetry {
    * @param <T> - return type of the {@link CompletableFuture<T>}.
    */
   @SneakyThrows
-  public <T> CompletableFuture<T> measure(
-      @NonNull Operation operation, CompletableFuture<T> operationCode) {
+  private <T> CompletableFuture<T> measureImpl(
+      Operation operation, CompletableFuture<T> operationCode) {
     OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(operation);
     operationCode.whenComplete(
         (result, error) -> completeMeasurement(builder, Optional.ofNullable(error)));
@@ -157,5 +213,15 @@ public class DefaultTelemetry implements Telemetry {
               "Unexpected error reporting operation start of `%s`.", operation.toString()),
           error);
     }
+  }
+
+  /**
+   * Determines whether telemetry should be produced for this operation
+   *
+   * @param operation {@link Operation}
+   * @return whether telemetry should be produced for this operation
+   */
+  private boolean produceTelemetryFor(Operation operation) {
+    return operation.getLevel().getPriority() >= this.level.getPriority();
   }
 }

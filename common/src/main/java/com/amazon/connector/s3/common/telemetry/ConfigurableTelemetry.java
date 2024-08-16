@@ -20,7 +20,8 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
     super(
         DefaultEpochClock.DEFAULT,
         DefaultElapsedClock.DEFAULT,
-        getTelemetryReporter(configuration));
+        getTelemetryReporter(configuration),
+        TelemetryLevel.valueOf(configuration.getLevel().toUpperCase()));
   }
 
   /**

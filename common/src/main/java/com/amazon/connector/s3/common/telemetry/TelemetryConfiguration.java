@@ -14,6 +14,10 @@ import lombok.Value;
 @Value
 @Builder
 public class TelemetryConfiguration {
+  // Telemetry level is standard by default
+  public static final String LEVEL_KEY = "level";
+  public static final String DEFAULT_LEVEL = TelemetryLevel.STANDARD.toString();
+
   // Console reporting is off by default
   public static final String STD_OUT_ENABLED_KEY = "std.out.enabled";
   public static final boolean DEFAULT_STD_OUT_ENABLED = false;
@@ -28,6 +32,8 @@ public class TelemetryConfiguration {
   public static final String LOGGING_NAME_KEY = "logging.name";
   public static final String DEFAULT_LOGGING_NAME = LoggingTelemetryReporter.DEFAULT_LOGGING_NAME;
 
+  /** Telemetry level. */
+  @Builder.Default String level = DEFAULT_LEVEL;
   /** Enable standard output. */
   @Builder.Default boolean stdOutEnabled = DEFAULT_STD_OUT_ENABLED;
   /** Enable logging output. */
@@ -49,6 +55,7 @@ public class TelemetryConfiguration {
   public static TelemetryConfiguration fromConfiguration(
       @NonNull ConnectorConfiguration configuration) {
     return TelemetryConfiguration.builder()
+        .level(configuration.getString(LEVEL_KEY, DEFAULT_LEVEL))
         .stdOutEnabled(configuration.getBoolean(STD_OUT_ENABLED_KEY, DEFAULT_STD_OUT_ENABLED))
         .loggingEnabled(configuration.getBoolean(LOGGING_ENABLED_KEY, DEFAULT_LOGGING_ENABLED))
         .loggingName(configuration.getString(LOGGING_NAME_KEY, DEFAULT_LOGGING_NAME))

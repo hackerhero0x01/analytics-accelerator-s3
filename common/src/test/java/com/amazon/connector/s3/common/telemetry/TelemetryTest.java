@@ -32,7 +32,7 @@ public class TelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
 
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
     final CompletableFuture<Long> completableFuture = new CompletableFuture<>();
@@ -79,7 +79,7 @@ public class TelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
     CompletableFuture<Long> completableFuture = new CompletableFuture<>();
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
 

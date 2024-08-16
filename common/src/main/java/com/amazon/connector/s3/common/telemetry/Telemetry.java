@@ -74,5 +74,8 @@ public interface Telemetry {
   /** An instance of {@link Telemetry} that reports nothing. */
   static Telemetry NOOP =
       new DefaultTelemetry(
-          DefaultEpochClock.DEFAULT, DefaultElapsedClock.DEFAULT, new NoOpTelemetryReporter());
+          DefaultEpochClock.DEFAULT,
+          DefaultElapsedClock.DEFAULT,
+          new NoOpTelemetryReporter(),
+          TelemetryLevel.CRITICAL);
 }

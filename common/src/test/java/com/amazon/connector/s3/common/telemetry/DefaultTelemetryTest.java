@@ -12,11 +12,13 @@ public class DefaultTelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.CRITICAL);
 
     assertSame(wallClock, defaultTelemetry.getEpochClock());
     assertSame(elapsedClock, defaultTelemetry.getElapsedClock());
     assertSame(reporter, defaultTelemetry.getReporter());
+    assertSame(TelemetryLevel.CRITICAL, defaultTelemetry.getLevel());
   }
 
   @Test
@@ -25,10 +27,17 @@ public class DefaultTelemetryTest {
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
     assertThrows(
-        NullPointerException.class, () -> new DefaultTelemetry(null, elapsedClock, reporter));
-    assertThrows(NullPointerException.class, () -> new DefaultTelemetry(wallClock, null, reporter));
+        NullPointerException.class,
+        () -> new DefaultTelemetry(null, elapsedClock, reporter, TelemetryLevel.STANDARD));
     assertThrows(
-        NullPointerException.class, () -> new DefaultTelemetry(wallClock, elapsedClock, null));
+        NullPointerException.class,
+        () -> new DefaultTelemetry(wallClock, null, reporter, TelemetryLevel.STANDARD));
+    assertThrows(
+        NullPointerException.class,
+        () -> new DefaultTelemetry(wallClock, elapsedClock, null, TelemetryLevel.STANDARD));
+    assertThrows(
+        NullPointerException.class,
+        () -> new DefaultTelemetry(wallClock, elapsedClock, reporter, null));
   }
 
   @Test
@@ -36,7 +45,8 @@ public class DefaultTelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
 
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
 
@@ -62,11 +72,40 @@ public class DefaultTelemetryTest {
   }
 
   @Test
+  void testMeasureActionWithLevel() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
+
+    Operation operation =
+        Operation.builder()
+            .name("name")
+            .attribute("foo", "bar")
+            .level(TelemetryLevel.VERBOSE)
+            .build();
+
+    // Tick elapsed clock to 10 and wall clock to 5.
+    elapsedClock.tick(10);
+    wallClock.tick(5);
+    defaultTelemetry.measure(
+        operation,
+        () -> {
+          // This amounts to 5 ns wait.
+          elapsedClock.tick(5);
+        });
+
+    assertEquals(0, reporter.getOperationCompletions().size());
+  }
+
+  @Test
   void testMeasureActionWithException() {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
 
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
     Exception error = new IllegalStateException("Error");
@@ -101,7 +140,8 @@ public class DefaultTelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
 
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
     Thread result = Thread.currentThread();
@@ -132,11 +172,45 @@ public class DefaultTelemetryTest {
   }
 
   @Test
+  void testMeasureSupplierWithLevel() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
+
+    Operation operation =
+        Operation.builder()
+            .name("name")
+            .attribute("foo", "bar")
+            .level(TelemetryLevel.VERBOSE)
+            .build();
+    Thread result = Thread.currentThread();
+
+    // Tick elapsed clock to 10 and wall clock to 5.
+    elapsedClock.tick(10);
+    wallClock.tick(5);
+
+    Thread telemetryResult =
+        defaultTelemetry.measure(
+            operation,
+            () -> {
+              // This amounts to 5 ns wait.
+              elapsedClock.tick(5);
+              return result;
+            });
+
+    assertSame(telemetryResult, result);
+    assertEquals(0, reporter.getOperationCompletions().size());
+  }
+
+  @Test
   void testMeasureSupplierWithException() {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
 
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
     Exception error = new IllegalStateException("Error");
@@ -180,7 +254,8 @@ public class DefaultTelemetryTest {
           }
         };
 
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
 
     // Tick elapsed clock to 10 and wall clock to 5.
@@ -208,7 +283,8 @@ public class DefaultTelemetryTest {
           }
         };
 
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
 
     // Tick elapsed clock to 10 and wall clock to 5.
@@ -229,7 +305,8 @@ public class DefaultTelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
 
     TelemetryAction action =
@@ -248,7 +325,8 @@ public class DefaultTelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
 
     TelemetrySupplier<Thread> supplier =
@@ -268,7 +346,8 @@ public class DefaultTelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
 
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
     CompletableFuture<Long> completableFuture = new CompletableFuture<>();
@@ -300,11 +379,46 @@ public class DefaultTelemetryTest {
   }
 
   @Test
+  void testMeasureFutureWithLevel() throws Exception {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
+
+    Operation operation =
+        Operation.builder()
+            .name("name")
+            .attribute("foo", "bar")
+            .level(TelemetryLevel.VERBOSE)
+            .build();
+    CompletableFuture<Long> completableFuture = new CompletableFuture<>();
+
+    elapsedClock.tick(10);
+    wallClock.tick(5);
+    CompletableFuture<Long> result = defaultTelemetry.measure(operation, completableFuture);
+    assertFalse(result.isDone());
+    assertEquals(0, reporter.getOperationCompletions().size());
+
+    // Tick ahead
+    elapsedClock.tick(5);
+
+    // Complete the future
+    completableFuture.complete(42L);
+    assertTrue(result.isDone());
+    assertFalse(result.isCompletedExceptionally());
+    assertEquals(42, result.get());
+
+    assertEquals(0, reporter.getOperationCompletions().size());
+  }
+
+  @Test
   void testMeasureFutureWithException() throws Exception {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
 
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
     CompletableFuture<Long> completableFuture = new CompletableFuture<>();
@@ -343,7 +457,8 @@ public class DefaultTelemetryTest {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
-    DefaultTelemetry defaultTelemetry = new DefaultTelemetry(wallClock, elapsedClock, reporter);
+    DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD);
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
     CompletableFuture<Long> completableFuture = new CompletableFuture<>();
 
