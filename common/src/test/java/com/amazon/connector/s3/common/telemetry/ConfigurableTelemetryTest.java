@@ -9,7 +9,7 @@ public class ConfigurableTelemetryTest {
   @Test
   void testCreateAllEnabled() {
     TelemetryConfiguration configuration =
-        TelemetryConfiguration.builder().stdOutEnabled(true).stdOutEnabled(true).build();
+        TelemetryConfiguration.builder().loggingEnabled(true).stdOutEnabled(true).build();
     ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
 
     // verify correct clocks
