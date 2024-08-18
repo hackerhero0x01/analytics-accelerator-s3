@@ -90,13 +90,14 @@ public class ParquetLogicalIOImpl implements LogicalIO {
 
   @Override
   public int readTail(byte[] buf, int off, int len) throws IOException {
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_READ_TAIL)
-            .attribute(StreamAttributes.uri(this.s3Uri))
-            .attribute(StreamAttributes.offset(off))
-            .attribute(StreamAttributes.length(len))
-            .build(),
+    return telemetry.measureStandard(
+        () ->
+            Operation.builder()
+                .name(OPERATION_READ_TAIL)
+                .attribute(StreamAttributes.uri(this.s3Uri))
+                .attribute(StreamAttributes.offset(off))
+                .attribute(StreamAttributes.length(len))
+                .build(),
         () -> physicalIO.readTail(buf, off, len));
   }
 

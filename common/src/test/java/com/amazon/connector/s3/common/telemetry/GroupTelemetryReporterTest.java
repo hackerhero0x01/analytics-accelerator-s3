@@ -39,6 +39,7 @@ public class GroupTelemetryReporterTest {
         OperationMeasurement.builder()
             .operation(operation)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
+            .level(TelemetryLevel.STANDARD)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
             .build();

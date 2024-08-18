@@ -68,7 +68,7 @@ public class OperationContextTest {
   @Test
   void testPopMismatchedStack() {
     OperationContext context = new OperationContext();
-    Operation operation_on_stack =
+    Operation operationOnStack =
         Operation.builder()
             .name("read1")
             .attribute("s3.bucket", "bucket1")
@@ -83,11 +83,28 @@ public class OperationContextTest {
             .attribute("s3.key", "key2")
             .context(context)
             .build();
-    context.pushOperation(operation_on_stack);
+    context.pushOperation(operationOnStack);
     try {
       assertThrows(IllegalStateException.class, () -> context.popOperation(operation));
     } finally {
-      context.popOperation(operation_on_stack);
+      context.popOperation(operationOnStack);
     }
+  }
+
+  @Test
+  void testEmptyStack() {
+    OperationContext context = new OperationContext();
+    Operation operation =
+        Operation.builder()
+            .name("read")
+            .attribute("s3.bucket", "bucket")
+            .attribute("s3.key", "key")
+            .context(context)
+            .build();
+    // This should never be possible in practice, but this does clear teh stack
+    context.popOperation(context.defaultOperation);
+
+    assertThrows(IllegalStateException.class, () -> context.popOperation(operation));
+    assertThrows(IllegalStateException.class, context::getCurrentOperation);
   }
 }

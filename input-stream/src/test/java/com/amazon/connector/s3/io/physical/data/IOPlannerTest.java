@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
@@ -40,7 +41,7 @@ public class IOPlannerTest {
         .thenReturn(ObjectMetadata.builder().contentLength(OBJECT_SIZE).build());
     BlockStore blockStore = new BlockStore(TEST_URI, mockMetadataStore);
     S3URI s3Uri = S3URI.of("bucket", "key");
-    IOPlanner ioPlanner = new IOPlanner(s3Uri, blockStore, Telemetry.NOOP);
+    IOPlanner ioPlanner = new IOPlanner(s3Uri, blockStore, TestTelemetry.DEFAULT);
 
     assertThrows(IllegalArgumentException.class, () -> ioPlanner.planRead(-5, 10, 100));
     assertThrows(IllegalArgumentException.class, () -> ioPlanner.planRead(10, 5, 100));
@@ -56,7 +57,7 @@ public class IOPlannerTest {
         .thenReturn(ObjectMetadata.builder().contentLength(OBJECT_SIZE).build());
     BlockStore blockStore = new BlockStore(TEST_URI, mockMetadataStore);
     S3URI s3Uri = S3URI.of("bucket", "key");
-    IOPlanner ioPlanner = new IOPlanner(s3Uri, blockStore, Telemetry.NOOP);
+    IOPlanner ioPlanner = new IOPlanner(s3Uri, blockStore, TestTelemetry.DEFAULT);
 
     // When: a read plan is requested for a range
     List<Range> missingRanges = ioPlanner.planRead(10, 100, OBJECT_SIZE - 1);
@@ -77,9 +78,9 @@ public class IOPlannerTest {
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
     FakeObjectClient fakeObjectClient = new FakeObjectClient(new String(content));
     blockStore.add(
-        new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 100, 200, 0, ReadMode.SYNC));
+        new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 100, 200, 0, ReadMode.SYNC));
     S3URI s3Uri = S3URI.of("bucket", "key");
-    IOPlanner ioPlanner = new IOPlanner(s3Uri, blockStore, Telemetry.NOOP);
+    IOPlanner ioPlanner = new IOPlanner(s3Uri, blockStore, TestTelemetry.DEFAULT);
 
     // When: a read plan is requested for a range (0, 400)
     List<Range> missingRanges = ioPlanner.planRead(0, 400, OBJECT_SIZE - 1);
@@ -99,7 +100,7 @@ public class IOPlannerTest {
     MetadataStore metadataStore = getTestMetadataStoreWithContentLength(OBJECT_SIZE);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
     S3URI s3Uri = S3URI.of("bucket", "key");
-    IOPlanner ioPlanner = new IOPlanner(s3Uri, blockStore, Telemetry.NOOP);
+    IOPlanner ioPlanner = new IOPlanner(s3Uri, blockStore, TestTelemetry.DEFAULT);
 
     // When: a read plan is requested for a range (0, 400)
     List<Range> missingRanges = ioPlanner.planRead(0, 400, OBJECT_SIZE - 1);

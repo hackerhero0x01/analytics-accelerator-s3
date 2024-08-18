@@ -22,6 +22,7 @@ public class LoggingTelemetryReporterTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
@@ -51,6 +52,7 @@ public class LoggingTelemetryReporterTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
@@ -66,6 +68,7 @@ public class LoggingTelemetryReporterTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .error(new IllegalStateException("Error"))
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)

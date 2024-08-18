@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.amazon.connector.s3.common.telemetry.Telemetry;
+import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
@@ -27,14 +27,16 @@ public class BlobTest {
   void testCreateBoundaries() {
     assertThrows(
         NullPointerException.class,
-        () -> new Blob(null, mock(MetadataStore.class), mock(BlockManager.class), Telemetry.NOOP));
+        () ->
+            new Blob(
+                null, mock(MetadataStore.class), mock(BlockManager.class), TestTelemetry.DEFAULT));
     assertThrows(
         NullPointerException.class,
-        () -> new Blob(TEST_URI, null, mock(BlockManager.class), Telemetry.NOOP));
+        () -> new Blob(TEST_URI, null, mock(BlockManager.class), TestTelemetry.DEFAULT));
 
     assertThrows(
         NullPointerException.class,
-        () -> new Blob(TEST_URI, mock(MetadataStore.class), null, Telemetry.NOOP));
+        () -> new Blob(TEST_URI, mock(MetadataStore.class), null, TestTelemetry.DEFAULT));
     assertThrows(
         NullPointerException.class,
         () -> new Blob(TEST_URI, mock(MetadataStore.class), mock(BlockManager.class), null));
@@ -111,7 +113,7 @@ public class BlobTest {
     // Given: test blob and an IOPlan
     MetadataStore metadataStore = mock(MetadataStore.class);
     BlockManager blockManager = mock(BlockManager.class);
-    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, Telemetry.NOOP);
+    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, TestTelemetry.DEFAULT);
     List<Range> ranges = new LinkedList<>();
     ranges.add(new Range(0, 100));
     ranges.add(new Range(999, 1000));
@@ -131,7 +133,7 @@ public class BlobTest {
     // Given: test blob
     MetadataStore metadataStore = mock(MetadataStore.class);
     BlockManager blockManager = mock(BlockManager.class);
-    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, Telemetry.NOOP);
+    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, TestTelemetry.DEFAULT);
 
     // When: blob is closed
     blob.close();
@@ -143,15 +145,15 @@ public class BlobTest {
   private Blob getTestBlob(String data) {
     FakeObjectClient fakeObjectClient = new FakeObjectClient(data);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlockManager blockManager =
         new BlockManager(
             TEST_URI,
             fakeObjectClient,
             metadataStore,
-            Telemetry.NOOP,
+            TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT);
 
-    return new Blob(TEST_URI, metadataStore, blockManager, Telemetry.NOOP);
+    return new Blob(TEST_URI, metadataStore, blockManager, TestTelemetry.DEFAULT);
   }
 }

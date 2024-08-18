@@ -3,7 +3,11 @@ package com.amazon.connector.s3.common.telemetry;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,15 +30,19 @@ public class DefaultTelemetry implements Telemetry {
   private static final Logger LOG = LogManager.getLogger(DefaultTelemetry.class);
 
   /**
-   * Executes a given {@link Runnable} and record the telemetry as {@link Operation}.
+   * Measures a given {@link Runnable} and record the telemetry as {@link Operation}.
    *
-   * @param operation operation to record this execution as.
-   * @param operationCode code to execute.
+   * @param level telemetry level.
+   * @param operationSupplier operation to record this execution as.
+   * @param operationCode - code to execute.
    */
   @SneakyThrows
-  public void measure(@NonNull Operation operation, @NonNull TelemetryAction operationCode) {
-    if (produceTelemetryFor(operation)) {
-      measureImpl(operation, operationCode);
+  public void measure(
+      @NonNull TelemetryLevel level,
+      @NonNull OperationSupplier operationSupplier,
+      @NonNull TelemetryAction operationCode) {
+    if (produceTelemetryFor(level)) {
+      measureImpl(level, operationSupplier.apply(), operationCode);
     } else {
       operationCode.apply();
     }
@@ -43,15 +51,19 @@ public class DefaultTelemetry implements Telemetry {
   /**
    * Executes a given {@link Supplier<T>} and records the telemetry as {@link Operation}.
    *
-   * @param operation operation to record this execution as.
-   * @param operationCode code to execute.
    * @param <T> return type of the {@link Supplier<T>}.
+   * @param level telemetry level.
+   * @param operationSupplier operation to record this execution as.
+   * @param operationCode code to execute.
    * @return the value that {@link Supplier<T>} returns.
    */
   @SneakyThrows
-  public <T> T measure(@NonNull Operation operation, @NonNull TelemetrySupplier<T> operationCode) {
-    if (produceTelemetryFor(operation)) {
-      return measureImpl(operation, operationCode);
+  public <T> T measure(
+      @NonNull TelemetryLevel level,
+      @NonNull OperationSupplier operationSupplier,
+      @NonNull TelemetrySupplier<T> operationCode) {
+    if (produceTelemetryFor(level)) {
+      return measureImpl(level, operationSupplier.apply(), operationCode);
     } else {
       return operationCode.apply();
     }
@@ -63,17 +75,20 @@ public class DefaultTelemetry implements Telemetry {
    * continuations, so any {@link Operation}s that are created in that context need to carry the
    * parenting chain.
    *
-   * @param operation operation to record this execution as.
+   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param level telemetry level.
+   * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @return an instance of {@link CompletableFuture} that returns the same result as the one passed
    *     in.
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
    */
   @SneakyThrows
   public <T> CompletableFuture<T> measure(
-      @NonNull Operation operation, @NonNull CompletableFuture<T> operationCode) {
-    if (produceTelemetryFor(operation)) {
-      return measureImpl(operation, operationCode);
+      @NonNull TelemetryLevel level,
+      @NonNull OperationSupplier operationSupplier,
+      @NonNull CompletableFuture<T> operationCode) {
+    if (produceTelemetryFor(level)) {
+      return measureImpl(level, operationSupplier.apply(), operationCode);
     } else {
       return operationCode;
     }
@@ -82,12 +97,14 @@ public class DefaultTelemetry implements Telemetry {
   /**
    * Executes a given {@link Runnable} and record the telemetry as {@link Operation}.
    *
+   * @param level level of the operation to record this execution as.
    * @param operation operation to record this execution as.
    * @param operationCode code to execute.
    */
   @SneakyThrows
-  private void measureImpl(Operation operation, TelemetryAction operationCode) {
-    OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(operation);
+  private void measureImpl(
+      TelemetryLevel level, @NonNull Operation operation, TelemetryAction operationCode) {
+    OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(level, operation);
     try {
       operation.getContext().pushOperation(operation);
       operationCode.apply();
@@ -103,14 +120,16 @@ public class DefaultTelemetry implements Telemetry {
   /**
    * Executes a given {@link Supplier<T>} and records the telemetry as {@link Operation}.
    *
+   * @param level level of the operation to record this execution as.
    * @param operation operation to record this execution as.
    * @param operationCode code to execute.
    * @param <T> return type of the {@link Supplier<T>}.
    * @return the value that {@link Supplier<T>} returns.
    */
   @SneakyThrows
-  private <T> T measureImpl(Operation operation, TelemetrySupplier<T> operationCode) {
-    OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(operation);
+  private <T> T measureImpl(
+      TelemetryLevel level, @NonNull Operation operation, TelemetrySupplier<T> operationCode) {
+    OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(level, operation);
     try {
       operation.getContext().pushOperation(operation);
       T result = operationCode.apply();
@@ -130,6 +149,7 @@ public class DefaultTelemetry implements Telemetry {
    * continuations, so any {@link Operation}s that are created in that context need to carry the
    * parenting chain.
    *
+   * @param level level of the operation to record this execution as.
    * @param operation operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @return an instance of {@link CompletableFuture} that returns the same result as the one passed
@@ -138,8 +158,8 @@ public class DefaultTelemetry implements Telemetry {
    */
   @SneakyThrows
   private <T> CompletableFuture<T> measureImpl(
-      Operation operation, CompletableFuture<T> operationCode) {
-    OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(operation);
+      TelemetryLevel level, Operation operation, CompletableFuture<T> operationCode) {
+    OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(level, operation);
     operationCode.whenComplete(
         (result, error) -> completeMeasurement(builder, Optional.ofNullable(error)));
     return operationCode;
@@ -148,16 +168,19 @@ public class DefaultTelemetry implements Telemetry {
   /**
    * Does all the bookkeeping at the operation starts.
    *
+   * @param level level of the operation being executed.
    * @param operation operation being executed.
    * @return {@link OperationMeasurement.OperationMeasurementBuilder} with all the necessary state.
    */
-  private OperationMeasurement.OperationMeasurementBuilder startMeasurement(Operation operation) {
+  private OperationMeasurement.OperationMeasurementBuilder startMeasurement(
+      TelemetryLevel level, Operation operation) {
     // Create the builder
     OperationMeasurement.OperationMeasurementBuilder builder = OperationMeasurement.builder();
 
     // Record start times
     long epochTimestampNanos = epochClock.getCurrentTimeNanos();
     builder.operation(operation);
+    builder.level(level);
     builder.epochTimestampNanos(epochTimestampNanos);
     builder.elapsedStartTimeNanos(elapsedClock.getCurrentTimeNanos());
 
@@ -177,7 +200,10 @@ public class DefaultTelemetry implements Telemetry {
   private void completeMeasurement(
       OperationMeasurement.OperationMeasurementBuilder builder, Optional<Throwable> error) {
     builder.elapsedCompleteTimeNanos(elapsedClock.getCurrentTimeNanos());
-    error.ifPresent(builder::error);
+    // Intentionally avoid functional style to reduce lambda invocation on the common path
+    if (error.isPresent()) {
+      builder.error(error.get());
+    }
     recordOperationCompletion(builder.build());
   }
 
@@ -218,10 +244,10 @@ public class DefaultTelemetry implements Telemetry {
   /**
    * Determines whether telemetry should be produced for this operation
    *
-   * @param operation {@link Operation}
+   * @param level {@link TelemetryLevel}
    * @return whether telemetry should be produced for this operation
    */
-  private boolean produceTelemetryFor(Operation operation) {
-    return operation.getLevel().getPriority() >= this.level.getPriority();
+  private boolean produceTelemetryFor(TelemetryLevel level) {
+    return level.getValue() >= this.level.getValue();
   }
 }

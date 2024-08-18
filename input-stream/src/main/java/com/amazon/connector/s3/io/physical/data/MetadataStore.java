@@ -58,11 +58,12 @@ public class MetadataStore implements Closeable {
    * @return returns the {@link ObjectMetadata}.
    */
   public ObjectMetadata get(S3URI s3URI) {
-    return telemetry.measureJoin(
-        Operation.builder()
-            .name(OPERATION_METADATA_HEAD_JOIN)
-            .attribute(StreamAttributes.uri(s3URI))
-            .build(),
+    return telemetry.measureJoinCritical(
+        () ->
+            Operation.builder()
+                .name(OPERATION_METADATA_HEAD_JOIN)
+                .attribute(StreamAttributes.uri(s3URI))
+                .build(),
         this.asyncGet(s3URI));
   }
 
@@ -77,11 +78,12 @@ public class MetadataStore implements Closeable {
     return this.cache.computeIfAbsent(
         s3URI,
         uri ->
-            telemetry.measure(
-                Operation.builder()
-                    .name(OPERATION_METADATA_HEAD_ASYNC)
-                    .attribute(StreamAttributes.uri(s3URI))
-                    .build(),
+            telemetry.measureCritical(
+                () ->
+                    Operation.builder()
+                        .name(OPERATION_METADATA_HEAD_ASYNC)
+                        .attribute(StreamAttributes.uri(s3URI))
+                        .build(),
                 objectClient.headObject(
                     HeadRequest.builder().bucket(uri.getBucket()).key(uri.getKey()).build())));
   }

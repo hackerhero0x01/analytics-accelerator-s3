@@ -10,6 +10,8 @@ import lombok.Value;
 public class OperationMeasurement {
   /** Operation */
   @NonNull Operation operation;
+  /** Telemetry level. * */
+  @NonNull TelemetryLevel level;
   /** Wall clock time corresponding to operation start. */
   long epochTimestampNanos;
   /** Elapsed clock time corresponding to operation start. */
@@ -184,6 +186,7 @@ public class OperationMeasurement {
   public static class OperationMeasurementBuilder {
     private static final long UNSET_NANOS = Long.MIN_VALUE;
     private Operation operation;
+    TelemetryLevel level;
     private long epochTimestampNanos = UNSET_NANOS;
     private long elapsedStartTimeNanos = UNSET_NANOS;
     private long elapsedCompleteTimeNanos = UNSET_NANOS;
@@ -197,6 +200,17 @@ public class OperationMeasurement {
      */
     public OperationMeasurementBuilder operation(@NonNull Operation operation) {
       this.operation = operation;
+      return this;
+    }
+
+    /**
+     * Sets operation.
+     *
+     * @param level level.
+     * @return the current instance of {@link OperationMeasurementBuilder}.
+     */
+    public OperationMeasurementBuilder level(@NonNull TelemetryLevel level) {
+      this.level = level;
       return this;
     }
 
@@ -264,6 +278,7 @@ public class OperationMeasurement {
           "The `elapsedCompleteTimeNanos` must be more or equal than `elapsedStartTimeNanos`.");
       return new OperationMeasurement(
           this.operation,
+          this.level,
           this.epochTimestampNanos,
           this.elapsedStartTimeNanos,
           this.elapsedCompleteTimeNanos,

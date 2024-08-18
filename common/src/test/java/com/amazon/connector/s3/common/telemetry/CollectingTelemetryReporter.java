@@ -12,6 +12,12 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
 
   private final Collection<Operation> operationStarts = new ArrayList<>();
 
+  /** Clears state */
+  public void clear() {
+    this.operationCompletions.clear();
+    this.operationStarts.clear();
+  }
+
   /**
    * Reports the start of an operation
    *

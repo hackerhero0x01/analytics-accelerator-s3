@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.common.telemetry.Telemetry;
+import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
@@ -25,7 +25,7 @@ public class MetadataStoreTest {
     when(objectClient.headObject(any()))
         .thenReturn(CompletableFuture.completedFuture(mock(ObjectMetadata.class)));
     MetadataStore metadataStore =
-        new MetadataStore(objectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     S3URI key = S3URI.of("foo", "bar");
 
     // When: get(..) is called multiple times
@@ -57,7 +57,7 @@ public class MetadataStoreTest {
     when(objectClient.headObject(h2)).thenReturn(objectMetadataCompletableFuture);
 
     MetadataStore metadataStore =
-        new MetadataStore(objectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
 
     // When: MetadataStore is closed
     metadataStore.get(S3URI.of("b", "key1"));

@@ -11,6 +11,7 @@ public class NoOpTelemetryReporterTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)

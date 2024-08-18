@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectMetadata;
@@ -56,7 +57,8 @@ public class BlobStoreTest {
     when(metadataStore.get(any()))
         .thenReturn(ObjectMetadata.builder().contentLength(TEST_DATA.length()).build());
     BlobStore blobStore =
-        new BlobStore(metadataStore, objectClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(
+            metadataStore, objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
 
     // When: a Blob is asked for
     Blob blob = blobStore.get(S3URI.of("test", "test"));

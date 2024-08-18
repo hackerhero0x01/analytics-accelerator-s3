@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 public class TelemetryLevelTest {
   @Test
   void testGetPriority() {
-    assertEquals(0, TelemetryLevel.VERBOSE.getPriority());
-    assertEquals(1, TelemetryLevel.STANDARD.getPriority());
-    assertEquals(2, TelemetryLevel.CRITICAL.getPriority());
+    assertEquals(0, TelemetryLevel.VERBOSE.getValue());
+    assertEquals(1, TelemetryLevel.STANDARD.getValue());
+    assertEquals(2, TelemetryLevel.CRITICAL.getValue());
   }
 }

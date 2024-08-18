@@ -7,26 +7,8 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum TelemetryLevel {
-  CRITICAL("CRITICAL"),
-  STANDARD("STANDARD"),
-  VERBOSE("VERBOSE");
-  private final String name;
-
-  /**
-   * Get numeric priority of telemetry level.
-   *
-   * @return numeric priority of telemetry level.
-   */
-  public int getPriority() {
-    switch (this) {
-      case CRITICAL:
-        return 2;
-      case STANDARD:
-        return 1;
-      case VERBOSE:
-        return 0;
-      default:
-        throw new IllegalArgumentException("Unknown telemetry level: " + this);
-    }
-  }
+  CRITICAL(2),
+  STANDARD(1),
+  VERBOSE(0);
+  private final int value;
 }

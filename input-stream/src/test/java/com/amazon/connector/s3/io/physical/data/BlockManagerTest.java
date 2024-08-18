@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.ObjectClient;
+import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectContent;
@@ -171,6 +172,10 @@ public class BlockManagerTest {
     MetadataStore metadataStore = mock(MetadataStore.class);
     when(metadataStore.get(any())).thenReturn(ObjectMetadata.builder().contentLength(size).build());
     return new BlockManager(
-        testUri, objectClient, metadataStore, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+        testUri,
+        objectClient,
+        metadataStore,
+        TestTelemetry.DEFAULT,
+        PhysicalIOConfiguration.DEFAULT);
   }
 }

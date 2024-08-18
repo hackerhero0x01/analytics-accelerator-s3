@@ -71,13 +71,14 @@ public class PhysicalIOImpl implements PhysicalIO {
   public int readTail(byte[] buf, int off, int len) throws IOException {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_READ_TAIL)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .attribute(StreamAttributes.offset(off))
-            .attribute(StreamAttributes.length(len))
-            .build(),
+    return telemetry.measureStandard(
+        () ->
+            Operation.builder()
+                .name(OPERATION_READ_TAIL)
+                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.offset(off))
+                .attribute(StreamAttributes.length(len))
+                .build(),
         () -> {
           long contentLength = contentLength();
           return blobStore.get(s3URI).read(buf, off, len, contentLength - len);
@@ -86,12 +87,13 @@ public class PhysicalIOImpl implements PhysicalIO {
 
   @Override
   public IOPlanExecution execute(IOPlan ioPlan) {
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_EXECUTE)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .attribute(StreamAttributes.ioPlan(ioPlan))
-            .build(),
+    return telemetry.measureStandard(
+        () ->
+            Operation.builder()
+                .name(OPERATION_EXECUTE)
+                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.ioPlan(ioPlan))
+                .build(),
         () -> blobStore.get(s3URI).execute(ioPlan));
   }
 

@@ -69,13 +69,14 @@ public class Block implements Closeable {
     this.range = new Range(start, end);
 
     this.source =
-        this.telemetry.measure(
-            Operation.builder()
-                .name(OPERATION_BLOCK_GET_ASYNC)
-                .attribute(StreamAttributes.uri(this.s3URI))
-                .attribute(StreamAttributes.range(this.range))
-                .attribute(StreamAttributes.generation(generation))
-                .build(),
+        this.telemetry.measureCritical(
+            () ->
+                Operation.builder()
+                    .name(OPERATION_BLOCK_GET_ASYNC)
+                    .attribute(StreamAttributes.uri(this.s3URI))
+                    .attribute(StreamAttributes.range(this.range))
+                    .attribute(StreamAttributes.generation(generation))
+                    .build(),
             objectClient.getObject(
                 GetRequest.builder()
                     .bucket(this.s3URI.getBucket())
@@ -154,12 +155,13 @@ public class Block implements Closeable {
    * @return the bytes fetched by the issued {@link GetRequest}.
    */
   private byte[] getData() {
-    return this.telemetry.measureJoin(
-        Operation.builder()
-            .name(OPERATION_BLOCK_GET_JOIN)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .attribute(StreamAttributes.range(this.range))
-            .build(),
+    return this.telemetry.measureJoinCritical(
+        () ->
+            Operation.builder()
+                .name(OPERATION_BLOCK_GET_JOIN)
+                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.range(this.range))
+                .build(),
         this.data);
   }
 

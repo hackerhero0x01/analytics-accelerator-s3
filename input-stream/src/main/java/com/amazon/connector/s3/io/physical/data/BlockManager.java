@@ -136,15 +136,17 @@ public class BlockManager implements Closeable {
 
     // Fix "end", so we can pass it into the lambda
     final long finalEnd = end;
-    this.telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_MAKE_RANGE_AVAILABLE)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .attribute(StreamAttributes.position(pos))
-            .attribute(StreamAttributes.length(len))
-            .attribute(StreamAttributes.generation(generation))
-            .attribute(StreamAttributes.end(finalEnd))
-            .build(),
+    final long finalLen = len;
+    this.telemetry.measureStandard(
+        () ->
+            Operation.builder()
+                .name(OPERATION_MAKE_RANGE_AVAILABLE)
+                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.position(pos))
+                .attribute(StreamAttributes.length(finalLen))
+                .attribute(StreamAttributes.generation(generation))
+                .attribute(StreamAttributes.end(finalEnd))
+                .build(),
         () -> {
 
           // Determine the missing ranges and fetch them

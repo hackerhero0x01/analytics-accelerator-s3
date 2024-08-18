@@ -104,12 +104,13 @@ public class Blob implements Closeable {
    * @return the status of execution
    */
   public IOPlanExecution execute(IOPlan plan) {
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_EXECUTE)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .attribute(StreamAttributes.ioPlan(plan))
-            .build(),
+    return telemetry.measureStandard(
+        () ->
+            Operation.builder()
+                .name(OPERATION_EXECUTE)
+                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.ioPlan(plan))
+                .build(),
         () -> {
           try {
             plan.getPrefetchRanges()

@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.common.telemetry.Telemetry;
+import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
@@ -30,7 +30,7 @@ public class ParquetLogicalIOImplTest {
         new ParquetLogicalIOImpl(
             S3URI.of("foo", "bar"),
             mock(PhysicalIO.class),
-            Telemetry.NOOP,
+            TestTelemetry.DEFAULT,
             mock(LogicalIOConfiguration.class),
             mock(ParquetMetadataStore.class)));
   }
@@ -43,7 +43,7 @@ public class ParquetLogicalIOImplTest {
             new ParquetLogicalIOImpl(
                 TEST_URI,
                 null,
-                Telemetry.NOOP,
+                TestTelemetry.DEFAULT,
                 mock(LogicalIOConfiguration.class),
                 mock(ParquetMetadataStore.class)));
     assertThrows(
@@ -52,7 +52,7 @@ public class ParquetLogicalIOImplTest {
             new ParquetLogicalIOImpl(
                 TEST_URI,
                 mock(PhysicalIO.class),
-                Telemetry.NOOP,
+                TestTelemetry.DEFAULT,
                 null,
                 mock(ParquetMetadataStore.class)));
     assertThrows(
@@ -70,7 +70,7 @@ public class ParquetLogicalIOImplTest {
             new ParquetLogicalIOImpl(
                 TEST_URI,
                 mock(PhysicalIO.class),
-                Telemetry.NOOP,
+                TestTelemetry.DEFAULT,
                 mock(LogicalIOConfiguration.class),
                 null));
   }
@@ -89,7 +89,7 @@ public class ParquetLogicalIOImplTest {
         new ParquetLogicalIOImpl(
             TEST_URI,
             physicalIO,
-            Telemetry.NOOP,
+            TestTelemetry.DEFAULT,
             configuration,
             new ParquetMetadataStore(configuration));
 
@@ -108,16 +108,18 @@ public class ParquetLogicalIOImplTest {
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(0).build()));
     S3URI s3URI = S3URI.of("test", "test");
     MetadataStore metadataStore =
-        new MetadataStore(mockClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, mockClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
-    PhysicalIOImpl physicalIO = new PhysicalIOImpl(s3URI, metadataStore, blobStore, Telemetry.NOOP);
+        new BlobStore(
+            metadataStore, mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    PhysicalIOImpl physicalIO =
+        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
     assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(
                 TEST_URI,
                 physicalIO,
-                Telemetry.NOOP,
+                TestTelemetry.DEFAULT,
                 LogicalIOConfiguration.DEFAULT,
                 new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }
@@ -130,16 +132,18 @@ public class ParquetLogicalIOImplTest {
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(-1).build()));
     S3URI s3URI = S3URI.of("test", "test");
     MetadataStore metadataStore =
-        new MetadataStore(mockClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(metadataStore, mockClient, Telemetry.NOOP, PhysicalIOConfiguration.DEFAULT);
-    PhysicalIOImpl physicalIO = new PhysicalIOImpl(s3URI, metadataStore, blobStore, Telemetry.NOOP);
+        new BlobStore(
+            metadataStore, mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    PhysicalIOImpl physicalIO =
+        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
     assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(
                 TEST_URI,
                 physicalIO,
-                Telemetry.NOOP,
+                TestTelemetry.DEFAULT,
                 LogicalIOConfiguration.DEFAULT,
                 new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }

@@ -51,13 +51,14 @@ public class IOPlanner {
     Preconditions.checkArgument(
         pos <= lastObjectByte, "`pos` must be less than or equal to `lastObjectByte`");
 
-    return telemetry.measure(
-        Operation.builder()
-            .name(OPERATION_PLAN_READ)
-            .attribute(StreamAttributes.uri(this.s3URI))
-            .attribute(StreamAttributes.position(pos))
-            .attribute(StreamAttributes.end(end))
-            .build(),
+    return telemetry.measureStandard(
+        () ->
+            Operation.builder()
+                .name(OPERATION_PLAN_READ)
+                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.position(pos))
+                .attribute(StreamAttributes.end(end))
+                .build(),
         () -> {
           List<Range> missingRanges = new LinkedList<>();
 

@@ -3,7 +3,7 @@ package com.amazon.connector.s3.io.physical.data;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.amazon.connector.s3.ObjectClient;
-import com.amazon.connector.s3.common.telemetry.Telemetry;
+import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
@@ -19,7 +19,13 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     Block block =
         new Block(
-            TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, TEST_DATA.length(), 0, ReadMode.SYNC);
+            TEST_URI,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            TEST_DATA.length(),
+            0,
+            ReadMode.SYNC);
 
     // When: bytes are requested from the block
     int r1 = block.read(0);
@@ -39,7 +45,13 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     Block block =
         new Block(
-            TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, TEST_DATA.length(), 0, ReadMode.SYNC);
+            TEST_URI,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            TEST_DATA.length(),
+            0,
+            ReadMode.SYNC);
 
     // When: bytes are requested from the block
     byte[] b1 = new byte[4];
@@ -63,17 +75,26 @@ public class BlockTest {
         NullPointerException.class,
         () ->
             new Block(
-                null, fakeObjectClient, Telemetry.NOOP, 0, TEST_DATA.length(), 0, ReadMode.SYNC));
+                null,
+                fakeObjectClient,
+                TestTelemetry.DEFAULT,
+                0,
+                TEST_DATA.length(),
+                0,
+                ReadMode.SYNC));
     assertThrows(
         NullPointerException.class,
-        () -> new Block(TEST_URI, null, Telemetry.NOOP, 0, TEST_DATA.length(), 0, ReadMode.SYNC));
+        () ->
+            new Block(
+                TEST_URI, null, TestTelemetry.DEFAULT, 0, TEST_DATA.length(), 0, ReadMode.SYNC));
     assertThrows(
         NullPointerException.class,
         () -> new Block(TEST_URI, fakeObjectClient, null, 0, TEST_DATA.length(), 0, ReadMode.SYNC));
     assertThrows(
         NullPointerException.class,
         () ->
-            new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, TEST_DATA.length(), 0, null));
+            new Block(
+                TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 0, TEST_DATA.length(), 0, null));
   }
 
   @Test
@@ -86,27 +107,30 @@ public class BlockTest {
             new Block(
                 TEST_URI,
                 fakeObjectClient,
-                Telemetry.NOOP,
+                TestTelemetry.DEFAULT,
                 -1,
                 TEST_DATA.length(),
                 0,
                 ReadMode.SYNC));
     assertThrows(
         IllegalArgumentException.class,
-        () -> new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, -5, 0, ReadMode.SYNC));
+        () ->
+            new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 0, -5, 0, ReadMode.SYNC));
     assertThrows(
         IllegalArgumentException.class,
-        () -> new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 20, 1, 0, ReadMode.SYNC));
+        () ->
+            new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 20, 1, 0, ReadMode.SYNC));
     assertThrows(
         IllegalArgumentException.class,
-        () -> new Block(TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, 5, -1, ReadMode.SYNC));
+        () ->
+            new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 0, 5, -1, ReadMode.SYNC));
     assertThrows(
         IllegalArgumentException.class,
         () ->
             new Block(
                 TEST_URI,
                 fakeObjectClient,
-                Telemetry.NOOP,
+                TestTelemetry.DEFAULT,
                 -5,
                 0,
                 TEST_DATA.length(),
@@ -120,7 +144,13 @@ public class BlockTest {
     byte[] b = new byte[4];
     Block block =
         new Block(
-            TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, TEST_DATA.length(), 0, ReadMode.SYNC);
+            TEST_URI,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            TEST_DATA.length(),
+            0,
+            ReadMode.SYNC);
     assertThrows(IllegalArgumentException.class, () -> block.read(-10));
     assertThrows(NullPointerException.class, () -> block.read(null, 0, 3, 1));
     assertThrows(IllegalArgumentException.class, () -> block.read(b, -5, 3, 1));
@@ -134,7 +164,13 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     Block block =
         new Block(
-            TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, TEST_DATA.length(), 0, ReadMode.SYNC);
+            TEST_URI,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            TEST_DATA.length(),
+            0,
+            ReadMode.SYNC);
     assertTrue(block.contains(0));
     assertFalse(block.contains(TEST_DATA.length() + 1));
   }
@@ -145,7 +181,13 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     Block block =
         new Block(
-            TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, TEST_DATA.length(), 0, ReadMode.SYNC);
+            TEST_URI,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            TEST_DATA.length(),
+            0,
+            ReadMode.SYNC);
     assertThrows(IllegalArgumentException.class, () -> block.contains(-1));
   }
 
@@ -155,7 +197,13 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     Block block =
         new Block(
-            TEST_URI, fakeObjectClient, Telemetry.NOOP, 0, TEST_DATA.length(), 0, ReadMode.SYNC);
+            TEST_URI,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            TEST_DATA.length(),
+            0,
+            ReadMode.SYNC);
     block.close();
     block.close();
   }

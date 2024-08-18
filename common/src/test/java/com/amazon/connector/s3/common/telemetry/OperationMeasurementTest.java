@@ -16,6 +16,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(1)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(12)
@@ -40,6 +41,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(1)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(12)
@@ -146,6 +148,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
@@ -166,6 +169,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
@@ -191,6 +195,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .error(error)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
@@ -217,6 +222,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
@@ -240,6 +246,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)
@@ -263,6 +270,7 @@ public class OperationMeasurementTest {
     OperationMeasurement operationMeasurement =
         OperationMeasurement.builder()
             .operation(operation)
+            .level(TelemetryLevel.STANDARD)
             .epochTimestampNanos(TEST_EPOCH_NANOS)
             .elapsedStartTimeNanos(10)
             .elapsedCompleteTimeNanos(5000000)

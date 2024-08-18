@@ -1,6 +1,6 @@
 package com.amazon.connector.s3.common.telemetry;
 
-import com.amazon.connector.s3.common.Preconditions;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.Stack;
@@ -15,11 +15,10 @@ public final class OperationContext {
    */
   private static final String DEFAULT_OPERATION_NAME = "default";
 
-  private final Operation defaultOperation =
+  final Operation defaultOperation =
       new Operation(
           DEFAULT_OPERATION_NAME,
           DEFAULT_OPERATION_NAME,
-          TelemetryLevel.STANDARD,
           new HashMap<String, Attribute>(),
           this,
           Optional.empty(),
@@ -57,9 +56,11 @@ public final class OperationContext {
    */
   public Operation getCurrentOperation() {
     Stack<Operation> operationsStack = this.operationsStack.get();
-    // Stack should never be empty, as the default operation is always in progress
-    Preconditions.checkState(!operationsStack.isEmpty());
-    return operationsStack.peek();
+    try {
+      return operationsStack.peek();
+    } catch (EmptyStackException exception) {
+      throw new IllegalStateException("The operation stack must not be empty", exception);
+    }
   }
 
   /**
@@ -69,7 +70,7 @@ public final class OperationContext {
    */
   public Optional<Operation> getCurrentNonDefaultOperation() {
     Operation currentOperation = this.getCurrentOperation();
-    return (currentOperation.equals(defaultOperation))
+    return (currentOperation == defaultOperation)
         ? Optional.empty()
         : Optional.of(currentOperation);
   }
@@ -91,15 +92,21 @@ public final class OperationContext {
    * @param operation the {@link Operation} to pop pff the stack.
    */
   public void popOperation(@NonNull Operation operation) {
-    Operation currentOperation = this.getCurrentOperation();
+    // There is some logic here that is the same as is `getCurrentOperation`.
+    // We inline it here so that we ony get the stack from the TLC onc, to reduce overhead.
+    Stack<Operation> operationsStack = this.operationsStack.get();
+    try {
+      Operation currentOperation = operationsStack.peek();
+      if (currentOperation != operation) {
+        throw new IllegalStateException(
+            String.format(
+                "The operation `%s` being popped is not equal to the current operation `%s`",
+                operation, currentOperation));
+      }
 
-    if (!currentOperation.equals(operation)) {
-      throw new IllegalStateException(
-          String.format(
-              "The operation `%s` being popped is not equal to the current operation `%s`",
-              operation, currentOperation));
+    } catch (EmptyStackException exception) {
+      throw new IllegalStateException("The operation stack must not be empty", exception);
     }
-
-    this.operationsStack.get().pop();
+    operationsStack.pop();
   }
 }
