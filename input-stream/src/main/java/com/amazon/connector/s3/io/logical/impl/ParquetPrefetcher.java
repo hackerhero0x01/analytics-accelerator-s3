@@ -1,12 +1,7 @@
 package com.amazon.connector.s3.io.logical.impl;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
-import com.amazon.connector.s3.io.logical.parquet.ParquetMetadataParsingTask;
-import com.amazon.connector.s3.io.logical.parquet.ParquetPredictivePrefetchingTask;
-import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchRemainingColumnTask;
-import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchTailTask;
-import com.amazon.connector.s3.io.logical.parquet.ParquetReadTailTask;
+import com.amazon.connector.s3.io.logical.parquet.*;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
@@ -25,14 +20,12 @@ import lombok.AllArgsConstructor;
  */
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class ParquetPrefetcher {
-
   private final S3URI s3URI;
 
   // Configuration
   private final LogicalIOConfiguration logicalIOConfiguration;
 
   // Dependencies
-  private final PhysicalIO physicalIO;
   private final ParquetMetadataStore parquetMetadataStore;
 
   // Tasks
@@ -59,7 +52,6 @@ public class ParquetPrefetcher {
     this(
         s3Uri,
         logicalIOConfiguration,
-        physicalIO,
         parquetMetadataStore,
         new ParquetMetadataParsingTask(s3Uri, logicalIOConfiguration, parquetMetadataStore),
         new ParquetPrefetchTailTask(s3Uri, logicalIOConfiguration, physicalIO),

@@ -4,8 +4,9 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 
 /** Utils class for the Parquet logical layer. */
-public class ParquetUtils {
-
+public final class ParquetUtils {
+  /** Prevent direct instantiation, this is meant to be a facade. */
+  private ParquetUtils() {}
   /**
    * Gets range of file tail to be read.
    *

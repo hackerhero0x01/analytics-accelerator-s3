@@ -8,6 +8,7 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -18,6 +19,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /** Class responsible for fetching and potentially caching object metadata. */
+@SuppressFBWarnings(
+    value = "SIC_INNER_SHOULD_BE_STATIC_ANON",
+    justification =
+        "Inner class is created very infrequently, and fluency justifies the extra pointer")
 public class MetadataStore implements Closeable {
   private final ObjectClient objectClient;
   private final Telemetry telemetry;

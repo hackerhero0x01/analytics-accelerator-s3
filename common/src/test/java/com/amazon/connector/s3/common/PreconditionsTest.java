@@ -22,6 +22,7 @@ package com.amazon.connector.s3.common;
 import static com.amazon.connector.s3.common.Preconditions.lenientFormat;
 import static org.junit.jupiter.api.Assertions.*;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -241,6 +242,9 @@ public class PreconditionsTest {
   }
 
   @Test
+  @SuppressFBWarnings(
+      value = "DCN_NULLPOINTER_EXCEPTION",
+      justification = "Catching NullPointerException for testing purposes")
   public void testCheckNotNull_simple_failure() {
     try {
       Preconditions.checkNotNull(null);
@@ -256,6 +260,9 @@ public class PreconditionsTest {
   }
 
   @Test
+  @SuppressFBWarnings(
+      value = "DCN_NULLPOINTER_EXCEPTION",
+      justification = "Catching NullPointerException for testing purposes")
   public void testCheckNotNull_simpleMessage_failure() {
     try {
       Preconditions.checkNotNull(null, new Message());
@@ -272,6 +279,9 @@ public class PreconditionsTest {
   }
 
   @Test
+  @SuppressFBWarnings(
+      value = "DCN_NULLPOINTER_EXCEPTION",
+      justification = "Catching NullPointerException for testing purposes")
   public void testCheckNotNull_complexMessage_failure() {
     try {
       Preconditions.checkNotNull(null, FORMAT, 5);
@@ -287,6 +297,9 @@ public class PreconditionsTest {
   }
 
   @Test
+  @SuppressFBWarnings(
+      value = "DCN_NULLPOINTER_EXCEPTION",
+      justification = "Catching NullPointerException for testing purposes")
   public void testCheckNotNull_formatString_failure() {
     try {
       Preconditions.checkNotNull(null, FORMAT, new Object[] {5});

@@ -16,12 +16,15 @@ import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class ParquetLogicalIOImplTest {
-
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
   @Test

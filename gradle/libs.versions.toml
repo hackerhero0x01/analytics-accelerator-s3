@@ -2,6 +2,7 @@
 junit = "5.10.1"
 mockito = "4.11.0"
 spotless = "6.13.0"
+spotbugs = "6.0.20"
 s3 = "2.25.31"
 s3mock = "3.6.0"
 testcontainers = "1.19.7"
@@ -26,6 +27,7 @@ parquet-format = { module = "org.apache.parquet:parquet-format", version.ref = "
 # Code maintenance and best practices
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 spotless = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+spotbugs = { module = "com.github.spotbugs.snom:spotbugs-gradle-plugin", version.ref = "spotbugs" }
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 

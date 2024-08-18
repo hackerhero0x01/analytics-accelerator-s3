@@ -18,12 +18,8 @@ import lombok.NonNull;
 public class ParquetLogicalIOImpl implements LogicalIO {
   private final S3URI s3Uri;
 
-  // Configuration
-  private final LogicalIOConfiguration logicalIOConfiguration;
-
   // Dependencies
   private final ParquetPrefetcher parquetPrefetcher;
-  private final ParquetMetadataStore parquetMetadataStore;
   private final PhysicalIO physicalIO;
   private final Telemetry telemetry;
 
@@ -46,9 +42,7 @@ public class ParquetLogicalIOImpl implements LogicalIO {
       @NonNull ParquetMetadataStore parquetMetadataStore) {
     this.s3Uri = s3Uri;
     this.physicalIO = physicalIO;
-    this.logicalIOConfiguration = logicalIOConfiguration;
     this.telemetry = telemetry;
-    this.parquetMetadataStore = parquetMetadataStore;
 
     // Initialise prefetcher and start prefetching
     this.parquetPrefetcher =

@@ -2,10 +2,14 @@ package com.amazon.connector.s3.common.telemetry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = {"NP_NONNULL_PARAM_VIOLATION", "SIC_INNER_SHOULD_BE_STATIC_ANON"},
+    justification = "We mean to pass nulls to checks, and inner classes are appropriate in tests")
 public class DefaultTelemetryTest {
   @Test
   void testCreate() {
@@ -342,7 +346,6 @@ public class DefaultTelemetryTest {
 
     Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
     Exception error = new IllegalStateException("Error");
-    Thread result = Thread.currentThread();
 
     TelemetrySupplier<Thread> supplier =
         () -> {

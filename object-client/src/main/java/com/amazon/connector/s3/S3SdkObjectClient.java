@@ -21,7 +21,6 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
   private static final String HEADER_REFERER = "Referer";
 
   private S3AsyncClient s3AsyncClient = null;
-  private ObjectClientConfiguration objectClientConfiguration = null;
   private final UserAgent userAgent;
 
   /**
@@ -45,7 +44,6 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
       @NonNull ObjectClientConfiguration objectClientConfiguration) {
 
     this.s3AsyncClient = s3AsyncClient;
-    this.objectClientConfiguration = objectClientConfiguration;
     this.userAgent = new UserAgent();
     this.userAgent.prepend(objectClientConfiguration.getUserAgentPrefix());
   }

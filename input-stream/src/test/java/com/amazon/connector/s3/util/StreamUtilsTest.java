@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 public class StreamUtilsTest {
 
   @Test
-  public void test__toByteArray_worksWithEmptyStream() {
+  public void testToByteArrayWorksWithEmptyStream() {
     // Given: objectContent with an empty stream
     ObjectContent objectContent = ObjectContent.builder().stream(NullInputStream.INSTANCE).build();
 
@@ -26,7 +26,7 @@ public class StreamUtilsTest {
   }
 
   @Test
-  public void test__toByteArray__convertsCorrectly() {
+  public void testToByteArrayConvertsCorrectly() {
     // Given: objectContent with "Hello World" in it
     InputStream inputStream =
         new ByteArrayInputStream("Hello World".getBytes(StandardCharsets.UTF_8));
@@ -36,6 +36,6 @@ public class StreamUtilsTest {
     byte[] buf = StreamUtils.toByteArray(objectContent);
 
     // Then: 'Hello World' is returned
-    assertEquals("Hello World", new String(buf));
+    assertEquals("Hello World", new String(buf, StandardCharsets.UTF_8));
   }
 }

@@ -16,8 +16,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import net.jqwik.api.Example;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
@@ -69,9 +69,8 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
 
   void setupStreams(int size) throws IOException {
     // Generate random data
-    Random r = new Random();
     byte[] data = new byte[size];
-    r.nextBytes(data);
+    ThreadLocalRandom.current().nextBytes(data);
 
     // Put random data in S3
     String uuidKey = UUID.randomUUID().toString();
@@ -95,8 +94,8 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
     setupStreams(100);
 
     s3SeekableInputStream.seek(0);
-    s3SeekableInputStream.getPos();
-    s3SeekableInputStream.read();
+    assertEquals(0, s3SeekableInputStream.getPos());
+    assertEquals(1, s3SeekableInputStream.read());
   }
 
   @Property

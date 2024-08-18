@@ -37,7 +37,7 @@ public class ParquetMetadataParsingTaskTest {
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
   @Test
-  void testContructor() {
+  void testConstructor() {
     assertNotNull(
         new ParquetMetadataParsingTask(
             TEST_URI,
@@ -216,17 +216,16 @@ public class ParquetMetadataParsingTaskTest {
                 parquetMetadataParsingTask.storeColumnMappers(
                     new FileTail(ByteBuffer.allocate(0), 0)));
 
-    assertThrows(CompletionException.class, () -> parquetMetadataTaskFuture.join());
+    assertThrows(CompletionException.class, parquetMetadataTaskFuture::join);
   }
 
   private FileMetaData getFileMetadata(String filePath) throws IOException, ClassNotFoundException {
     // Deserialize fileMetaData object
-    FileInputStream fileInStream = new FileInputStream(filePath);
-    ObjectInputStream ois = new ObjectInputStream(fileInStream);
-    FileMetaData fileMetaData = (FileMetaData) ois.readObject();
-    ois.close();
-
-    return fileMetaData;
+    try (FileInputStream fileInStream = new FileInputStream(filePath)) {
+      try (ObjectInputStream ois = new ObjectInputStream(fileInStream)) {
+        return (FileMetaData) ois.readObject();
+      }
+    }
   }
 
   private ColumnMappers getColumnMappers(FileMetaData fileMetaData) throws IOException {

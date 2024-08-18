@@ -25,7 +25,7 @@ import lombok.NonNull;
  * append prefix, updating the search prefix to "fs.s3a.connector.physicalio". Then
  * subConf.getInt("a", 0) will return 42.
  */
-public class ConnectorConfiguration {
+public final class ConnectorConfiguration {
 
   /**
    * Expected prefix for properties related to Connector Framework for S3. Get prefix for properties

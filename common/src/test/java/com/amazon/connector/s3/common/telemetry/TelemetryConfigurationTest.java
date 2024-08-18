@@ -3,11 +3,15 @@ package com.amazon.connector.s3.common.telemetry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.amazon.connector.s3.common.ConnectorConfiguration;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class TelemetryConfigurationTest {
   private static final String TEST_PREFIX = "s3.connector";
 

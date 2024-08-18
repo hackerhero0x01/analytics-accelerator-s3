@@ -20,7 +20,6 @@ public class ParquetPrefetchRemainingColumnTask {
   private final S3URI s3Uri;
   private final PhysicalIO physicalIO;
   private final ParquetMetadataStore parquetMetadataStore;
-  private final LogicalIOConfiguration logicalIOConfiguration;
 
   private static final Logger LOG = LogManager.getLogger(ParquetPrefetchRemainingColumnTask.class);
 
@@ -39,7 +38,6 @@ public class ParquetPrefetchRemainingColumnTask {
       ParquetMetadataStore parquetMetadataStore) {
     this.s3Uri = s3URI;
     this.physicalIO = physicalIO;
-    this.logicalIOConfiguration = logicalIOConfiguration;
     this.parquetMetadataStore = parquetMetadataStore;
   }
 

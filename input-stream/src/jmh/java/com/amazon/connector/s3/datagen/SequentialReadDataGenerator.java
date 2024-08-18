@@ -2,7 +2,7 @@ package com.amazon.connector.s3.datagen;
 
 import com.amazon.connector.s3.datagen.BenchmarkData.BenchmarkObject;
 import java.util.Arrays;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.internal.crt.S3CrtAsyncClient;
@@ -44,8 +44,7 @@ public class SequentialReadDataGenerator {
 
   private static byte[] generateBytes(long len) {
     byte[] buf = new byte[(int) len];
-    Random random = new Random();
-    random.nextBytes(buf);
+    ThreadLocalRandom.current().nextBytes(buf);
     return buf;
   }
 }

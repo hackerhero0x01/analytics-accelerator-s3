@@ -14,12 +14,16 @@ import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class BlobTest {
-
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
   private static final String TEST_DATA = "test-data-0123456789";
 
@@ -72,8 +76,8 @@ public class BlobTest {
     blob.read(b2, 0, b2.length, 5);
 
     // Then: correct bytes are returned
-    assertEquals("test", new String(b1));
-    assertEquals("data", new String(b2));
+    assertEquals("test", new String(b1, StandardCharsets.UTF_8));
+    assertEquals("data", new String(b2, StandardCharsets.UTF_8));
   }
 
   @Test
@@ -88,8 +92,8 @@ public class BlobTest {
     blob.read(b2, 0, b2.length, 2);
 
     // Then: correct bytes are returned
-    assertEquals("test", new String(b1));
-    assertEquals("st-d", new String(b2));
+    assertEquals("test", new String(b1, StandardCharsets.UTF_8));
+    assertEquals("st-d", new String(b2, StandardCharsets.UTF_8));
   }
 
   @Test

@@ -1,3 +1,5 @@
+import com.github.spotbugs.snom.Confidence
+import com.github.spotbugs.snom.Effort
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 /*
@@ -17,6 +19,10 @@ plugins {
 
     // Formatting
     id("com.diffplug.spotless")
+
+    // SpotBugs
+    id("com.github.spotbugs")
+
     checkstyle
 }
 
@@ -33,6 +39,16 @@ spotless {
         formatAnnotations()
     }
 }
+
+spotbugs {
+    ignoreFailures = false
+    showStackTraces = true
+    showProgress = true
+    excludeFilter = file("spotbugs-exclude.xml")
+    effort = Effort.MAX
+    reportLevel = Confidence.LOW
+}
+
 
 repositories {
     // Use Maven Central for resolving dependencies.
@@ -82,4 +98,18 @@ tasks.jacocoTestReport {
     }
 
     dependsOn(tasks.test) // tests are required to run before generating the report
+}
+
+tasks.spotbugsMain {
+    reports.create("html") {
+        required = true
+        setStylesheet("fancy-hist.xsl")
+    }
+}
+
+tasks.spotbugsTest {
+    reports.create("html") {
+        required = true
+        setStylesheet("fancy-hist.xsl")
+    }
 }

@@ -2,8 +2,12 @@ package com.amazon.connector.s3.common.telemetry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class AttributeTest {
   @Test
   void testCreateAttribute() {
@@ -29,9 +33,6 @@ public class AttributeTest {
 
   @Test
   void testEquality() {
-    Attribute attribute = Attribute.of("Foo", 42);
-    assertEquals(attribute, attribute);
-
     assertEquals(Attribute.of("Foo", 42), Attribute.of("Foo", 42));
     assertNotEquals(Attribute.of("Foo", 42), Attribute.of("Foo", 43));
     assertNotEquals(Attribute.of("Bar", 42), Attribute.of("Foo", 42));

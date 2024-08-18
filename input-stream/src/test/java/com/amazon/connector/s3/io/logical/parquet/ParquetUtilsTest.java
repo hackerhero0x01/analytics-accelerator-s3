@@ -2,19 +2,12 @@ package com.amazon.connector.s3.io.logical.parquet;
 
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import org.junit.jupiter.api.Test;
 
 public class ParquetUtilsTest {
-
-  @Test
-  void testContructor() {
-    assertNotNull(new ParquetUtils());
-  }
-
   @Test
   void testGetFileTailRangeDefaultConfig() {
 

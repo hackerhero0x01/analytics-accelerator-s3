@@ -9,6 +9,7 @@ import com.amazon.connector.s3.datagen.BenchmarkData;
 import com.amazon.connector.s3.datagen.BenchmarkData.Read;
 import com.amazon.connector.s3.datagen.Constants;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +39,6 @@ import software.amazon.awssdk.utils.IoUtils;
 @Measurement(iterations = 3)
 @BenchmarkMode(Mode.SingleShotTime)
 public class SeekingReadBenchmarks {
-
   private static final S3AsyncClient client = S3AsyncClient.create();
   private static final S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
       new S3SeekableInputStreamFactory(
@@ -51,27 +51,26 @@ public class SeekingReadBenchmarks {
 
   /** Test backward seeks with S3 client */
   @Benchmark
-  public void testBackwardSeeks__withStandardAsyncClient() {
+  public void testBackwardSeeksWithStandardAsyncClient() {
     this.object.getBackwardSeekReadPattern().forEach(range -> doReadWithAsyncClient(client, range));
   }
 
   /** Test backward seeks with SeekableStream */
   @Benchmark
-  public void testBackwardSeeks__withSeekableStream() {
+  public void testBackwardSeeksWithSeekableStream() {
     S3SeekableInputStream stream = getStreamForKey(this.object.getKeyName());
-
     this.object.getBackwardSeekReadPattern().forEach(range -> doReadWithStream(stream, range));
   }
 
   /** Test forward seeks with S3 client */
   @Benchmark
-  public void testForwardSeeks__withStandardAsyncClient() {
+  public void testForwardSeeksWithStandardAsyncClient() {
     this.object.getForwardSeekReadPattern().forEach(range -> doReadWithAsyncClient(client, range));
   }
 
   /** Test forward seeks with Seekable Stream */
   @Benchmark
-  public void testForwardSeeks__withSeekableStream() {
+  public void testForwardSeeksWithSeekableStream() {
     S3SeekableInputStream stream = getStreamForKey(this.object.getKeyName());
 
     this.object.getForwardSeekReadPattern().forEach(range -> doReadWithStream(stream, range));
@@ -79,13 +78,13 @@ public class SeekingReadBenchmarks {
 
   /** Test parquet-like reads with S3 client */
   @Benchmark
-  public void testParquetLikeRead__withStandardAsyncClient() {
+  public void testParquetLikeReadWithStandardAsyncClient() {
     this.object.getParquetLikeReadPattern().forEach(range -> doReadWithAsyncClient(client, range));
   }
 
   /** Test parquet-like reads with Seekable Stream */
   @Benchmark
-  public void testParquetLikeRead__withSeekableStream() {
+  public void testParquetLikeReadWithSeekableStream() {
     S3SeekableInputStream stream = getStreamForKey(this.object.getKeyName());
 
     this.object.getParquetLikeReadPattern().forEach(range -> doReadWithStream(stream, range));
@@ -108,17 +107,16 @@ public class SeekingReadBenchmarks {
     }
   }
 
-  private void doReadWithStream(S3SeekableInputStream stream, Read range) {
+  @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "We mean to ignore results")
+  private String doReadWithStream(S3SeekableInputStream stream, Read range) {
     try {
       stream.seek(range.getStart());
-
       int len = (int) range.getLength();
       byte[] buf = new byte[len];
       stream.read(buf, 0, len);
-      String content = new String(buf, StandardCharsets.UTF_8);
-      System.out.println(content.hashCode());
+      return new String(buf, StandardCharsets.UTF_8);
     } catch (IOException e) {
-      new RuntimeException(
+      throw new RuntimeException(
           String.format(
               "Could not fully read range %s-%s with SeekableStream",
               range.getStart(), range.getStart() + range.getLength()),

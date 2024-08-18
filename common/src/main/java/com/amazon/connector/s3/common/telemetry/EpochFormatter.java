@@ -21,7 +21,7 @@ public final class EpochFormatter {
   /** Default time zone. */
   public static final TimeZone DEFAULT_TIMEZONE = TimeZone.getDefault();
   /** Default {@link EpochFormatter}. */
-  public static EpochFormatter DEFAULT = new EpochFormatter();
+  public static final EpochFormatter DEFAULT = new EpochFormatter();
 
   /**
    * Creates a new instance of {@link EpochFormatter}.

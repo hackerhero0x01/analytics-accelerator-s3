@@ -14,4 +14,5 @@ repositories {
 
 dependencies {
     implementation(libs.spotless)
+    implementation(libs.spotbugs)
 }

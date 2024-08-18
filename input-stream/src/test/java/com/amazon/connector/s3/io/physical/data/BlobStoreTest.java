@@ -12,8 +12,13 @@ import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class BlobStoreTest {
   @Test
   void testCreateBoundaries() {
@@ -66,6 +71,6 @@ public class BlobStoreTest {
     // Then:
     byte[] b = new byte[TEST_DATA.length()];
     blob.read(b, 0, b.length, 0);
-    assertEquals(TEST_DATA, new String(b));
+    assertEquals(TEST_DATA, new String(b, StandardCharsets.UTF_8));
   }
 }

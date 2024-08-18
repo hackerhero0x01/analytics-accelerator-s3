@@ -16,16 +16,20 @@ import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionException;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = {"NP_NONNULL_PARAM_VIOLATION", "SIC_INNER_SHOULD_BE_STATIC_ANON"},
+    justification = "We mean to pass nulls to checks, and inner classes are appropriate in tests")
 public class ParquetPrefetchTailTaskTest {
-
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
   @Test
@@ -36,7 +40,7 @@ public class ParquetPrefetchTailTaskTest {
   }
 
   @Test
-  void testContructorFailsOnNull() {
+  void testConstructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
         () -> new ParquetPrefetchTailTask(TEST_URI, null, mock(PhysicalIO.class)));
@@ -47,7 +51,6 @@ public class ParquetPrefetchTailTaskTest {
 
   @Test
   void testTailPrefetch() {
-
     LogicalIOConfiguration configuration =
         LogicalIOConfiguration.builder().footerCachingEnabled(true).build();
 
@@ -55,9 +58,10 @@ public class ParquetPrefetchTailTaskTest {
         getPrefetchRangeList(
             configuration.getFooterCachingSize(), configuration.getSmallObjectSizeThreshold());
 
-    for (Long contentLength : contentSizeToRanges.keySet()) {
+    for (Map.Entry<Long, List<Range>> contentLengthToRangeList : contentSizeToRanges.entrySet()) {
       PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
-      ObjectMetadata metadata = ObjectMetadata.builder().contentLength(contentLength).build();
+      ObjectMetadata metadata =
+          ObjectMetadata.builder().contentLength(contentLengthToRangeList.getKey()).build();
       when(mockedPhysicalIO.metadata()).thenReturn(metadata);
 
       ParquetPrefetchTailTask parquetPrefetchTailTask =
@@ -66,7 +70,7 @@ public class ParquetPrefetchTailTaskTest {
 
       verify(mockedPhysicalIO).execute(any(IOPlan.class));
       verify(mockedPhysicalIO)
-          .execute(argThat(new IOPlanMatcher(contentSizeToRanges.get(contentLength))));
+          .execute(argThat(new IOPlanMatcher(contentLengthToRangeList.getValue())));
     }
   }
 

@@ -74,7 +74,7 @@ public class LogicalIOConfiguration {
   private static final String MIN_PREDICTIVE_PREFETCHING_CONFIDENCE_RATIO_KEY =
       "min.predictive.prefetching.confidence.ratio";
 
-  public static LogicalIOConfiguration DEFAULT = LogicalIOConfiguration.builder().build();
+  public static final LogicalIOConfiguration DEFAULT = LogicalIOConfiguration.builder().build();
 
   /**
    * Constructs {@link LogicalIOConfiguration} from {@link ConnectorConfiguration} object.

@@ -4,6 +4,7 @@ import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMetadata;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,14 +13,12 @@ import java.util.Set;
 import lombok.Getter;
 
 /** Object to aggregate column usage statistics from Parquet files */
+@SuppressFBWarnings(
+    value = "SE_BAD_FIELD",
+    justification = "The closure classes trigger this. We never use serialization on this class")
 public class ParquetMetadataStore {
-
-  private final LogicalIOConfiguration configuration;
-
   private final Map<S3URI, ColumnMappers> columnMappersStore;
-
   private final Map<String, Integer> recentColumns;
-
   @Getter private final Map<Integer, Integer> maxColumnAccessCounts;
 
   /**
@@ -29,7 +28,6 @@ public class ParquetMetadataStore {
    */
   public ParquetMetadataStore(LogicalIOConfiguration configuration) {
     this(
-        configuration,
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, ColumnMappers>() {
               @Override
@@ -57,17 +55,14 @@ public class ParquetMetadataStore {
    * Creates a new instance of ParquetMetadataStore. This constructor is used for dependency
    * injection.
    *
-   * @param logicalIOConfiguration The logical IO configuration
    * @param columnMappersStore Store of column mappings
    * @param recentColumns Recent columns being read
    * @param maxColumnAccessCounts The maximum access count of a column per schema
    */
   protected ParquetMetadataStore(
-      LogicalIOConfiguration logicalIOConfiguration,
       Map<S3URI, ColumnMappers> columnMappersStore,
       Map<String, Integer> recentColumns,
       Map<Integer, Integer> maxColumnAccessCounts) {
-    this.configuration = logicalIOConfiguration;
     this.columnMappersStore = columnMappersStore;
     this.recentColumns = recentColumns;
     this.maxColumnAccessCounts = maxColumnAccessCounts;

@@ -3,11 +3,14 @@ package com.amazon.connector.s3.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.URI;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class S3URITest {
-
   @Test
   void testCreateValidatesArguments() {
     assertThrows(NullPointerException.class, () -> S3URI.of(null, "key"));

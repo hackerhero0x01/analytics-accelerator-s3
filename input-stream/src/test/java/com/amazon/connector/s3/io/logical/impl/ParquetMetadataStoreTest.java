@@ -46,11 +46,7 @@ public class ParquetMetadataStoreTest {
     Map<String, Integer> recentColumns = new HashMap<>();
     Map<Integer, Integer> maxColumnAccessCounts = new HashMap<>();
     ParquetMetadataStore parquetMetadataStore =
-        new ParquetMetadataStore(
-            LogicalIOConfiguration.DEFAULT,
-            columnMappersStore,
-            recentColumns,
-            maxColumnAccessCounts);
+        new ParquetMetadataStore(columnMappersStore, recentColumns, maxColumnAccessCounts);
 
     // First access of sk_test
     parquetMetadataStore.addRecentColumn("sk_test", S3URI.of("test", "data"));
@@ -79,7 +75,7 @@ public class ParquetMetadataStoreTest {
     parquetMetadataStore.addRecentColumn("sk_test_2", S3URI.of("test", "data"));
     parquetMetadataStore.addRecentColumn("sk_test_3", S3URI.of("test", "data"));
 
-    assertTrue(parquetMetadataStore.getRecentColumns().size() == 2);
+    assertEquals(2, parquetMetadataStore.getRecentColumns().size());
     assertFalse(
         parquetMetadataStore.getRecentColumns().stream()
             .anyMatch(entry -> entry.getKey().contains("sK_test")));

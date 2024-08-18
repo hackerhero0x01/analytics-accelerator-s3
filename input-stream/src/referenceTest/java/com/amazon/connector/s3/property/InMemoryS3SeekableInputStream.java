@@ -13,8 +13,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class InMemoryS3SeekableInputStream extends SeekableInputStream {
 
@@ -47,8 +47,7 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
       this.content = new byte[size];
 
       // Fill with random bytes
-      Random r = new Random();
-      r.nextBytes(this.content);
+      ThreadLocalRandom.current().nextBytes(this.content);
     }
 
     @Override

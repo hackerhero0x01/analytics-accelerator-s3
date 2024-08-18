@@ -308,7 +308,6 @@ public class ParquetPrefetcherTest {
     return new ParquetPrefetcher(
         TEST_URI,
         logicalIOConfiguration,
-        physicalIO,
         parquetMetadataStore,
         parquetMetadataParsingTask,
         parquetPrefetchTailTask,

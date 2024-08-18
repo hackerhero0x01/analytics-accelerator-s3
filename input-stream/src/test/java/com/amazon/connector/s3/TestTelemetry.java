@@ -9,7 +9,7 @@ public final class TestTelemetry {
    * Default telemetry to use for tests - combination of NoOp telemetry with VERBOSE level provides
    * the best code coverage
    */
-  public static Telemetry DEFAULT =
+  public static final Telemetry DEFAULT =
       Telemetry.getTelemetry(
           TelemetryConfiguration.builder()
               .loggingEnabled(false)

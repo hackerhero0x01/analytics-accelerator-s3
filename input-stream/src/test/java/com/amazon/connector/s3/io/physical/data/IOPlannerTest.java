@@ -12,10 +12,15 @@ import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class IOPlannerTest {
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
@@ -76,7 +81,8 @@ public class IOPlannerTest {
     byte[] content = new byte[OBJECT_SIZE];
     MetadataStore metadataStore = getTestMetadataStoreWithContentLength(OBJECT_SIZE);
     BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
-    FakeObjectClient fakeObjectClient = new FakeObjectClient(new String(content));
+    FakeObjectClient fakeObjectClient =
+        new FakeObjectClient(new String(content, StandardCharsets.UTF_8));
     blockStore.add(
         new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 100, 200, 0, ReadMode.SYNC));
     S3URI s3Uri = S3URI.of("bucket", "key");

@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.common.telemetry;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
 import org.apache.logging.log4j.Level;
 
@@ -21,7 +22,7 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
         DefaultEpochClock.DEFAULT,
         DefaultElapsedClock.DEFAULT,
         getTelemetryReporter(configuration),
-        TelemetryLevel.valueOf(configuration.getLevel().toUpperCase()));
+        TelemetryLevel.valueOf(configuration.getLevel().toUpperCase(Locale.ROOT)));
   }
 
   /**

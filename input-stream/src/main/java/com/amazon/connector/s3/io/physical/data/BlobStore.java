@@ -4,6 +4,7 @@ import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -11,6 +12,10 @@ import java.util.Map;
 import lombok.NonNull;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
+@SuppressFBWarnings(
+    value = "SIC_INNER_SHOULD_BE_STATIC_ANON",
+    justification =
+        "Inner class is created very infrequently, and fluency justifies the extra pointer")
 public class BlobStore implements Closeable {
   private final Map<S3URI, Blob> blobMap;
   private final MetadataStore metadataStore;

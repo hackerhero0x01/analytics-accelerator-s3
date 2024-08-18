@@ -22,10 +22,8 @@ import lombok.NonNull;
  * undefined.
  */
 public class S3SeekableInputStream extends SeekableInputStream {
-  private final S3URI s3URI;
   private final LogicalIO logicalIO;
   private long position;
-  private Telemetry telemetry = null;
 
   /**
    * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
@@ -38,7 +36,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
    * @param parquetMetadataStore object containing Parquet usage information
    */
-  protected S3SeekableInputStream(
+  S3SeekableInputStream(
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
@@ -46,7 +44,6 @@ public class S3SeekableInputStream extends SeekableInputStream {
       @NonNull S3SeekableInputStreamConfiguration configuration,
       @NonNull ParquetMetadataStore parquetMetadataStore) {
     this(
-        s3URI,
         new ParquetLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(s3URI, metadataStore, blobStore, telemetry),
@@ -60,16 +57,12 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * Given a LogicalIO, creates a new instance of {@link S3SeekableInputStream}. This version of the
    * constructor is useful for testing as it allows dependency injection.
    *
-   * @param s3URI s3Uri pointing to the object to fetch from S3
    * @param logicalIO already initialised LogicalIO
    * @param telemetry The {@link Telemetry} to use to report measurements.
    */
-  S3SeekableInputStream(
-      @NonNull S3URI s3URI, @NonNull LogicalIO logicalIO, @NonNull Telemetry telemetry) {
-    this.s3URI = s3URI;
+  S3SeekableInputStream(@NonNull LogicalIO logicalIO, @NonNull Telemetry telemetry) {
     this.logicalIO = logicalIO;
     this.position = 0;
-    this.telemetry = telemetry;
   }
 
   @Override

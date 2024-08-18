@@ -1,11 +1,7 @@
 package com.amazon.connector.s3;
 
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.io.logical.LogicalIO;
@@ -20,23 +16,26 @@ import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.utils.IoUtils;
 import software.amazon.awssdk.utils.StringUtils;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
-
   @Test
   void testConstructor() {
     S3SeekableInputStream inputStream =
-        new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO, TestTelemetry.DEFAULT);
+        new S3SeekableInputStream(fakeLogicalIO, TestTelemetry.DEFAULT);
     assertNotNull(inputStream);
   }
 
@@ -66,25 +65,31 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
   @Test
   void testConstructorThrowsOnNullArgument() {
-    S3URI s3URI = mock(S3URI.class);
-    MetadataStore metadataStore = mock(MetadataStore.class);
-    BlobStore blobStore = mock(BlobStore.class);
-    S3SeekableInputStreamConfiguration configuration =
-        mock(S3SeekableInputStreamConfiguration.class);
-    ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
+    S3URI s3URI = S3URI.of("bucket", "key");
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    BlobStore blobStore =
+        new BlobStore(
+            metadataStore,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT);
+    S3SeekableInputStreamConfiguration configuration = S3SeekableInputStreamConfiguration.DEFAULT;
+    ParquetMetadataStore parquetMetadataStore =
+        new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT);
 
-    assertThrows(
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () ->
             new S3SeekableInputStream(
-                s3URI,
+                null,
                 metadataStore,
                 blobStore,
                 TestTelemetry.DEFAULT,
                 configuration,
                 parquetMetadataStore));
 
-    assertThrows(
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () ->
             new S3SeekableInputStream(
@@ -95,7 +100,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 configuration,
                 parquetMetadataStore));
 
-    assertThrows(
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () ->
             new S3SeekableInputStream(
@@ -106,13 +111,13 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 configuration,
                 parquetMetadataStore));
 
-    assertThrows(
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () ->
             new S3SeekableInputStream(
                 s3URI, metadataStore, blobStore, null, configuration, parquetMetadataStore));
 
-    assertThrows(
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () ->
             new S3SeekableInputStream(
@@ -123,247 +128,258 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                 null,
                 parquetMetadataStore));
 
-    assertThrows(
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () ->
             new S3SeekableInputStream(
                 s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT, configuration, null));
 
-    assertThrows(
-        NullPointerException.class,
-        () -> new S3SeekableInputStream(null, mock(LogicalIO.class), TestTelemetry.DEFAULT));
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+        NullPointerException.class, () -> new S3SeekableInputStream(mock(LogicalIO.class), null));
 
-    assertThrows(
-        NullPointerException.class,
-        () -> new S3SeekableInputStream(s3URI, mock(LogicalIO.class), null));
-
-    assertThrows(
-        NullPointerException.class,
-        () -> new S3SeekableInputStream(s3URI, null, TestTelemetry.DEFAULT));
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+        NullPointerException.class, () -> new S3SeekableInputStream(null, TestTelemetry.DEFAULT));
   }
 
   @Test
   void testInitialGetPosition() throws IOException {
     // Given
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO, TestTelemetry.DEFAULT);
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(fakeLogicalIO, TestTelemetry.DEFAULT)) {
 
-    // When: nothing
-    // Then: stream position is at 0
-    assertEquals(0, stream.getPos());
+      // When: nothing
+      // Then: stream position is at 0
+      assertEquals(0, stream.getPos());
+    }
   }
 
   @Test
   void testReadAdvancesPosition() throws IOException {
     // Given
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO, TestTelemetry.DEFAULT);
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(fakeLogicalIO, TestTelemetry.DEFAULT)) {
 
-    // When: read() is called
-    stream.read();
+      // When: read() is called
+      stream.read();
 
-    // Then: position is advanced
-    assertEquals(1, stream.getPos());
+      // Then: position is advanced
+      assertEquals(1, stream.getPos());
+    }
   }
 
   @Test
   void testSeek() throws IOException {
     // Given
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO, TestTelemetry.DEFAULT);
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(fakeLogicalIO, TestTelemetry.DEFAULT)) {
 
-    // When
-    stream.seek(13);
+      // When
+      stream.seek(13);
 
-    // Then
-    assertEquals(13, stream.getPos());
+      // Then
+      assertEquals(13, stream.getPos());
+    }
   }
 
   @Test
   void testFullRead() throws IOException {
     // Given
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO, TestTelemetry.DEFAULT);
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(fakeLogicalIO, TestTelemetry.DEFAULT)) {
 
-    // When: all data is requested
-    String dataReadOut = IoUtils.toUtf8String(stream);
+      // When: all data is requested
+      String dataReadOut = IoUtils.toUtf8String(stream);
 
-    // Then: data read out is the same as data under stream
-    assertEquals(TEST_DATA, dataReadOut);
+      // Then: data read out is the same as data under stream
+      assertEquals(TEST_DATA, dataReadOut);
+    }
   }
 
   @Test
   void testSeekToVeryEnd() throws IOException {
     // Given
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO, TestTelemetry.DEFAULT);
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(fakeLogicalIO, TestTelemetry.DEFAULT)) {
 
-    // When: we seek to the last byte
-    stream.seek(TEST_DATA.length() - 1);
+      // When: we seek to the last byte
+      stream.seek(TEST_DATA.length() - 1);
 
-    // Then: first read returns the last byte and the next read returns -1
-    assertEquals(48, stream.read());
-    assertEquals(-1, stream.read());
+      // Then: first read returns the last byte and the next read returns -1
+      assertEquals(48, stream.read());
+      assertEquals(-1, stream.read());
+    }
   }
 
   @Test
   void testSeekAfterEnd() throws IOException {
     // Given
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO, TestTelemetry.DEFAULT);
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(fakeLogicalIO, TestTelemetry.DEFAULT)) {
 
-    // When: we seek past EOF we get EOFException
-    assertThrows(EOFException.class, () -> stream.seek(TEST_DATA.length() + 1));
+      // When: we seek past EOF we get EOFException
+      assertThrows(EOFException.class, () -> stream.seek(TEST_DATA.length() + 1));
+    }
   }
 
   @Test
   void testReadOnEmptyObject() throws IOException {
     // Given
-    S3SeekableInputStream stream = getTestStreamWithContent("");
+    try (S3SeekableInputStream stream = getTestStreamWithContent("")) {
 
-    // When: we read a byte from the empty object
-    int readByte = stream.read();
+      // When: we read a byte from the empty object
+      int readByte = stream.read();
 
-    // Then: read returns -1
-    assertEquals(-1, readByte);
+      // Then: read returns -1
+      assertEquals(-1, readByte);
+    }
   }
 
   @Test
   void testInvalidSeek() throws IOException {
     // Given
-    S3SeekableInputStream stream = getTestStream();
+    try (S3SeekableInputStream stream = getTestStream()) {
 
-    // When: seek is to an invalid position then exception is thrown
-    assertThrows(Exception.class, () -> stream.seek(TEST_DATA.length()));
-    assertThrows(Exception.class, () -> stream.seek(TEST_DATA.length() + 10));
-    assertThrows(Exception.class, () -> stream.seek(Long.MAX_VALUE));
-    assertThrows(Exception.class, () -> stream.seek(-1));
-    assertThrows(Exception.class, () -> stream.seek(Long.MIN_VALUE));
+      // When: seek is to an invalid position then exception is thrown
+      assertThrows(Exception.class, () -> stream.seek(TEST_DATA.length()));
+      assertThrows(Exception.class, () -> stream.seek(TEST_DATA.length() + 10));
+      assertThrows(Exception.class, () -> stream.seek(Long.MAX_VALUE));
+      assertThrows(Exception.class, () -> stream.seek(-1));
+      assertThrows(Exception.class, () -> stream.seek(Long.MIN_VALUE));
+    }
   }
 
   @Test
   void testLogicalIOGetsClosed() throws IOException {
     // Given
     LogicalIO logicalIO = mock(LogicalIO.class);
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_OBJECT, logicalIO, TestTelemetry.DEFAULT);
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(logicalIO, TestTelemetry.DEFAULT)) {
 
-    // When
-    stream.close();
+      // When
+      stream.close();
 
-    // Then
-    verify(logicalIO, times(1)).close();
+      // Then
+      verify(logicalIO, times(1)).close();
+    }
   }
 
   @Test
   void testReadWithBuffer() throws IOException {
-    S3SeekableInputStream stream = getTestStream();
+    try (S3SeekableInputStream stream = getTestStream()) {
 
-    byte[] buffer = new byte[TEST_DATA.length()];
-    assertEquals(20, stream.read(buffer, 0, TEST_DATA.length()));
-    assertTrue(Arrays.equals(buffer, TEST_DATA.getBytes()));
-    assertEquals(stream.getPos(), TEST_DATA.length());
+      byte[] buffer = new byte[TEST_DATA.length()];
+      assertEquals(20, stream.read(buffer, 0, TEST_DATA.length()));
+      assertTrue(Arrays.equals(buffer, TEST_DATA.getBytes(StandardCharsets.UTF_8)));
+      assertEquals(stream.getPos(), TEST_DATA.length());
 
-    // All data has been read, and pos is current at EOF. Next read should return -1.
-    assertEquals(-1, stream.read(buffer, 0, TEST_DATA.length()));
+      // All data has been read, and pos is current at EOF. Next read should return -1.
+      assertEquals(-1, stream.read(buffer, 0, TEST_DATA.length()));
+    }
   }
 
   @Test
   void testReadWithBufferAndSeeks() throws IOException {
-    S3SeekableInputStream stream = getTestStream();
+    try (S3SeekableInputStream stream = getTestStream()) {
 
-    byte[] buffer = new byte[11];
+      byte[] buffer = new byte[11];
 
-    // Read from pos 0, check pos after read is correct
-    stream.read(new byte[3], 0, 3);
-    assertEquals(stream.getPos(), 3);
+      // Read from pos 0, check pos after read is correct
+      long bytesRead = stream.read(new byte[3], 0, 3);
+      assertEquals(3, bytesRead);
+      assertEquals(stream.getPos(), 3);
 
-    byte[] expectedResult =
-        ByteBuffer.wrap(new byte[11])
-            .put(new byte[3])
-            .put(TEST_DATA.substring(3, 11).getBytes())
-            .array();
+      byte[] expectedResult =
+          ByteBuffer.wrap(new byte[11])
+              .put(new byte[3])
+              .put(TEST_DATA.substring(3, 11).getBytes(StandardCharsets.UTF_8))
+              .array();
 
-    assertEquals(8, stream.read(buffer, 3, 8));
-    assertTrue(Arrays.equals(buffer, expectedResult));
-    assertEquals(stream.getPos(), 11);
-    assertEquals(stream.read(), TEST_DATA.getBytes()[11]);
+      assertEquals(8, stream.read(buffer, 3, 8));
+      assertTrue(Arrays.equals(buffer, expectedResult));
+      assertEquals(stream.getPos(), 11);
+      assertEquals(stream.read(), TEST_DATA.getBytes(StandardCharsets.UTF_8)[11]);
 
-    // Check things still work after a backward seek
-    stream.seek(4);
-    byte[] readBuffer = new byte[7];
-    assertEquals(7, stream.read(readBuffer, 0, 7));
-    assertEquals(11, stream.getPos());
-    assertTrue(Arrays.equals(readBuffer, TEST_DATA.substring(4, 11).getBytes()));
+      // Check things still work after a backward seek
+      stream.seek(4);
+      byte[] readBuffer = new byte[7];
+      assertEquals(7, stream.read(readBuffer, 0, 7));
+      assertEquals(11, stream.getPos());
+      assertTrue(
+          Arrays.equals(readBuffer, TEST_DATA.substring(4, 11).getBytes(StandardCharsets.UTF_8)));
+    }
   }
 
   @Test
   void testReadWithBufferOutOfBounds() throws IOException {
-    S3SeekableInputStream stream = getTestStream();
+    try (S3SeekableInputStream stream = getTestStream()) {
 
-    // Read beyond EOF, expect all bytes to be read and pos to be EOF.
-    assertEquals(TEST_DATA.length(), stream.read(new byte[20], 0, TEST_DATA.length() + 20));
-    assertEquals(20, stream.getPos());
+      // Read beyond EOF, expect all bytes to be read and pos to be EOF.
+      assertEquals(TEST_DATA.length(), stream.read(new byte[20], 0, TEST_DATA.length() + 20));
+      assertEquals(20, stream.getPos());
 
-    // Read beyond EOF after a seek, expect only num bytes read to be equal to that left in the
-    // stream, and pos to be EOF.
-    stream.seek(18);
-    assertEquals(2, stream.read(new byte[20], 0, TEST_DATA.length() + 20));
-    assertEquals(20, stream.getPos());
+      // Read beyond EOF after a seek, expect only num bytes read to be equal to that left in the
+      // stream, and pos to be EOF.
+      stream.seek(18);
+      assertEquals(2, stream.read(new byte[20], 0, TEST_DATA.length() + 20));
+      assertEquals(20, stream.getPos());
+    }
   }
 
   @Test
-  void testReadTailWithInvalidArgument() {
+  void testReadTailWithInvalidArgument() throws IOException {
     // Given: seekable stream
-    S3SeekableInputStream stream = getTestStream();
-
-    // When & Then: reading tail with invalid arguments, exception is thrown
-    // -1 is invalid length
-    assertThrows(IllegalArgumentException.class, () -> stream.readTail(new byte[3], 0, -1));
-    // 100K is bigger than test data size
-    assertThrows(IllegalArgumentException.class, () -> stream.readTail(new byte[103], 0, 100));
-    // Requesting more data than byte buffer size
-    assertThrows(IllegalArgumentException.class, () -> stream.readTail(new byte[10], 0, 100));
+    try (S3SeekableInputStream stream = getTestStream()) {
+      // When & Then: reading tail with invalid arguments, exception is thrown
+      // -1 is invalid length
+      assertThrows(IllegalArgumentException.class, () -> stream.readTail(new byte[3], 0, -1));
+      // 100K is bigger than test data size
+      assertThrows(IllegalArgumentException.class, () -> stream.readTail(new byte[103], 0, 100));
+      // Requesting more data than byte buffer size
+      assertThrows(IllegalArgumentException.class, () -> stream.readTail(new byte[10], 0, 100));
+    }
   }
 
   @Test
   void testReadTailHappyCase() throws IOException {
     // Given: seekable stream
-    S3SeekableInputStream stream = getTestStream();
+    try (S3SeekableInputStream stream = getTestStream()) {
 
-    // When: tail of length 10 is requested
-    byte[] buf = new byte[11];
-    int numBytesRead = stream.readTail(buf, 0, buf.length);
+      // When: tail of length 10 is requested
+      byte[] buf = new byte[11];
+      int numBytesRead = stream.readTail(buf, 0, buf.length);
 
-    // Then: 10 bytes are read, 10 is returned, 10 bytes in the buffer are the same as last 10 bytes
-    // of test data
-    assertEquals(11, numBytesRead);
-    assertEquals("12345678910", new String(buf, StandardCharsets.UTF_8));
+      // Then: 10 bytes are read, 10 is returned, 10 bytes in the buffer are the same as last 10
+      // bytes
+      // of test data
+      assertEquals(11, numBytesRead);
+      assertEquals("12345678910", new String(buf, StandardCharsets.UTF_8));
+    }
   }
 
   @Test
   void testReadTailDoesNotAlterPosition() throws IOException {
     // Given: seekable stream
-    S3SeekableInputStream stream = getTestStream();
+    try (S3SeekableInputStream stream = getTestStream()) {
 
-    // When: 1) we are reading from the stream, 2) reading the tail of the stream, 3) reading more
-    // from the stream
-    byte[] one = new byte[5];
-    byte[] two = new byte[11];
-    byte[] three = new byte[5];
+      // When: 1) we are reading from the stream, 2) reading the tail of the stream, 3) reading more
+      // from the stream
+      byte[] one = new byte[5];
+      byte[] two = new byte[11];
+      byte[] three = new byte[5];
 
-    int numBytesRead1 = stream.read(one, 0, one.length);
-    int numBytesRead2 = stream.readTail(two, 0, two.length);
-    int numBytesRead3 = stream.read(three, 0, three.length);
+      int numBytesRead1 = stream.read(one, 0, one.length);
+      int numBytesRead2 = stream.readTail(two, 0, two.length);
+      int numBytesRead3 = stream.read(three, 0, three.length);
 
-    // Then: read #2 did not alter the position and reads #1 and #3 return subsequent bytes
-    assertEquals(5, numBytesRead1);
-    assertEquals(11, numBytesRead2);
-    assertEquals(5, numBytesRead3);
+      // Then: read #2 did not alter the position and reads #1 and #3 return subsequent bytes
+      assertEquals(5, numBytesRead1);
+      assertEquals(11, numBytesRead2);
+      assertEquals(5, numBytesRead3);
 
-    assertEquals("test-", new String(one, StandardCharsets.UTF_8));
-    assertEquals("data1", new String(three, StandardCharsets.UTF_8));
-    assertEquals("12345678910", new String(two, StandardCharsets.UTF_8));
+      assertEquals("test-", new String(one, StandardCharsets.UTF_8));
+      assertEquals("data1", new String(three, StandardCharsets.UTF_8));
+      assertEquals("12345678910", new String(two, StandardCharsets.UTF_8));
+    }
   }
 
   @Test
@@ -372,19 +388,20 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Given: seekable stream
     LogicalIO mockLogicalIO = mock(LogicalIO.class);
     when(mockLogicalIO.metadata()).thenReturn(ObjectMetadata.builder().contentLength(200).build());
-    S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_OBJECT, mockLogicalIO, TestTelemetry.DEFAULT);
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(mockLogicalIO, TestTelemetry.DEFAULT)) {
 
-    // When: logical IO returns with a -1 read
-    final int INITIAL_POS = 123;
-    stream.seek(INITIAL_POS);
-    when(mockLogicalIO.read(any(), anyInt(), anyInt(), anyLong())).thenReturn(-1);
+      // When: logical IO returns with a -1 read
+      final int INITIAL_POS = 123;
+      stream.seek(INITIAL_POS);
+      when(mockLogicalIO.read(any(), anyInt(), anyInt(), anyLong())).thenReturn(-1);
 
-    // Then: stream returns -1 and position did not change
-    final int LEN = 5;
-    byte[] b = new byte[LEN];
-    assertEquals(-1, stream.read(b, 0, LEN));
-    assertEquals(INITIAL_POS, stream.getPos());
+      // Then: stream returns -1 and position did not change
+      final int LEN = 5;
+      byte[] b = new byte[LEN];
+      assertEquals(-1, stream.read(b, 0, LEN));
+      assertEquals(INITIAL_POS, stream.getPos());
+    }
   }
 
   @Test
@@ -404,7 +421,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT);
 
-    AtomicBoolean haveException = new AtomicBoolean(false);
+    AtomicReference<Throwable> thrown = new AtomicReference<>();
 
     // Create 20 threads to start multiple SeekableInputStream to read last and first 4 bytes
     ArrayList<Thread> threads = new ArrayList<>();
@@ -422,33 +439,35 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                           TestTelemetry.DEFAULT,
                           LogicalIOConfiguration.DEFAULT,
                           new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
-                  SeekableInputStream stream =
-                      new S3SeekableInputStream(TEST_OBJECT, logicalIO, TestTelemetry.DEFAULT);
-                  byte[] buffer = new byte[4];
-                  stream.readTail(buffer, 0, 4);
-                  stream.read(buffer, 0, 4);
-                } catch (Exception e) {
-                  haveException.set(true);
-                  Thread.currentThread().interrupt();
+                  try (SeekableInputStream stream =
+                      new S3SeekableInputStream(logicalIO, TestTelemetry.DEFAULT)) {
+                    byte[] buffer = new byte[4];
+                    long readBytes = stream.readTail(buffer, 0, 4);
+                    assertEquals(4, readBytes);
+                    readBytes = stream.read(buffer, 0, 4);
+                    assertEquals(4, readBytes);
+                  }
+                } catch (Throwable e) {
+                  thrown.set(e);
                 }
               }));
     }
     // Start all the threads
     threads.forEach(Thread::start);
-
     for (Thread thread : threads) {
       try {
         thread.join();
-      } catch (Exception e) {
-        e.printStackTrace();
+      } catch (Throwable e) {
+        fail("Unexpected exception", e);
       }
     }
-    boolean completedWithException = haveException.get();
-    assertFalse(completedWithException, "Have exception in one of the threads");
+    if (thrown.get() != null) {
+      fail("Unexpected exception", thrown.get());
+    }
   }
 
   private S3SeekableInputStream getTestStream() {
-    return new S3SeekableInputStream(TEST_OBJECT, fakeLogicalIO, TestTelemetry.DEFAULT);
+    return new S3SeekableInputStream(fakeLogicalIO, TestTelemetry.DEFAULT);
   }
 
   private S3SeekableInputStream getTestStreamWithContent(String content) {
@@ -466,7 +485,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             PhysicalIOConfiguration.DEFAULT);
 
     return new S3SeekableInputStream(
-        TEST_OBJECT,
         new ParquetLogicalIOImpl(
             TEST_OBJECT,
             new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),

@@ -48,7 +48,7 @@ public final class OperationContext {
    * of {@link Operation}s, a new instance of {@link OperationContext} can be created and passed to
    * the {@link Operation#getContext()}.
    */
-  public static OperationContext DEFAULT = new OperationContext();
+  public static final OperationContext DEFAULT = new OperationContext();
   /**
    * Returns the top operation on the stack.
    *

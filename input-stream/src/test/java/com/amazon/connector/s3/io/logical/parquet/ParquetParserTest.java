@@ -29,17 +29,19 @@ public class ParquetParserTest {
   void testParquetMetadataParsing(String parquetFilePath, int expectedColumns) throws IOException {
 
     File file = new File(parquetFilePath);
-    InputStream inputStream = new FileInputStream(file);
+    try (InputStream inputStream = new FileInputStream(file)) {
 
-    byte[] buffer = new byte[ONE_KB * 20];
-    inputStream.read(buffer, 0, (int) file.length());
+      byte[] buffer = new byte[ONE_KB * 20];
+      int bytesRead = inputStream.read(buffer, 0, (int) file.length());
+      assertEquals((int) file.length(), bytesRead);
 
-    ParquetParser parquetParser = new ParquetParser();
-    FileMetaData fileMetaData =
-        parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
+      ParquetParser parquetParser = new ParquetParser();
+      FileMetaData fileMetaData =
+          parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
 
-    assertEquals(fileMetaData.row_groups.size(), 1);
-    assertEquals(fileMetaData.getRow_groups().get(0).getColumns().size(), expectedColumns);
+      assertEquals(fileMetaData.row_groups.size(), 1);
+      assertEquals(fileMetaData.getRow_groups().get(0).getColumns().size(), expectedColumns);
+    }
   }
 
   private static Stream<Arguments> singleRowGroupArguments() {
@@ -60,17 +62,19 @@ public class ParquetParserTest {
       String fileName, int expectedRowGroups, int expectedColumns) throws IOException {
 
     File file = new File(fileName);
-    InputStream inputStream = new FileInputStream(file);
+    try (InputStream inputStream = new FileInputStream(file)) {
 
-    byte[] buffer = new byte[ONE_KB * 20];
-    inputStream.read(buffer, 0, (int) file.length());
+      byte[] buffer = new byte[ONE_KB * 20];
+      int bytesRead = inputStream.read(buffer, 0, (int) file.length());
+      assertEquals((int) file.length(), bytesRead);
 
-    ParquetParser parquetParser = new ParquetParser();
-    FileMetaData fileMetaData =
-        parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
+      ParquetParser parquetParser = new ParquetParser();
+      FileMetaData fileMetaData =
+          parquetParser.parseParquetFooter(ByteBuffer.wrap(buffer), (int) file.length());
 
-    assertEquals(fileMetaData.row_groups.size(), expectedRowGroups);
-    assertEquals(fileMetaData.getRow_groups().get(0).getColumns().size(), expectedColumns);
+      assertEquals(fileMetaData.row_groups.size(), expectedRowGroups);
+      assertEquals(fileMetaData.getRow_groups().get(0).getColumns().size(), expectedColumns);
+    }
   }
 
   @Test

@@ -44,7 +44,7 @@ public class TelemetryConfiguration {
   @Builder.Default @NonNull String loggingName = DEFAULT_LOGGING_NAME;
 
   /** Default configuration for {@link ConfigurableTelemetry}. */
-  public static TelemetryConfiguration DEFAULT = TelemetryConfiguration.builder().build();
+  public static final TelemetryConfiguration DEFAULT = TelemetryConfiguration.builder().build();
 
   /**
    * Constructs {@link TelemetryConfiguration} from {@link ConnectorConfiguration} object.

@@ -7,8 +7,13 @@ import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class BlockTest {
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
@@ -61,10 +66,10 @@ public class BlockTest {
 
     // Then: they are the correct bytes
     assertEquals(4, r1);
-    assertEquals("test", new String(b1));
+    assertEquals("test", new String(b1, StandardCharsets.UTF_8));
 
     assertEquals(4, r2);
-    assertEquals("data", new String(b2));
+    assertEquals("data", new String(b2, StandardCharsets.UTF_8));
   }
 
   @Test
