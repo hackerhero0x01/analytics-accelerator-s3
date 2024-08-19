@@ -48,8 +48,7 @@ public class SeekableStreamPropertiesTest extends StreamArbitraries {
       assertEquals(newPos, s.getPos());
 
       // Read increases position by 1
-      int readBytes = s.read();
-      assertEquals(1, readBytes);
+      s.read();
       assertEquals(newPos + 1, s.getPos());
     }
   }

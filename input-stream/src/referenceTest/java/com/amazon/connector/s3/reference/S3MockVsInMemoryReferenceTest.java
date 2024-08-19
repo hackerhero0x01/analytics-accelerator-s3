@@ -95,7 +95,7 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
 
     s3SeekableInputStream.seek(0);
     assertEquals(0, s3SeekableInputStream.getPos());
-    assertEquals(1, s3SeekableInputStream.read());
+    s3SeekableInputStream.read();
   }
 
   @Property
