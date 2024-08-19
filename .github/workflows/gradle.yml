@@ -39,6 +39,6 @@ jobs:
         gradle-version: 8.7
 
     - name: Build with Gradle Wrapper
-      run: ./gradlew build --scan
+      run: ./gradlew build
 
 
