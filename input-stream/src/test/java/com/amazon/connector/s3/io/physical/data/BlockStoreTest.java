@@ -24,9 +24,11 @@ public class BlockStoreTest {
   public void test__blockStore__getBlockAfterAddBlock() {
     // Given: empty BlockStore
     FakeObjectClient fakeObjectClient = new FakeObjectClient("test-data");
+    MemoryTracker memoryTracker = new MemoryTracker(PhysicalIOConfiguration.DEFAULT);
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
+    BlockStore blockStore =
+        new BlockStore(TEST_URI, metadataStore, PhysicalIOConfiguration.DEFAULT, memoryTracker);
 
     // When: a new block is added
     blockStore.add(
@@ -46,9 +48,11 @@ public class BlockStoreTest {
     // Given: BlockStore with blocks (2,3), (5,10), (12,15)
     final String X_TIMES_16 = "xxxxxxxxxxxxxxxx";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);
+    MemoryTracker memoryTracker = new MemoryTracker(PhysicalIOConfiguration.DEFAULT);
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
+    BlockStore blockStore =
+        new BlockStore(TEST_URI, metadataStore, PhysicalIOConfiguration.DEFAULT, memoryTracker);
 
     blockStore.add(
         new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 2, 3, 0, ReadMode.SYNC));
@@ -75,7 +79,9 @@ public class BlockStoreTest {
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
+    MemoryTracker memoryTracker = new MemoryTracker(PhysicalIOConfiguration.DEFAULT);
+    BlockStore blockStore =
+        new BlockStore(TEST_URI, metadataStore, PhysicalIOConfiguration.DEFAULT, memoryTracker);
 
     blockStore.add(
         new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 2, 3, 0, ReadMode.SYNC));
@@ -98,7 +104,12 @@ public class BlockStoreTest {
   @Test
   public void test__blockStore__closesBlocks() {
     // Given: BlockStore with a block
-    BlockStore blockStore = new BlockStore(TEST_URI, mock(MetadataStore.class));
+    BlockStore blockStore =
+        new BlockStore(
+            TEST_URI,
+            mock(MetadataStore.class),
+            PhysicalIOConfiguration.DEFAULT,
+            mock(MemoryTracker.class));
     Block block = mock(Block.class);
     blockStore.add(block);
 
@@ -112,7 +123,12 @@ public class BlockStoreTest {
   @Test
   public void test__blockStore__closeWorksWithExceptions() {
     // Given: BlockStore with two blocks
-    BlockStore blockStore = new BlockStore(TEST_URI, mock(MetadataStore.class));
+    BlockStore blockStore =
+        new BlockStore(
+            TEST_URI,
+            mock(MetadataStore.class),
+            PhysicalIOConfiguration.DEFAULT,
+            mock(MemoryTracker.class));
     Block b1 = mock(Block.class);
     Block b2 = mock(Block.class);
     blockStore.add(b1);
