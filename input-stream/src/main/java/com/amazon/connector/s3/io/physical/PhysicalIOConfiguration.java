@@ -21,8 +21,6 @@ public class PhysicalIOConfiguration {
   private static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
   private static final long DEFAULT_MAX_RANGE_SIZE = 8 * ONE_MB;
   private static final long DEFAULT_PART_SIZE = 8 * ONE_MB;
-  // TODO: For some reason when I set this to 4 * ONE_GB, things start failing :(
-  private static final long DEFAULT_MAX_MEMORY_LIMIT_BYTES = 4 * ONE_MB;
   public static final int DEFAULT_CACHE_EVICTION_TIME_MILLIS = 15 * 1000;
 
   /** Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_BLOB_STORE} by default. */
@@ -59,14 +57,6 @@ public class PhysicalIOConfiguration {
   @Builder.Default private long partSizeBytes = DEFAULT_PART_SIZE;
 
   /**
-   * Max memory a single instance of the S3SeekableInputStreamFactory can use, in bytes. {@link
-   * PhysicalIOConfiguration#DEFAULT_PART_SIZE} by default.
-   */
-  @Builder.Default private long maxMemoryLimitBytes = DEFAULT_MAX_MEMORY_LIMIT_BYTES;
-
-  private static final String MAX_MEMORY_BYTES_KEY = "max.memory.bytes";
-
-  /**
    * Cache eviction time in milliseconds. {@link
    * PhysicalIOConfiguration#DEFAULT_CACHE_EVICTION_TIME_MILLIS} by default.
    */
@@ -95,8 +85,6 @@ public class PhysicalIOConfiguration {
         .readAheadBytes(configuration.getLong(READ_AHEAD_BYTES_KEY, DEFAULT_READ_AHEAD_BYTES))
         .maxRangeSizeBytes(configuration.getLong(MAX_RANGE_SIZE_BYTES_KEY, DEFAULT_MAX_RANGE_SIZE))
         .partSizeBytes(configuration.getLong(PART_SIZE_BYTES_KEY, DEFAULT_PART_SIZE))
-        .maxMemoryLimitBytes(
-            configuration.getLong(MAX_MEMORY_BYTES_KEY, DEFAULT_MAX_MEMORY_LIMIT_BYTES))
         .cacheEvictionTimeMillis(
             configuration.getInt(CACHE_EVICTION_TIME_KEY, DEFAULT_CACHE_EVICTION_TIME_MILLIS))
         .build();
@@ -111,7 +99,6 @@ public class PhysicalIOConfiguration {
    * @param readAheadBytes Read ahead, in bytes
    * @param maxRangeSizeBytes Maximum physical read issued against the object store
    * @param partSizeBytes What part size to use when splitting up logical reads
-   * @param maxMemoryLimitBytes The maximum memory in bytes a single input stream factory may use
    * @param cacheEvictionTimeMillis Cache eviction time in milliseconds
    */
   @Builder
@@ -122,7 +109,6 @@ public class PhysicalIOConfiguration {
       long readAheadBytes,
       long maxRangeSizeBytes,
       long partSizeBytes,
-      long maxMemoryLimitBytes,
       int cacheEvictionTimeMillis) {
     Preconditions.checkArgument(blobStoreCapacity > 0, "`blobStoreCapacity` must be positive");
     Preconditions.checkArgument(
@@ -131,7 +117,6 @@ public class PhysicalIOConfiguration {
     Preconditions.checkArgument(readAheadBytes > 0, "`readAheadLengthBytes` must be positive");
     Preconditions.checkArgument(maxRangeSizeBytes > 0, "`maxRangeSize` must be positive");
     Preconditions.checkArgument(partSizeBytes > 0, "`partSize` must be positive");
-    Preconditions.checkArgument(maxMemoryLimitBytes > 0, "`maxMemoryLimitBytes` must be positive");
     Preconditions.checkArgument(
         cacheEvictionTimeMillis > 0, "`cacheEvictionTime` must be positive");
 
@@ -141,7 +126,6 @@ public class PhysicalIOConfiguration {
     this.readAheadBytes = readAheadBytes;
     this.maxRangeSizeBytes = maxRangeSizeBytes;
     this.partSizeBytes = partSizeBytes;
-    this.maxMemoryLimitBytes = maxMemoryLimitBytes;
     this.cacheEvictionTimeMillis = cacheEvictionTimeMillis;
   }
 }

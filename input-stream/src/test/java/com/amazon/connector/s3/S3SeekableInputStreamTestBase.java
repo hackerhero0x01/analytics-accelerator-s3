@@ -19,7 +19,7 @@ public class S3SeekableInputStreamTestBase {
 
   protected final PhysicalIOConfiguration physicalIOConfiguration = PhysicalIOConfiguration.DEFAULT;
   protected final FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
-  protected final MemoryTracker memoryTracker = new MemoryTracker(physicalIOConfiguration);
+  protected final MemoryTracker memoryTracker = new MemoryTracker();
   protected final MetadataStore metadataStore =
       new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
   protected final BlobStore blobStore =

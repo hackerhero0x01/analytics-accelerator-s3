@@ -195,6 +195,6 @@ public class BlockManagerTest {
         metadataStore,
         TestTelemetry.DEFAULT,
         PhysicalIOConfiguration.DEFAULT,
-        new MemoryTracker(PhysicalIOConfiguration.DEFAULT));
+        mock(MemoryTracker.class));
   }
 }

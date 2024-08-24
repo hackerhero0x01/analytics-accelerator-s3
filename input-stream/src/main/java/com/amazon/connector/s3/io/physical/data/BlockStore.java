@@ -38,24 +38,44 @@ public class BlockStore implements Closeable {
       MetadataStore metadataStore,
       PhysicalIOConfiguration configuration,
       MemoryTracker memoryTracker) {
-    Preconditions.checkNotNull(s3URI, "`s3URI` must not be null");
-    Preconditions.checkNotNull(metadataStore, "`metadataStore` must not be null");
 
-    this.s3URI = s3URI;
-    this.metadataStore = metadataStore;
-    this.configuration = configuration;
-    this.blockCount = 0;
-    this.blocks =
+    this(
+        s3URI,
+        metadataStore,
+        configuration,
+        memoryTracker,
         Caffeine.newBuilder()
             .maximumSize(configuration.getBlobStoreCapacity())
             .expireAfterWrite(Duration.ofMillis(configuration.getCacheEvictionTimeMillis()))
-            .removalListener(this::removalListener)
-            .build();
-    this.memoryTracker = memoryTracker;
+            .removalListener(
+                (Integer key, Block block, RemovalCause cause) ->
+                    memoryTracker.freeMemory(block.getLength()))
+            .build());
   }
 
-  private void removalListener(Integer key, Block block, RemovalCause cause) {
-    memoryTracker.freeMemory(block.getLength());
+  /**
+   * Constructs a new instance of a BlockStore. This version helps with dependency injection.
+   *
+   * @param s3URI s3URI the object's S3 URI
+   * @param metadataStore the metadata cache
+   * @param configuration physicalIO configuration
+   * @param memoryTracker the memory tracker
+   * @param blockCache block cache to use
+   */
+  protected BlockStore(
+      S3URI s3URI,
+      MetadataStore metadataStore,
+      PhysicalIOConfiguration configuration,
+      MemoryTracker memoryTracker,
+      Cache<Integer, Block> blockCache) {
+
+    Preconditions.checkNotNull(s3URI, "`s3URI` must not be null");
+    Preconditions.checkNotNull(metadataStore, "`metadataStore` must not be null");
+    this.s3URI = s3URI;
+    this.metadataStore = metadataStore;
+    this.configuration = configuration;
+    this.memoryTracker = memoryTracker;
+    this.blocks = blockCache;
   }
 
   /**

@@ -105,7 +105,6 @@ public class ParquetLogicalIOImplTest {
   @Test
   void testMetadaWithZeroContentLength() {
     ObjectClient mockClient = mock(ObjectClient.class);
-    MemoryTracker memoryTracker = new MemoryTracker(PhysicalIOConfiguration.DEFAULT);
     when(mockClient.headObject(any(HeadRequest.class)))
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(0).build()));
@@ -118,7 +117,7 @@ public class ParquetLogicalIOImplTest {
             mockClient,
             TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT,
-            memoryTracker);
+            mock(MemoryTracker.class));
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
     assertDoesNotThrow(
@@ -134,7 +133,6 @@ public class ParquetLogicalIOImplTest {
   @Test
   void testMetadataWithNegativeContentLength() {
     ObjectClient mockClient = mock(ObjectClient.class);
-    MemoryTracker memoryTracker = new MemoryTracker(PhysicalIOConfiguration.DEFAULT);
     when(mockClient.headObject(any(HeadRequest.class)))
         .thenReturn(
             CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(-1).build()));
@@ -147,7 +145,7 @@ public class ParquetLogicalIOImplTest {
             mockClient,
             TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT,
-            memoryTracker);
+            mock(MemoryTracker.class));
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
     assertDoesNotThrow(
