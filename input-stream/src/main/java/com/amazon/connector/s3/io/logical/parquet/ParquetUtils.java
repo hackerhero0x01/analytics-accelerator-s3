@@ -2,6 +2,7 @@ package com.amazon.connector.s3.io.logical.parquet;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.request.Range;
+import java.util.Optional;
 
 /** Utils class for the Parquet logical layer. */
 public final class ParquetUtils {
@@ -15,7 +16,7 @@ public final class ParquetUtils {
    * @param contentLength length of file
    * @return range to be read
    */
-  public static Range getFileTailRange(
+  public static Optional<Range> getFileTailRange(
       LogicalIOConfiguration logicalIOConfiguration, long startRange, long contentLength) {
 
     if (contentLength > logicalIOConfiguration.getFooterCachingSize()) {
@@ -28,6 +29,11 @@ public final class ParquetUtils {
       }
     }
 
-    return new Range(startRange, contentLength - 1);
+    // Return a range if we have non-zero range to work with, and Empty otherwise
+    if (startRange < contentLength) {
+      return Optional.of(new Range(startRange, contentLength - 1));
+    } else {
+      return Optional.empty();
+    }
   }
 }

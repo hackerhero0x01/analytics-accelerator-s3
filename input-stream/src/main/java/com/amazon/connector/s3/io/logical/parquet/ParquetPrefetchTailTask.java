@@ -6,6 +6,7 @@ import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -44,8 +45,10 @@ public class ParquetPrefetchTailTask {
   public List<Range> prefetchTail() {
     try {
       long contentLength = physicalIO.metadata().getContentLength();
-      Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
-      IOPlan ioPlan = new IOPlan(tailRange);
+      Optional<Range> tailRangeOptional =
+          ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
+      // Create a non-empty IOPlan only if we have a valid range to work with
+      IOPlan ioPlan = tailRangeOptional.map(IOPlan::new).orElse(IOPlan.EMPTY_PLAN);
       physicalIO.execute(ioPlan);
       return ioPlan.getPrefetchRanges();
     } catch (Exception e) {

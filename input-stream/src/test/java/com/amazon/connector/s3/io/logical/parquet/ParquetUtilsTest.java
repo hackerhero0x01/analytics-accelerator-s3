@@ -11,7 +11,8 @@ public class ParquetUtilsTest {
   @Test
   void testGetFileTailRangeDefaultConfig() {
 
-    Range range = ParquetUtils.getFileTailRange(LogicalIOConfiguration.DEFAULT, 0, 5 * ONE_MB);
+    Range range =
+        ParquetUtils.getFileTailRange(LogicalIOConfiguration.DEFAULT, 0, 5 * ONE_MB).get();
 
     assertEquals(
         range.getStart(), 5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getFooterCachingSize());
@@ -20,15 +21,15 @@ public class ParquetUtilsTest {
 
   @Test
   void testGetFileTailRangeSmallFile() {
-
     Range range =
         ParquetUtils.getFileTailRange(
-            LogicalIOConfiguration.builder()
-                .smallObjectsPrefetchingEnabled(true)
-                .smallObjectSizeThreshold(2 * ONE_MB)
-                .build(),
-            0,
-            2 * ONE_MB);
+                LogicalIOConfiguration.builder()
+                    .smallObjectsPrefetchingEnabled(true)
+                    .smallObjectSizeThreshold(2 * ONE_MB)
+                    .build(),
+                0,
+                2 * ONE_MB)
+            .get();
 
     assertEquals(range.getStart(), 0);
     assertEquals(range.getEnd(), 2 * ONE_MB - 1);
@@ -37,7 +38,7 @@ public class ParquetUtilsTest {
   @Test
   void testGetFileTailSmallContentLength() {
 
-    Range range = ParquetUtils.getFileTailRange(LogicalIOConfiguration.DEFAULT, 0, 5);
+    Range range = ParquetUtils.getFileTailRange(LogicalIOConfiguration.DEFAULT, 0, 5).get();
 
     assertEquals(range.getStart(), 0);
     assertEquals(range.getEnd(), 4);

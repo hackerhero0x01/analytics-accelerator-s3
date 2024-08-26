@@ -1,7 +1,6 @@
 package com.amazon.connector.s3.io.logical.impl;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.TestTelemetry;
@@ -18,7 +17,6 @@ import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 
 @SuppressFBWarnings(
@@ -117,8 +115,7 @@ public class ParquetLogicalIOImplTest {
             metadataStore, mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
-    assertThrows(
-        CompletionException.class,
+    assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(
                 TEST_URI,
@@ -142,8 +139,7 @@ public class ParquetLogicalIOImplTest {
             metadataStore, mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
-    assertThrows(
-        CompletionException.class,
+    assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(
                 TEST_URI,
