@@ -3,7 +3,7 @@ package com.amazon.connector.s3.plan;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
-import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.Range;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;

@@ -1,7 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.Range;
 import java.util.LinkedList;
 import java.util.List;
 import lombok.Value;
@@ -16,8 +16,7 @@ import lombok.Value;
  */
 @Value
 public class RangeOptimiser {
-
-  private final PhysicalIOConfiguration configuration;
+  PhysicalIOConfiguration configuration;
 
   /**
    * Given a list of ranges, return a potentially new set of ranges which is more optimal to fetch
@@ -28,7 +27,6 @@ public class RangeOptimiser {
    */
   public List<Range> splitRanges(List<Range> ranges) {
     List<Range> splits = new LinkedList<>();
-
     for (Range range : ranges) {
       if (range.getLength() > configuration.getMaxRangeSizeBytes()) {
         splitRange(range.getStart(), range.getEnd()).forEach(splits::add);

@@ -1,7 +1,7 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.Range;
 
 /** Utils class for the Parquet logical layer. */
 public final class ParquetUtils {

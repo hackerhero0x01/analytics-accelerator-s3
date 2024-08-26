@@ -7,11 +7,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
-import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
+import com.amazon.connector.s3.request.ObjectClient;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;

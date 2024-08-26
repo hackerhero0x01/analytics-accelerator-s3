@@ -1,6 +1,6 @@
 package com.amazon.connector.s3;
 
-import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import java.io.Closeable;
 import java.io.IOException;
 

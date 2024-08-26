@@ -7,8 +7,8 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
-import com.amazon.connector.s3.io.physical.plan.Range;
-import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.request.ObjectMetadata;
+import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;

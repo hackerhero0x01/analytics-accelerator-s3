@@ -2,7 +2,7 @@ package com.amazon.connector.s3.io.logical.parquet;
 
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
-import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionException;

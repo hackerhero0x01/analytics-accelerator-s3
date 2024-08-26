@@ -1,13 +1,13 @@
 package com.amazon.connector.s3.property;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
 import com.amazon.connector.s3.S3SeekableInputStreamFactory;
 import com.amazon.connector.s3.SeekableInputStream;
-import com.amazon.connector.s3.object.ObjectContent;
-import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
+import com.amazon.connector.s3.request.ObjectClient;
+import com.amazon.connector.s3.request.ObjectContent;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

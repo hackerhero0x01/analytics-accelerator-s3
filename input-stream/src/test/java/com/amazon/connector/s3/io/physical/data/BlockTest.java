@@ -2,8 +2,8 @@ package com.amazon.connector.s3.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.TestTelemetry;
+import com.amazon.connector.s3.request.ObjectClient;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;

@@ -1,11 +1,11 @@
 package com.amazon.connector.s3.io.physical.data;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
-import com.amazon.connector.s3.object.ObjectContent;
 import com.amazon.connector.s3.request.GetRequest;
+import com.amazon.connector.s3.request.ObjectClient;
+import com.amazon.connector.s3.request.ObjectContent;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.request.Referrer;

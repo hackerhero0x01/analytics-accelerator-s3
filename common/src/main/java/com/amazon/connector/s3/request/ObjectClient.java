@@ -1,9 +1,5 @@
-package com.amazon.connector.s3;
+package com.amazon.connector.s3.request;
 
-import com.amazon.connector.s3.object.ObjectContent;
-import com.amazon.connector.s3.object.ObjectMetadata;
-import com.amazon.connector.s3.request.GetRequest;
-import com.amazon.connector.s3.request.HeadRequest;
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
 

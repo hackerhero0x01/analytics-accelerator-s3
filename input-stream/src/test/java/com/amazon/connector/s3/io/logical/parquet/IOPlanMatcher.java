@@ -3,7 +3,7 @@ package com.amazon.connector.s3.io.logical.parquet;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
-import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.Range;
 import java.util.List;
 import org.mockito.ArgumentMatcher;
 

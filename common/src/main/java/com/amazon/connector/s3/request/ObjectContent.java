@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.object;
+package com.amazon.connector.s3.request;
 
 import java.io.InputStream;
 import lombok.Builder;

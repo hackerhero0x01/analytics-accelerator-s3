@@ -31,8 +31,8 @@ public class RangeTest {
 
   @Test
   void testSize() {
-    assertEquals(1, new Range(0, 0).getSize());
-    assertEquals(100, new Range(0, 99).getSize());
+    assertEquals(1, new Range(0, 0).getLength());
+    assertEquals(100, new Range(0, 99).getLength());
   }
 
   static Stream<Arguments> validStringRanges() {

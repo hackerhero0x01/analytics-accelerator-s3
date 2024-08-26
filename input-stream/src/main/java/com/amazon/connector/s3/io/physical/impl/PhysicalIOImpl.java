@@ -8,7 +8,7 @@ import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
-import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.io.IOException;

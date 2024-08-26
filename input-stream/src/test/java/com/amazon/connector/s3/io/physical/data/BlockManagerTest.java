@@ -8,13 +8,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
-import com.amazon.connector.s3.object.ObjectContent;
-import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
+import com.amazon.connector.s3.request.ObjectClient;
+import com.amazon.connector.s3.request.ObjectContent;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -156,9 +156,9 @@ public class BlockManagerTest {
     GetRequest secondRequest = requestCaptor.getAllValues().get(1);
     GetRequest lastRequest = requestCaptor.getAllValues().get(2);
 
-    assertEquals(65_536, firstRequest.getRange().getSize());
-    assertEquals(65_535, secondRequest.getRange().getSize());
-    assertEquals(1, lastRequest.getRange().getSize());
+    assertEquals(65_536, firstRequest.getRange().getLength());
+    assertEquals(65_535, secondRequest.getRange().getLength());
+    assertEquals(1, lastRequest.getRange().getLength());
   }
 
   private BlockManager getTestBlockManager(int size) {

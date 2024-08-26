@@ -8,9 +8,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.GetRequest;
 import com.amazon.connector.s3.request.HeadRequest;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.request.Referrer;
@@ -70,7 +70,13 @@ public class S3SdkObjectClientTest {
     assertThrows(
         NullPointerException.class,
         () -> {
-          new S3SdkObjectClient(null);
+          new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT);
+        });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new S3SdkObjectClient(s3AsyncClient, null);
         });
   }
 

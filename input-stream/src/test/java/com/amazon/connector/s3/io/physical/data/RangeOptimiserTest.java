@@ -4,7 +4,7 @@ import static com.amazon.connector.s3.util.Constants.ONE_MB;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.Range;
 import java.util.LinkedList;
 import java.util.List;
 import org.junit.jupiter.api.Test;

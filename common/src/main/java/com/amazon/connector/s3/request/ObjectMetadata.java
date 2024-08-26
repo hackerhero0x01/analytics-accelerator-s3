@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.object;
+package com.amazon.connector.s3.request;
 
 import lombok.Builder;
 import lombok.Data;

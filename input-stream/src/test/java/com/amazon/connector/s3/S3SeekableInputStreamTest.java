@@ -13,7 +13,7 @@ import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
-import com.amazon.connector.s3.object.ObjectMetadata;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.util.FakeObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

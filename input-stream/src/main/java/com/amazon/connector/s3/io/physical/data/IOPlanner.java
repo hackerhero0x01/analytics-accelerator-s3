@@ -3,7 +3,7 @@ package com.amazon.connector.s3.io.physical.data;
 import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
-import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.util.LinkedList;

@@ -4,6 +4,7 @@ import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
+import com.amazon.connector.s3.request.ObjectClient;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import lombok.Getter;

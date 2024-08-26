@@ -2,7 +2,7 @@ package com.amazon.connector.s3.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.amazon.connector.s3.object.ObjectContent;
+import com.amazon.connector.s3.request.ObjectContent;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

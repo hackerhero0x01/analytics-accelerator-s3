@@ -3,7 +3,7 @@ package com.amazon.connector.s3.io.logical.parquet;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
-import com.amazon.connector.s3.io.physical.plan.Range;
+import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.List;
 import java.util.concurrent.CompletionException;
@@ -45,7 +45,6 @@ public class ParquetPrefetchTailTask {
     try {
       long contentLength = physicalIO.metadata().getContentLength();
       Range tailRange = ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
-
       IOPlan ioPlan = new IOPlan(tailRange);
       physicalIO.execute(ioPlan);
       return ioPlan.getPrefetchRanges();

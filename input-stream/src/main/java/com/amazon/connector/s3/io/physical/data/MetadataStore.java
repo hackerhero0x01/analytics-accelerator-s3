@@ -1,11 +1,11 @@
 package com.amazon.connector.s3.io.physical.data;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
-import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
+import com.amazon.connector.s3.request.ObjectClient;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

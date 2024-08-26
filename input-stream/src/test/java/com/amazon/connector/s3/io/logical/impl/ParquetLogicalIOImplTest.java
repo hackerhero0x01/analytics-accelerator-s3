@@ -1,11 +1,9 @@
 package com.amazon.connector.s3.io.logical.impl;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.TestTelemetry;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
@@ -13,12 +11,14 @@ import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
-import com.amazon.connector.s3.object.ObjectMetadata;
 import com.amazon.connector.s3.request.HeadRequest;
+import com.amazon.connector.s3.request.ObjectClient;
+import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 
 @SuppressFBWarnings(
@@ -117,7 +117,8 @@ public class ParquetLogicalIOImplTest {
             metadataStore, mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
-    assertDoesNotThrow(
+    assertThrows(
+        CompletionException.class,
         () ->
             new ParquetLogicalIOImpl(
                 TEST_URI,
@@ -141,7 +142,8 @@ public class ParquetLogicalIOImplTest {
             metadataStore, mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
-    assertDoesNotThrow(
+    assertThrows(
+        CompletionException.class,
         () ->
             new ParquetLogicalIOImpl(
                 TEST_URI,

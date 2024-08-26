@@ -1,11 +1,6 @@
 package com.amazon.connector.s3;
 
-import com.amazon.connector.s3.object.ObjectContent;
-import com.amazon.connector.s3.object.ObjectMetadata;
-import com.amazon.connector.s3.request.GetRequest;
-import com.amazon.connector.s3.request.HeadRequest;
-import com.amazon.connector.s3.request.UserAgent;
-import java.util.Objects;
+import com.amazon.connector.s3.request.*;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
@@ -16,7 +11,6 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 
 /** Object client, based on AWS SDK v2 */
 public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
-
   public static final String HEADER_USER_AGENT = "User-Agent";
   private static final String HEADER_REFERER = "Referer";
 
@@ -88,16 +82,14 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
     GetObjectRequest.Builder builder =
         GetObjectRequest.builder().bucket(getRequest.getBucket()).key(getRequest.getKey());
 
-    if (Objects.nonNull(getRequest.getRange())) {
-      String range = getRequest.getRange().toHttpString();
-      builder.range(range);
+    String range = getRequest.getRange().toHttpString();
+    builder.range(range);
 
-      builder.overrideConfiguration(
-          AwsRequestOverrideConfiguration.builder()
-              .putHeader(HEADER_REFERER, getRequest.getReferrer().toString())
-              .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
-              .build());
-    }
+    builder.overrideConfiguration(
+        AwsRequestOverrideConfiguration.builder()
+            .putHeader(HEADER_REFERER, getRequest.getReferrer().toString())
+            .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
+            .build());
 
     return s3AsyncClient
         .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())

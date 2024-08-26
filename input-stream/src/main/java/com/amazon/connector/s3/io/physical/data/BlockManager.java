@@ -1,13 +1,13 @@
 package com.amazon.connector.s3.io.physical.data;
 
-import com.amazon.connector.s3.ObjectClient;
 import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
-import com.amazon.connector.s3.io.physical.plan.Range;
 import com.amazon.connector.s3.io.physical.prefetcher.SequentialPatternDetector;
 import com.amazon.connector.s3.io.physical.prefetcher.SequentialReadProgression;
+import com.amazon.connector.s3.request.ObjectClient;
+import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
@@ -19,7 +19,6 @@ import lombok.NonNull;
 
 /** Implements a Block Manager responsible for planning and scheduling reads on a key. */
 public class BlockManager implements Closeable {
-
   private final S3URI s3URI;
   private final MetadataStore metadataStore;
   private final BlockStore blockStore;
@@ -148,7 +147,6 @@ public class BlockManager implements Closeable {
                 .attribute(StreamAttributes.end(finalEnd))
                 .build(),
         () -> {
-
           // Determine the missing ranges and fetch them
           List<Range> missingRanges = ioPlanner.planRead(pos, finalEnd, getLastObjectByte());
           List<Range> splits = rangeOptimiser.splitRanges(missingRanges);

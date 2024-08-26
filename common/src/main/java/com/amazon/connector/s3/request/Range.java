@@ -1,14 +1,14 @@
 package com.amazon.connector.s3.request;
 
 import com.amazon.connector.s3.common.Preconditions;
-import lombok.Getter;
+import lombok.Value;
 
 /**
  * Object representing a byte range. This class helps us abstract away from S3 SDK constructs and
  * helps with testing. For example, it gets rid of the need of having to generate and parse strings
  * like "bytes=0-555" -- this is SDK detail we should not care about in layers above Object Client.
  */
-@Getter
+@Value
 public class Range {
   long start;
   long end;
@@ -32,14 +32,19 @@ public class Range {
   }
 
   /**
-   * Return the size of the range.
+   * Return the length of the range.
    *
-   * @return the size of the range in bytes
+   * @return the length of the range in bytes
    */
-  public long getSize() {
+  public long getLength() {
     return this.end - this.start + 1;
   }
 
+  /**
+   * Returns the textual representation of {@link Range}.
+   *
+   * @return the textual representation of {@link Range}.
+   */
   @Override
   public String toString() {
     return String.format(TO_STRING_FORMAT, start, end);

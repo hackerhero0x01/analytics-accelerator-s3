@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.io.physical.plan;
 
+import com.amazon.connector.s3.request.Range;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
