@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -32,31 +33,44 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.utils.ImmutableMap;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class ParquetMetadataParsingTaskTest {
-
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
   @Test
   void testConstructor() {
     assertNotNull(
         new ParquetMetadataParsingTask(
-            TEST_URI,
-            LogicalIOConfiguration.DEFAULT,
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+            TEST_URI, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
   }
 
   @Test
   void testConstructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetMetadataParsingTask(TEST_URI, LogicalIOConfiguration.DEFAULT, null));
+        () ->
+            new ParquetMetadataParsingTask(
+                null, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+    assertThrows(NullPointerException.class, () -> new ParquetMetadataParsingTask(TEST_URI, null));
     assertThrows(
         NullPointerException.class,
         () ->
             new ParquetMetadataParsingTask(
                 null,
-                LogicalIOConfiguration.DEFAULT,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
+                mock(ParquetParser.class)));
+
+    assertThrows(
+        NullPointerException.class,
+        () -> new ParquetMetadataParsingTask(TEST_URI, null, mock(ParquetParser.class)));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetMetadataParsingTask(
+                TEST_URI, new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT), null));
   }
 
   @ParameterizedTest
@@ -208,7 +222,6 @@ public class ParquetMetadataParsingTaskTest {
         new ParquetMetadataParsingTask(
             TEST_URI,
             new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-            LogicalIOConfiguration.DEFAULT,
             mockedParquetParser);
     CompletableFuture<ColumnMappers> parquetMetadataTaskFuture =
         CompletableFuture.supplyAsync(
@@ -229,7 +242,6 @@ public class ParquetMetadataParsingTaskTest {
   }
 
   private ColumnMappers getColumnMappers(FileMetaData fileMetaData) throws IOException {
-
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
     when(mockedParquetParser.parseParquetFooter(any(ByteBuffer.class), anyInt()))
         .thenReturn(fileMetaData);
@@ -238,7 +250,6 @@ public class ParquetMetadataParsingTaskTest {
         new ParquetMetadataParsingTask(
             TEST_URI,
             new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT),
-            LogicalIOConfiguration.DEFAULT,
             mockedParquetParser);
 
     return parquetMetadataParsingTask.storeColumnMappers(new FileTail(ByteBuffer.allocate(0), 0));

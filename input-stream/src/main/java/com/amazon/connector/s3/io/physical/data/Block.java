@@ -74,7 +74,7 @@ public class Block implements Closeable {
                 Operation.builder()
                     .name(OPERATION_BLOCK_GET_ASYNC)
                     .attribute(StreamAttributes.uri(this.s3URI))
-                    .attribute(StreamAttributes.range(this.range))
+                    .attribute(StreamAttributes.range(this.range.getStart(), this.range.getEnd()))
                     .attribute(StreamAttributes.generation(generation))
                     .build(),
             objectClient.getObject(

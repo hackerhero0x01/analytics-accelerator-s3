@@ -1,13 +1,11 @@
 package com.amazon.connector.s3.io.logical.impl;
 
-import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.util.S3URI;
-import com.amazon.connector.s3.util.StreamAttributes;
 import java.io.IOException;
 import lombok.NonNull;
 
@@ -16,14 +14,9 @@ import lombok.NonNull;
  * parsing Parquet metadata and prefetching columns based on recent access patterns.
  */
 public class ParquetLogicalIOImpl implements LogicalIO {
-  private final S3URI s3Uri;
-
   // Dependencies
   private final ParquetPrefetcher parquetPrefetcher;
   private final PhysicalIO physicalIO;
-  private final Telemetry telemetry;
-
-  private static final String OPERATION_READ_TAIL = "logical.io.read.tail";
 
   /**
    * Constructs an instance of LogicalIOImpl.
@@ -40,13 +33,12 @@ public class ParquetLogicalIOImpl implements LogicalIO {
       @NonNull Telemetry telemetry,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
       @NonNull ParquetMetadataStore parquetMetadataStore) {
-    this.s3Uri = s3Uri;
     this.physicalIO = physicalIO;
-    this.telemetry = telemetry;
 
     // Initialise prefetcher and start prefetching
     this.parquetPrefetcher =
-        new ParquetPrefetcher(s3Uri, physicalIO, logicalIOConfiguration, parquetMetadataStore);
+        new ParquetPrefetcher(
+            s3Uri, physicalIO, telemetry, logicalIOConfiguration, parquetMetadataStore);
     this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
   }
 
@@ -82,17 +74,18 @@ public class ParquetLogicalIOImpl implements LogicalIO {
     return physicalIO.read(buf, off, len, position);
   }
 
+  /**
+   * Reads the last n bytes from the stream into a byte buffer. Blocks until end of stream is
+   * reached. Leaves the position of the stream unaltered.
+   *
+   * @param buf buffer to read data into
+   * @param off start position in buffer at which data is written
+   * @param len the number of bytes to read; the n-th byte should be the last byte of the stream.
+   * @return the total number of bytes read into the buffer
+   */
   @Override
   public int readTail(byte[] buf, int off, int len) throws IOException {
-    return telemetry.measureStandard(
-        () ->
-            Operation.builder()
-                .name(OPERATION_READ_TAIL)
-                .attribute(StreamAttributes.uri(this.s3Uri))
-                .attribute(StreamAttributes.offset(off))
-                .attribute(StreamAttributes.length(len))
-                .build(),
-        () -> physicalIO.readTail(buf, off, len));
+    return physicalIO.readTail(buf, off, len);
   }
 
   /**
