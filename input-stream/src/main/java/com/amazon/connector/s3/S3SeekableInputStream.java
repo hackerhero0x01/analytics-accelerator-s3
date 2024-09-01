@@ -97,7 +97,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
       return EOF;
     }
 
-    // Delegate to the LogicalIO and advance the position by 1, if anything has been read
+    // Delegate to the LogicalIO and advance the position by 1
     return this.telemetry.measureVerbose(
         () ->
             Operation.builder()
@@ -161,7 +161,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
   @Override
   public int read(byte @NonNull [] buffer, int offset, int length) throws IOException {
     if (this.position >= getContentLength()) {
-      return -1;
+      return EOF;
     }
 
     return this.telemetry.measureVerbose(
@@ -172,7 +172,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
                 .attribute(StreamAttributes.range(position, position + length - 1))
                 .build(),
         () -> {
-          // Delegate to the LogicalIO and advance the position by 1, if anything has been read
+          // Delegate to the LogicalIO and advance the position accordingly
           int bytesRead = this.logicalIO.read(buffer, offset, length, position);
           return advancePosition(bytesRead);
         });
