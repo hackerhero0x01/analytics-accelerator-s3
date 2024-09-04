@@ -1,0 +1,76 @@
+name: Build and upload Iceberg jar to benchmarking bucket
+
+# Controls when the action will run. Invokes the workflow on push events but only for the main branch
+on:
+  push:
+    branches:
+      - main
+      - cicd-builds
+
+env:
+  AWS_REGION :  ${{ vars.AWS_REGION }} # Change to reflect your region
+  S3_BUCKET : ${{ vars.S3_BUCKET }}
+  ROLE_TO_ASSUME: ${{ secrets.ASSUME_ROLE_ARN }}
+
+# Permission can be added at job level or workflow level
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+
+jobs:
+  BuildIcebergAndUploadJarToS3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'corretto'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
+
+      - name: Build and publish to local Maven with Gradle
+        run: |
+          ./gradlew publishToMavenLocal
+
+      - name: TEMPORARY publish updated versions to local Maven
+        run: |
+          mvn install:install-file -Dfile=input-stream/build/libs/input-stream.jar -DgroupId=com.amazon.connector.s3 -DartifactId=input-stream -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
+          mvn install:install-file -Dfile=object-client/build/libs/object-client.jar -DgroupId=com.amazon.connector.s3 -DartifactId=object-client -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
+          mvn install:install-file -Dfile=common/build/libs/common.jar -DgroupId=com.amazon.connector.s3 -DartifactId=common -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
+
+      - name: Setup Iceberg SSH deploy key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.ICEBERG_STAGING_SSH_KEY }}
+
+      - name: Checkout Iceberg
+        uses: actions/checkout@v4
+        with:
+          repository: amazon-contributing/private-iceberg-staging
+          ref: s3-connector-framework
+          path: iceberg
+          ssh-key: ${{ secrets.ICEBERG_STAGING_SSH_KEY }}
+
+#      - name: Checkout Public Iceberg
+#        uses: actions/checkout@v4
+#        with:
+#          repository: apache/iceberg
+#          ref: main
+#          path: iceberg
+#          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Iceberg jar
+        run: ./gradlew build -x test -x integrationTest -x checkstyleMain
+        working-directory: iceberg
+
+#      - name: Configure aws credentials
+#        uses: aws-actions/configure-aws-credentials@v1.7.0
+#        with:
+#          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+#          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+#          aws-region: ${{ env.AWS_REGION }}
+#
+#      - name: Upload iceberg spark runtime JAR to S3FileIO treatment bucket
+#        run: aws s3 cp iceberg-spark-runtime-location-here s3://${{ env.S3_BUCKET }}/s3fileio/iceberg-spark-runtime-3.5_2.12-1.5.2-amzn-0-SNAPSHOT.jar
