@@ -12,7 +12,7 @@ import lombok.Getter;
 public enum StreamAttributes {
   URI("uri"),
   RANGE("range"),
-  FLAVOR("flavor"),
+  VARIANT("variant"),
   EFFECTIVE_RANGE("range.effective"),
   GENERATION("generation"),
   COLUMN("column"),
@@ -32,11 +32,11 @@ public enum StreamAttributes {
   /**
    * Creates an {@link Attribute} for a {@link S3URI}.
    *
-   * @param flavor the flavor of the operation
+   * @param variant the variant of the operation
    * @return The new instance of the {@link Attribute}.
    */
-  public static Attribute flavor(String flavor) {
-    return Attribute.of(StreamAttributes.FLAVOR.getName(), flavor);
+  public static Attribute variant(String variant) {
+    return Attribute.of(StreamAttributes.VARIANT.getName(), variant);
   }
 
   /**
@@ -61,7 +61,7 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates an {@link Attribute} for anm affective {@link Range}.
+   * Creates an {@link Attribute} for an effective {@link Range}.
    *
    * @param start range start.
    * @param end range end.

@@ -68,7 +68,7 @@ public class PhysicalIOImpl implements PhysicalIO {
         () ->
             Operation.builder()
                 .name(OPERATION_READ)
-                .attribute(StreamAttributes.flavor(FLAVOR_BYTE))
+                .attribute(StreamAttributes.variant(FLAVOR_BYTE))
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(pos, pos))
                 .build(),
@@ -119,7 +119,7 @@ public class PhysicalIOImpl implements PhysicalIO {
         () ->
             Operation.builder()
                 .name(OPERATION_READ)
-                .attribute(StreamAttributes.flavor(FLAVOR_TAIL))
+                .attribute(StreamAttributes.variant(FLAVOR_TAIL))
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(contentLength - len, contentLength - 1))
                 .build(),

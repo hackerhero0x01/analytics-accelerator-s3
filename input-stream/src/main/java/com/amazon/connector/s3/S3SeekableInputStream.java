@@ -102,7 +102,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
         () ->
             Operation.builder()
                 .name(OPERATION_READ)
-                .attribute(StreamAttributes.flavor(FLAVOR_BYTE))
+                .attribute(StreamAttributes.variant(FLAVOR_BYTE))
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(this.getPos(), this.getPos()))
                 .build(),
@@ -121,10 +121,8 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * <p>This method blocks until input data is available, end of file is detected, or an exception
    * is thrown.
    *
-   * <p>If <code>len</code> is zero, then no bytes are read and <code>0</code> is returned;
-   * otherwise, there is an attempt to read at least one byte. If no byte is available because the
-   * stream is at end of file, the value <code>-1</code> is returned; otherwise, at least one byte
-   * is read and stored into <code>b</code>.
+   * <p>If no byte is available because the stream is at end of file, the value <code>-1</code> is
+   * returned; otherwise, at least one byte is read and stored into <code>b</code>.
    *
    * <p>The first byte read is stored into element <code>b[off]</code>, the next one into <code>
    * b[off+1]</code>, and so on. The number of bytes read is, at most, equal to <code>len</code>.
@@ -134,17 +132,6 @@ public class S3SeekableInputStream extends SeekableInputStream {
    *
    * <p>In every case, elements <code>b[0]</code> through <code>b[off]</code> and elements <code>
    * b[off+len]</code> through <code>b[b.length-1]</code> are unaffected.
-   *
-   * <p>The <code>read(b,</code> <code>off,</code> <code>len)</code> method for class <code>
-   * InputStream</code> simply calls the method <code>read()</code> repeatedly. If the first such
-   * call results in an <code>IOException</code>, that exception is returned from the call to the
-   * <code>read(b,</code> <code>off,</code> <code>len)</code> method. If any subsequent call to
-   * <code>read()</code> results in a <code>IOException</code>, the exception is caught and treated
-   * as if it were end of file; the bytes read up to that point are stored into <code>b</code> and
-   * the number of bytes read before the exception occurred is returned. The default implementation
-   * of this method blocks until the requested amount of input data <code>len</code> has been read,
-   * end of file is detected, or an exception is thrown. Subclasses are encouraged to provide a more
-   * efficient implementation of this method.
    *
    * @param buffer the buffer into which the data is read.
    * @param offset the start offset in array <code>b</code> at which the data is written.
@@ -228,7 +215,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
         () ->
             Operation.builder()
                 .name(OPERATION_READ)
-                .attribute(StreamAttributes.flavor(FLAVOR_TAIL))
+                .attribute(StreamAttributes.variant(FLAVOR_TAIL))
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(getContentLength() - n, getContentLength() - 1))
                 .build(),
