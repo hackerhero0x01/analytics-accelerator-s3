@@ -4,11 +4,10 @@ import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIO;
-import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
-import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
+import com.amazon.connector.s3.util.LogicalIOFactory;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.io.EOFException;
@@ -52,15 +51,12 @@ public class S3SeekableInputStream extends SeekableInputStream {
       @NonNull Telemetry telemetry,
       @NonNull S3SeekableInputStreamConfiguration configuration,
       @NonNull ParquetMetadataStore parquetMetadataStore) {
-    this(
-        s3URI,
-        new ParquetLogicalIOImpl(
-            s3URI,
-            new PhysicalIOImpl(s3URI, metadataStore, blobStore, telemetry),
-            telemetry,
-            configuration.getLogicalIOConfiguration(),
-            parquetMetadataStore),
-        telemetry);
+    this.logicalIO =
+        LogicalIOFactory.getLogicalIOImplementation(
+            s3URI, metadataStore, blobStore, telemetry, configuration, parquetMetadataStore);
+    this.s3URI = s3URI;
+    this.telemetry = telemetry;
+    this.position = 0;
   }
 
   /**

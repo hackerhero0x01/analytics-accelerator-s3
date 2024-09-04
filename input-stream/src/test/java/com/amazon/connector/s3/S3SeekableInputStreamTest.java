@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.utils.IoUtils;
 import software.amazon.awssdk.utils.StringUtils;
 
@@ -229,7 +231,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   @Test
   void testReadOnEmptyObject() throws IOException {
     // Given
-    try (S3SeekableInputStream stream = getTestStreamWithContent("")) {
+    try (S3SeekableInputStream stream = getTestStreamWithContent("", TEST_OBJECT)) {
 
       // When: we read a byte from the empty object
       int readByte = stream.read();
@@ -484,14 +486,21 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     }
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"key.parquet", "key", "key.java"})
+  void testDifferentFileFormatReads(String key) throws IOException {
+    S3URI parquetS3URI = S3URI.of("bucket", key);
+    try (S3SeekableInputStream in = getTestStreamWithContent(TEST_DATA, parquetS3URI)) {
+      in.seek(5);
+      assertEquals(100, in.read());
+    }
+  }
+
   private S3SeekableInputStream getTestStream() {
     return new S3SeekableInputStream(TEST_URI, fakeLogicalIO, TestTelemetry.DEFAULT);
   }
 
-  private S3SeekableInputStream getTestStreamWithContent(String content) {
-    LogicalIOConfiguration configuration =
-        LogicalIOConfiguration.builder().footerCachingEnabled(false).build();
-
+  private S3SeekableInputStream getTestStreamWithContent(String content, S3URI s3URI) {
     FakeObjectClient fakeObjectClient = new FakeObjectClient(content);
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
@@ -504,12 +513,10 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
     return new S3SeekableInputStream(
         TEST_URI,
-        new ParquetLogicalIOImpl(
-            TEST_OBJECT,
-            new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),
-            TestTelemetry.DEFAULT,
-            configuration,
-            new ParquetMetadataStore(configuration)),
-        TestTelemetry.DEFAULT);
+        metadataStore,
+        blobStore,
+        TestTelemetry.DEFAULT,
+        S3SeekableInputStreamConfiguration.DEFAULT,
+        new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
   }
 }
