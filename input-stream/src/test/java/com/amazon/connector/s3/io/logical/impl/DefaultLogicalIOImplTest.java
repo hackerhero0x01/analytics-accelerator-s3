@@ -32,7 +32,7 @@ public class DefaultLogicalIOImplTest {
   void testCloseDependencies() throws IOException {
     // Given
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    DefaultLogicalIOImpl logicalIO = getDefaultLogicalIO(physicalIO);
+    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(physicalIO);
 
     // When: close called
     logicalIO.close();
@@ -44,7 +44,7 @@ public class DefaultLogicalIOImplTest {
   @Test
   void testRead() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    DefaultLogicalIOImpl logicalIO = getDefaultLogicalIO(physicalIO);
+    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(physicalIO);
 
     logicalIO.read(5);
     verify(physicalIO).read(5);
@@ -53,7 +53,7 @@ public class DefaultLogicalIOImplTest {
   @Test
   void testReadWithBuffer() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    DefaultLogicalIOImpl logicalIO = getDefaultLogicalIO(physicalIO);
+    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(physicalIO);
 
     byte[] buffer = new byte[5];
     logicalIO.read(buffer, 0, 5, 5);
@@ -63,14 +63,10 @@ public class DefaultLogicalIOImplTest {
   @Test
   void testReadTail() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    DefaultLogicalIOImpl logicalIO = getDefaultLogicalIO(physicalIO);
+    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(physicalIO);
 
     byte[] buffer = new byte[5];
     logicalIO.readTail(buffer, 0, 5);
     verify(physicalIO).readTail(buffer, 0, 5);
-  }
-
-  private DefaultLogicalIOImpl getDefaultLogicalIO(PhysicalIO physicalIO) {
-    return new DefaultLogicalIOImpl(physicalIO);
   }
 }

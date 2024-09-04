@@ -22,7 +22,7 @@ public class LogicalIOConfiguration {
   private static final double DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO = 0.3;
   private static final int DEFAULT_PARQUET_METADATA_STORE_SIZE = 45;
   private static final int DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE = 15;
-  private static final String DEFAULT_PARQUET_FILE_SUFFIX = "parquet|par";
+  private static final String DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX = "^.*.(parquet|par)$";
 
   @Builder.Default private boolean footerCachingEnabled = DEFAULT_FOOTER_CACHING_ENABLED;
 
@@ -75,9 +75,10 @@ public class LogicalIOConfiguration {
   private static final String MIN_PREDICTIVE_PREFETCHING_CONFIDENCE_RATIO_KEY =
       "min.predictive.prefetching.confidence.ratio";
 
-  @Builder.Default private String parquetFileSuffix = DEFAULT_PARQUET_FILE_SUFFIX;
+  @Builder.Default
+  private String parquetFormatSelectorRegex = DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX;
 
-  private static final String PARQUET_FILE_SUFFIX_KEY = "parquet.file.suffix";
+  private static final String PARQUET_FORMAT_SELECTOR_REGEX = "parquet.format.selector.regex";
 
   public static final LogicalIOConfiguration DEFAULT = LogicalIOConfiguration.builder().build();
 
@@ -118,8 +119,9 @@ public class LogicalIOConfiguration {
             configuration.getDouble(
                 MIN_PREDICTIVE_PREFETCHING_CONFIDENCE_RATIO_KEY,
                 DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO))
-        .parquetFileSuffix(
-            configuration.getString(PARQUET_FILE_SUFFIX_KEY, DEFAULT_PARQUET_FILE_SUFFIX))
+        .parquetFormatSelectorRegex(
+            configuration.getString(
+                PARQUET_FORMAT_SELECTOR_REGEX, DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX))
         .build();
   }
 }

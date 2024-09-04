@@ -44,97 +44,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   }
 
   @Test
-  void testDefaultConstructor() throws IOException {
-    MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlobStore blobStore =
-        new BlobStore(
-            metadataStore,
-            fakeObjectClient,
-            TestTelemetry.DEFAULT,
-            PhysicalIOConfiguration.DEFAULT);
-
-    S3SeekableInputStream inputStream =
-        new S3SeekableInputStream(
-            TEST_URI,
-            metadataStore,
-            blobStore,
-            TestTelemetry.DEFAULT,
-            S3SeekableInputStreamConfiguration.DEFAULT,
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
-    assertNotNull(inputStream);
-  }
-
-  @Test
   void testConstructorThrowsOnNullArgument() {
-    MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlobStore blobStore =
-        new BlobStore(
-            metadataStore,
-            fakeObjectClient,
-            TestTelemetry.DEFAULT,
-            PhysicalIOConfiguration.DEFAULT);
-    S3SeekableInputStreamConfiguration configuration = S3SeekableInputStreamConfiguration.DEFAULT;
-    ParquetMetadataStore parquetMetadataStore =
-        new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT);
-
-    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                null,
-                metadataStore,
-                blobStore,
-                TestTelemetry.DEFAULT,
-                configuration,
-                parquetMetadataStore));
-
-    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                TEST_URI,
-                null,
-                blobStore,
-                TestTelemetry.DEFAULT,
-                configuration,
-                parquetMetadataStore));
-
-    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                TEST_URI,
-                metadataStore,
-                null,
-                TestTelemetry.DEFAULT,
-                configuration,
-                parquetMetadataStore));
-
-    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                TEST_URI, metadataStore, blobStore, null, configuration, parquetMetadataStore));
-
-    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                TEST_URI,
-                metadataStore,
-                blobStore,
-                TestTelemetry.DEFAULT,
-                null,
-                parquetMetadataStore));
-
-    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                TEST_URI, metadataStore, blobStore, TestTelemetry.DEFAULT, configuration, null));
-
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () -> new S3SeekableInputStream(null, mock(LogicalIO.class), TestTelemetry.DEFAULT));
@@ -513,10 +423,12 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
     return new S3SeekableInputStream(
         TEST_URI,
-        metadataStore,
-        blobStore,
-        TestTelemetry.DEFAULT,
-        S3SeekableInputStreamConfiguration.DEFAULT,
-        new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
+        new ParquetLogicalIOImpl(
+            TEST_OBJECT,
+            new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),
+            TestTelemetry.DEFAULT,
+            LogicalIOConfiguration.DEFAULT,
+            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)),
+        TestTelemetry.DEFAULT);
   }
 }

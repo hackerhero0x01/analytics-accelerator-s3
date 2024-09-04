@@ -1,10 +1,15 @@
 package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.common.telemetry.Telemetry;
+import com.amazon.connector.s3.io.logical.LogicalIO;
+import com.amazon.connector.s3.io.logical.impl.DefaultLogicalIOImpl;
+import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
+import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.request.ObjectClient;
+import com.amazon.connector.s3.util.ObjectFormatSelector;
 import com.amazon.connector.s3.util.S3URI;
 import java.io.IOException;
 import lombok.Getter;
@@ -29,6 +34,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final MetadataStore objectMetadataStore;
   private final BlobStore objectBlobStore;
   private final Telemetry telemetry;
+  private final ObjectFormatSelector objectFormatSelector;
 
   /**
    * Creates a new instance of {@link S3SeekableInputStreamFactory}. This factory should be used to
@@ -47,6 +53,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.parquetMetadataStore = new ParquetMetadataStore(configuration.getLogicalIOConfiguration());
     this.objectMetadataStore =
         new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
+    this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
     this.objectBlobStore =
         new BlobStore(
             objectMetadataStore,
@@ -62,13 +69,23 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @return An instance of the input stream.
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI) {
-    return new S3SeekableInputStream(
-        s3URI,
-        objectMetadataStore,
-        objectBlobStore,
-        telemetry,
-        configuration,
-        parquetMetadataStore);
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
+  }
+
+  private LogicalIO createLogicalIO(S3URI s3URI) {
+    switch (objectFormatSelector.getObjectFormat(s3URI)) {
+      case PARQUET:
+        return new ParquetLogicalIOImpl(
+            s3URI,
+            new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry),
+            telemetry,
+            configuration.getLogicalIOConfiguration(),
+            parquetMetadataStore);
+
+      default:
+        return new DefaultLogicalIOImpl(
+            new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry));
+    }
   }
 
   /**

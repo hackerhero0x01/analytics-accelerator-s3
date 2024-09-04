@@ -4,10 +4,6 @@ import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIO;
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
-import com.amazon.connector.s3.io.physical.data.BlobStore;
-import com.amazon.connector.s3.io.physical.data.MetadataStore;
-import com.amazon.connector.s3.util.LogicalIOFactory;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.io.EOFException;
@@ -34,34 +30,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
   private static final String FLAVOR_BYTE = "byte";
 
   /**
-   * Creates a new instance of {@link S3SeekableInputStream}. This version of the constructor
-   * initialises the stream with sensible defaults.
-   *
-   * @param s3URI the object this stream is using
-   * @param metadataStore a MetadataStore instance being used as a HeadObject cache
-   * @param blobStore a BlobStore instance being used as data cache
-   * @param telemetry The {@link Telemetry} to use to report measurements.
-   * @param configuration provides instance of {@link S3SeekableInputStreamConfiguration}
-   * @param parquetMetadataStore object containing Parquet usage information
-   */
-  S3SeekableInputStream(
-      @NonNull S3URI s3URI,
-      @NonNull MetadataStore metadataStore,
-      @NonNull BlobStore blobStore,
-      @NonNull Telemetry telemetry,
-      @NonNull S3SeekableInputStreamConfiguration configuration,
-      @NonNull ParquetMetadataStore parquetMetadataStore) {
-    this.logicalIO =
-        LogicalIOFactory.getLogicalIOImplementation(
-            s3URI, metadataStore, blobStore, telemetry, configuration, parquetMetadataStore);
-    this.s3URI = s3URI;
-    this.telemetry = telemetry;
-    this.position = 0;
-  }
-
-  /**
-   * Given a LogicalIO, creates a new instance of {@link S3SeekableInputStream}. This version of the
-   * constructor is useful for testing as it allows dependency injection.
+   * Given a LogicalIO, creates a new instance of {@link S3SeekableInputStream}.
    *
    * @param s3URI the object this stream is using
    * @param logicalIO already initialised LogicalIO

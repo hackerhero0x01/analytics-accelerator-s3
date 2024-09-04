@@ -34,7 +34,7 @@ public class DefaultLogicalIOImpl implements LogicalIO {
   }
 
   /**
-   * Reads Reads data into the provided buffer
+   * Reads data into the provided buffer
    *
    * @param buf buffer to read data into
    * @param off start position in buffer at which data is written
@@ -65,7 +65,7 @@ public class DefaultLogicalIOImpl implements LogicalIO {
   }
 
   /**
-   * Closes the resources associated with the {@link ParquetLogicalIOImpl}.
+   * Closes associate resources.
    *
    * @throws IOException
    */
