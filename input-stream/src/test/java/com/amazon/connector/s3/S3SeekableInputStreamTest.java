@@ -25,8 +25,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.utils.IoUtils;
 import software.amazon.awssdk.utils.StringUtils;
 
@@ -393,16 +391,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     }
     if (thrown.get() != null) {
       fail("Unexpected exception", thrown.get());
-    }
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"key.parquet", "key", "key.java"})
-  void testDifferentFileFormatReads(String key) throws IOException {
-    S3URI parquetS3URI = S3URI.of("bucket", key);
-    try (S3SeekableInputStream in = getTestStreamWithContent(TEST_DATA, parquetS3URI)) {
-      in.seek(5);
-      assertEquals(100, in.read());
     }
   }
 

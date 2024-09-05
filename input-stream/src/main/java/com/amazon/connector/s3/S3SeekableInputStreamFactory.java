@@ -72,7 +72,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
-  private LogicalIO createLogicalIO(S3URI s3URI) {
+  LogicalIO createLogicalIO(S3URI s3URI) {
     switch (objectFormatSelector.getObjectFormat(s3URI)) {
       case PARQUET:
         return new ParquetLogicalIOImpl(
