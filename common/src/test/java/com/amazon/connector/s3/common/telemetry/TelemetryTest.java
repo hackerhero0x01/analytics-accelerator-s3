@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
     justification = "We mean to pass nulls to checks")
 public class TelemetryTest {
   @Test
-  void testGetTelemetry() {
-    try (Telemetry newTelemetry = Telemetry.getTelemetry(TelemetryConfiguration.DEFAULT)) {
+  void testCreateTelemetry() {
+    try (Telemetry newTelemetry = Telemetry.createTelemetry(TelemetryConfiguration.DEFAULT)) {
       assertNotNull(newTelemetry);
       assertInstanceOf(ConfigurableTelemetry.class, newTelemetry);
     }
@@ -23,7 +23,7 @@ public class TelemetryTest {
   @Test
   void testCreateTelemetryWithNulls() {
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class, () -> Telemetry.getTelemetry(null));
+        NullPointerException.class, () -> Telemetry.createTelemetry(null));
   }
 
   @Test

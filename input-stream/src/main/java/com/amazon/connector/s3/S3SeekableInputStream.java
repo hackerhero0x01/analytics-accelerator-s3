@@ -195,6 +195,8 @@ public class S3SeekableInputStream extends SeekableInputStream {
   @Override
   public void close() throws IOException {
     this.logicalIO.close();
+    // Flush telemetry after a stream closes to have full coverage of all operations of this stream
+    this.telemetry.flush();
   }
 
   /**

@@ -270,7 +270,7 @@ public interface Telemetry extends Closeable {
    * @param configuration an instance of {@link TelemetryConfiguration}.
    * @return a new instance of {@link Telemetry}, as defined by the configuration.
    */
-  static Telemetry getTelemetry(@NonNull TelemetryConfiguration configuration) {
+  static Telemetry createTelemetry(@NonNull TelemetryConfiguration configuration) {
     return new ConfigurableTelemetry(configuration);
   }
 

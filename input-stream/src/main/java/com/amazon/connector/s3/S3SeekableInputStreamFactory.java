@@ -49,7 +49,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     this.objectClient = objectClient;
     this.configuration = configuration;
-    this.telemetry = Telemetry.getTelemetry(configuration.getTelemetryConfiguration());
+    this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
     this.parquetMetadataStore = new ParquetMetadataStore(configuration.getLogicalIOConfiguration());
     this.objectMetadataStore =
         new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
@@ -97,5 +97,6 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   public void close() throws IOException {
     this.objectMetadataStore.close();
     this.objectBlobStore.close();
+    this.telemetry.close();
   }
 }
