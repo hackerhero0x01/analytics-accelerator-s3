@@ -43,4 +43,20 @@ class GroupTelemetryReporter implements TelemetryReporter {
       reporter.reportComplete(operationMeasurement);
     }
   }
+
+  /** Flushes any intermediate state of the reporters */
+  @Override
+  public void flush() {
+    for (TelemetryReporter reporter : reporters) {
+      reporter.flush();
+    }
+  }
+
+  /** Closes the underlying reporters */
+  @Override
+  public void close() {
+    for (TelemetryReporter reporter : reporters) {
+      reporter.close();
+    }
+  }
 }

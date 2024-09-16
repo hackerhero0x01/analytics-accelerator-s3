@@ -18,4 +18,8 @@ class NoOpTelemetryReporter implements TelemetryReporter {
    */
   @Override
   public void reportComplete(OperationMeasurement operationMeasurement) {}
+
+  /** Flushes any intermediate state of the reporters In this case, this is a no-op */
+  @Override
+  public void flush() {}
 }

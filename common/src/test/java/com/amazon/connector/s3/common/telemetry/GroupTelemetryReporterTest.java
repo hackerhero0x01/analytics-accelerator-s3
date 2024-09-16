@@ -2,6 +2,7 @@ package com.amazon.connector.s3.common.telemetry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.amazon.connector.s3.SpotBugsLambdaWorkaround;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,13 +21,33 @@ public class GroupTelemetryReporterTest {
     List<TelemetryReporter> reporters = new ArrayList<>();
     reporters.add(reporter1);
     reporters.add(reporter2);
-    GroupTelemetryReporter reporter = new GroupTelemetryReporter(reporters);
-    assertArrayEquals(reporter.getReporters().toArray(), reporters.toArray());
+    try (GroupTelemetryReporter reporter = new GroupTelemetryReporter(reporters)) {
+      assertArrayEquals(reporter.getReporters().toArray(), reporters.toArray());
+    }
+  }
+
+  @Test
+  void testFlushedAndClosed() {
+    CollectingTelemetryReporter reporter1 = new CollectingTelemetryReporter();
+    CollectingTelemetryReporter reporter2 = new CollectingTelemetryReporter();
+    List<TelemetryReporter> reporters = new ArrayList<>();
+    reporters.add(reporter1);
+    reporters.add(reporter2);
+    try (GroupTelemetryReporter reporter = new GroupTelemetryReporter(reporters)) {
+      reporter.flush();
+      assertTrue(reporter1.getFlushed().get());
+      assertTrue(reporter2.getFlushed().get());
+      assertFalse(reporter1.getClosed().get());
+      assertFalse(reporter2.getClosed().get());
+    }
+    assertTrue(reporter1.getClosed().get());
+    assertTrue(reporter2.getClosed().get());
   }
 
   @Test
   void testCreateWithNulls() {
-    assertThrows(NullPointerException.class, () -> new GroupTelemetryReporter(null));
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+        NullPointerException.class, () -> new GroupTelemetryReporter(null));
   }
 
   @Test
@@ -36,24 +57,24 @@ public class GroupTelemetryReporterTest {
     List<TelemetryReporter> reporters = new ArrayList<>();
     reporters.add(reporter1);
     reporters.add(reporter2);
-    GroupTelemetryReporter reporter = new GroupTelemetryReporter(reporters);
+    try (GroupTelemetryReporter reporter = new GroupTelemetryReporter(reporters)) {
+      Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
+      OperationMeasurement operationMeasurement =
+          OperationMeasurement.builder()
+              .operation(operation)
+              .epochTimestampNanos(TEST_EPOCH_NANOS)
+              .level(TelemetryLevel.STANDARD)
+              .elapsedStartTimeNanos(10)
+              .elapsedCompleteTimeNanos(5000000)
+              .build();
 
-    Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
-    OperationMeasurement operationMeasurement =
-        OperationMeasurement.builder()
-            .operation(operation)
-            .epochTimestampNanos(TEST_EPOCH_NANOS)
-            .level(TelemetryLevel.STANDARD)
-            .elapsedStartTimeNanos(10)
-            .elapsedCompleteTimeNanos(5000000)
-            .build();
-
-    reporter.reportComplete(operationMeasurement);
-    reporters.forEach(
-        r ->
-            assertArrayEquals(
-                ((CollectingTelemetryReporter) r).getOperationCompletions().toArray(),
-                new OperationMeasurement[] {operationMeasurement}));
+      reporter.reportComplete(operationMeasurement);
+      reporters.forEach(
+          r ->
+              assertArrayEquals(
+                  ((CollectingTelemetryReporter) r).getOperationCompletions().toArray(),
+                  new OperationMeasurement[] {operationMeasurement}));
+    }
   }
 
   @Test
@@ -63,15 +84,15 @@ public class GroupTelemetryReporterTest {
     List<TelemetryReporter> reporters = new ArrayList<>();
     reporters.add(reporter1);
     reporters.add(reporter2);
-    GroupTelemetryReporter reporter = new GroupTelemetryReporter(reporters);
+    try (GroupTelemetryReporter reporter = new GroupTelemetryReporter(reporters)) {
+      Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
+      reporter.reportStart(TEST_EPOCH_NANOS, operation);
 
-    Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
-    reporter.reportStart(TEST_EPOCH_NANOS, operation);
-
-    reporters.forEach(
-        r ->
-            assertArrayEquals(
-                ((CollectingTelemetryReporter) r).getOperationStarts().toArray(),
-                new Operation[] {operation}));
+      reporters.forEach(
+          r ->
+              assertArrayEquals(
+                  ((CollectingTelemetryReporter) r).getOperationStarts().toArray(),
+                  new Operation[] {operation}));
+    }
   }
 }

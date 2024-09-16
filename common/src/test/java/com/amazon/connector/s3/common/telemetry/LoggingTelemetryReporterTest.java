@@ -2,6 +2,7 @@ package com.amazon.connector.s3.common.telemetry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.amazon.connector.s3.SpotBugsLambdaWorkaround;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.ZoneId;
 import java.util.Locale;
@@ -17,23 +18,24 @@ public class LoggingTelemetryReporterTest {
 
   @Test
   void testCreate() {
-    LoggingTelemetryReporter reporter = new LoggingTelemetryReporter();
-    assertEquals(LoggingTelemetryReporter.DEFAULT_LOGGING_NAME, reporter.getLoggerName());
-    assertEquals(LoggingTelemetryReporter.DEFAULT_LOGGING_LEVEL, reporter.getLoggerLevel());
-    assertEquals(EpochFormatter.DEFAULT, reporter.getEpochFormatter());
+    try (LoggingTelemetryReporter reporter = new LoggingTelemetryReporter()) {
+      assertEquals(LoggingTelemetryReporter.DEFAULT_LOGGING_NAME, reporter.getLoggerName());
+      assertEquals(LoggingTelemetryReporter.DEFAULT_LOGGING_LEVEL, reporter.getLoggerLevel());
+      assertEquals(EpochFormatter.DEFAULT, reporter.getEpochFormatter());
 
-    Operation operation = Operation.builder().id("123").name("foo").attribute("A", 42).build();
-    OperationMeasurement operationMeasurement =
-        OperationMeasurement.builder()
-            .operation(operation)
-            .level(TelemetryLevel.STANDARD)
-            .epochTimestampNanos(TEST_EPOCH_NANOS)
-            .elapsedStartTimeNanos(10)
-            .elapsedCompleteTimeNanos(5000000)
-            .build();
+      Operation operation = Operation.builder().id("123").name("foo").attribute("A", 42).build();
+      OperationMeasurement operationMeasurement =
+          OperationMeasurement.builder()
+              .operation(operation)
+              .level(TelemetryLevel.STANDARD)
+              .epochTimestampNanos(TEST_EPOCH_NANOS)
+              .elapsedStartTimeNanos(10)
+              .elapsedCompleteTimeNanos(5000000)
+              .build();
 
-    reporter.reportStart(TEST_EPOCH_NANOS, operation);
-    reporter.reportComplete(operationMeasurement);
+      reporter.reportStart(TEST_EPOCH_NANOS, operation);
+      reporter.reportComplete(operationMeasurement);
+    }
   }
 
   @Test
@@ -43,11 +45,12 @@ public class LoggingTelemetryReporterTest {
             "yyyy/MM/dd'T'HH;mm;ss,SSS'Z'",
             TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
             Locale.ENGLISH);
-    LoggingTelemetryReporter reporter =
-        new LoggingTelemetryReporter("foo", Level.ERROR, epochFormatter);
-    assertEquals("foo", reporter.getLoggerName());
-    assertEquals(Level.ERROR, reporter.getLoggerLevel());
-    assertEquals(epochFormatter, reporter.getEpochFormatter());
+    try (LoggingTelemetryReporter reporter =
+        new LoggingTelemetryReporter("foo", Level.ERROR, epochFormatter)) {
+      assertEquals("foo", reporter.getLoggerName());
+      assertEquals(Level.ERROR, reporter.getLoggerLevel());
+      assertEquals(epochFormatter, reporter.getEpochFormatter());
+    }
   }
 
   @Test
@@ -62,8 +65,9 @@ public class LoggingTelemetryReporterTest {
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
-    LoggingTelemetryReporter reporter = new LoggingTelemetryReporter();
-    reporter.reportComplete(operationMeasurement);
+    try (LoggingTelemetryReporter reporter = new LoggingTelemetryReporter()) {
+      reporter.reportComplete(operationMeasurement);
+    }
   }
 
   @Test
@@ -79,32 +83,31 @@ public class LoggingTelemetryReporterTest {
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
-    LoggingTelemetryReporter reporter = new LoggingTelemetryReporter();
-    reporter.reportComplete(operationMeasurement);
+    try (LoggingTelemetryReporter reporter = new LoggingTelemetryReporter()) {
+      reporter.reportComplete(operationMeasurement);
+    }
   }
 
   @Test
   void testCreateWithNulls() {
-    assertThrows(
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
-        () -> {
-          new LoggingTelemetryReporter(null, Level.ERROR, EpochFormatter.DEFAULT);
-        });
-    assertThrows(
+        () -> new LoggingTelemetryReporter(null, Level.ERROR, EpochFormatter.DEFAULT));
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
-        () -> {
-          new LoggingTelemetryReporter("foo", null, EpochFormatter.DEFAULT);
-        });
-    assertThrows(
-        NullPointerException.class,
-        () -> {
-          new LoggingTelemetryReporter("foo", Level.ERROR, null);
-        });
+        () -> new LoggingTelemetryReporter("foo", null, EpochFormatter.DEFAULT));
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+        NullPointerException.class, () -> new LoggingTelemetryReporter("foo", Level.ERROR, null));
   }
 
   @Test
   public void testReportCompleteThrowsOnNull() {
     assertThrows(
-        NullPointerException.class, () -> new LoggingTelemetryReporter().reportComplete(null));
+        NullPointerException.class,
+        () -> {
+          try (LoggingTelemetryReporter reporter = new LoggingTelemetryReporter()) {
+            reporter.reportComplete(null);
+          }
+        });
   }
 }

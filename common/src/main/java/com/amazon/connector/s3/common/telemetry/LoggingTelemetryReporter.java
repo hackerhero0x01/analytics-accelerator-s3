@@ -74,4 +74,8 @@ class LoggingTelemetryReporter implements TelemetryReporter {
       this.logger.log(this.loggerLevel, message);
     }
   }
+
+  /** Flushes any intermediate state of the reporters In this case, this is a no-op */
+  @Override
+  public void flush() {}
 }
