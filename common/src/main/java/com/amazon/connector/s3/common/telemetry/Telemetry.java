@@ -1,11 +1,12 @@
 package com.amazon.connector.s3.common.telemetry;
 
+import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import lombok.NonNull;
 
 /** This is a set of operations that support adding telemetry for operation execution. */
-public interface Telemetry {
+public interface Telemetry extends Closeable {
   /**
    * Measures a given {@link Runnable} and record the telemetry as {@link Operation}.
    *
@@ -253,6 +254,14 @@ public interface Telemetry {
   default <T> T measureJoinVerbose(
       OperationSupplier operationSupplier, CompletableFuture<T> operationCode) {
     return measureJoin(TelemetryLevel.VERBOSE, operationSupplier, operationCode);
+  }
+
+  /** Flushes the contents of {@link Telemetry} */
+  void flush();
+
+  /** Flushes the {@link Telemetry} */
+  default void close() {
+    this.flush();
   }
 
   /**
