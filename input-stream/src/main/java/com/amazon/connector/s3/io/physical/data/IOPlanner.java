@@ -1,11 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import com.amazon.connector.s3.common.Preconditions;
-import com.amazon.connector.s3.common.telemetry.Operation;
-import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.request.Range;
-import com.amazon.connector.s3.util.S3URI;
-import com.amazon.connector.s3.util.StreamAttributes;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.OptionalLong;
@@ -16,24 +12,15 @@ import lombok.NonNull;
  * responsibility is ensuring that there are no overlapping ranges in the BlockStore.
  */
 public class IOPlanner {
-  private final S3URI s3URI;
   private final BlockStore blockStore;
-  private final Telemetry telemetry;
-
-  private static final String OPERATION_PLAN_READ = "io.planner.read";
 
   /**
    * Creates a new instance of {@link IOPlanner}.
    *
-   * @param s3URI the S3 URI of the object
    * @param blockStore the {@link BlobStore} to use
-   * @param telemetry the {@link Telemetry} to use
    */
-  public IOPlanner(
-      @NonNull S3URI s3URI, @NonNull BlockStore blockStore, @NonNull Telemetry telemetry) {
-    this.s3URI = s3URI;
+  public IOPlanner(@NonNull BlockStore blockStore) {
     this.blockStore = blockStore;
-    this.telemetry = telemetry;
   }
 
   /**
@@ -51,35 +38,24 @@ public class IOPlanner {
     Preconditions.checkArgument(
         pos <= lastObjectByte, "`pos` must be less than or equal to `lastObjectByte`");
 
-    return telemetry.measureStandard(
-        () ->
-            Operation.builder()
-                .name(OPERATION_PLAN_READ)
-                .attribute(StreamAttributes.uri(this.s3URI))
-                .attribute(StreamAttributes.position(pos))
-                .attribute(StreamAttributes.end(end))
-                .build(),
-        () -> {
-          List<Range> missingRanges = new LinkedList<>();
+    List<Range> missingRanges = new LinkedList<>();
 
-          OptionalLong nextMissingByte = blockStore.findNextMissingByte(pos);
+    OptionalLong nextMissingByte = blockStore.findNextMissingByte(pos);
 
-          while (nextMissingByte.isPresent()
-              && nextMissingByte.getAsLong() <= Math.min(end, lastObjectByte)) {
-            OptionalLong nextAvailableByte =
-                blockStore.findNextLoadedByte(nextMissingByte.getAsLong());
+    while (nextMissingByte.isPresent()
+        && nextMissingByte.getAsLong() <= Math.min(end, lastObjectByte)) {
+      OptionalLong nextAvailableByte = blockStore.findNextLoadedByte(nextMissingByte.getAsLong());
 
-            final long endOfRange;
-            if (nextAvailableByte.isPresent()) {
-              endOfRange = Math.min(end, nextAvailableByte.getAsLong() - 1);
-            } else {
-              endOfRange = Math.min(end, lastObjectByte);
-            }
+      final long endOfRange;
+      if (nextAvailableByte.isPresent()) {
+        endOfRange = Math.min(end, nextAvailableByte.getAsLong() - 1);
+      } else {
+        endOfRange = Math.min(end, lastObjectByte);
+      }
 
-            missingRanges.add(new Range(nextMissingByte.getAsLong(), endOfRange));
-            nextMissingByte = blockStore.findNextMissingByte(endOfRange + 1);
-          }
-          return missingRanges;
-        });
+      missingRanges.add(new Range(nextMissingByte.getAsLong(), endOfRange));
+      nextMissingByte = blockStore.findNextMissingByte(endOfRange + 1);
+    }
+    return missingRanges;
   }
 }

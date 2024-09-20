@@ -54,4 +54,13 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
   public void reportComplete(@NonNull OperationMeasurement operationMeasurement) {
     printStream.println(operationMeasurement.toString(epochFormatter));
   }
+
+  /**
+   * Flushes any intermediate state of the reporters. This flushes the underlying {@link
+   * PrintStream}
+   */
+  @Override
+  public void flush() {
+    this.printStream.flush();
+  }
 }

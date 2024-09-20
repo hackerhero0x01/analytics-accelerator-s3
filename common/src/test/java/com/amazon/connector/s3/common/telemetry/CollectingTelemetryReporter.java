@@ -2,6 +2,7 @@ package com.amazon.connector.s3.common.telemetry;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Getter;
 
 /** This reporter simply collects the {@link OperationMeasurement} objects. */
@@ -11,6 +12,8 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
   private final Collection<OperationMeasurement> operationCompletions = new ArrayList<>();
 
   private final Collection<Operation> operationStarts = new ArrayList<>();
+  private final AtomicBoolean flushed = new AtomicBoolean(false);
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
   /** Clears state */
   public void clear() {
@@ -37,5 +40,18 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
   @Override
   public void reportComplete(OperationMeasurement operationMeasurement) {
     this.operationCompletions.add(operationMeasurement);
+  }
+
+  /** Flushes any intermediate state of the reporters */
+  @Override
+  public void flush() {
+    this.flushed.set(true);
+  }
+
+  /** Closes the reporter */
+  @Override
+  public void close() {
+    this.closed.set(true);
+    TelemetryReporter.super.close();
   }
 }

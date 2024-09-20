@@ -53,24 +53,16 @@ jobs:
           path: iceberg
           ssh-key: ${{ secrets.ICEBERG_STAGING_SSH_KEY }}
 
-#      - name: Checkout Public Iceberg
-#        uses: actions/checkout@v4
-#        with:
-#          repository: apache/iceberg
-#          ref: main
-#          path: iceberg
-#          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build Iceberg jar
         run: ./gradlew build -x test -x integrationTest -x checkstyleMain
         working-directory: iceberg
 
-#      - name: Configure aws credentials
-#        uses: aws-actions/configure-aws-credentials@v1.7.0
-#        with:
-#          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
-#          role-session-name: GitHub_to_AWS_via_FederatedOIDC
-#          aws-region: ${{ env.AWS_REGION }}
-#
-#      - name: Upload iceberg spark runtime JAR to S3FileIO treatment bucket
-#        run: aws s3 cp iceberg-spark-runtime-location-here s3://${{ env.S3_BUCKET }}/s3fileio/iceberg-spark-runtime-3.5_2.12-1.5.2-amzn-0-SNAPSHOT.jar
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload iceberg-spark-runtime JAR to S3FileIO treatment bucket
+        run: aws s3 cp /home/runner/work/s3-connector-framework/s3-connector-framework/iceberg/spark/v3.5/spark-runtime/build/libs/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar  s3://${{ env.S3_BUCKET }}/s3fileio/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar

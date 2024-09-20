@@ -12,12 +12,10 @@ import lombok.Getter;
 public enum StreamAttributes {
   URI("uri"),
   RANGE("range"),
-  POSITION("position"),
-  OFFSET("offset"),
-  LENGTH("length"),
-  START("start"),
-  END("end"),
+  VARIANT("variant"),
+  EFFECTIVE_RANGE("range.effective"),
   GENERATION("generation"),
+  COLUMN("column"),
   IOPLAN("ioplan");
   private final String name;
 
@@ -32,9 +30,30 @@ public enum StreamAttributes {
   }
 
   /**
+   * Creates an {@link Attribute} for a {@link S3URI}.
+   *
+   * @param variant the variant of the operation
+   * @return The new instance of the {@link Attribute}.
+   */
+  public static Attribute variant(String variant) {
+    return Attribute.of(StreamAttributes.VARIANT.getName(), variant);
+  }
+
+  /**
    * Creates an {@link Attribute} for a {@link Range}.
    *
-   * @param range the {@link Range} to create the attribute from.
+   * @param start range start.
+   * @param end range end.
+   * @return The new instance of the {@link Attribute}.
+   */
+  public static Attribute range(long start, long end) {
+    return range(new Range(start, end));
+  }
+
+  /**
+   * Creates an {@link Attribute} for a {@link Range}.
+   *
+   * @param range range.
    * @return The new instance of the {@link Attribute}.
    */
   public static Attribute range(Range range) {
@@ -42,53 +61,24 @@ public enum StreamAttributes {
   }
 
   /**
-   * Creates an {@link Attribute} for a position.
+   * Creates an {@link Attribute} for an effective {@link Range}.
    *
-   * @param position the position to create the attribute from.
+   * @param start range start.
+   * @param end range end.
    * @return The new instance of the {@link Attribute}.
    */
-  public static Attribute position(long position) {
-    return Attribute.of(StreamAttributes.POSITION.getName(), position);
+  public static Attribute effectiveRange(long start, long end) {
+    return effectiveRange(new Range(start, end));
   }
 
   /**
-   * Creates an {@link Attribute} for a length.
+   * Creates an {@link Attribute} for anm affective {@link Range}.
    *
-   * @param length the position to create the attribute from.
+   * @param range range.
    * @return The new instance of the {@link Attribute}.
    */
-  public static Attribute length(long length) {
-    return Attribute.of(StreamAttributes.LENGTH.getName(), length);
-  }
-
-  /**
-   * Creates an {@link Attribute} for a length.
-   *
-   * @param offset the position to create the attribute from.
-   * @return The new instance of the {@link Attribute}.
-   */
-  public static Attribute offset(long offset) {
-    return Attribute.of(StreamAttributes.OFFSET.getName(), offset);
-  }
-
-  /**
-   * Creates an {@link Attribute} for start.
-   *
-   * @param start the position to create the attribute from.
-   * @return The new instance of the {@link Attribute}.
-   */
-  public static Attribute start(long start) {
-    return Attribute.of(StreamAttributes.START.getName(), start);
-  }
-
-  /**
-   * Creates an {@link Attribute} for end.
-   *
-   * @param end the position to create the attribute from.
-   * @return The new instance of the {@link Attribute}.
-   */
-  public static Attribute end(long end) {
-    return Attribute.of(StreamAttributes.END.getName(), end);
+  public static Attribute effectiveRange(Range range) {
+    return Attribute.of(StreamAttributes.EFFECTIVE_RANGE.getName(), range.toString());
   }
 
   /**
@@ -99,6 +89,16 @@ public enum StreamAttributes {
    */
   public static Attribute generation(long generation) {
     return Attribute.of(StreamAttributes.GENERATION.getName(), generation);
+  }
+
+  /**
+   * Creates an {@link Attribute} for generation.
+   *
+   * @param column the position to create the attribute from.
+   * @return The new instance of the {@link Attribute}.
+   */
+  public static Attribute column(String column) {
+    return Attribute.of(StreamAttributes.COLUMN.getName(), column);
   }
 
   /**

@@ -12,12 +12,15 @@ import java.io.InputStream;
  * <p>Implementations should implement {@link #close() close} to release resources.
  */
 public abstract class SeekableInputStream extends InputStream {
-
   /**
-   * Seeks (jumps) to a position inside the stream.
+   * Sets the offset, measured from the beginning of this stream, at which the next read occurs. The
+   * offset may be set beyond the end of the file. Setting the offset beyond the end of the file
+   * does not change the file length. The file length will change only by writing after the offset
+   * has been set beyond the end of the file.
    *
-   * @param pos The position to jump to in the stream given in bytes (zero-indexed).
-   * @throws IOException
+   * @param pos the offset position, measured in bytes from the beginning of the file, at which to
+   *     set the file pointer.
+   * @exception IOException if {@code pos} is less than {@code 0} or if an I/O error occurs.
    */
   public abstract void seek(long pos) throws IOException;
 

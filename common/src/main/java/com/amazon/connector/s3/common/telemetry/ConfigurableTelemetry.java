@@ -21,7 +21,7 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
     super(
         DefaultEpochClock.DEFAULT,
         DefaultElapsedClock.DEFAULT,
-        getTelemetryReporter(configuration),
+        createTelemetryReporter(configuration),
         TelemetryLevel.valueOf(configuration.getLevel().toUpperCase(Locale.ROOT)));
   }
 
@@ -31,7 +31,7 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
    * @param configuration {@link ConfigurableTelemetry} configuration.
    * @return a new instance of {@link ConfigurableTelemetry}.
    */
-  private static TelemetryReporter getTelemetryReporter(TelemetryConfiguration configuration) {
+  private static TelemetryReporter createTelemetryReporter(TelemetryConfiguration configuration) {
     Optional<LoggingTelemetryReporter> loggingReporter = Optional.empty();
     Optional<PrintStreamTelemetryReporter> stdOutTelemetryReporter = Optional.empty();
     // Create logging reporter

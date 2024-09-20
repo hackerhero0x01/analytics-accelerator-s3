@@ -17,7 +17,8 @@ public class NoOpTelemetryReporterTest {
             .elapsedCompleteTimeNanos(5000000)
             .build();
 
-    TelemetryReporter reporter = new NoOpTelemetryReporter();
-    reporter.reportComplete(operationMeasurement);
+    try (TelemetryReporter reporter = new NoOpTelemetryReporter()) {
+      reporter.reportComplete(operationMeasurement);
+    }
   }
 }

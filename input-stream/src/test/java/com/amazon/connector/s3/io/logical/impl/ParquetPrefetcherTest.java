@@ -1,7 +1,6 @@
 package com.amazon.connector.s3.io.logical.impl;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -11,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.logical.parquet.FileTail;
@@ -20,20 +20,21 @@ import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchRemainingColumn
 import com.amazon.connector.s3.io.logical.parquet.ParquetPrefetchTailTask;
 import com.amazon.connector.s3.io.logical.parquet.ParquetReadTailTask;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
-import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
 import com.amazon.connector.s3.util.S3URI;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.ByteBuffer;
 import java.util.stream.Stream;
-import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class ParquetPrefetcherTest {
-
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
 
   @Test
@@ -42,8 +43,177 @@ public class ParquetPrefetcherTest {
         new ParquetPrefetcher(
             mock(S3URI.class),
             mock(PhysicalIO.class),
+            mock(Telemetry.class),
             mock(LogicalIOConfiguration.class),
             mock(ParquetMetadataStore.class)));
+  }
+
+  @Test
+  public void testConstructorNulls() {
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                null,
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class),
+                mock(Telemetry.class),
+                mock(ParquetMetadataParsingTask.class),
+                mock(ParquetPrefetchTailTask.class),
+                mock(ParquetReadTailTask.class),
+                mock(ParquetPrefetchRemainingColumnTask.class),
+                mock(ParquetPredictivePrefetchingTask.class)));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                null,
+                mock(ParquetMetadataStore.class),
+                mock(Telemetry.class),
+                mock(ParquetMetadataParsingTask.class),
+                mock(ParquetPrefetchTailTask.class),
+                mock(ParquetReadTailTask.class),
+                mock(ParquetPrefetchRemainingColumnTask.class),
+                mock(ParquetPredictivePrefetchingTask.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(LogicalIOConfiguration.class),
+                null,
+                mock(Telemetry.class),
+                mock(ParquetMetadataParsingTask.class),
+                mock(ParquetPrefetchTailTask.class),
+                mock(ParquetReadTailTask.class),
+                mock(ParquetPrefetchRemainingColumnTask.class),
+                mock(ParquetPredictivePrefetchingTask.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class),
+                null,
+                mock(ParquetMetadataParsingTask.class),
+                mock(ParquetPrefetchTailTask.class),
+                mock(ParquetReadTailTask.class),
+                mock(ParquetPrefetchRemainingColumnTask.class),
+                mock(ParquetPredictivePrefetchingTask.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class),
+                mock(Telemetry.class),
+                null,
+                mock(ParquetPrefetchTailTask.class),
+                mock(ParquetReadTailTask.class),
+                mock(ParquetPrefetchRemainingColumnTask.class),
+                mock(ParquetPredictivePrefetchingTask.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class),
+                mock(Telemetry.class),
+                mock(ParquetMetadataParsingTask.class),
+                null,
+                mock(ParquetReadTailTask.class),
+                mock(ParquetPrefetchRemainingColumnTask.class),
+                mock(ParquetPredictivePrefetchingTask.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class),
+                mock(Telemetry.class),
+                mock(ParquetMetadataParsingTask.class),
+                mock(ParquetPrefetchTailTask.class),
+                null,
+                mock(ParquetPrefetchRemainingColumnTask.class),
+                mock(ParquetPredictivePrefetchingTask.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class),
+                mock(Telemetry.class),
+                mock(ParquetMetadataParsingTask.class),
+                mock(ParquetPrefetchTailTask.class),
+                mock(ParquetReadTailTask.class),
+                null,
+                mock(ParquetPredictivePrefetchingTask.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class),
+                mock(Telemetry.class),
+                mock(ParquetMetadataParsingTask.class),
+                mock(ParquetPrefetchTailTask.class),
+                mock(ParquetReadTailTask.class),
+                mock(ParquetPrefetchRemainingColumnTask.class),
+                null));
+
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                null,
+                mock(PhysicalIO.class),
+                mock(Telemetry.class),
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                null,
+                mock(Telemetry.class),
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(PhysicalIO.class),
+                null,
+                mock(LogicalIOConfiguration.class),
+                mock(ParquetMetadataStore.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(PhysicalIO.class),
+                mock(Telemetry.class),
+                null,
+                mock(ParquetMetadataStore.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetcher(
+                mock(S3URI.class),
+                mock(PhysicalIO.class),
+                mock(Telemetry.class),
+                mock(LogicalIOConfiguration.class),
+                null));
   }
 
   @Test
@@ -61,7 +231,6 @@ public class ParquetPrefetcherTest {
     ParquetPrefetcher parquetPrefetcher =
         getTestPrefetcher(
             logicalIOConfiguration,
-            getTestPhysicalIO(),
             mock(ParquetMetadataStore.class),
             mock(ParquetMetadataParsingTask.class),
             mock(ParquetPrefetchTailTask.class),
@@ -94,7 +263,6 @@ public class ParquetPrefetcherTest {
     ParquetPrefetcher parquetPrefetcher =
         getTestPrefetcher(
             logicalIOConfiguration,
-            getTestPhysicalIO(),
             mock(ParquetMetadataStore.class),
             mock(ParquetMetadataParsingTask.class),
             mock(ParquetPrefetchTailTask.class),
@@ -124,7 +292,6 @@ public class ParquetPrefetcherTest {
     ParquetPrefetcher parquetPrefetcher =
         getTestPrefetcher(
             logicalIOConfiguration,
-            getTestPhysicalIO(),
             mock(ParquetMetadataStore.class),
             parquetMetadataParsingTask,
             parquetPrefetchTailTask,
@@ -161,7 +328,6 @@ public class ParquetPrefetcherTest {
     ParquetPrefetcher parquetPrefetcher =
         getTestPrefetcher(
             logicalIOConfiguration,
-            getTestPhysicalIO(),
             mock(ParquetMetadataStore.class),
             parquetMetadataParsingTask,
             parquetPrefetchTailTask,
@@ -196,7 +362,6 @@ public class ParquetPrefetcherTest {
     ParquetPrefetcher parquetPrefetcher =
         getTestPrefetcher(
             logicalIOConfiguration,
-            getTestPhysicalIO(),
             mock(ParquetMetadataStore.class),
             parquetMetadataParsingTask,
             parquetPrefetchTailTask,
@@ -228,7 +393,6 @@ public class ParquetPrefetcherTest {
     ParquetPrefetcher parquetPrefetcher =
         getTestPrefetcher(
             logicalIOConfiguration,
-            getTestPhysicalIO(),
             mock(ParquetMetadataStore.class),
             mock(ParquetMetadataParsingTask.class),
             parquetPrefetchTailTask,
@@ -253,7 +417,6 @@ public class ParquetPrefetcherTest {
     ParquetPrefetcher parquetPrefetcher =
         getTestPrefetcher(
             logicalIOConfiguration,
-            getTestPhysicalIO(),
             mock(ParquetMetadataStore.class),
             mock(ParquetMetadataParsingTask.class),
             mock(ParquetPrefetchTailTask.class),
@@ -273,15 +436,6 @@ public class ParquetPrefetcherTest {
         Arguments.of(true, true), Arguments.of(false, true), Arguments.of(false, false));
   }
 
-  // Returns a physicalIO that accepts all plans
-  @SneakyThrows
-  private PhysicalIO getTestPhysicalIO() {
-    PhysicalIO physicalIO = mock(PhysicalIO.class);
-    when(physicalIO.execute(any(IOPlan.class)))
-        .thenReturn(IOPlanExecution.builder().state(IOPlanState.SUBMITTED).build());
-    return physicalIO;
-  }
-
   private ParquetReadTailTask getTestParquetReadTailTask() {
     ParquetReadTailTask parquetReadTailTask = mock(ParquetReadTailTask.class);
     when(parquetReadTailTask.readFileTail()).thenReturn(new FileTail(ByteBuffer.allocate(10), 10));
@@ -297,7 +451,6 @@ public class ParquetPrefetcherTest {
 
   private ParquetPrefetcher getTestPrefetcher(
       LogicalIOConfiguration logicalIOConfiguration,
-      PhysicalIO physicalIO,
       ParquetMetadataStore parquetMetadataStore,
       ParquetMetadataParsingTask parquetMetadataParsingTask,
       ParquetPrefetchTailTask parquetPrefetchTailTask,
@@ -309,6 +462,7 @@ public class ParquetPrefetcherTest {
         TEST_URI,
         logicalIOConfiguration,
         parquetMetadataStore,
+        Telemetry.NOOP,
         parquetMetadataParsingTask,
         parquetPrefetchTailTask,
         parquetReadTailTask,

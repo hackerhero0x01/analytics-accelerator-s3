@@ -55,25 +55,16 @@ jobs:
           path: hadoop
           ssh-key: ${{ secrets.HADOOP_STAGING_SSH_KEY }}
 
-#      - name: Checkout Public Hadoop
-#        uses: actions/checkout@v4
-#        with:
-#          repository: apache/hadoop
-#          ref: trunk
-#          path: hadoop
-#          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build Hadoop jar
         run: mvn clean install -DskipTests
         working-directory: hadoop
 
-#      - name: Configure aws credentials
-#        uses: aws-actions/configure-aws-credentials@v1.7.0
-#        with:
-#          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
-#          role-session-name: GitHub_to_AWS_via_FederatedOIDC
-#          aws-region: ${{ env.AWS_REGION }}
-#
-#      - name: Upload hadoop-aws JAR to S3a treatment bucket
-#        run: aws s3 cp ~/.m2/repository/org/apache/hadoop/hadoop-aws s3://${{ env.S3_BUCKET }}/s3a/hadoop-aws-3.5.0-SNAPSHOT.jar
-#
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload hadoop-aws JAR to S3a treatment bucket
+        run: aws s3 cp /home/runner/.m2/repository/org/apache/hadoop/hadoop-aws/3.5.0-SNAPSHOT/hadoop-aws-3.5.0-SNAPSHOT.jar s3://${{ env.S3_BUCKET }}/s3a/hadoop-aws-3.5.0-SNAPSHOT.jar

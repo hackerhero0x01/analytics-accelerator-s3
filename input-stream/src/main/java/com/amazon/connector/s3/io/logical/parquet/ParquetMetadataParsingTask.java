@@ -1,6 +1,5 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
-import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
@@ -23,7 +22,6 @@ public class ParquetMetadataParsingTask {
   private final S3URI s3URI;
   private final ParquetParser parquetParser;
   private final ParquetMetadataStore parquetMetadataStore;
-  private final LogicalIOConfiguration logicalIOConfiguration;
 
   private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataParsingTask.class);
 
@@ -31,14 +29,10 @@ public class ParquetMetadataParsingTask {
    * Creates a new instance of {@link ParquetMetadataParsingTask}.
    *
    * @param s3URI the S3Uri of the object
-   * @param logicalIOConfiguration logical io configuration
    * @param parquetMetadataStore object containing Parquet usage information
    */
-  public ParquetMetadataParsingTask(
-      S3URI s3URI,
-      LogicalIOConfiguration logicalIOConfiguration,
-      ParquetMetadataStore parquetMetadataStore) {
-    this(s3URI, parquetMetadataStore, logicalIOConfiguration, new ParquetParser());
+  public ParquetMetadataParsingTask(S3URI s3URI, ParquetMetadataStore parquetMetadataStore) {
+    this(s3URI, parquetMetadataStore, new ParquetParser());
   }
 
   /**
@@ -47,18 +41,15 @@ public class ParquetMetadataParsingTask {
    *
    * @param s3URI the S3Uri of the object
    * @param parquetMetadataStore object containing Parquet usage information
-   * @param logicalIOConfiguration logical io configuration
    * @param parquetParser parser for getting the file metadata
    */
-  protected ParquetMetadataParsingTask(
+  ParquetMetadataParsingTask(
       @NonNull S3URI s3URI,
       @NonNull ParquetMetadataStore parquetMetadataStore,
-      @NonNull LogicalIOConfiguration logicalIOConfiguration,
       @NonNull ParquetParser parquetParser) {
     this.s3URI = s3URI;
     this.parquetParser = parquetParser;
     this.parquetMetadataStore = parquetMetadataStore;
-    this.logicalIOConfiguration = logicalIOConfiguration;
   }
 
   /**
@@ -68,7 +59,6 @@ public class ParquetMetadataParsingTask {
    * @return Column mappings
    */
   public ColumnMappers storeColumnMappers(FileTail fileTail) {
-
     try {
       FileMetaData fileMetaData =
           parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
@@ -85,7 +75,6 @@ public class ParquetMetadataParsingTask {
   }
 
   private ColumnMappers buildColumnMaps(FileMetaData fileMetaData) {
-
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
     String concatenatedColumnNames = concatColumnNames(fileMetaData);

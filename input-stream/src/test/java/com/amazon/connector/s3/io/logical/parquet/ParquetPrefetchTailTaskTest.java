@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
@@ -36,17 +37,29 @@ public class ParquetPrefetchTailTaskTest {
   void testContructor() {
     assertNotNull(
         new ParquetPrefetchTailTask(
-            TEST_URI, LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
+            TEST_URI, Telemetry.NOOP, LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
   }
 
   @Test
   void testConstructorFailsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetPrefetchTailTask(TEST_URI, null, mock(PhysicalIO.class)));
+        () ->
+            new ParquetPrefetchTailTask(
+                null, Telemetry.NOOP, LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
     assertThrows(
         NullPointerException.class,
-        () -> new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, null));
+        () ->
+            new ParquetPrefetchTailTask(
+                TEST_URI, null, LogicalIOConfiguration.DEFAULT, mock(PhysicalIO.class)));
+    assertThrows(
+        NullPointerException.class,
+        () -> new ParquetPrefetchTailTask(TEST_URI, Telemetry.NOOP, null, mock(PhysicalIO.class)));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new ParquetPrefetchTailTask(
+                TEST_URI, Telemetry.NOOP, LogicalIOConfiguration.DEFAULT, null));
   }
 
   @Test
@@ -65,7 +78,8 @@ public class ParquetPrefetchTailTaskTest {
       when(mockedPhysicalIO.metadata()).thenReturn(metadata);
 
       ParquetPrefetchTailTask parquetPrefetchTailTask =
-          new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+          new ParquetPrefetchTailTask(
+              TEST_URI, Telemetry.NOOP, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
       parquetPrefetchTailTask.prefetchTail();
 
       verify(mockedPhysicalIO).execute(any(IOPlan.class));
@@ -80,7 +94,8 @@ public class ParquetPrefetchTailTaskTest {
     // Given: Parquet Tail Prefetching task
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     ParquetPrefetchTailTask parquetPrefetchTailTask =
-        new ParquetPrefetchTailTask(TEST_URI, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
+        new ParquetPrefetchTailTask(
+            TEST_URI, Telemetry.NOOP, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
     // When: task executes but PhysicalIO throws
     ObjectMetadata metadata = ObjectMetadata.builder().contentLength(600).build();

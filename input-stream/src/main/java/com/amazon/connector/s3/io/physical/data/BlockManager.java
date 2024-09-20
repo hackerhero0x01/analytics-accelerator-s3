@@ -55,7 +55,7 @@ public class BlockManager implements Closeable {
     this.blockStore = new BlockStore(s3URI, metadataStore);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression();
-    this.ioPlanner = new IOPlanner(s3URI, blockStore, telemetry);
+    this.ioPlanner = new IOPlanner(blockStore);
     this.rangeOptimiser = new RangeOptimiser(configuration);
   }
 
@@ -118,37 +118,34 @@ public class BlockManager implements Closeable {
       return;
     }
 
-    len = Math.max(len, configuration.getReadAheadBytes());
-
     // In case of a sequential reading pattern, calculate the generation and adjust the requested
-    // end of the requested range
-    long end = pos + len - 1;
-    final long generation;
+    // effectiveEnd of the requested range
+    long effectiveEnd = pos + Math.max(len, configuration.getReadAheadBytes()) - 1;
 
+    // Check sequential prefetching
+    final long generation;
     if (patternDetector.isSequentialRead(pos)) {
       generation = patternDetector.getGeneration(pos);
-      long newSize = sequentialReadProgression.getSizeForGeneration(generation);
-      end = truncatePos(pos + newSize);
+      effectiveEnd = truncatePos(pos + sequentialReadProgression.getSizeForGeneration(generation));
     } else {
       generation = 0;
     }
 
-    // Fix "end", so we can pass it into the lambda
-    final long finalEnd = end;
-    final long finalLen = len;
+    // Fix "effectiveEnd", so we can pass it into the lambda
+    final long effectiveEndFinal = effectiveEnd;
     this.telemetry.measureStandard(
         () ->
             Operation.builder()
                 .name(OPERATION_MAKE_RANGE_AVAILABLE)
                 .attribute(StreamAttributes.uri(this.s3URI))
-                .attribute(StreamAttributes.position(pos))
-                .attribute(StreamAttributes.length(finalLen))
+                .attribute(StreamAttributes.range(pos, pos + len - 1))
+                .attribute(StreamAttributes.effectiveRange(pos, pos + effectiveEndFinal - 1))
                 .attribute(StreamAttributes.generation(generation))
-                .attribute(StreamAttributes.end(finalEnd))
                 .build(),
         () -> {
           // Determine the missing ranges and fetch them
-          List<Range> missingRanges = ioPlanner.planRead(pos, finalEnd, getLastObjectByte());
+          List<Range> missingRanges =
+              ioPlanner.planRead(pos, effectiveEndFinal, getLastObjectByte());
           List<Range> splits = rangeOptimiser.splitRanges(missingRanges);
           splits.forEach(
               r -> {

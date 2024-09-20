@@ -29,6 +29,19 @@ public class DefaultTelemetry implements Telemetry {
 
   private static final Logger LOG = LogManager.getLogger(DefaultTelemetry.class);
 
+  /** Flushes the underlying reporter */
+  @Override
+  public void flush() {
+    this.reporter.flush();
+  }
+
+  /** Closes the underlying {@link TelemetryReporter} */
+  @Override
+  public void close() {
+    Telemetry.super.close();
+    this.reporter.close();
+  }
+
   /**
    * Measures a given {@link Runnable} and record the telemetry as {@link Operation}.
    *

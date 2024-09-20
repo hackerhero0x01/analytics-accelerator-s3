@@ -10,7 +10,7 @@ public final class TestTelemetry {
    * the best code coverage
    */
   public static final Telemetry DEFAULT =
-      Telemetry.getTelemetry(
+      Telemetry.createTelemetry(
           TelemetryConfiguration.builder()
               .loggingEnabled(false)
               .stdOutEnabled(false)
