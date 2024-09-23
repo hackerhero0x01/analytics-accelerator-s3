@@ -44,8 +44,8 @@ public class MetadataStoreTest {
     // - an Object Client returning a hanging future that throws when closed
     ObjectClient objectClient = mock(ObjectClient.class);
 
-    HeadRequest h1 = HeadRequest.builder().bucket("b").key("key1").build();
-    HeadRequest h2 = HeadRequest.builder().bucket("b").key("key2").build();
+    HeadRequest h1 = HeadRequest.builder().s3Uri(S3URI.of("b", "key1")).build();
+    HeadRequest h2 = HeadRequest.builder().s3Uri(S3URI.of("b", "key2")).build();
 
     CompletableFuture<ObjectMetadata> future = mock(CompletableFuture.class);
     when(future.isDone()).thenReturn(false);

@@ -1,5 +1,8 @@
 package com.amazon.connector.s3;
 
+import com.amazon.connector.s3.common.telemetry.ConfigurableTelemetry;
+import com.amazon.connector.s3.common.telemetry.Operation;
+import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.request.*;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
@@ -15,6 +18,7 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
   private static final String HEADER_REFERER = "Referer";
 
   private S3AsyncClient s3AsyncClient = null;
+  private final Telemetry telemetry;
   private final UserAgent userAgent;
 
   /**
@@ -36,8 +40,9 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
   public S3SdkObjectClient(
       @NonNull S3AsyncClient s3AsyncClient,
       @NonNull ObjectClientConfiguration objectClientConfiguration) {
-
     this.s3AsyncClient = s3AsyncClient;
+    this.telemetry =
+        new ConfigurableTelemetry(objectClientConfiguration.getTelemetryConfiguration());
     this.userAgent = new UserAgent();
     this.userAgent.prepend(objectClientConfiguration.getUserAgentPrefix());
   }
@@ -56,7 +61,9 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
   @Override
   public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
     HeadObjectRequest.Builder builder =
-        HeadObjectRequest.builder().bucket(headRequest.getBucket()).key(headRequest.getKey());
+        HeadObjectRequest.builder()
+            .bucket(headRequest.getS3Uri().getBucket())
+            .key(headRequest.getS3Uri().getKey());
 
     // Add User-Agent header to the request.
     builder.overrideConfiguration(
@@ -64,11 +71,19 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
             .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
             .build());
 
-    return s3AsyncClient
-        .headObject(builder.build())
-        .thenApply(
-            headObjectResponse ->
-                ObjectMetadata.builder().contentLength(headObjectResponse.contentLength()).build());
+    return this.telemetry.measureCritical(
+        () ->
+            Operation.builder()
+                .name(ObjectClientTelemetry.OPERATION_HEAD)
+                .attribute(ObjectClientTelemetry.uri(headRequest.getS3Uri()))
+                .build(),
+        s3AsyncClient
+            .headObject(builder.build())
+            .thenApply(
+                headObjectResponse ->
+                    ObjectMetadata.builder()
+                        .contentLength(headObjectResponse.contentLength())
+                        .build()));
   }
 
   /**
@@ -80,7 +95,9 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
   @Override
   public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
     GetObjectRequest.Builder builder =
-        GetObjectRequest.builder().bucket(getRequest.getBucket()).key(getRequest.getKey());
+        GetObjectRequest.builder()
+            .bucket(getRequest.getS3Uri().getBucket())
+            .key(getRequest.getS3Uri().getKey());
 
     String range = getRequest.getRange().toHttpString();
     builder.range(range);
@@ -91,9 +108,16 @@ public class S3SdkObjectClient implements ObjectClient, AutoCloseable {
             .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
             .build());
 
-    return s3AsyncClient
-        .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
-        .thenApply(
-            responseInputStream -> ObjectContent.builder().stream(responseInputStream).build());
+    return this.telemetry.measureCritical(
+        () ->
+            Operation.builder()
+                .name(ObjectClientTelemetry.OPERATION_GET)
+                .attribute(ObjectClientTelemetry.uri(getRequest.getS3Uri()))
+                .build(),
+        s3AsyncClient
+            .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
+            .thenApply(
+                responseInputStream ->
+                    ObjectContent.builder().stream(responseInputStream).build()));
   }
 }

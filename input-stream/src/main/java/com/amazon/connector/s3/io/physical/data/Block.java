@@ -79,8 +79,7 @@ public class Block implements Closeable {
                     .build(),
             objectClient.getObject(
                 GetRequest.builder()
-                    .bucket(this.s3URI.getBucket())
-                    .key(this.s3URI.getKey())
+                    .s3Uri(this.s3URI)
                     .range(this.range)
                     .referrer(new Referrer(range.toHttpString(), readMode))
                     .build()));

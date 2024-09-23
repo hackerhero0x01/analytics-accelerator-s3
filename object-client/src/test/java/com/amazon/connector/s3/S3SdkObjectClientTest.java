@@ -14,6 +14,7 @@ import com.amazon.connector.s3.request.ObjectMetadata;
 import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.request.ReadMode;
 import com.amazon.connector.s3.request.Referrer;
+import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeAll;
@@ -84,7 +85,7 @@ public class S3SdkObjectClientTest {
   void testHeadObject() {
     S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
     assertEquals(
-        client.headObject(HeadRequest.builder().bucket("bucket").key("key").build()).join(),
+        client.headObject(HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build()).join(),
         ObjectMetadata.builder().contentLength(42).build());
   }
 
@@ -95,8 +96,7 @@ public class S3SdkObjectClientTest {
         CompletableFuture.class,
         client.getObject(
             GetRequest.builder()
-                .bucket("bucket")
-                .key("key")
+                .s3Uri(S3URI.of("bucket", "key"))
                 .range(new Range(0, 20))
                 .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
                 .build()));
@@ -105,7 +105,7 @@ public class S3SdkObjectClientTest {
   @Test
   void testObjectClientClose() {
     try (S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient)) {
-      client.headObject(HeadRequest.builder().bucket("bucket").key("key").build());
+      client.headObject(HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build());
     }
     verify(s3AsyncClient, times(1)).close();
   }

@@ -89,8 +89,7 @@ public class MetadataStore implements Closeable {
                         .name(OPERATION_METADATA_HEAD_ASYNC)
                         .attribute(StreamAttributes.uri(s3URI))
                         .build(),
-                objectClient.headObject(
-                    HeadRequest.builder().bucket(uri.getBucket()).key(uri.getKey()).build())));
+                objectClient.headObject(HeadRequest.builder().s3Uri(s3URI).build())));
   }
 
   /**

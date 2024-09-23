@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.request;
 
+import com.amazon.connector.s3.util.S3URI;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
@@ -11,8 +12,7 @@ import lombok.Value;
 @Value
 @Builder
 public class GetRequest {
-  @NonNull String bucket;
-  @NonNull String key;
+  @NonNull S3URI s3Uri;
   @NonNull Range range;
   @NonNull Referrer referrer;
 }

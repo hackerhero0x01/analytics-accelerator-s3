@@ -1,5 +1,6 @@
 package com.amazon.connector.s3.request;
 
+import com.amazon.connector.s3.util.S3URI;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
@@ -11,6 +12,5 @@ import lombok.NonNull;
 @Data
 @Builder
 public class HeadRequest {
-  @NonNull String bucket;
-  @NonNull String key;
+  @NonNull S3URI s3Uri;
 }
