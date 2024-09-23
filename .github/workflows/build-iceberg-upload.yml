@@ -65,4 +65,4 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload iceberg-spark-runtime JAR to S3FileIO treatment bucket
-        run: aws s3 cp /home/runner/work/s3-connector-framework/s3-connector-framework/iceberg/spark/v3.5/spark-runtime/build/libs/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar  s3://${{ env.S3_BUCKET }}/s3fileio/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar
+        run: aws s3 cp /home/runner/work/s3-connector-framework/s3-connector-framework/iceberg/spark/v3.5/spark-runtime/build/libs/iceberg-spark-runtime-3.5_2.12-01a7908.jar  s3://${{ env.S3_BUCKET }}/s3fileio/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar
