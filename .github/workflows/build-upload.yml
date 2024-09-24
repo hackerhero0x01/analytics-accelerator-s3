@@ -1,9 +1,11 @@
-name: Build and upload S3 seekable stream JARs to S3a treatment bucket
+name: Build and upload artifact JARs to S3 treatment bucket
 
 # Controls when the action will run. Invokes the workflow on push events but only for the main branch
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - cicd-builds
 
 env:
   AWS_REGION :  ${{ vars.AWS_REGION }} # Change to reflect your region
@@ -19,14 +21,15 @@ permissions:
       contents: read    # This is required for actions/checkout
 
 jobs:
-  BuildAndUploadJarToS3:
+  BuildCfS3AndUploadArtifact:
+    name: Build CFS3 artifacts
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          java-version: '11'
-          distribution: 'temurin'
+          java-version: '8'
+          distribution: 'corretto'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
@@ -34,7 +37,159 @@ jobs:
       - name: Build with Gradle
         run: |
           ./gradlew build
-      
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "common/build/libs/common.jar"
+          name: "common.jar"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "input-stream/build/libs/input-stream-all.jar"
+          name: "input-stream-all.jar"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "input-stream/build/libs/input-stream.jar"
+          name: "input-stream.jar"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "object-client/build/libs/object-client.jar"
+          name: "object-client.jar"
+
+  BuildHadoopAndUploadArtifact:
+    name: Build Hadoop artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'corretto'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
+
+      - name: Build and publish to local Maven with Gradle
+        run: |
+          ./gradlew publishToMavenLocal
+
+      - name: Publish uber jar to local Maven
+        run: mvn install:install-file -Dfile=input-stream/build/libs/input-stream-all.jar -DgroupId=com.amazon.connector.s3 -DartifactId=input-stream -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+
+      - name: Setup Hadoop SSH deploy key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.HADOOP_STAGING_SSH_KEY }}
+
+      - name: Checkout Hadoop
+        uses: actions/checkout@v4
+        with:
+          repository: amazon-contributing/private-hadoop-staging
+          ref: s3-connector-framework
+          path: hadoop
+          ssh-key: ${{ secrets.HADOOP_STAGING_SSH_KEY }}
+
+      - name: Build Hadoop jar
+        run: |
+          mvn clean install -DskipTests
+          cd  /home/runner/work/s3-connector-framework/s3-connector-framework/hadoop/hadoop-tools/hadoop-aws/
+          mvn -Dparallel-tests -DtestsThreadCount=8 clean test
+        working-directory: hadoop
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "/home/runner/.m2/repository/org/apache/hadoop/hadoop-aws/3.5.0-SNAPSHOT/hadoop-aws-3.5.0-SNAPSHOT.jar"
+          name: "hadoop-aws-3.5.0-SNAPSHOT.jar"
+
+  BuildIcebergAndUploadArtifact:
+    name: Build Iceberg artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'corretto'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
+
+      - name: Build and publish to local Maven with Gradle
+        run: |
+          ./gradlew publishToMavenLocal
+
+      - name: TEMPORARY publish updated versions to local Maven
+        run: |
+          mvn install:install-file -Dfile=input-stream/build/libs/input-stream.jar -DgroupId=com.amazon.connector.s3 -DartifactId=input-stream -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
+          mvn install:install-file -Dfile=object-client/build/libs/object-client.jar -DgroupId=com.amazon.connector.s3 -DartifactId=object-client -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
+          mvn install:install-file -Dfile=common/build/libs/common.jar -DgroupId=com.amazon.connector.s3 -DartifactId=common -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
+
+      - name: Setup Iceberg SSH deploy key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.ICEBERG_STAGING_SSH_KEY }}
+
+      - name: Checkout Iceberg
+        uses: actions/checkout@v4
+        with:
+          repository: amazon-contributing/private-iceberg-staging
+          ref: s3-connector-framework
+          path: iceberg
+          ssh-key: ${{ secrets.ICEBERG_STAGING_SSH_KEY }}
+
+      - name: Build Iceberg jar
+        run: |
+          ./gradlew build -x test -x integrationTest -x checkstyleMain
+          ./gradlew :iceberg-aws:test
+        working-directory: iceberg
+
+      - name: Lookup iceberg-spark-runtime JAR path
+        id: iceberg-path-lookup
+        run: |
+          FILE_PATH_BASE=/home/runner/work/s3-connector-framework/s3-connector-framework/iceberg/spark/v3.5/spark-runtime/build/libs/
+          cd "$FILE_PATH_BASE"
+          FILE_NAME=$(ls | grep "iceberg-spark-runtime-3.5_2.12-[0-9a-f]*\.jar" | head -n 1)
+          echo "FILE_PATH=$FILE_PATH_BASE/$FILE_NAME" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ${{ steps.iceberg-path-lookup.outputs.FILE_PATH }}
+          name: "iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
+
+  UploadArtifactsToS3:
+    name: Upload all artifacts to S3
+    runs-on: ubuntu-latest
+    needs:
+      - BuildCfS3AndUploadArtifact
+      - BuildHadoopAndUploadArtifact
+      - BuildIcebergAndUploadArtifact
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: "common.jar"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: "input-stream-all.jar"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: "input-stream.jar"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: "object-client.jar"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: "iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: "hadoop-aws-3.5.0-SNAPSHOT.jar"
+
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
@@ -43,22 +198,28 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload common JAR to S3a treatment bucket
-        run: aws s3 cp common/build/libs/common.jar s3://${{ env.S3_BUCKET }}/s3a/common-1.0.0.jar
+        run: aws s3 cp common.jar s3://${{ env.S3_BUCKET }}/s3a/common-1.0.0.jar
 
       - name: Upload common JAR to S3FileIO treatment bucket
-        run: aws s3 cp common/build/libs/common.jar s3://${{ env.S3_BUCKET }}/s3fileio/common.jar
+        run: aws s3 cp common.jar s3://${{ env.S3_BUCKET }}/s3fileio/common.jar
 
       - name: Upload input-stream JAR to S3a treatment bucket
-        run: aws s3 cp input-stream/build/libs/input-stream-all.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
+        run: aws s3 cp input-stream-all.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
 
       - name: Upload input-stream JAR to S3FileIO treatment bucket
-        run: aws s3 cp input-stream/build/libs/input-stream.jar s3://${{ env.S3_BUCKET }}/s3fileio/input-stream.jar
+        run: aws s3 cp input-stream.jar s3://${{ env.S3_BUCKET }}/s3fileio/input-stream.jar
 
       - name: Upload object-client JAR to S3a treatment bucket
-        run: aws s3 cp object-client/build/libs/object-client.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
+        run: aws s3 cp object-client.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
 
       - name: Upload object-client JAR to S3FileIO treatment bucket
-        run: aws s3 cp object-client/build/libs/object-client.jar s3://${{ env.S3_BUCKET }}/s3fileio/object-client.jar
+        run: aws s3 cp object-client.jar s3://${{ env.S3_BUCKET }}/s3fileio/object-client.jar
+
+      - name: Upload Iceberg JAR to S3FileIO treatment bucket
+        run: aws s3 cp iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar s3://${{ env.S3_BUCKET }}/s3fileio/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar
+
+      - name: Upload Hadoop JAR to S3A treatment bucket
+        run: aws s3 cp hadoop-aws-3.5.0-SNAPSHOT.jar s3://${{ env.S3_BUCKET }}/s3a/hadoop-aws-3.5.0-SNAPSHOT.jar
 
       - name: Trigger S3A Benchmarks
         run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT_S3A }}
