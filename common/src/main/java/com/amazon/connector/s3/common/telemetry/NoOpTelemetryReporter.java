@@ -14,10 +14,10 @@ class NoOpTelemetryReporter implements TelemetryReporter {
   /**
    * Reports the completion of an operation
    *
-   * @param operationMeasurement an instance of {@link OperationMeasurement}.
+   * @param datapointMeasurement an instance of {@link OperationMeasurement}.
    */
   @Override
-  public void reportComplete(OperationMeasurement operationMeasurement) {}
+  public void reportComplete(TelemetryDatapointMeasurement datapointMeasurement) {}
 
   /** Flushes any intermediate state of the reporters In this case, this is a no-op */
   @Override

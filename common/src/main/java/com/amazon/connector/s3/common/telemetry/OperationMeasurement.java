@@ -2,24 +2,22 @@ package com.amazon.connector.s3.common.telemetry;
 
 import com.amazon.connector.s3.common.Preconditions;
 import java.util.Optional;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NonNull;
-import lombok.Value;
 
 /** Represents telemetry for the operation measurement. */
-@Value
-public class OperationMeasurement {
-  /** Operation */
-  @NonNull Operation operation;
+@Getter
+@EqualsAndHashCode(callSuper = true)
+public class OperationMeasurement extends TelemetryDatapointMeasurement {
   /** Telemetry level. * */
-  @NonNull TelemetryLevel level;
+  @NonNull private final TelemetryLevel level;
   /** Wall clock time corresponding to operation start. */
-  long epochTimestampNanos;
-  /** Elapsed clock time corresponding to operation start. */
-  long elapsedStartTimeNanos;
+  private final long elapsedStartTimeNanos;
   /** Elapsed clock time corresponding to operation completion. */
-  long elapsedCompleteTimeNanos;
+  private final long elapsedCompleteTimeNanos;
   /** Exception thrown as part of the execution. */
-  @NonNull Optional<Throwable> error;
+  @NonNull private final Optional<Throwable> error;
 
   public static final String DEFAULT_START_FORMAT_STRING = "[%s] [  start] %s";
   public static final String DEFAULT_COMPLETE_FORMAT_STRING = "[%s] [%s] %s: %,d ns";
@@ -29,16 +27,46 @@ public class OperationMeasurement {
   private static final String FAILURE = "failure";
 
   /**
-   * Returns the String representation of the {@link OperationMeasurement}. {@link
-   * OperationMeasurement#DEFAULT_COMPLETE_FORMAT_STRING} will be used to format the string. The
-   * parameters are supplied in the following order: 1 - start epoch, String 2 - success of failure,
-   * String 3 - operation, String 4 - elapsed time in nanos, Long.
+   * Creates a new instance of {@link OperationMeasurement}
    *
-   * @return the String representation of the {@link OperationMeasurement}.
+   * @param operation the underlying {@link Operation}
+   * @param level telemetry level
+   * @param epochTimestampNanos wall clock time corresponding to operation start
+   * @param elapsedStartTimeNanos elapsed clock time corresponding to operation start
+   * @param elapsedCompleteTimeNanos elapsed clock time corresponding to operation completion
+   * @param error exception thrown as part of the execution
+   */
+  public OperationMeasurement(
+      @NonNull Operation operation,
+      @NonNull TelemetryLevel level,
+      long epochTimestampNanos,
+      long elapsedStartTimeNanos,
+      long elapsedCompleteTimeNanos,
+      @NonNull Optional<Throwable> error) {
+    super(operation, epochTimestampNanos);
+    this.level = level;
+    this.elapsedStartTimeNanos = elapsedStartTimeNanos;
+    this.elapsedCompleteTimeNanos = elapsedCompleteTimeNanos;
+    this.error = error;
+  }
+
+  /**
+   * The actual measurement
+   *
+   * @return the actual measurements
    */
   @Override
-  public String toString() {
-    return toString(EpochFormatter.DEFAULT);
+  protected double getValueCore() {
+    return getElapsedTimeNanos();
+  }
+
+  /**
+   * Returns the underlying {@link Operation}
+   *
+   * @return underlying {@link Operation}
+   */
+  public Operation getOperation() {
+    return (Operation) this.getDatapoint();
   }
 
   /**
@@ -47,8 +75,7 @@ public class OperationMeasurement {
    * parameters are supplied in the following order: 1 - start epoch, String 2 - operation, String 3
    * - elapsed time in nanos, Long.
    *
-   * @param epochFormatter an instance of {@link EpochFormatter} to format the {@link
-   *     OperationMeasurement#epochTimestampNanos}.
+   * @param epochFormatter an instance of {@link EpochFormatter} to format the epochTimestampNanos
    * @return the String representation of the {@link OperationMeasurement}.
    */
   public String toString(@NonNull EpochFormatter epochFormatter) {
@@ -58,8 +85,7 @@ public class OperationMeasurement {
   /**
    * Returns the String representation of the {@link OperationMeasurement}.
    *
-   * @param epochFormatter an instance of {@link EpochFormatter} to format the {@link
-   *     OperationMeasurement#epochTimestampNanos}.
+   * @param epochFormatter an instance of {@link EpochFormatter} to format epochTimestampNanos.
    * @param formatString format string to format the output. The parameters are supplied in the
    *     following order: 1 - start epoch, String 2 - operation, String 3 - elapsed time in nanos,
    *     Long.
@@ -183,11 +209,11 @@ public class OperationMeasurement {
   }
 
   /** Builder for {@link OperationMeasurement} */
-  public static class OperationMeasurementBuilder {
-    private static final long UNSET_NANOS = Long.MIN_VALUE;
+  public static class OperationMeasurementBuilder
+      extends TelemetryDatapointMeasurementBuilder<
+          OperationMeasurement, OperationMeasurementBuilder> {
     private Operation operation;
     TelemetryLevel level;
-    private long epochTimestampNanos = UNSET_NANOS;
     private long elapsedStartTimeNanos = UNSET_NANOS;
     private long elapsedCompleteTimeNanos = UNSET_NANOS;
     private Optional<Throwable> error = Optional.empty();
@@ -211,17 +237,6 @@ public class OperationMeasurement {
      */
     public OperationMeasurementBuilder level(@NonNull TelemetryLevel level) {
       this.level = level;
-      return this;
-    }
-
-    /**
-     * Sets epoch timestamp.
-     *
-     * @param epochTimestampNanos epoch timestamp.
-     * @return the current instance of {@link OperationMeasurementBuilder}.
-     */
-    public OperationMeasurementBuilder epochTimestampNanos(long epochTimestampNanos) {
-      this.epochTimestampNanos = epochTimestampNanos;
       return this;
     }
 
@@ -263,10 +278,9 @@ public class OperationMeasurement {
      *
      * @return a new instance of {@link OperationMeasurement}.
      */
-    public OperationMeasurement build() {
+    @Override
+    protected OperationMeasurement buildCore() {
       Preconditions.checkNotNull(operation, "The `operation` must be set.");
-      Preconditions.checkArgument(
-          this.epochTimestampNanos >= 0, "The `epochTimestampNanos` must be set and non-negative.");
       Preconditions.checkArgument(
           this.elapsedStartTimeNanos >= 0,
           "The `elapsedStartTimeNanos` must be set and non-negative.");
@@ -279,7 +293,7 @@ public class OperationMeasurement {
       return new OperationMeasurement(
           this.operation,
           this.level,
-          this.epochTimestampNanos,
+          this.getEpochTimestampNanos(),
           this.elapsedStartTimeNanos,
           this.elapsedCompleteTimeNanos,
           this.error);

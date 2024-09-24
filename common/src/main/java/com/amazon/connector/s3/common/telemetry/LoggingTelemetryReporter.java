@@ -62,17 +62,20 @@ class LoggingTelemetryReporter implements TelemetryReporter {
   /**
    * Outputs the current contents of {@link OperationMeasurement} into a log.
    *
-   * @param operationMeasurement operation execution.
+   * @param datapointMeasurement operation execution.
    */
   @Override
-  public void reportComplete(@NonNull OperationMeasurement operationMeasurement) {
-    String message = operationMeasurement.toString(epochFormatter);
-    if (operationMeasurement.getError().isPresent()) {
-      // If the operation failed, always record as error.
-      this.logger.log(Level.ERROR, message, operationMeasurement.getError().get());
-    } else {
-      this.logger.log(this.loggerLevel, message);
+  public void reportComplete(@NonNull TelemetryDatapointMeasurement datapointMeasurement) {
+    String message = datapointMeasurement.toString(epochFormatter);
+    if (datapointMeasurement instanceof OperationMeasurement) {
+      OperationMeasurement operationMeasurement = (OperationMeasurement) datapointMeasurement;
+      if (operationMeasurement.getError().isPresent()) {
+        // If the operation failed, always record as error.
+        this.logger.log(Level.ERROR, message, operationMeasurement.getError().get());
+        return;
+      }
     }
+    this.logger.log(this.loggerLevel, message);
   }
 
   /** Flushes any intermediate state of the reporters In this case, this is a no-op */

@@ -1,8 +1,8 @@
 package com.amazon.connector.s3.common.telemetry;
 
-import com.amazon.connector.s3.common.Preconditions;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.Value;
 
@@ -13,15 +13,10 @@ import lombok.Value;
 // Implementation note: the builder is implemented by hand, as opposed to via Lombok to create more
 // streamlined syntax for attribute specification
 @Value
-public class Operation {
+@EqualsAndHashCode(callSuper = true)
+public class Operation extends TelemetryDatapoint {
   /** Operation ID. Must not be null. */
   @NonNull String id;
-
-  /** Operation name. Must not be null. */
-  @NonNull String name;
-
-  /** Operation attributes */
-  @NonNull Map<String, Attribute> attributes;
 
   /** Parent operation. Optional. */
   @NonNull Optional<Operation> parent;
@@ -65,10 +60,9 @@ public class Operation {
       @NonNull OperationContext context,
       @NonNull Optional<Operation> parent,
       boolean inferParent) {
+    super(name, addStandardAttributes(attributes));
     this.id = id;
-    this.name = name;
     this.context = context;
-    this.attributes = Collections.unmodifiableMap(addStandardAttributes(attributes));
     // If the parent is not supplied, and we are allowed to infer it, use the OperationContext
     if (!parent.isPresent() && inferParent) {
       this.parent = this.context.getCurrentNonDefaultOperation();
@@ -106,44 +100,31 @@ public class Operation {
    */
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
+    StringBuilder stringBuilder = new StringBuilder();
     // id
-    builder.append("[");
-    builder.append(id);
+    stringBuilder.append("[");
+    stringBuilder.append(id);
 
     // add parent id, if present
     if (parent.isPresent()) {
-      builder.append("<-");
-      builder.append(parent.get().getId());
+      stringBuilder.append("<-");
+      stringBuilder.append(parent.get().getId());
     }
-    builder.append("] ");
+    stringBuilder.append("] ");
 
     // name
-    builder.append(name);
+    stringBuilder.append(this.getName());
 
     // attributes
-    if (!attributes.isEmpty()) {
-      builder.append("(");
-      int count = 0;
-      for (Attribute attribute : attributes.values()) {
-        builder.append(attribute.getName());
-        builder.append("=");
-        builder.append(attribute.getValue());
-        if (++count != attributes.size()) {
-          builder.append(", ");
-        }
-      }
-      builder.append(")");
-    }
+    appendAttributes(stringBuilder);
 
-    return builder.toString();
+    return stringBuilder.toString();
   }
 
   /** Builder for {@link Operation} */
-  public static class OperationBuilder {
+  public static class OperationBuilder
+      extends TelemetryDatapointBuilder<Operation, OperationBuilder> {
     private String id;
-    private String name;
-    private final Map<String, Attribute> attributes = new HashMap<String, Attribute>();
     private Optional<Operation> parent = Optional.empty();
     private OperationContext context = OperationContext.DEFAULT;
 
@@ -157,44 +138,6 @@ public class Operation {
      */
     public OperationBuilder id(@NonNull String id) {
       this.id = id;
-      return this;
-    }
-
-    /**
-     * Sets the operation name.
-     *
-     * @param name operation name. Must not be null.
-     * @return the current instance of {@link OperationBuilder}.
-     */
-    public OperationBuilder name(@NonNull String name) {
-      this.name = name;
-      return this;
-    }
-
-    /**
-     * Adds a new attribute to the operation.
-     *
-     * @param name attribute name. Must not be null.
-     * @param value attribute value. Must not be null.
-     * @return the current instance of {@link OperationBuilder}.
-     */
-    public OperationBuilder attribute(@NonNull String name, @NonNull Object value) {
-      return attribute(Attribute.of(name, value));
-    }
-
-    /**
-     * Adds a new attribute to the operation.
-     *
-     * @param attribute attribute to add.
-     * @return the current instance of {@link OperationBuilder}.
-     */
-    public OperationBuilder attribute(@NonNull Attribute attribute) {
-      // Add the attribute, presuming the is no another attribute by that name
-      Attribute existingAttribute = this.attributes.putIfAbsent(attribute.getName(), attribute);
-      if (existingAttribute != null) {
-        throw new IllegalArgumentException(
-            "Attribute with this name already already exists: " + existingAttribute);
-      }
       return this;
     }
 
@@ -225,17 +168,15 @@ public class Operation {
      *
      * @return a new instance of {@link Operation}
      */
-    public Operation build() {
-      // Check name - the rest has sensible defaults
-      Preconditions.checkNotNull(this.name, "Operation name cannot must be specified");
-
+    @Override
+    protected Operation buildCore() {
       // generate ID if needed
       if (this.id == null) {
         this.id = generateID();
       }
-
       // Create the operation
-      return new Operation(this.id, this.name, this.attributes, this.context, this.parent);
+      return new Operation(
+          this.id, this.getName(), this.getAttributes(), this.context, this.parent);
     }
 
     /**

@@ -27,11 +27,12 @@ public class OperationMeasurementTest {
             .build();
 
     assertSame(operation, operationMeasurement.getOperation());
-
+    assertSame(operation, operationMeasurement.getDatapoint());
     assertEquals(1, operationMeasurement.getEpochTimestampNanos());
     assertEquals(10, operationMeasurement.getElapsedStartTimeNanos());
     assertEquals(12, operationMeasurement.getElapsedCompleteTimeNanos());
     assertEquals(2, operationMeasurement.getElapsedTimeNanos());
+    assertEquals(2, operationMeasurement.getValue());
 
     assertFalse(operationMeasurement.getError().isPresent());
     assertTrue(operationMeasurement.succeeded());

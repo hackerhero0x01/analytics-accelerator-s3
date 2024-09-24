@@ -15,9 +15,9 @@ public interface TelemetryReporter extends Closeable {
   /**
    * Reports the completion of an operation
    *
-   * @param operationMeasurement an instance of {@link OperationMeasurement}.
+   * @param datapointMeasurement an instance of {@link TelemetryDatapointMeasurement}.
    */
-  void reportComplete(OperationMeasurement operationMeasurement);
+  void reportComplete(TelemetryDatapointMeasurement datapointMeasurement);
 
   /** Flushes any intermediate state of the reporters */
   void flush();

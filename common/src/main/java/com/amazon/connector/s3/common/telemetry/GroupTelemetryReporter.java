@@ -35,12 +35,12 @@ class GroupTelemetryReporter implements TelemetryReporter {
   /**
    * Outputs the current contents of {@link OperationMeasurement} to each of the supplied reporters.
    *
-   * @param operationMeasurement operation execution.
+   * @param datapointMeasurement operation execution.
    */
   @Override
-  public void reportComplete(OperationMeasurement operationMeasurement) {
+  public void reportComplete(TelemetryDatapointMeasurement datapointMeasurement) {
     for (TelemetryReporter reporter : reporters) {
-      reporter.reportComplete(operationMeasurement);
+      reporter.reportComplete(datapointMeasurement);
     }
   }
 

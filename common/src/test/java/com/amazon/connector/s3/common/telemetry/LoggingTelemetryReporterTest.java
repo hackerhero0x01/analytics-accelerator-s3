@@ -71,6 +71,22 @@ public class LoggingTelemetryReporterTest {
   }
 
   @Test
+  public void testReportDataPointComplete() {
+    Metric metric = Metric.builder().name("S3.GET").attribute("Foo", "Bar").build();
+    MetricMeasurement metricMeasurement =
+        MetricMeasurement.builder()
+            .metric(metric)
+            .epochTimestampNanos(42L)
+            .value(123L)
+            .kind(MetricMeasurementKind.AGGREGATE)
+            .build();
+
+    try (LoggingTelemetryReporter reporter = new LoggingTelemetryReporter()) {
+      reporter.reportComplete(metricMeasurement);
+    }
+  }
+
+  @Test
   public void testReportCompleteWithException() {
     Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
     OperationMeasurement operationMeasurement =

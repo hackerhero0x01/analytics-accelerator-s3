@@ -448,7 +448,7 @@ public class DefaultTelemetryTest {
     try (CollectingTelemetryReporter reporter =
         new CollectingTelemetryReporter() {
           @Override
-          public void reportComplete(OperationMeasurement operationMeasurement) {
+          public void reportComplete(TelemetryDatapointMeasurement datapointMeasurement) {
             throw new IllegalStateException("Error");
           }
         }) {

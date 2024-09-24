@@ -48,11 +48,11 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
   /**
    * Outputs the current contents of {@link OperationMeasurement} into a {@link PrintStream}.
    *
-   * @param operationMeasurement operation execution.
+   * @param datapointMeasurement operation execution.
    */
   @Override
-  public void reportComplete(@NonNull OperationMeasurement operationMeasurement) {
-    printStream.println(operationMeasurement.toString(epochFormatter));
+  public void reportComplete(@NonNull TelemetryDatapointMeasurement datapointMeasurement) {
+    printStream.println(datapointMeasurement.toString(epochFormatter));
   }
 
   /**
