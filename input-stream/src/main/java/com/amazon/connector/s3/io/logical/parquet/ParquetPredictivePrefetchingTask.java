@@ -126,12 +126,12 @@ public class ParquetPredictivePrefetchingTask {
   }
 
   private Set<String> getRecentColumns(HashMap<Long, ColumnMetadata> offsetIndexToColumnMap) {
-    Map.Entry<Long, ColumnMetadata> firstColumnData =
-        offsetIndexToColumnMap.entrySet().iterator().next();
-
     Set<String> recentColumns = new HashSet<>();
 
-    if (firstColumnData != null) {
+    if (offsetIndexToColumnMap.size() > 0) {
+      Map.Entry<Long, ColumnMetadata> firstColumnData =
+          offsetIndexToColumnMap.entrySet().iterator().next();
+
       int schemaHash = firstColumnData.getValue().getSchemaHash();
       recentColumns = parquetMetadataStore.getUniqueRecentColumnsForSchema(schemaHash);
     }
