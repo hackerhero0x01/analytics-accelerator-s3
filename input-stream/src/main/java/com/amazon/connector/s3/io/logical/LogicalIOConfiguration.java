@@ -19,7 +19,6 @@ public class LogicalIOConfiguration {
   private static final boolean DEFAULT_METADATA_AWARE_PREFETCHING_ENABLED = true;
   private static final boolean DEFAULT_PREDICTIVE_PREFETCHING_ENABLED = true;
   private static final boolean DEFAULT_PREDICTIVE_PREFETCHING_ENABLED_DEFAULT = true;
-  private static final double DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO = 0.3;
   private static final int DEFAULT_PARQUET_METADATA_STORE_SIZE = 45;
   private static final int DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE = 15;
   private static final String DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX = "^.*.(parquet|par)$";
@@ -69,13 +68,6 @@ public class LogicalIOConfiguration {
   private static final String MAX_COLUMN_ACCESS_STORE_SIZE_KEY = "max.column.access.store.size";
 
   @Builder.Default
-  private double minPredictivePrefetchingConfidenceRatio =
-      DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO;
-
-  private static final String MIN_PREDICTIVE_PREFETCHING_CONFIDENCE_RATIO_KEY =
-      "min.predictive.prefetching.confidence.ratio";
-
-  @Builder.Default
   private String parquetFormatSelectorRegex = DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX;
 
   private static final String PARQUET_FORMAT_SELECTOR_REGEX = "parquet.format.selector.regex";
@@ -115,10 +107,6 @@ public class LogicalIOConfiguration {
         .maxColumnAccessCountStoreSize(
             configuration.getInt(
                 MAX_COLUMN_ACCESS_STORE_SIZE_KEY, DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE))
-        .minPredictivePrefetchingConfidenceRatio(
-            configuration.getDouble(
-                MIN_PREDICTIVE_PREFETCHING_CONFIDENCE_RATIO_KEY,
-                DEFAULT_PREDICTIVE_PREFETCHING_MIN_CONFIDENCE_RATIO))
         .parquetFormatSelectorRegex(
             configuration.getString(
                 PARQUET_FORMAT_SELECTOR_REGEX, DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX))

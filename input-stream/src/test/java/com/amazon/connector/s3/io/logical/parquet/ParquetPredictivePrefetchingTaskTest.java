@@ -1,13 +1,10 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -25,8 +22,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -103,8 +101,9 @@ public class ParquetPredictivePrefetchingTaskTest {
     ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
 
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
-    offsetIndexToColumnMap.put(
-        100L, new ColumnMetadata(0, "sk_test", 100, 500, "sk_test".hashCode()));
+    ColumnMetadata columnMetadata =
+        new ColumnMetadata(0, "sk_test", 100, 500, "sk_test".hashCode());
+    offsetIndexToColumnMap.put(100L, columnMetadata);
     ColumnMappers columnMappers = new ColumnMappers(offsetIndexToColumnMap, new HashMap<>());
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
         new ParquetPredictivePrefetchingTask(
@@ -117,7 +116,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     when(parquetMetadataStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
 
     assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
-    verify(parquetMetadataStore).addRecentColumn(eq("sk_test"), any(S3URI.class));
+    verify(parquetMetadataStore).addRecentColumn(columnMetadata);
   }
 
   @Test
@@ -136,7 +135,7 @@ public class ParquetPredictivePrefetchingTaskTest {
             parquetMetadataStore);
 
     assertFalse(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
-    verify(parquetMetadataStore, times(0)).addRecentColumn(anyString(), any(S3URI.class));
+    verify(parquetMetadataStore, times(0)).addRecentColumn(any());
   }
 
   @Test
@@ -147,38 +146,37 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     StringBuilder columnNames = new StringBuilder();
     columnNames.append("sk_test").append("sk_test_2").append("sk_test_3");
-
-    Map<Integer, Integer> maxColumnAccessCounts = new HashMap<>();
-    maxColumnAccessCounts.put(getHashCode(columnNames), 11);
-
-    when(parquetMetadataStore.getMaxColumnAccessCounts()).thenReturn(maxColumnAccessCounts);
+    int schemaHash = columnNames.toString().hashCode();
 
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
+    HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
 
-    // High confidence column
     List<ColumnMetadata> sk_testColumnMetadataList = new ArrayList<>();
-    sk_testColumnMetadataList.add(
-        new ColumnMetadata(0, "sk_test", 100, 500, getHashCode(columnNames)));
+    ColumnMetadata sk_test1 = new ColumnMetadata(0, "test", 100, 500, schemaHash);
+    sk_testColumnMetadataList.add(sk_test1);
+    offsetIndexToColumnMap.put(100L, sk_test1);
 
-    // Low confidence column
     List<ColumnMetadata> sk_test_2ColumnMetadataList = new ArrayList<>();
-    sk_test_2ColumnMetadataList.add(
-        new ColumnMetadata(0, "sk_test_2", 600, 500, getHashCode(columnNames)));
+    ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test_2", 600, 500, schemaHash);
+    sk_test_2ColumnMetadataList.add(sk_test2);
+    offsetIndexToColumnMap.put(600L, sk_test2);
 
-    // High confidence column
     List<ColumnMetadata> sk_test_3ColumnMetadataList = new ArrayList<>();
-    sk_test_3ColumnMetadataList.add(
-        new ColumnMetadata(0, "sk_test_3", 1100, 500, getHashCode(columnNames)));
+    ColumnMetadata sk_test3 =
+        new ColumnMetadata(0, "sk_test_3", 1100, 500, getHashCode(columnNames));
+    sk_test_3ColumnMetadataList.add(sk_test3);
+    offsetIndexToColumnMap.put(1100L, sk_test3);
 
     columnNameToColumnMap.put("sk_test", sk_testColumnMetadataList);
     columnNameToColumnMap.put("sk_test_2", sk_test_2ColumnMetadataList);
     columnNameToColumnMap.put("sk_test_3", sk_test_3ColumnMetadataList);
 
-    Map<String, Integer> recentColumns = new HashMap<>();
-    recentColumns.put("sk_test", 11);
-    recentColumns.put("sk_test_2", 2);
-    recentColumns.put("sk_test_3", 5);
-    when(parquetMetadataStore.getRecentColumns()).thenReturn(recentColumns.entrySet());
+    Set<String> recentColumns = new HashSet<>();
+    recentColumns.add("sk_test");
+    recentColumns.add("sk_test_2");
+    recentColumns.add("sk_test_3");
+    when(parquetMetadataStore.getUniqueRecentColumnsForSchema(schemaHash))
+        .thenReturn(recentColumns);
 
     // When: recent columns get prefetched
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
@@ -189,7 +187,7 @@ public class ParquetPredictivePrefetchingTaskTest {
             physicalIO,
             parquetMetadataStore);
     parquetPredictivePrefetchingTask.prefetchRecentColumns(
-        new ColumnMappers(new HashMap<>(), columnNameToColumnMap));
+        new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap));
 
     // Then: physical IO gets the correct plan
     ArgumentCaptor<IOPlan> ioPlanArgumentCaptor = ArgumentCaptor.forClass(IOPlan.class);
@@ -197,10 +195,11 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
     List<Range> expectedRanges = new ArrayList<>();
-    // Only ranges that have high confidence are prefetched
+
     expectedRanges.add(new Range(100, 599));
+    expectedRanges.add(new Range(600, 1099));
     expectedRanges.add(new Range(1100, 1599));
-    assertEquals(ioPlan.getPrefetchRanges(), expectedRanges);
+    assertTrue(ioPlan.getPrefetchRanges().containsAll(expectedRanges));
   }
 
   @Test

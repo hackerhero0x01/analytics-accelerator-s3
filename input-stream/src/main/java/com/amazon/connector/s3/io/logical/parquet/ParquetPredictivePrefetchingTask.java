@@ -11,9 +11,12 @@ import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -67,10 +70,9 @@ public class ParquetPredictivePrefetchingTask {
         && parquetMetadataStore.getColumnMappers(s3Uri) != null) {
       ColumnMappers columnMappers = parquetMetadataStore.getColumnMappers(s3Uri);
       if (columnMappers.getOffsetIndexToColumnMap().containsKey(position)) {
-        String recentColumnName =
-            columnMappers.getOffsetIndexToColumnMap().get(position).getColumnName();
-        parquetMetadataStore.addRecentColumn(recentColumnName, s3Uri);
-        return Optional.of(recentColumnName);
+        ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
+        parquetMetadataStore.addRecentColumn(columnMetadata);
+        return Optional.of(columnMetadata.getColumnName());
       }
     }
 
@@ -92,40 +94,14 @@ public class ParquetPredictivePrefetchingTask {
                 .build(),
         () -> {
           List<Range> prefetchRanges = new ArrayList<>();
-          for (Map.Entry<String, Integer> recentColumn : parquetMetadataStore.getRecentColumns()) {
-
-            double accessRatio = 0;
-
-            if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn.getKey())) {
-              List<ColumnMetadata> columnMetadataList =
-                  columnMappers.getColumnNameToColumnMap().get(recentColumn.getKey());
-              if (!columnMetadataList.isEmpty()) {
-                ColumnMetadata columnMetadata = columnMetadataList.get(0);
-                accessRatio =
-                    (double) recentColumn.getValue()
-                        / parquetMetadataStore
-                            .getMaxColumnAccessCounts()
-                            .get(columnMetadata.getSchemaHash());
-              }
-            }
-
-            // TODO:  Preventing overfetching enabled under temporary feature flag, to be fixed in
-            // https://app.asana.com/0/1206885953994785/1207811274063025
-            boolean shouldPrefetch =
-                !logicalIOConfiguration.isPreventOverFetchingEnabled()
-                    || (logicalIOConfiguration.isPreventOverFetchingEnabled()
-                        && accessRatio
-                            > logicalIOConfiguration.getMinPredictivePrefetchingConfidenceRatio());
-
-            if (shouldPrefetch
-                && columnMappers.getColumnNameToColumnMap().containsKey(recentColumn.getKey())) {
+          for (String recentColumn : getRecentColumns(columnMappers.getOffsetIndexToColumnMap())) {
+            if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
               LOG.debug(
-                  "Column {} found in schema for {}, with confidence ratio {}, adding to prefetch list",
-                  recentColumn.getKey(),
-                  this.s3Uri.getKey(),
-                  accessRatio);
+                  "Column {} found in schema for {}, adding to prefetch list",
+                  recentColumn,
+                  this.s3Uri.getKey());
               List<ColumnMetadata> columnMetadataList =
-                  columnMappers.getColumnNameToColumnMap().get(recentColumn.getKey());
+                  columnMappers.getColumnNameToColumnMap().get(recentColumn);
               for (ColumnMetadata columnMetadata : columnMetadataList) {
                 prefetchRanges.add(
                     new Range(
@@ -147,5 +123,19 @@ public class ParquetPredictivePrefetchingTask {
             throw new CompletionException("Error in executing predictive prefetching", e);
           }
         });
+  }
+
+  private Set<String> getRecentColumns(HashMap<Long, ColumnMetadata> offsetIndexToColumnMap) {
+    Map.Entry<Long, ColumnMetadata> firstColumnData =
+        offsetIndexToColumnMap.entrySet().iterator().next();
+
+    Set<String> recentColumns = new HashSet<>();
+
+    if (firstColumnData != null) {
+      int schemaHash = firstColumnData.getValue().getSchemaHash();
+      recentColumns = parquetMetadataStore.getUniqueRecentColumnsForSchema(schemaHash);
+    }
+
+    return recentColumns;
   }
 }

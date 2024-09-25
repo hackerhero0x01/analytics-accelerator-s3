@@ -18,14 +18,9 @@ public class LogicalIOConfigurationTest {
   @Test
   void testNonDefaults() {
     LogicalIOConfiguration configuration =
-        LogicalIOConfiguration.builder()
-            .footerCachingEnabled(true)
-            .footerCachingSize(10)
-            .minPredictivePrefetchingConfidenceRatio(0.3)
-            .build();
+        LogicalIOConfiguration.builder().footerCachingEnabled(true).footerCachingSize(10).build();
     assertTrue(configuration.isFooterCachingEnabled());
     assertEquals(10, configuration.getFooterCachingSize());
-    assertEquals(0.3, configuration.getMinPredictivePrefetchingConfidenceRatio());
   }
 
   @Test

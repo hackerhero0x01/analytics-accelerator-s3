@@ -5,12 +5,13 @@ import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.Getter;
 
 /** Object to aggregate column usage statistics from Parquet files */
 @SuppressFBWarnings(
@@ -18,8 +19,10 @@ import lombok.Getter;
     justification = "The closure classes trigger this. We never use serialization on this class")
 public class ParquetMetadataStore {
   private final Map<S3URI, ColumnMappers> columnMappersStore;
-  private final Map<String, Integer> recentColumns;
-  @Getter private final Map<Integer, Integer> maxColumnAccessCounts;
+
+  private final Map<Integer, List<String>> recentlyReadColumnsPerSchema;
+
+  private final LogicalIOConfiguration configuration;
 
   /**
    * Creates a new instance of ParquetMetadataStore.
@@ -28,6 +31,7 @@ public class ParquetMetadataStore {
    */
   public ParquetMetadataStore(LogicalIOConfiguration configuration) {
     this(
+        configuration,
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, ColumnMappers>() {
               @Override
@@ -36,14 +40,7 @@ public class ParquetMetadataStore {
               }
             }),
         Collections.synchronizedMap(
-            new LinkedHashMap<String, Integer>() {
-              @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > configuration.getParquetMetadataStoreSize();
-              }
-            }),
-        Collections.synchronizedMap(
-            new LinkedHashMap<Integer, Integer>() {
+            new LinkedHashMap<Integer, List<String>>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry eldest) {
                 return this.size() > configuration.getMaxColumnAccessCountStoreSize();
@@ -55,17 +52,17 @@ public class ParquetMetadataStore {
    * Creates a new instance of ParquetMetadataStore. This constructor is used for dependency
    * injection.
    *
+   * @param configuration LogicalIO configuration
    * @param columnMappersStore Store of column mappings
-   * @param recentColumns Recent columns being read
-   * @param maxColumnAccessCounts The maximum access count of a column per schema
+   * @param recentlyReadColumnsPerSchema List of recent read columns for each schema
    */
   protected ParquetMetadataStore(
+      LogicalIOConfiguration configuration,
       Map<S3URI, ColumnMappers> columnMappersStore,
-      Map<String, Integer> recentColumns,
-      Map<Integer, Integer> maxColumnAccessCounts) {
+      Map<Integer, List<String>> recentlyReadColumnsPerSchema) {
+    this.configuration = configuration;
     this.columnMappersStore = columnMappersStore;
-    this.recentColumns = recentColumns;
-    this.maxColumnAccessCounts = maxColumnAccessCounts;
+    this.recentlyReadColumnsPerSchema = recentlyReadColumnsPerSchema;
   }
 
   /**
@@ -91,35 +88,36 @@ public class ParquetMetadataStore {
   /**
    * Adds column to list of recent columns.
    *
-   * @param columnName column to be added
-   * @param s3URI s3URI of current object being read
+   * @param columnMetadata column to be added
    */
-  public void addRecentColumn(String columnName, S3URI s3URI) {
-    int columnAccessCount = recentColumns.getOrDefault(columnName, 0) + 1;
-    recentColumns.put(columnName, columnAccessCount);
-    updateMaxColumnAccessCounts(columnAccessCount, s3URI, columnName);
+  public void addRecentColumn(ColumnMetadata columnMetadata) {
+
+    List<String> schemaRecentColumns =
+        recentlyReadColumnsPerSchema.getOrDefault(
+            columnMetadata.getSchemaHash(), new ArrayList<>());
+
+    if (schemaRecentColumns.size() == this.configuration.getMaxColumnAccessCountStoreSize()) {
+      schemaRecentColumns.remove(0);
+    }
+
+    schemaRecentColumns.add(columnMetadata.getColumnName());
+
+    recentlyReadColumnsPerSchema.put(columnMetadata.getSchemaHash(), schemaRecentColumns);
   }
 
   /**
-   * Gets a list of recent columns being read.
+   * Gets a list of unique column names from the recently read list.
    *
-   * @return Set of recent columns being
+   * @param schemaHash the schema for which to retrieve columns for
+   * @return Unique set of recently read columns
    */
-  public Set<Map.Entry<String, Integer>> getRecentColumns() {
-    return recentColumns.entrySet();
-  }
+  public Set<String> getUniqueRecentColumnsForSchema(int schemaHash) {
+    List<String> schemaRecentColumns = recentlyReadColumnsPerSchema.get(schemaHash);
 
-  private void updateMaxColumnAccessCounts(int columnAccessCount, S3URI s3URI, String columnName) {
-    if (columnMappersStore.containsKey(s3URI)) {
-      List<ColumnMetadata> columnMetadataList =
-          columnMappersStore.get(s3URI).getColumnNameToColumnMap().get(columnName);
-      // Update the max access of a column for a particular schema.
-      if (!columnMetadataList.isEmpty()) {
-        int schemaHash = columnMetadataList.get(0).getSchemaHash();
-        int currMaxColumnAccessCount = maxColumnAccessCounts.getOrDefault(schemaHash, 0);
-        maxColumnAccessCounts.put(
-            schemaHash, Math.max(columnAccessCount, currMaxColumnAccessCount));
-      }
+    if (schemaRecentColumns != null) {
+      return new HashSet<>(schemaRecentColumns);
     }
+
+    return Collections.emptySet();
   }
 }
