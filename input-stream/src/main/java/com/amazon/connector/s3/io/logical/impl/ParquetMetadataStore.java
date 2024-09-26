@@ -13,13 +13,83 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Object to aggregate column usage statistics from Parquet files */
+/**
+ * This class maintains a shared state required for Parquet prefetching operations that is required
+ * independent of the life of individual streams. It is used to store Parquet metadata for
+ * individual files, and a list of recently read columns. This must be done outside the life of a
+ * stream, as calling applications may open and close a stream to a file several times while
+ * reading. For Spark, this was observed to happen as a stream to a Parquet file is first opened to
+ * read the footer, and then a separate stream is opened to read the data.
+ */
 @SuppressFBWarnings(
     value = "SE_BAD_FIELD",
     justification = "The closure classes trigger this. We never use serialization on this class")
 public class ParquetMetadataStore {
+
+  /***
+   * This is a mapping of S3 URI's of Parquet files to their {@link ColumnMappers}. When a stream
+   * for a Parquet file is read, these ColumnMappers are constructed in {@link com.amazon.connector.s3.io.logical.parquet.ParquetMetadataParsingTask} asynchronously.
+   *
+   * This ColumnMappers class contains two maps:
+   *
+   * 1) offsetIndexToColumnMap - This is a map of <column_offset, {@link ColumnMetadata}>. Where column_offset is the position this column starts in this Parquet file.
+   *  ColumnMetada contains further information for this particular column, such as column name, which row group it belongs to, and it's length. For example, if a Parquet
+   *  has the metadata:
+   *
+   *  ColumnChunk
+   *     file_offset = 7323
+   *     path_in_schema = ss_sold_date_sk
+   *     total_uncompressed_size = 1070335
+   *     dictionary_page_offset = 4
+   *     ....
+   * ColumnChunk
+   *     file_offset = 1188617
+   *     path_in_schema = ss_sold_time_sk
+   *     total_uncompressed_size = 1294045
+   *     dictionary_page_offset = 1006856
+   *     ....
+   * ColumnChunk
+   *     file_offset = 2227305
+   *     path_in_schema = ss_item_sk
+   *     total_uncompressed_size = 10641770
+   *
+   * This map will be  <7323, ColumnMetadata for ss_sold_date_sk,
+   *                          1188617, ColumnMetadata for ss_sold_time_sk,
+   *                          2227305, ColumnMetadata for ss_item_sk>
+   *
+   *
+   * 2) columnNameToColumnMap - This is a map for <column_name, {@link ColumnMetadata}>. And for the above Parquet file, this will be
+   *  <ss_sold_date_sk, ColumnMetadata for ss_sold_date_sk,
+   *   ss_sold_time_sk, ColumnMetadata for  ss_sold_time_sk,
+   *   ss_item_sk, ColumnMetadata for  ss_item_sk>
+   *
+   * When a read for particular position is made, offsetIndexToColumnMap is used to check if this position corresponds to a column for this file.
+   * For example, if a read() is made at position 7323, the for the above, offsetIndexToColumnMap is used to infer that is read was for the colum
+   * ss_sold_date_sk. This column is then added to the list of recently read columns for the store_sales schema.
+   *
+   * columnNameToColumnMap is required when predictively prefetching columns for a newly opened file in {@link com.amazon.connector.s3.io.logical.parquet.ParquetPredictivePrefetchingTask}.
+   * When we have a list of recently read columns, for example [ss_sold_date_sk, ss_sold_time_sk], to prefetch these columns for a new file, the columnNameToColumnMap is used to find
+   * the metadata for a column called ss_sold_date_sk in the newly opened file. If such a key does exist, then the information stored in it's ColumnMetadata, specifically the start position
+   * and length is used to prefetch the correct range for this column.
+   */
   private final Map<S3URI, ColumnMappers> columnMappersStore;
 
+  /**
+   * This is a mapping of schema and the recently read columns for it. For a Parquet a hash is
+   * calculated by concatenating all the column names in the file metadata into a single String, and
+   * then computing the hash. This helps separate all Parquet belonging to the same table. Eg: Two
+   * files belonging to the store_sales will have the same columns, and so have the same schema
+   * hash.
+   *
+   * <p>This map is then used to store a list of recently read columns for each schema. For example,
+   * if a stream recently read columns [ss_a, ss_b] for a store_sales schema, the list would contain
+   * [ss_a, ss_b]. The list is limited to a size defined by maxColumnAccessCountStoreSize in {@link
+   * LogicalIOConfiguration}. By default, this 15. This means that this list will contain the last
+   * 15 columns that were read for this particular schema.
+   *
+   * <p>If a query is reading ss_a and ss_b, this list will look something like [ss_a, ss_b, ss_a,
+   * ss_b]. This helps us maintain a history of the columns currently being read.
+   */
   private final Map<Integer, List<String>> recentlyReadColumnsPerSchema;
 
   private final LogicalIOConfiguration configuration;
@@ -32,20 +102,18 @@ public class ParquetMetadataStore {
   public ParquetMetadataStore(LogicalIOConfiguration configuration) {
     this(
         configuration,
-        Collections.synchronizedMap(
-            new LinkedHashMap<S3URI, ColumnMappers>() {
-              @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > configuration.getParquetMetadataStoreSize();
-              }
-            }),
-        Collections.synchronizedMap(
-            new LinkedHashMap<Integer, List<String>>() {
-              @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
-                return this.size() > configuration.getMaxColumnAccessCountStoreSize();
-              }
-            }));
+        new LinkedHashMap<S3URI, ColumnMappers>() {
+          @Override
+          protected boolean removeEldestEntry(final Map.Entry eldest) {
+            return this.size() > configuration.getParquetMetadataStoreSize();
+          }
+        },
+        new LinkedHashMap<Integer, List<String>>() {
+          @Override
+          protected boolean removeEldestEntry(final Map.Entry eldest) {
+            return this.size() > configuration.getMaxColumnAccessCountStoreSize();
+          }
+        });
   }
 
   /**
@@ -56,7 +124,7 @@ public class ParquetMetadataStore {
    * @param columnMappersStore Store of column mappings
    * @param recentlyReadColumnsPerSchema List of recent read columns for each schema
    */
-  protected ParquetMetadataStore(
+  ParquetMetadataStore(
       LogicalIOConfiguration configuration,
       Map<S3URI, ColumnMappers> columnMappersStore,
       Map<Integer, List<String>> recentlyReadColumnsPerSchema) {
@@ -71,7 +139,7 @@ public class ParquetMetadataStore {
    * @param s3URI The S3URI to get column mappers for.
    * @return Column mappings
    */
-  public ColumnMappers getColumnMappers(S3URI s3URI) {
+  public synchronized ColumnMappers getColumnMappers(S3URI s3URI) {
     return columnMappersStore.get(s3URI);
   }
 
@@ -81,16 +149,50 @@ public class ParquetMetadataStore {
    * @param s3URI S3URI to store mappers for
    * @param columnMappers Parquet metadata column mappings
    */
-  public void putColumnMappers(S3URI s3URI, ColumnMappers columnMappers) {
+  public synchronized void putColumnMappers(S3URI s3URI, ColumnMappers columnMappers) {
     columnMappersStore.put(s3URI, columnMappers);
   }
 
   /**
-   * Adds column to list of recent columns.
+   * Adds column to list of recent columns for a particular schema. This is a fixed sized list,
+   * whose size is defined by maxColumnAccessCountStoreSize in {@link LogicalIOConfiguration}, by
+   * default this value is 15.
+   *
+   * <p>Reads at particular file offset correspond to a specific column being read. When a read
+   * happens, {@link ColumnMappers} are used to find if this read corresponds to a column for the
+   * currently open Parquet file. When a read happens, {@code
+   * ParquetPredictivePrefetchingTask.addToRecentColumnList()} is used to decipher if it corresponds
+   * to a column, that is, is there a column in the Parquet file with the same file_offset as the
+   * current position of the stream? If yes, this column gets added to the recently read columns for
+   * that particular schema. All Parquet files that have the exact same columns, and so
+   * hash(concatenated string of columnNames) is equal, are said to belong to the same schema eg:
+   * "store_sales".
+   *
+   * <p>This list maintains names of the last 15 columns that we read for a schema. This is used to
+   * maintain a brief recent history of the columns being read by a workload and make predictions
+   * when prefetching. Only columns that exist in this list are prefetched by {@link
+   * com.amazon.connector.s3.io.logical.parquet.ParquetPredictivePrefetchingTask}.
+   *
+   * <p>For example, assume that this list is of size 3, and the current query executing is Select
+   * ss_a, ss_b from store_sales. This list will then contain something like [ss_a, ss_b, ss_a]. If
+   * the query changes to Select ss_d, ss_e from store_sales, this list will start getting updated
+   * as the reads for column ss_d and ss_e are requested.
+   *
+   * <p>The list will change as follows: // new read for ss_d is requested, update list. Since list
+   * is already at capacity, remove the first element from it as this the column we saw least
+   * recently. The list then becomes: [ss_b, ss_a, ss_d]
+   *
+   * <p>// A read for ss_e comes in, update list. Again, since list is at capacity, remove the least
+   * recently seen column. List becomes: [ss_a, ss_d, ss_e]
+   *
+   * <p>After the next read, list will be [ss_d, ss_e, ss_d]
+   *
+   * <p>In this way, a fixed size list helps maintain the most recent columns and increases accuracy
+   * when prefetching.
    *
    * @param columnMetadata column to be added
    */
-  public void addRecentColumn(ColumnMetadata columnMetadata) {
+  public synchronized void addRecentColumn(ColumnMetadata columnMetadata) {
 
     List<String> schemaRecentColumns =
         recentlyReadColumnsPerSchema.getOrDefault(
@@ -106,12 +208,15 @@ public class ParquetMetadataStore {
   }
 
   /**
-   * Gets a list of unique column names from the recently read list.
+   * Gets a list of unique column names from the recently read list. The recently read list contains
+   * a history of recent columns read for a particular schema. For example, for a store_sales schema
+   * this can be [ss_a, ss_b, ss_a, ss_b, ss_c, ss_c]. For prefetching, a set of unique columns to
+   * prefetch from this list is required. In this case, this will [ss_a, ss_b, ss_c].
    *
    * @param schemaHash the schema for which to retrieve columns for
    * @return Unique set of recently read columns
    */
-  public Set<String> getUniqueRecentColumnsForSchema(int schemaHash) {
+  public synchronized Set<String> getUniqueRecentColumnsForSchema(int schemaHash) {
     List<String> schemaRecentColumns = recentlyReadColumnsPerSchema.get(schemaHash);
 
     if (schemaRecentColumns != null) {
