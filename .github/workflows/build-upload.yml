@@ -145,17 +145,16 @@ jobs:
           ./gradlew :iceberg-aws:test
         working-directory: iceberg
 
-      - name: Lookup iceberg-spark-runtime JAR path
-        id: iceberg-path-lookup
+      - name: Rename iceberg-spark-runtime JAR path
         run: |
           FILE_PATH_BASE=/home/runner/work/s3-connector-framework/s3-connector-framework/iceberg/spark/v3.5/spark-runtime/build/libs/
           cd "$FILE_PATH_BASE"
           FILE_NAME=$(ls | grep "iceberg-spark-runtime-3.5_2.12-[0-9a-f]*\.jar" | head -n 1)
-          echo "FILE_PATH=$FILE_PATH_BASE/$FILE_NAME" >> "$GITHUB_OUTPUT"
+          mv "$FILE_NAME" "iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
 
       - uses: actions/upload-artifact@v4
         with:
-          path: ${{ steps.iceberg-path-lookup.outputs.FILE_PATH }}
+          path: "/home/runner/work/s3-connector-framework/s3-connector-framework/iceberg/spark/v3.5/spark-runtime/build/libs/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
           name: "iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
 
   UploadArtifactsToS3:
