@@ -17,7 +17,7 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
   /** Clears state */
-  public void clear() {
+  public synchronized void clear() {
     this.datapointCompletions.clear();
     this.operationStarts.clear();
   }
@@ -29,7 +29,7 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
    * @param operation and instance of {@link Operation} to start
    */
   @Override
-  public void reportStart(long epochTimestampNanos, Operation operation) {
+  public synchronized void reportStart(long epochTimestampNanos, Operation operation) {
     this.operationStarts.add(operation);
   }
 
@@ -39,7 +39,7 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
    * @param datapointMeasurement - operation execution.
    */
   @Override
-  public void reportComplete(TelemetryDatapointMeasurement datapointMeasurement) {
+  public synchronized void reportComplete(TelemetryDatapointMeasurement datapointMeasurement) {
     this.datapointCompletions.add(datapointMeasurement);
   }
 
@@ -48,7 +48,7 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
    *
    * @return dataPoints that correspond to operation completions
    */
-  public Collection<OperationMeasurement> getOperationCompletions() {
+  public synchronized Collection<OperationMeasurement> getOperationCompletions() {
     return this.getDatapointCompletions().stream()
         .filter(OperationMeasurement.class::isInstance)
         .map(OperationMeasurement.class::cast)
@@ -60,7 +60,7 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
    *
    * @return dataPoints that correspond to operation completions
    */
-  public Collection<MetricMeasurement> getMetrics() {
+  public synchronized Collection<MetricMeasurement> getMetrics() {
     return this.getDatapointCompletions().stream()
         .filter(MetricMeasurement.class::isInstance)
         .map(MetricMeasurement.class::cast)
@@ -69,13 +69,13 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
 
   /** Flushes any intermediate state of the reporters */
   @Override
-  public void flush() {
+  public synchronized void flush() {
     this.flushed.set(true);
   }
 
   /** Closes the reporter */
   @Override
-  public void close() {
+  public synchronized void close() {
     this.closed.set(true);
     TelemetryReporter.super.close();
   }

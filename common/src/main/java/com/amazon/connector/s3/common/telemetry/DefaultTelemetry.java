@@ -179,6 +179,16 @@ public class DefaultTelemetry implements Telemetry {
   }
 
   /**
+   * Records a measurement represented by a metric
+   *
+   * @param measurement an instance of {@link MetricMeasurement} to record
+   */
+  @Override
+  public void measure(@NonNull MetricMeasurement measurement) {
+    recordDatapoint(measurement);
+  }
+
+  /**
    * Does all the bookkeeping at the operation starts.
    *
    * @param level level of the operation being executed.
@@ -217,22 +227,22 @@ public class DefaultTelemetry implements Telemetry {
     if (error.isPresent()) {
       builder.error(error.get());
     }
-    recordOperationCompletion(builder.build());
+    recordDatapoint(builder.build());
   }
 
   /**
    * Records operation completion.
    *
-   * @param operationMeasurement an instance of {@link OperationMeasurement}.
+   * @param datapointMeasurement an instance of {@link TelemetryDatapointMeasurement}.
    */
-  private void recordOperationCompletion(OperationMeasurement operationMeasurement) {
+  private void recordDatapoint(TelemetryDatapointMeasurement datapointMeasurement) {
     try {
-      this.reporter.reportComplete(operationMeasurement);
+      this.reporter.reportComplete(datapointMeasurement);
     } catch (Throwable error) {
       LOG.error(
           String.format(
-              "Unexpected error reporting operation completion of `%s`.",
-              operationMeasurement.getOperation().toString()),
+              "Unexpected error reporting measurement for `%s`.",
+              datapointMeasurement.getDatapoint()),
           error);
     }
   }

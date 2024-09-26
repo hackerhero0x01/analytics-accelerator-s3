@@ -95,6 +95,29 @@ public class DefaultTelemetryTest {
   }
 
   @Test
+  void testMeasureMetric() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
+    try (DefaultTelemetry defaultTelemetry =
+        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD)) {
+
+      Metric metric = Metric.builder().name("name").attribute("foo", "bar").build();
+      MetricMeasurement metricMeasurement =
+          MetricMeasurement.builder().metric(metric).epochTimestampNanos(10L).value(100L).build();
+
+      // Tick elapsed clock to 10 and wall clock to 5.
+      elapsedClock.tick(10);
+      wallClock.tick(5);
+      defaultTelemetry.measure(metricMeasurement);
+
+      assertEquals(1, reporter.getMetrics().size());
+      MetricMeasurement metricMeasurementResult = reporter.getMetrics().stream().findFirst().get();
+      assertEquals(metricMeasurementResult, metricMeasurement);
+    }
+  }
+
+  @Test
   void testMeasureActionBelowLevel() {
     TickingClock wallClock = new TickingClock(0L);
     TickingClock elapsedClock = new TickingClock(0L);

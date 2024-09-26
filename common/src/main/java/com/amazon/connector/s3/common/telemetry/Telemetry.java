@@ -256,6 +256,13 @@ public interface Telemetry extends Closeable {
     return measureJoin(TelemetryLevel.VERBOSE, operationSupplier, operationCode);
   }
 
+  /**
+   * Records a measurement represented by a metric
+   *
+   * @param measurement an instance of {@link MetricMeasurement} to record
+   */
+  void measure(@NonNull MetricMeasurement measurement);
+
   /** Flushes the contents of {@link Telemetry} */
   void flush();
 
