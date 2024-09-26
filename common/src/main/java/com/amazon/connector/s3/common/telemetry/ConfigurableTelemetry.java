@@ -51,19 +51,32 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
     }
 
     // Create the final reporter
+    TelemetryReporter telemetryReporter;
     if (stdOutTelemetryReporter.isPresent() && loggingReporter.isPresent()) {
       // if both reporters are present, create a group
-      return new GroupTelemetryReporter(
-          Arrays.asList(stdOutTelemetryReporter.get(), loggingReporter.get()));
+      telemetryReporter =
+          new GroupTelemetryReporter(
+              Arrays.asList(stdOutTelemetryReporter.get(), loggingReporter.get()));
     } else if (loggingReporter.isPresent()) {
       // if only logging reporter is present, this is all there is
-      return loggingReporter.get();
+      telemetryReporter = loggingReporter.get();
     } else if (stdOutTelemetryReporter.isPresent()) {
       // if only console reporter is present, this is all there is
-      return stdOutTelemetryReporter.get();
+      telemetryReporter = stdOutTelemetryReporter.get();
     } else {
       // all reporters disabled. resort to NoOp
-      return new NoOpTelemetryReporter();
+      telemetryReporter = new NoOpTelemetryReporter();
+    }
+
+    // If aggregations are enabled, wrap the resulting reporter
+    if (configuration.isAggregationsEnabled()) {
+      TelemetryDatapointAggregator telemetryDatapointAggregator =
+          new TelemetryDatapointAggregator(
+              telemetryReporter, configuration.getAggregationsFlushInterval());
+      return new GroupTelemetryReporter(
+          Arrays.asList(telemetryReporter, telemetryDatapointAggregator));
+    } else {
+      return telemetryReporter;
     }
   }
 }

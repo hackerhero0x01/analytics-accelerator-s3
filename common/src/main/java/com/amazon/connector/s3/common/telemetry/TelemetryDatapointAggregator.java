@@ -31,7 +31,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
   /** This is the task that flushes data on a regular basis, if set up */
   private final AtomicReference<ScheduledExecutorService> flushTask;
 
-  private static final Logger LOG = LogManager.getLogger(DefaultTelemetry.class);
+  private static final Logger LOG = LogManager.getLogger(TelemetryDatapointAggregator.class);
 
   /**
    * Creates a new instance of {@link TelemetryDatapointAggregator}
