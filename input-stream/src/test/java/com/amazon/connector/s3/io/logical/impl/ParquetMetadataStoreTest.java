@@ -30,8 +30,6 @@ public class ParquetMetadataStoreTest {
     int schemaHash = concatedColumnString.toString().hashCode();
     Map<S3URI, ColumnMappers> columnMappersStore = new HashMap<>();
 
-    HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
-
     ColumnMetadata sk_test = new ColumnMetadata(0, "sk_test", 0, 500, schemaHash);
     ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test2", 0, 500, schemaHash);
     ColumnMetadata sk_test3 = new ColumnMetadata(0, "sk_test3", 0, 500, schemaHash);
