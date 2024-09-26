@@ -88,6 +88,18 @@ public class OperationMeasurementTest {
               .operation(null)
               .build();
         });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          OperationMeasurement.builder()
+              .epochTimestampNanos(1)
+              .operation(Operation.builder().name("foo").build())
+              .level(null)
+              .elapsedStartTimeNanos(10)
+              .elapsedCompleteTimeNanos(12)
+              .build();
+        });
   }
 
   @Test

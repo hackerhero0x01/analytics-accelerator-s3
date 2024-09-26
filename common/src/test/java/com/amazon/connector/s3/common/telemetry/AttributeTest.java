@@ -50,4 +50,9 @@ public class AttributeTest {
   void testToString() {
     assertEquals("Attribute(Foo, 42)", Attribute.of("Foo", 42).toString());
   }
+
+  @Test
+  void testToStringWithAggregations() {
+    assertEquals("Attribute(Foo, 42); aggregations: [g1, g2]", Attribute.of("Foo", 42, "g1", "g2").toString());
+  }
 }

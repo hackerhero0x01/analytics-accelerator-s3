@@ -19,7 +19,7 @@ public class Metric extends TelemetryDatapoint {
    * @param name operation name.
    * @param attributes operation attributes.
    */
-  public Metric(String name, Map<String, Attribute> attributes) {
+  private Metric(String name, Map<String, Attribute> attributes) {
     super(name, attributes);
   }
 

@@ -31,24 +31,6 @@ public class MetricTest {
         });
   }
 
-  @Test
-  void testCreateMetricConstructor() {
-    Map<String, Attribute> attributes = new HashMap<>();
-    attributes.put("Foo", Attribute.of("Foo", "Bar"));
-    Metric metric = new Metric("name", attributes);
-
-    assertEquals("name", metric.getName());
-    assertEquals(1, metric.getAttributes().size());
-    assertEquals("Bar", metric.getAttributes().get("Foo").getValue());
-  }
-
-  @Test
-  void testCreateMetricConstructorWithNulls() {
-    Map<String, Attribute> attributes = new HashMap<>();
-    attributes.put("Foo", Attribute.of("Foo", 42));
-    assertThrows(NullPointerException.class, () -> new Metric(null, attributes));
-    assertThrows(NullPointerException.class, () -> new Metric("name", null));
-  }
 
   @Test
   void testCreateMetricBuilderWithNulls() {

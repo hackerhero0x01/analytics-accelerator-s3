@@ -36,8 +36,8 @@ public class OperationMeasurement extends TelemetryDatapointMeasurement {
    * @param elapsedCompleteTimeNanos elapsed clock time corresponding to operation completion
    * @param error exception thrown as part of the execution
    */
-  public OperationMeasurement(
-      @NonNull Operation operation,
+  private OperationMeasurement(
+      Operation operation,
       @NonNull TelemetryLevel level,
       long epochTimestampNanos,
       long elapsedStartTimeNanos,

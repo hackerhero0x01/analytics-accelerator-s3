@@ -55,6 +55,18 @@ public class CollectingTelemetryReporter implements TelemetryReporter {
         .collect(Collectors.toCollection(ArrayList::new));
   }
 
+  /**
+   * Returns dataPoints that correspond to operation completions
+   *
+   * @return dataPoints that correspond to operation completions
+   */
+  public Collection<MetricMeasurement> getMetrics() {
+    return this.getDatapointCompletions().stream()
+        .filter(MetricMeasurement.class::isInstance)
+        .map(MetricMeasurement.class::cast)
+        .collect(Collectors.toCollection(ArrayList::new));
+  }
+
   /** Flushes any intermediate state of the reporters */
   @Override
   public void flush() {

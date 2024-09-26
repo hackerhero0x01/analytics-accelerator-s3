@@ -3,6 +3,7 @@ package com.amazon.connector.s3.common.telemetry;
 import com.amazon.connector.s3.common.Preconditions;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.*;
 
@@ -16,7 +17,8 @@ public abstract class TelemetryDatapoint {
   @NonNull private final String name;
 
   /** Metric attributes. Must not be null */
-  @NonNull Map<String, Attribute> attributes;
+  @NonNull private final Map<String, Attribute> attributes;
+
 
   /**
    * Creates a new instance of {@link TelemetryDatapoint}.
@@ -25,7 +27,6 @@ public abstract class TelemetryDatapoint {
    * @param attributes operation attributes.
    */
   protected TelemetryDatapoint(@NonNull String name, @NonNull Map<String, Attribute> attributes) {
-    // Set the parent automatically in the constructor called by the builder
     this.name = name;
     this.attributes = Collections.unmodifiableMap(attributes);
   }

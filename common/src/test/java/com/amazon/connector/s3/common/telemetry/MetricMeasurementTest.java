@@ -140,4 +140,25 @@ public class MetricMeasurementTest {
             .build();
     assertThrows(NullPointerException.class, () -> metricMeasurement.toString(null));
   }
+
+  @Test
+  void tesToStringWithFormatStringNull() {
+    Metric metric = Metric.builder().name("S3.GET").attribute("Foo", "Bar").build();
+    EpochFormatter epochFormatter =
+        new EpochFormatter(
+            EpochFormatter.DEFAULT_PATTERN,
+            TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
+            Locale.ENGLISH);
+
+    MetricMeasurement metricMeasurement =
+        MetricMeasurement.builder()
+            .metric(metric)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
+            .value(123L)
+            .kind(MetricMeasurementKind.AGGREGATE)
+            .build();
+    assertThrows(NullPointerException.class, () -> metricMeasurement.toString(null, ""));
+    assertThrows(
+        NullPointerException.class, () -> metricMeasurement.toString(epochFormatter, null));
+  }
 }

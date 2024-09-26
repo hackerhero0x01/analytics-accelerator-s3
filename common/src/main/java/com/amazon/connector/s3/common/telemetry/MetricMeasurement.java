@@ -6,11 +6,10 @@ import lombok.Getter;
 import lombok.NonNull;
 
 /** Represents telemetry for the metric measurement. */
-@Getter
 @EqualsAndHashCode(callSuper = true)
 public class MetricMeasurement extends TelemetryDatapointMeasurement {
   /** Kind of metric measurement */
-  @NonNull private final MetricMeasurementKind kind;
+  @NonNull @Getter private final MetricMeasurementKind kind;
   /** Metric value. */
   private final double value;
 
@@ -24,11 +23,8 @@ public class MetricMeasurement extends TelemetryDatapointMeasurement {
    * @param epochTimestampNanos timestamp
    * @param value metric value
    */
-  public MetricMeasurement(
-      @NonNull Metric metric,
-      @NonNull MetricMeasurementKind kind,
-      long epochTimestampNanos,
-      double value) {
+  private MetricMeasurement(
+      Metric metric, @NonNull MetricMeasurementKind kind, long epochTimestampNanos, double value) {
     super(metric, epochTimestampNanos);
     this.kind = kind;
     this.value = value;
