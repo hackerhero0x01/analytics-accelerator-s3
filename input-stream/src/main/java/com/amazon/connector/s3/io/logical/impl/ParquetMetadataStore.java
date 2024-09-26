@@ -64,7 +64,7 @@ public class ParquetMetadataStore {
    *   ss_item_sk, ColumnMetadata for  ss_item_sk>
    *
    * When a read for particular position is made, offsetIndexToColumnMap is used to check if this position corresponds to a column for this file.
-   * For example, if a read() is made at position 7323, the for the above, offsetIndexToColumnMap is used to infer that is read was for the colum
+   * For example, if a read() is made at position 7323, then for the above, offsetIndexToColumnMap is used to infer that this read was for the colum
    * ss_sold_date_sk. This column is then added to the list of recently read columns for the store_sales schema.
    *
    * columnNameToColumnMap is required when predictively prefetching columns for a newly opened file in {@link com.amazon.connector.s3.io.logical.parquet.ParquetPredictivePrefetchingTask}.
@@ -75,11 +75,11 @@ public class ParquetMetadataStore {
   private final Map<S3URI, ColumnMappers> columnMappersStore;
 
   /**
-   * This is a mapping of schema and the recently read columns for it. For a Parquet a hash is
-   * calculated by concatenating all the column names in the file metadata into a single String, and
-   * then computing the hash. This helps separate all Parquet belonging to the same table. Eg: Two
-   * files belonging to the store_sales will have the same columns, and so have the same schema
-   * hash.
+   * This is a mapping of schema and the recently read columns for it. For a Parquet file, a hash is
+   * calculated by concatenating all the column names in the file metadata into a single string, and
+   * then computing the hash. This helps separate all Parquet files belonging to the same table. Eg:
+   * Two files belonging to store_sales table will have the same columns, and so have the same
+   * schema hash.
    *
    * <p>This map is then used to store a list of recently read columns for each schema. For example,
    * if a stream recently read columns [ss_a, ss_b] for a store_sales schema, the list would contain
@@ -154,9 +154,9 @@ public class ParquetMetadataStore {
   }
 
   /**
-   * Adds column to list of recent columns for a particular schema. This is a fixed sized list,
-   * whose size is defined by maxColumnAccessCountStoreSize in {@link LogicalIOConfiguration}, by
-   * default this value is 15.
+   * Adds a column to the list of recent columns for a particular schema. This is a fixed sized
+   * list, whose size is defined by maxColumnAccessCountStoreSize in {@link LogicalIOConfiguration}.
+   * The default value is 15.
    *
    * <p>Reads at particular file offset correspond to a specific column being read. When a read
    * happens, {@link ColumnMappers} are used to find if this read corresponds to a column for the
@@ -164,12 +164,12 @@ public class ParquetMetadataStore {
    * ParquetPredictivePrefetchingTask.addToRecentColumnList()} is used to decipher if it corresponds
    * to a column, that is, is there a column in the Parquet file with the same file_offset as the
    * current position of the stream? If yes, this column gets added to the recently read columns for
-   * that particular schema. All Parquet files that have the exact same columns, and so
-   * hash(concatenated string of columnNames) is equal, are said to belong to the same schema eg:
+   * that particular schema. All Parquet files that have the exact same columns, and so the same
+   * hash(concatenated string of columnNames), are said to belong to the same schema eg:
    * "store_sales".
    *
-   * <p>This list maintains names of the last 15 columns that we read for a schema. This is used to
-   * maintain a brief recent history of the columns being read by a workload and make predictions
+   * <p>This list maintains names of the last 15 columns that were read for a schema. This is used
+   * to maintain a brief recent history of the columns being read by a workload and make predictions
    * when prefetching. Only columns that exist in this list are prefetched by {@link
    * com.amazon.connector.s3.io.logical.parquet.ParquetPredictivePrefetchingTask}.
    *
