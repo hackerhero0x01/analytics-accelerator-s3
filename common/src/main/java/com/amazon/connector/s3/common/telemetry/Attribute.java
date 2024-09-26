@@ -20,6 +20,7 @@ public class Attribute {
    * @param name attribute name
    * @param value attribute value
    * @param aggregations aggregations
+   * @return a bew instance of {@link Attribute}
    */
   public static Attribute of(@NonNull String name, @NonNull Object value, String... aggregations) {
     return new Attribute(name, value, aggregations);

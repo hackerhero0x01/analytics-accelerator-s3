@@ -3,7 +3,6 @@ package com.amazon.connector.s3.common.telemetry;
 import com.amazon.connector.s3.common.Preconditions;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import lombok.*;
 
@@ -18,7 +17,6 @@ public abstract class TelemetryDatapoint {
 
   /** Metric attributes. Must not be null */
   @NonNull private final Map<String, Attribute> attributes;
-
 
   /**
    * Creates a new instance of {@link TelemetryDatapoint}.
@@ -140,7 +138,9 @@ public abstract class TelemetryDatapoint {
       return buildCore();
     }
 
-    /** @return new instance of whatever this builder builds */
+    /**
+     * @return new instance of whatever this builder builds
+     */
     protected abstract T buildCore();
   }
 }

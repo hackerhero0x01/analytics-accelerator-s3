@@ -3,8 +3,6 @@ package com.amazon.connector.s3.common.telemetry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @SuppressFBWarnings(
@@ -30,7 +28,6 @@ public class MetricTest {
           metric.getAttributes().clear();
         });
   }
-
 
   @Test
   void testCreateMetricBuilderWithNulls() {

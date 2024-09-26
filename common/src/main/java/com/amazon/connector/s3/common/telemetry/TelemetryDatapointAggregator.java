@@ -1,8 +1,17 @@
 package com.amazon.connector.s3.common.telemetry;
 
 import com.amazon.connector.s3.common.Preconditions;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This class provides a simple metric/operation aggregation functionality. For every metric
@@ -12,16 +21,89 @@ import lombok.*;
  *
  * <p>This class is thread safe.
  */
-@RequiredArgsConstructor
 public class TelemetryDatapointAggregator implements TelemetryReporter {
   /** Reporter to report the aggregation to */
-  @NonNull @Getter(AccessLevel.PACKAGE)
-  private final TelemetryReporter telemetryReporter;
+  @NonNull @Getter private final TelemetryReporter telemetryReporter;
   /** Epoch clock. Used to measure the wall time for {@link Operation} start. */
-  @NonNull @Getter(AccessLevel.PACKAGE)
-  private final Clock epochClock;
-  // This is the mapping between the data points and their stats
+  @NonNull @Getter private final Clock epochClock;
+  /** This is the mapping between the data points and their stats * */
   private final ConcurrentHashMap<Metric, Aggregation> aggregations = new ConcurrentHashMap<>();
+  /** This is the task that flushes data on a regular basis, if set up */
+  private final AtomicReference<ScheduledExecutorService> flushTask;
+
+  private static final Logger LOG = LogManager.getLogger(DefaultTelemetry.class);
+
+  /**
+   * Creates a new instance of {@link TelemetryDatapointAggregator}
+   *
+   * @param telemetryReporter an instance of {@link TelemetryReporter} to report data to
+   */
+  public TelemetryDatapointAggregator(TelemetryReporter telemetryReporter) {
+    this(telemetryReporter, Optional.empty());
+  }
+
+  /**
+   * Creates a new instance of {@link TelemetryDatapointAggregator}
+   *
+   * @param telemetryReporter an instance of {@link TelemetryReporter} to report data to
+   * @param flushInterval interval to flush aggregates at. If set to None, only explicit flushes wil
+   *     flush aggregates
+   */
+  public TelemetryDatapointAggregator(
+      TelemetryReporter telemetryReporter, Optional<Duration> flushInterval) {
+    this(telemetryReporter, flushInterval, DefaultEpochClock.DEFAULT);
+  }
+
+  /**
+   * Creates a new instance of {@link TelemetryDatapointAggregator}
+   *
+   * @param telemetryReporter an instance of {@link TelemetryReporter} to report data to
+   * @param epochClock wall clock
+   * @param flushInterval interval to flush aggregates at. If set to None, only explicit flushes wil
+   *     flush aggregates
+   */
+  @SuppressFBWarnings(
+      value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR",
+      justification =
+          "We don't actually call a virtual method here, rather set it up for scheduling.")
+  TelemetryDatapointAggregator(
+      @NonNull TelemetryReporter telemetryReporter,
+      @NonNull Optional<Duration> flushInterval,
+      @NonNull Clock epochClock) {
+    this.telemetryReporter = telemetryReporter;
+    this.epochClock = epochClock;
+    if (flushInterval.isPresent()) {
+      ScheduledExecutorService scheduledExecutorService =
+          Executors.newSingleThreadScheduledExecutor();
+      scheduledExecutorService.scheduleAtFixedRate(
+          this::flush,
+          flushInterval.get().getSeconds(),
+          flushInterval.get().getSeconds(),
+          TimeUnit.SECONDS);
+      this.flushTask = new AtomicReference<>(scheduledExecutorService);
+    } else {
+      this.flushTask = new AtomicReference<>();
+    }
+  }
+
+  /** Closes resources associated with the aggregator. */
+  @Override
+  public void close() {
+    try {
+      // To allow multiple close calls and avoid racing on concurrency
+      // we first swap out the value for null, and if the current value of scheduledExecutorService
+      // is not null, we shut it down.
+      // This guarantees that, if close is called, we shut down the task exactly once
+      ScheduledExecutorService scheduledExecutorService = this.flushTask.getAndSet(null);
+      if (scheduledExecutorService != null) {
+        scheduledExecutorService.shutdownNow();
+      }
+    } catch (Exception e) {
+      // do not allow exceptions from shut leak out, as, regardless of the outcome, we will no
+      // longer flush, which is the point
+      LOG.debug("Error shutting down flush task in TelemetryDatapointAggregator", e);
+    }
+  }
 
   /**
    * We do nothing here - starting operations are not of interest to us.
@@ -47,13 +129,13 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
         Metric.builder().name(datapointMeasurement.getDatapoint().getName()).build();
 
     Aggregation aggregation =
-        aggregations.computeIfAbsent(
-            aggregationKey, (key) -> new Aggregation(aggregationKey));
+        aggregations.computeIfAbsent(aggregationKey, (key) -> new Aggregation(aggregationKey));
     aggregation.accumulate(datapointMeasurement.getValue());
   }
 
   @Override
   public void flush() {
+    LOG.debug("Flushing aggregates");
     // This is thread-safe, as `values` on ConcurrentHashMap is thread-safe
     // Flush all values for each aggregation into a reporter
     aggregations.values().forEach(aggregation -> aggregation.flush(this.telemetryReporter));
@@ -73,7 +155,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
   /** A set of aggregations - very primitive so far, just keeping sum and count */
   @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
   private class Aggregation {
-    @NonNull @Getter TelemetryDatapoint dataPoint;
+    @NonNull @Getter TelemetryDatapoint datapoint;
     private long count = 0;
     private double sum = 0;
     private double min = Double.MAX_VALUE;
@@ -103,7 +185,8 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
      */
     public synchronized void flush(TelemetryReporter reporter) {
       long epochTimestampNanos = TelemetryDatapointAggregator.this.epochClock.getCurrentTimeNanos();
-      // We should always have some data points here, because the aggregate wouldn't have been created
+      // We should always have some data points here, because the aggregate wouldn't have been
+      // created
       // If we didn't hae any
       Preconditions.checkState(this.count > 0);
       // Always report sum and count
@@ -130,7 +213,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
     private MetricMeasurement createMetricMeasurement(
         long epochTimestampNanos, AggregationKind aggregationKind, double value) {
       Metric metric =
-              Metric.builder().name(dataPoint.getName() + "." + aggregationKind.value).build();
+          Metric.builder().name(datapoint.getName() + "." + aggregationKind.value).build();
       return MetricMeasurement.builder()
           .metric(metric)
           .kind(MetricMeasurementKind.AGGREGATE)
