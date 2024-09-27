@@ -22,7 +22,6 @@ public class OperationMeasurement extends TelemetryDatapointMeasurement {
   public static final String DEFAULT_START_FORMAT_STRING = "[%s] [  start] %s";
   public static final String DEFAULT_COMPLETE_FORMAT_STRING = "[%s] [%s] %s: %,d ns";
   private static final String DEFAULT_ERROR_FORMAT_STRING = " [%s: '%s']";
-  private static final String EXCEPTION_FORMAT = "";
   private static final String SUCCESS = "success";
   private static final String FAILURE = "failure";
 

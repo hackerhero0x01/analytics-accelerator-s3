@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.common.telemetry;
 
 import java.io.Closeable;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import lombok.NonNull;
@@ -259,9 +260,10 @@ public interface Telemetry extends Closeable {
   /**
    * Records a measurement represented by a metric
    *
-   * @param measurement an instance of {@link MetricMeasurement} to record
+   * @param metric an instance of {@link Metric} the value applies to.
+   * @param value metric value.
    */
-  void measure(@NonNull MetricMeasurement measurement);
+  void measure(@NonNull Metric metric, double value);
 
   /** Flushes the contents of {@link Telemetry} */
   void flush();
@@ -287,5 +289,6 @@ public interface Telemetry extends Closeable {
           DefaultEpochClock.DEFAULT,
           DefaultElapsedClock.DEFAULT,
           new NoOpTelemetryReporter(),
+          Optional.empty(),
           TelemetryLevel.CRITICAL);
 }

@@ -41,7 +41,8 @@ public class TelemetryTest {
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
     try (DefaultTelemetry defaultTelemetry =
-        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.CRITICAL)) {
+        new DefaultTelemetry(
+            wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.CRITICAL)) {
 
       Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
       final CompletableFuture<Long> completableFuture = new CompletableFuture<>();
@@ -91,7 +92,8 @@ public class TelemetryTest {
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
     try (DefaultTelemetry defaultTelemetry =
-        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD)) {
+        new DefaultTelemetry(
+            wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.STANDARD)) {
 
       Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
       final CompletableFuture<Long> completableFuture = new CompletableFuture<>();
@@ -141,7 +143,8 @@ public class TelemetryTest {
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
     try (DefaultTelemetry defaultTelemetry =
-        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.VERBOSE)) {
+        new DefaultTelemetry(
+            wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.VERBOSE)) {
 
       Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
       final CompletableFuture<Long> completableFuture = new CompletableFuture<>();
@@ -192,7 +195,8 @@ public class TelemetryTest {
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
     try (DefaultTelemetry defaultTelemetry =
-        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.STANDARD)) {
+        new DefaultTelemetry(
+            wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.STANDARD)) {
       CompletableFuture<Long> completableFuture = new CompletableFuture<>();
       Operation operation = Operation.builder().name("name").attribute("foo", "bar").build();
 
@@ -219,7 +223,8 @@ public class TelemetryTest {
     TickingClock elapsedClock = new TickingClock(0L);
     CollectingTelemetryReporter reporter = new CollectingTelemetryReporter();
     try (DefaultTelemetry defaultTelemetry =
-        new DefaultTelemetry(wallClock, elapsedClock, reporter, TelemetryLevel.VERBOSE)) {
+        new DefaultTelemetry(
+            wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.VERBOSE)) {
 
       OperationSupplier operationSupplier =
           () -> Operation.builder().name("name").attribute("foo", "bar").build();

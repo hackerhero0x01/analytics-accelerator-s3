@@ -37,15 +37,6 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
    * Creates a new instance of {@link TelemetryDatapointAggregator}
    *
    * @param telemetryReporter an instance of {@link TelemetryReporter} to report data to
-   */
-  public TelemetryDatapointAggregator(TelemetryReporter telemetryReporter) {
-    this(telemetryReporter, Optional.empty());
-  }
-
-  /**
-   * Creates a new instance of {@link TelemetryDatapointAggregator}
-   *
-   * @param telemetryReporter an instance of {@link TelemetryReporter} to report data to
    * @param flushInterval interval to flush aggregates at. If set to None, only explicit flushes wil
    *     flush aggregates
    */

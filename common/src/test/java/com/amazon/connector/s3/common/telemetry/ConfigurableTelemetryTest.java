@@ -56,26 +56,15 @@ public class ConfigurableTelemetryTest {
       assertSame(DefaultEpochClock.DEFAULT, telemetry.getEpochClock());
       assertSame(DefaultElapsedClock.DEFAULT, telemetry.getElapsedClock());
 
+      // verify all the reporters
       assertInstanceOf(GroupTelemetryReporter.class, telemetry.getReporter());
-      GroupTelemetryReporter groupTelemetryReporterTopLevel =
-          (GroupTelemetryReporter) telemetry.getReporter();
-      assertEquals(2, groupTelemetryReporterTopLevel.getReporters().size());
-      TelemetryReporter[] telemetryReportersTopLevel = new TelemetryReporter[2];
-      groupTelemetryReporterTopLevel.getReporters().toArray(telemetryReportersTopLevel);
-
-      assertInstanceOf(TelemetryDatapointAggregator.class, telemetryReportersTopLevel[1]);
-      TelemetryDatapointAggregator telemetryDatapointAggregator =
-          (TelemetryDatapointAggregator) telemetryReportersTopLevel[1];
-      assertSame(
-          telemetryDatapointAggregator.getTelemetryReporter(), telemetryReportersTopLevel[0]);
-
-      assertInstanceOf(GroupTelemetryReporter.class, telemetryReportersTopLevel[0]);
       GroupTelemetryReporter groupTelemetryReporter =
-          (GroupTelemetryReporter) telemetryReportersTopLevel[0];
+          (GroupTelemetryReporter) telemetry.getReporter();
       assertEquals(2, groupTelemetryReporter.getReporters().size());
       TelemetryReporter[] telemetryReporters = new TelemetryReporter[2];
       groupTelemetryReporter.getReporters().toArray(telemetryReporters);
 
+      assertInstanceOf(PrintStreamTelemetryReporter.class, telemetryReporters[0]);
       PrintStreamTelemetryReporter printStreamTelemetryReporter =
           (PrintStreamTelemetryReporter) telemetryReporters[0];
       assertSame(printStreamTelemetryReporter.getEpochFormatter(), EpochFormatter.DEFAULT);
@@ -88,6 +77,13 @@ public class ConfigurableTelemetryTest {
       assertEquals(loggingTelemetryReporter.getLoggerLevel(), Level.INFO);
       assertEquals(
           loggingTelemetryReporter.getLoggerName(), LoggingTelemetryReporter.DEFAULT_LOGGING_NAME);
+
+      // verify the aggregator
+      assertNotNull(telemetry.getAggregator());
+      assertNotNull(telemetry.getAggregator().get());
+      TelemetryDatapointAggregator telemetryDatapointAggregator = telemetry.getAggregator().get();
+      assertEquals(DefaultEpochClock.DEFAULT, telemetryDatapointAggregator.getEpochClock());
+      assertEquals(telemetry.getReporter(), telemetryDatapointAggregator.getTelemetryReporter());
     }
   }
 
