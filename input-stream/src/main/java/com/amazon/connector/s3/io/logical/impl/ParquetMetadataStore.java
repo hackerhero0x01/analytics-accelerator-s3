@@ -26,22 +26,6 @@ import java.util.Set;
     justification = "The closure classes trigger this. We never use serialization on this class")
 public class ParquetMetadataStore {
 
-  /***
-   * This is a mapping of S3 URI's of Parquet files to their {@link ColumnMappers}. When a stream
-   * for a Parquet file is read, these ColumnMappers are constructed in {@link com.amazon.connector.s3.io.logical.parquet.ParquetMetadataParsingTask} asynchronously.
-   * This ColumnMappers class contains two maps, and offsetIndexToColumnMap and a columnNameToColumnMap. For a Parquet file, offsetIndexToColumnMap maps the starting
-   * position of each column in the file, to it's {@link ColumnMetadata}. For example, this will be [<100, ss_a_metadata>, <600, ss_b_metadata>].
-   * The columnNameToColumnMap maps a column name to its metadata, this will be [<ss_a, ss_a_metadata>, <ss_b, ss_b_metadata>].
-   *
-   * <p>When a read for particular position is made, offsetIndexToColumnMap is used to check if this position corresponds to a column for this file.
-   * For example, if a read() is made at position 100, then for the above, offsetIndexToColumnMap is used to infer that this read was for the colum
-   * ss_a. This column is then added to the list of recently read columns.
-   *
-   * <p>columnNameToColumnMap is required when predictively prefetching columns for a newly opened file in {@link com.amazon.connector.s3.io.logical.parquet.ParquetPredictivePrefetchingTask}.
-   * For a list of recently read columns, for example [ss_a, ss_b], to prefetch these columns for a new file, the columnNameToColumnMap is used to find
-   * the metadata for a column called ss_a in the newly opened file. If such a key does exist, then the information stored in it's ColumnMetadata, specifically the start position
-   * and length is used to prefetch the correct range for this column.
-   */
   private final Map<S3URI, ColumnMappers> columnMappersStore;
 
   /**
