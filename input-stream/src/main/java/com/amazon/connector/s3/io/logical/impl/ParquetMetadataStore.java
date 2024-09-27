@@ -30,7 +30,7 @@ public class ParquetMetadataStore {
    * This is a mapping of S3 URI's of Parquet files to their {@link ColumnMappers}. When a stream
    * for a Parquet file is read, these ColumnMappers are constructed in {@link com.amazon.connector.s3.io.logical.parquet.ParquetMetadataParsingTask} asynchronously.
    * This ColumnMappers class contains two maps, and offsetIndexToColumnMap and a columnNameToColumnMap. For a Parquet file, offsetIndexToColumnMap maps the starting
-   * position of each column in the file, to it's {@link ColumnMetadata}. For example, this will be [<100, ss_a_metadata>, </600, ss_b_metadata].
+   * position of each column in the file, to it's {@link ColumnMetadata}. For example, this will be [<100, ss_a_metadata>, <600, ss_b_metadata>].
    * The columnNameToColumnMap maps a column name to its metadata, this will be [<ss_a, ss_a_metadata>, <ss_b, ss_b_metadata>].
    *
    * <p>When a read for particular position is made, offsetIndexToColumnMap is used to check if this position corresponds to a column for this file.
