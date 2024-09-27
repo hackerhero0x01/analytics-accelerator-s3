@@ -27,6 +27,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
   /** Epoch clock. Used to measure the wall time for {@link Operation} start. */
   @NonNull @Getter private final Clock epochClock;
   /** This is the mapping between the data points and their stats * */
+  @NonNull @Getter(AccessLevel.PACKAGE)
   private final ConcurrentHashMap<Metric, Aggregation> aggregations = new ConcurrentHashMap<>();
   /** This is the task that flushes data on a regular basis, if set up */
   private final AtomicReference<ScheduledExecutorService> flushTask;
@@ -106,7 +107,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
   public void reportStart(long epochTimestampNanos, Operation operation) {}
 
   /**
-   * This is where
+   * Updates the aggregations with {@link TelemetryDatapointMeasurement}
    *
    * @param datapointMeasurement an instance of {@link TelemetryDatapointMeasurement}.
    */
@@ -145,11 +146,20 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
 
   /** A set of aggregations - very primitive so far, just keeping sum and count */
   @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-  private class Aggregation {
-    @NonNull @Getter TelemetryDatapoint datapoint;
+  class Aggregation {
+    @Getter(onMethod_ = {@Synchronized})
+    @NonNull private final TelemetryDatapoint datapoint;
+
+    @Getter(onMethod_ = {@Synchronized})
     private long count = 0;
+
+    @Getter(onMethod_ = {@Synchronized})
     private double sum = 0;
+
+    @Getter(onMethod_ = {@Synchronized})
     private double min = Double.MAX_VALUE;
+
+    @Getter(onMethod_ = {@Synchronized})
     private double max = Double.MIN_VALUE;
 
     /**
@@ -158,7 +168,8 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
      *
      * @param value to record
      */
-    public synchronized void accumulate(double value) {
+    @Synchronized
+    public void accumulate(double value) {
       count++;
       sum += value;
       if (value < min) {
@@ -174,11 +185,11 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
      *
      * @param reporter an instance of {@link TelemetryReporter} to report to
      */
-    public synchronized void flush(TelemetryReporter reporter) {
+    @Synchronized
+    public void flush(TelemetryReporter reporter) {
       long epochTimestampNanos = TelemetryDatapointAggregator.this.epochClock.getCurrentTimeNanos();
       // We should always have some data points here, because the aggregate wouldn't have been
       // created
-      // If we didn't hae any
       Preconditions.checkState(this.count > 0);
       // Always report sum and count
       reporter.reportComplete(

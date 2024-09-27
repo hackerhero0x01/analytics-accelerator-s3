@@ -5,8 +5,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 /**
- * Telemetry operation. This represents an execution of an operation. An operation is defined by
- * name and a set of attributes.
+ * Telemetry metric. A metric is a template for a specific measurement and is defined by a name and
+ * a set of attributes It doesn't carry the actual value - that is defined by a specific instance of
+ * a metric, represented by {@link MetricMeasurement}
  */
 // Implementation note: the builder is implemented by hand, as opposed to via Lombok to create more
 // streamlined syntax for attribute specification

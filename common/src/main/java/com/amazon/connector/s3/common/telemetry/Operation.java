@@ -7,8 +7,10 @@ import lombok.NonNull;
 import lombok.Value;
 
 /**
- * Telemetry operation. This represents an execution of an operation. An operation is defined by
- * name and a set of attributes.
+ * Telemetry operation. An operation is a template for a specific execution and is defined by a name
+ * and a set of attributes, as well as other context, such as parent operation and context. It
+ * doesn't carry the actual duration - that is defined by a specific instance of a metric,
+ * represented by {@link OperationMeasurement}
  */
 // Implementation note: the builder is implemented by hand, as opposed to via Lombok to create more
 // streamlined syntax for attribute specification
