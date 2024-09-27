@@ -261,7 +261,7 @@ public class TelemetryDatapointAggregatorTest {
       try (TelemetryDatapointAggregator aggregator =
           // FLush every second
           new TelemetryDatapointAggregator(
-              telemetryReporter, Optional.of(Duration.of(1, ChronoUnit.SECONDS)), elapsedClock)) {
+              telemetryReporter, Optional.of(Duration.of(500, ChronoUnit.MILLIS)), elapsedClock)) {
         Metric metric1 = Metric.builder().name("Foo").attribute("X", "Y").build();
         Metric metric2 = Metric.builder().name("Bar").attribute("X", "Y").build();
 
@@ -285,15 +285,21 @@ public class TelemetryDatapointAggregatorTest {
         // Nothing should happen yet
         assertTrue(telemetryReporter.getMetrics().isEmpty());
 
-        // Now wait for 3 seconds. we will expect that this will be reported at least 2 times.
-        Thread.sleep(3000L);
+        // Now wait for 2 seconds. we will expect that this will be reported at least 3 times.
+        // We check that we have 3 * [values per metric] measurements
+        Thread.sleep(2000L);
         assertFalse(telemetryReporter.getMetrics().isEmpty());
+        assertTrue(
+            telemetryReporter.getMetrics().size()
+                > TelemetryDatapointAggregator.AggregationKind.values().length * 3);
       }
+      // Sleep for a second to avoid races with final flushing
+      Thread.sleep(1000L);
       // At this point the aggregator it shut down.
       // Capture what has been reported and wait again
       // We should get nothing new
       int flushedMetrics = telemetryReporter.getMetrics().size();
-      Thread.sleep(3000L);
+      Thread.sleep(2000L);
       assertEquals(flushedMetrics, telemetryReporter.getMetrics().size());
     }
   }

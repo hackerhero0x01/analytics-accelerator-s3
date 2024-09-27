@@ -31,6 +31,15 @@ public class DefaultTelemetry implements Telemetry {
 
   private static final Logger LOG = LogManager.getLogger(DefaultTelemetry.class);
 
+  /**
+   * Creates a new instance of {@link DefaultTelemetry}
+   *
+   * @param epochClock Epoch clock. Used to measure the wall time for {@link Operation} start
+   * @param elapsedClock Elapsed clock. Used to measure the duration for {@link Operation}.
+   * @param reporter telemetry reporter
+   * @param aggregator Telemetry aggregator
+   * @param level Telemetry level
+   */
   public DefaultTelemetry(
       @NonNull Clock epochClock,
       @NonNull Clock elapsedClock,

@@ -68,9 +68,9 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
           Executors.newSingleThreadScheduledExecutor();
       scheduledExecutorService.scheduleAtFixedRate(
           this::flush,
-          flushInterval.get().getSeconds(),
-          flushInterval.get().getSeconds(),
-          TimeUnit.SECONDS);
+          flushInterval.get().toNanos(),
+          flushInterval.get().toNanos(),
+          TimeUnit.NANOSECONDS);
       this.flushTask = new AtomicReference<>(scheduledExecutorService);
     } else {
       this.flushTask = new AtomicReference<>();
@@ -134,7 +134,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
 
   @Getter
   @AllArgsConstructor
-  private enum AggregationKind {
+  enum AggregationKind {
     SUM("sum"),
     COUNT("count"),
     AVG("avg"),
