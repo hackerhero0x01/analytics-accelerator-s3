@@ -2,11 +2,11 @@ package com.amazon.connector.s3.io.logical.parquet;
 
 import java.util.HashMap;
 import java.util.List;
-import lombok.Data;
+import lombok.Value;
 
 /** Mappings of parquet column file offset index to column name and vice versa. */
-@Data
+@Value
 public class ColumnMappers {
-  private final HashMap<Long, ColumnMetadata> offsetIndexToColumnMap;
-  private final HashMap<String, List<ColumnMetadata>> columnNameToColumnMap;
+  HashMap<Long, ColumnMetadata> offsetIndexToColumnMap;
+  HashMap<String, List<ColumnMetadata>> columnNameToColumnMap;
 }

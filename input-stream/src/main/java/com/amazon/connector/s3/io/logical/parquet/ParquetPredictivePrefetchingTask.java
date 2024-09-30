@@ -11,8 +11,8 @@ import com.amazon.connector.s3.request.Range;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,9 +23,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Task for predictively prefetching columns of a parquet file. Works by keeping track of recent
- * columns read from previously opened parquet files, and if the currently open parquet file has a
- * recent column, prefetch it.
+ * Task for predictively prefetching columns of a parquet file.
+ *
+ * <p>When a parquet file is opened, it's metadata is parsed asynchronously in {@link
+ * ParquetMetadataParsingTask}. Once the metadata has been parsed successfully, this task is
+ * responsible for prefetching any recent columns that exist in the currently open file. {@link
+ * ParquetMetadataStore} is responsible for track which columns are currently being read for a
+ * particular schema, where two Parquet files are said to belong to the same schema if they contain
+ * exactly the same columns, that is, the Hash(concatenated_string_of_column_names_in_file) is
+ * equal.
+ *
+ * <p>As an example, assume two files A.parquet and B.parquet, both belonging to the store_sales
+ * schema. A.parquet has metadata [{path_in_schema: ss_a, file_offset: 500, total_uncompressed_size:
+ * 500}, {path_in_schema: ss_b, file_offset: 1000, total_uncompressed_size: 300}], and B.parquet has
+ * schema [{path_in_schema: ss_a, file_offset: 600, total_uncompressed_size: 300}, {path_in_schema:
+ * ss_b, file_offset: 900, total_uncompressed_size: 300}]. Since the hash of (ss_a, ss_b) is equal,
+ * both these parquet files are from the same schema/data table. When A.parquet is opened, it's
+ * metadata is parsed and {@link ColumnMappers} are built so we have maps of 1/ <the file offset of
+ * where each column starts, ColumnMetadata of this column> and 2/ <columnName, ColumnMetadata of
+ * this column>. For A.parquet, this will be [<500, ColumnMetadata of A>, <1000, ColumnMetadata of
+ * B>] and [<ss_a, ColumnMetadata of A>, <ss_b, ColumnMetadata of B>].
+ *
+ * <p>When a read on a stream at a particular position for A.parquet happens, for example,
+ * read(500), {@code addToRecentColumnList()} will check the offsetToColumnMetadata map, and if
+ * there is a column at starts at this offset, it is added to the recent read columns list for this
+ * schema. In this case, for a read pattern like read(500), position 500 corresponds to column ss_a
+ * for schema store_sales, so ss_a is added to the recently read list, <store_sales, List<ss_a>>.
+ * Then for read(1000), position 1000 corresponds to column ss_b, so ss_b is added to the recently
+ * read list, <store_sales, List<ss_a, ss_b>>.
+ *
+ * <p>When B.parquet is opened, {@code prefetchRecentColumns()} will check this recently read list,
+ * which will return <ss_a, ss_b>. We then prefetch ss_a and ss_b for B.parquet, using the file
+ * offsets and total_uncompressed_size fields in the metadata to get the correct bytes. In this
+ * example, for B.parquet two GET requests will be made with ranges [600-899, 900-1199] which
+ * correspond to the ranges of ss_a and ss_b in B.parquet.
  */
 public class ParquetPredictivePrefetchingTask {
   private final S3URI s3Uri;
@@ -126,16 +157,14 @@ public class ParquetPredictivePrefetchingTask {
   }
 
   private Set<String> getRecentColumns(HashMap<Long, ColumnMetadata> offsetIndexToColumnMap) {
-    Set<String> recentColumns = new HashSet<>();
-
-    if (offsetIndexToColumnMap.size() > 0) {
+    if (!offsetIndexToColumnMap.isEmpty()) {
       Map.Entry<Long, ColumnMetadata> firstColumnData =
           offsetIndexToColumnMap.entrySet().iterator().next();
 
       int schemaHash = firstColumnData.getValue().getSchemaHash();
-      recentColumns = parquetMetadataStore.getUniqueRecentColumnsForSchema(schemaHash);
+      return parquetMetadataStore.getUniqueRecentColumnsForSchema(schemaHash);
     }
 
-    return recentColumns;
+    return Collections.emptySet();
   }
 }

@@ -5,10 +5,10 @@ import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,8 +16,8 @@ import java.util.Set;
 /**
  * This class maintains a shared state required for Parquet prefetching operations that is required
  * independent of the life of individual streams. It is used to store Parquet metadata for
- * individual files, and a list of recently read columns. This must be done outside the life of a
- * stream, as calling applications may open and close a stream to a file several times while
+ * individual files, and a list of recently read columns. This is meant to be shared across multiple
+ * streams as calling applications may open and close a stream to a file several times while
  * reading. For Spark, this was observed to happen as a stream to a Parquet file is first opened to
  * read the footer, and then a separate stream is opened to read the data.
  */
@@ -67,7 +67,7 @@ public class ParquetMetadataStore {
    * <p>If a query is reading ss_a and ss_b, this list will look something like [ss_a, ss_b, ss_a,
    * ss_b]. This helps us maintain a history of the columns currently being read.
    */
-  private final Map<Integer, List<String>> recentlyReadColumnsPerSchema;
+  private final Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema;
 
   private final LogicalIOConfiguration configuration;
 
@@ -85,7 +85,7 @@ public class ParquetMetadataStore {
             return this.size() > configuration.getParquetMetadataStoreSize();
           }
         },
-        new LinkedHashMap<Integer, List<String>>() {
+        new LinkedHashMap<Integer, LinkedList<String>>() {
           @Override
           protected boolean removeEldestEntry(final Map.Entry eldest) {
             return this.size() > configuration.getMaxColumnAccessCountStoreSize();
@@ -104,7 +104,7 @@ public class ParquetMetadataStore {
   ParquetMetadataStore(
       LogicalIOConfiguration configuration,
       Map<S3URI, ColumnMappers> columnMappersStore,
-      Map<Integer, List<String>> recentlyReadColumnsPerSchema) {
+      Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema) {
     this.configuration = configuration;
     this.columnMappersStore = columnMappersStore;
     this.recentlyReadColumnsPerSchema = recentlyReadColumnsPerSchema;
@@ -171,12 +171,12 @@ public class ParquetMetadataStore {
    */
   public synchronized void addRecentColumn(ColumnMetadata columnMetadata) {
 
-    List<String> schemaRecentColumns =
+    LinkedList<String> schemaRecentColumns =
         recentlyReadColumnsPerSchema.getOrDefault(
-            columnMetadata.getSchemaHash(), new ArrayList<>());
+            columnMetadata.getSchemaHash(), new LinkedList<>());
 
     if (schemaRecentColumns.size() == this.configuration.getMaxColumnAccessCountStoreSize()) {
-      schemaRecentColumns.remove(0);
+      schemaRecentColumns.removeFirst();
     }
 
     schemaRecentColumns.add(columnMetadata.getColumnName());

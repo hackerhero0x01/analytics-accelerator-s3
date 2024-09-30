@@ -11,6 +11,7 @@ import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +35,7 @@ public class ParquetMetadataStoreTest {
     ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test2", 0, 500, schemaHash);
     ColumnMetadata sk_test3 = new ColumnMetadata(0, "sk_test3", 0, 500, schemaHash);
 
-    Map<Integer, List<String>> recentlyReadColumnsPerSchema = new HashMap<>();
+    Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema = new HashMap<>();
     ParquetMetadataStore parquetMetadataStore =
         new ParquetMetadataStore(
             LogicalIOConfiguration.builder().maxColumnAccessCountStoreSize(3).build(),
