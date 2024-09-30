@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
+import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
@@ -39,7 +39,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
             TEST_URI,
             Telemetry.NOOP,
             mock(PhysicalIO.class),
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+            new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
   }
 
   @Test
@@ -51,7 +51,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
                 null,
                 Telemetry.NOOP,
                 mock(PhysicalIO.class),
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
 
     assertThrows(
         NullPointerException.class,
@@ -60,7 +60,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
                 TEST_URI,
                 null,
                 mock(PhysicalIO.class),
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -68,7 +68,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
                 TEST_URI,
                 Telemetry.NOOP,
                 null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -83,9 +83,10 @@ public class ParquetPrefetchRemainingColumnTaskTest {
         200L,
         new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB, "ss_sold_date_sk".hashCode()));
 
-    ParquetMetadataStore mockedParquetMetadataStore = mock(ParquetMetadataStore.class);
+    ParquetColumnPrefetchStore mockedParquetColumnPrefetchStore =
+        mock(ParquetColumnPrefetchStore.class);
     PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
-    when(mockedParquetMetadataStore.getColumnMappers(TEST_URI))
+    when(mockedParquetColumnPrefetchStore.getColumnMappers(TEST_URI))
         .thenReturn(new ColumnMappers(offsetIndexToColumnMap, new HashMap<>()));
 
     List<Range> expectedRanges = new ArrayList<>();
@@ -98,7 +99,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
 
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
         new ParquetPrefetchRemainingColumnTask(
-            TEST_URI, Telemetry.NOOP, mockedPhysicalIO, mockedParquetMetadataStore);
+            TEST_URI, Telemetry.NOOP, mockedPhysicalIO, mockedParquetColumnPrefetchStore);
     parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(200, 5 * ONE_MB);
 
     verify(mockedPhysicalIO).execute(any(IOPlan.class));
@@ -112,14 +113,15 @@ public class ParquetPrefetchRemainingColumnTaskTest {
         200L,
         new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB, "ss_sold_date_sk".hashCode()));
 
-    ParquetMetadataStore mockedParquetMetadataStore = mock(ParquetMetadataStore.class);
+    ParquetColumnPrefetchStore mockedParquetColumnPrefetchStore =
+        mock(ParquetColumnPrefetchStore.class);
     PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
 
-    when(mockedParquetMetadataStore.getColumnMappers(TEST_URI))
+    when(mockedParquetColumnPrefetchStore.getColumnMappers(TEST_URI))
         .thenReturn(new ColumnMappers(offsetIndexToColumnMap, new HashMap<>()));
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
         new ParquetPrefetchRemainingColumnTask(
-            TEST_URI, Telemetry.NOOP, mockedPhysicalIO, mockedParquetMetadataStore);
+            TEST_URI, Telemetry.NOOP, mockedPhysicalIO, mockedParquetColumnPrefetchStore);
 
     doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
 

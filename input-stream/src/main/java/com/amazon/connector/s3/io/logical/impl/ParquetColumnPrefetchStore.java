@@ -24,7 +24,7 @@ import java.util.Set;
 @SuppressFBWarnings(
     value = "SE_BAD_FIELD",
     justification = "The closure classes trigger this. We never use serialization on this class")
-public class ParquetMetadataStore {
+public class ParquetColumnPrefetchStore {
 
   /**
    * * This is a mapping of S3 URI's of Parquet files to their {@link ColumnMappers}. When a stream
@@ -76,7 +76,7 @@ public class ParquetMetadataStore {
    *
    * @param configuration object containing information about the metadata store size
    */
-  public ParquetMetadataStore(LogicalIOConfiguration configuration) {
+  public ParquetColumnPrefetchStore(LogicalIOConfiguration configuration) {
     this(
         configuration,
         new LinkedHashMap<S3URI, ColumnMappers>() {
@@ -101,7 +101,7 @@ public class ParquetMetadataStore {
    * @param columnMappersStore Store of column mappings
    * @param recentlyReadColumnsPerSchema List of recent read columns for each schema
    */
-  ParquetMetadataStore(
+  ParquetColumnPrefetchStore(
       LogicalIOConfiguration configuration,
       Map<S3URI, ColumnMappers> columnMappersStore,
       Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema) {

@@ -3,8 +3,8 @@ package com.amazon.connector.s3;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.impl.DefaultLogicalIOImpl;
+import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
 import com.amazon.connector.s3.io.physical.impl.PhysicalIOImpl;
@@ -29,7 +29,7 @@ import lombok.NonNull;
 public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final ObjectClient objectClient;
   private final S3SeekableInputStreamConfiguration configuration;
-  private final ParquetMetadataStore parquetMetadataStore;
+  private final ParquetColumnPrefetchStore parquetColumnPrefetchStore;
 
   private final MetadataStore objectMetadataStore;
   private final BlobStore objectBlobStore;
@@ -50,7 +50,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.objectClient = objectClient;
     this.configuration = configuration;
     this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
-    this.parquetMetadataStore = new ParquetMetadataStore(configuration.getLogicalIOConfiguration());
+    this.parquetColumnPrefetchStore =
+        new ParquetColumnPrefetchStore(configuration.getLogicalIOConfiguration());
     this.objectMetadataStore =
         new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
     this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
@@ -80,7 +81,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
             new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry),
             telemetry,
             configuration.getLogicalIOConfiguration(),
-            parquetMetadataStore);
+            parquetColumnPrefetchStore);
 
       default:
         return new DefaultLogicalIOImpl(

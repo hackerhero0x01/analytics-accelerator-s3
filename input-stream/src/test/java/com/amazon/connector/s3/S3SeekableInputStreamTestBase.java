@@ -2,8 +2,8 @@ package com.amazon.connector.s3;
 
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
+import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
 import com.amazon.connector.s3.io.physical.data.MetadataStore;
@@ -31,5 +31,5 @@ public class S3SeekableInputStreamTestBase {
           new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),
           TestTelemetry.DEFAULT,
           logicalIOConfiguration,
-          new ParquetMetadataStore(logicalIOConfiguration));
+          new ParquetColumnPrefetchStore(logicalIOConfiguration));
 }

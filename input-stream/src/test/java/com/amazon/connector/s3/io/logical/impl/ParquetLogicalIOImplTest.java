@@ -33,7 +33,7 @@ public class ParquetLogicalIOImplTest {
             mock(PhysicalIO.class),
             TestTelemetry.DEFAULT,
             mock(LogicalIOConfiguration.class),
-            mock(ParquetMetadataStore.class)));
+            mock(ParquetColumnPrefetchStore.class)));
   }
 
   @Test
@@ -46,7 +46,7 @@ public class ParquetLogicalIOImplTest {
                 null,
                 TestTelemetry.DEFAULT,
                 mock(LogicalIOConfiguration.class),
-                mock(ParquetMetadataStore.class)));
+                mock(ParquetColumnPrefetchStore.class)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -55,7 +55,7 @@ public class ParquetLogicalIOImplTest {
                 mock(PhysicalIO.class),
                 TestTelemetry.DEFAULT,
                 null,
-                mock(ParquetMetadataStore.class)));
+                mock(ParquetColumnPrefetchStore.class)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -64,7 +64,7 @@ public class ParquetLogicalIOImplTest {
                 mock(PhysicalIO.class),
                 null,
                 mock(LogicalIOConfiguration.class),
-                mock(ParquetMetadataStore.class)));
+                mock(ParquetColumnPrefetchStore.class)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -92,7 +92,7 @@ public class ParquetLogicalIOImplTest {
             physicalIO,
             TestTelemetry.DEFAULT,
             configuration,
-            new ParquetMetadataStore(configuration));
+            new ParquetColumnPrefetchStore(configuration));
 
     // When: close called
     logicalIO.close();
@@ -122,7 +122,7 @@ public class ParquetLogicalIOImplTest {
                 physicalIO,
                 TestTelemetry.DEFAULT,
                 LogicalIOConfiguration.DEFAULT,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
   }
 
   @Test
@@ -146,6 +146,6 @@ public class ParquetLogicalIOImplTest {
                 physicalIO,
                 TestTelemetry.DEFAULT,
                 LogicalIOConfiguration.DEFAULT,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
   }
 }

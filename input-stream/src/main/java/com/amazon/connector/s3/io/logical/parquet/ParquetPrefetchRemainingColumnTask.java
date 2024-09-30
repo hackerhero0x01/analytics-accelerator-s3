@@ -2,7 +2,7 @@ package com.amazon.connector.s3.io.logical.parquet;
 
 import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
+import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
@@ -20,7 +20,7 @@ public class ParquetPrefetchRemainingColumnTask {
   private final S3URI s3Uri;
   private final Telemetry telemetry;
   private final PhysicalIO physicalIO;
-  private final ParquetMetadataStore parquetMetadataStore;
+  private final ParquetColumnPrefetchStore parquetColumnPrefetchStore;
 
   private static final String OPERATION_PARQUET_PREFETCH_COLUMN_CHUNK =
       "parquet.task.prefetch.column.chunk";
@@ -32,17 +32,17 @@ public class ParquetPrefetchRemainingColumnTask {
    * @param s3URI the object's S3 URI
    * @param physicalIO physicalIO instance
    * @param telemetry an instance of {@link Telemetry} to use
-   * @param parquetMetadataStore object containing Parquet usage information
+   * @param parquetColumnPrefetchStore object containing Parquet usage information
    */
   public ParquetPrefetchRemainingColumnTask(
       @NonNull S3URI s3URI,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIO physicalIO,
-      @NonNull ParquetMetadataStore parquetMetadataStore) {
+      @NonNull ParquetColumnPrefetchStore parquetColumnPrefetchStore) {
     this.s3Uri = s3URI;
     this.telemetry = telemetry;
     this.physicalIO = physicalIO;
-    this.parquetMetadataStore = parquetMetadataStore;
+    this.parquetColumnPrefetchStore = parquetColumnPrefetchStore;
   }
 
   /**
@@ -53,7 +53,7 @@ public class ParquetPrefetchRemainingColumnTask {
    * @return ranges prefetched
    */
   public IOPlanExecution prefetchRemainingColumnChunk(long position, int len) {
-    ColumnMappers columnMappers = parquetMetadataStore.getColumnMappers(s3Uri);
+    ColumnMappers columnMappers = parquetColumnPrefetchStore.getColumnMappers(s3Uri);
     if (columnMappers != null) {
       ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
       if (columnMetadata != null) {

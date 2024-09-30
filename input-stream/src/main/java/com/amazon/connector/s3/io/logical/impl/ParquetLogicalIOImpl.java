@@ -22,20 +22,20 @@ public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
    * @param physicalIO underlying physical IO that knows how to fetch bytes
    * @param telemetry an instance of {@link Telemetry} to use
    * @param logicalIOConfiguration configuration for this logical IO implementation
-   * @param parquetMetadataStore object where Parquet usage information is aggregated
+   * @param parquetColumnPrefetchStore object where Parquet usage information is aggregated
    */
   public ParquetLogicalIOImpl(
       @NonNull S3URI s3Uri,
       @NonNull PhysicalIO physicalIO,
       @NonNull Telemetry telemetry,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
-      @NonNull ParquetMetadataStore parquetMetadataStore) {
+      @NonNull ParquetColumnPrefetchStore parquetColumnPrefetchStore) {
     super(physicalIO);
 
     // Initialise prefetcher and start prefetching
     this.parquetPrefetcher =
         new ParquetPrefetcher(
-            s3Uri, physicalIO, telemetry, logicalIOConfiguration, parquetMetadataStore);
+            s3Uri, physicalIO, telemetry, logicalIOConfiguration, parquetColumnPrefetchStore);
     this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
   }
 

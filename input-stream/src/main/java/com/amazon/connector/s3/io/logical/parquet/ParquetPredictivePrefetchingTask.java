@@ -3,7 +3,7 @@ package com.amazon.connector.s3.io.logical.parquet;
 import com.amazon.connector.s3.common.telemetry.Operation;
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
+import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * <p>When a parquet file is opened, it's metadata is parsed asynchronously in {@link
  * ParquetMetadataParsingTask}. Once the metadata has been parsed successfully, this task is
  * responsible for prefetching any recent columns that exist in the currently open file. {@link
- * ParquetMetadataStore} is responsible for track which columns are currently being read for a
+ * ParquetColumnPrefetchStore} is responsible for track which columns are currently being read for a
  * particular schema, where two Parquet files are said to belong to the same schema if they contain
  * exactly the same columns, that is, the Hash(concatenated_string_of_column_names_in_file) is
  * equal.
@@ -62,7 +62,7 @@ public class ParquetPredictivePrefetchingTask {
   private final S3URI s3Uri;
   private final Telemetry telemetry;
   private final PhysicalIO physicalIO;
-  private final ParquetMetadataStore parquetMetadataStore;
+  private final ParquetColumnPrefetchStore parquetColumnPrefetchStore;
   private final LogicalIOConfiguration logicalIOConfiguration;
   private static final String OPERATION_PARQUET_PREFETCH_COLUMNS = "parquet.task.prefetch.columns";
   private static final Logger LOG = LoggerFactory.getLogger(ParquetPredictivePrefetchingTask.class);
@@ -74,19 +74,19 @@ public class ParquetPredictivePrefetchingTask {
    * @param telemetry an instance of {@link Telemetry} to use
    * @param logicalIOConfiguration logical io configuration
    * @param physicalIO PhysicalIO instance
-   * @param parquetMetadataStore object containing Parquet usage information
+   * @param parquetColumnPrefetchStore object containing Parquet usage information
    */
   public ParquetPredictivePrefetchingTask(
       @NonNull S3URI s3Uri,
       @NonNull Telemetry telemetry,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
       @NonNull PhysicalIO physicalIO,
-      @NonNull ParquetMetadataStore parquetMetadataStore) {
+      @NonNull ParquetColumnPrefetchStore parquetColumnPrefetchStore) {
     this.s3Uri = s3Uri;
     this.telemetry = telemetry;
     this.physicalIO = physicalIO;
     this.logicalIOConfiguration = logicalIOConfiguration;
-    this.parquetMetadataStore = parquetMetadataStore;
+    this.parquetColumnPrefetchStore = parquetColumnPrefetchStore;
   }
 
   /**
@@ -98,11 +98,11 @@ public class ParquetPredictivePrefetchingTask {
    */
   public Optional<String> addToRecentColumnList(long position) {
     if (logicalIOConfiguration.isPredictivePrefetchingEnabled()
-        && parquetMetadataStore.getColumnMappers(s3Uri) != null) {
-      ColumnMappers columnMappers = parquetMetadataStore.getColumnMappers(s3Uri);
+        && parquetColumnPrefetchStore.getColumnMappers(s3Uri) != null) {
+      ColumnMappers columnMappers = parquetColumnPrefetchStore.getColumnMappers(s3Uri);
       if (columnMappers.getOffsetIndexToColumnMap().containsKey(position)) {
         ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
-        parquetMetadataStore.addRecentColumn(columnMetadata);
+        parquetColumnPrefetchStore.addRecentColumn(columnMetadata);
         return Optional.of(columnMetadata.getColumnName());
       }
     }
@@ -162,7 +162,7 @@ public class ParquetPredictivePrefetchingTask {
           offsetIndexToColumnMap.entrySet().iterator().next();
 
       int schemaHash = firstColumnData.getValue().getSchemaHash();
-      return parquetMetadataStore.getUniqueRecentColumnsForSchema(schemaHash);
+      return parquetColumnPrefetchStore.getUniqueRecentColumnsForSchema(schemaHash);
     }
 
     return Collections.emptySet();

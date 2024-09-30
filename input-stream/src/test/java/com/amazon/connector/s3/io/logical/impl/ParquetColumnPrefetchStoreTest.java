@@ -17,11 +17,11 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-public class ParquetMetadataStoreTest {
+public class ParquetColumnPrefetchStoreTest {
 
   @Test
   void testConstructor() {
-    assertNotNull(new ParquetMetadataStore(mock(LogicalIOConfiguration.class)));
+    assertNotNull(new ParquetColumnPrefetchStore(mock(LogicalIOConfiguration.class)));
   }
 
   @Test
@@ -36,18 +36,18 @@ public class ParquetMetadataStoreTest {
     ColumnMetadata sk_test3 = new ColumnMetadata(0, "sk_test3", 0, 500, schemaHash);
 
     Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema = new HashMap<>();
-    ParquetMetadataStore parquetMetadataStore =
-        new ParquetMetadataStore(
+    ParquetColumnPrefetchStore parquetColumnPrefetchStore =
+        new ParquetColumnPrefetchStore(
             LogicalIOConfiguration.builder().maxColumnAccessCountStoreSize(3).build(),
             columnMappersStore,
             recentlyReadColumnsPerSchema);
 
-    parquetMetadataStore.addRecentColumn(sk_test);
-    parquetMetadataStore.addRecentColumn(sk_test2);
-    parquetMetadataStore.addRecentColumn(sk_test);
-    parquetMetadataStore.addRecentColumn(sk_test2);
-    parquetMetadataStore.addRecentColumn(sk_test3);
-    parquetMetadataStore.addRecentColumn(sk_test3);
+    parquetColumnPrefetchStore.addRecentColumn(sk_test);
+    parquetColumnPrefetchStore.addRecentColumn(sk_test2);
+    parquetColumnPrefetchStore.addRecentColumn(sk_test);
+    parquetColumnPrefetchStore.addRecentColumn(sk_test2);
+    parquetColumnPrefetchStore.addRecentColumn(sk_test3);
+    parquetColumnPrefetchStore.addRecentColumn(sk_test3);
 
     assertEquals(recentlyReadColumnsPerSchema.get(schemaHash).size(), 3);
 
@@ -65,6 +65,7 @@ public class ParquetMetadataStoreTest {
     expectedUniqueColumns.add("sk_test3");
 
     assertEquals(
-        parquetMetadataStore.getUniqueRecentColumnsForSchema(schemaHash), expectedUniqueColumns);
+        parquetColumnPrefetchStore.getUniqueRecentColumnsForSchema(schemaHash),
+        expectedUniqueColumns);
   }
 }

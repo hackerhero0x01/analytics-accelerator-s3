@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 
 import com.amazon.connector.s3.common.telemetry.Telemetry;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
+import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.request.Range;
@@ -43,7 +43,7 @@ public class ParquetPredictivePrefetchingTaskTest {
             Telemetry.NOOP,
             LogicalIOConfiguration.DEFAULT,
             mock(PhysicalIO.class),
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+            new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
   }
 
   @Test
@@ -56,7 +56,7 @@ public class ParquetPredictivePrefetchingTaskTest {
                 Telemetry.NOOP,
                 LogicalIOConfiguration.DEFAULT,
                 mock(PhysicalIO.class),
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -65,7 +65,7 @@ public class ParquetPredictivePrefetchingTaskTest {
                 null,
                 LogicalIOConfiguration.DEFAULT,
                 mock(PhysicalIO.class),
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -74,7 +74,7 @@ public class ParquetPredictivePrefetchingTaskTest {
                 Telemetry.NOOP,
                 null,
                 mock(PhysicalIO.class),
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -83,7 +83,7 @@ public class ParquetPredictivePrefetchingTaskTest {
                 Telemetry.NOOP,
                 LogicalIOConfiguration.DEFAULT,
                 null,
-                new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)));
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -98,7 +98,7 @@ public class ParquetPredictivePrefetchingTaskTest {
   @Test
   void testAddToRecentColumnList() {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
+    ParquetColumnPrefetchStore parquetColumnPrefetchStore = mock(ParquetColumnPrefetchStore.class);
 
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     ColumnMetadata columnMetadata =
@@ -111,20 +111,20 @@ public class ParquetPredictivePrefetchingTaskTest {
             Telemetry.NOOP,
             LogicalIOConfiguration.DEFAULT,
             physicalIO,
-            parquetMetadataStore);
+            parquetColumnPrefetchStore);
 
-    when(parquetMetadataStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
+    when(parquetColumnPrefetchStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
 
     assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
-    verify(parquetMetadataStore).addRecentColumn(columnMetadata);
+    verify(parquetColumnPrefetchStore).addRecentColumn(columnMetadata);
   }
 
   @Test
   void testAddToRecentColumnListEmptyColumnMappers() {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
+    ParquetColumnPrefetchStore parquetColumnPrefetchStore = mock(ParquetColumnPrefetchStore.class);
 
-    when(parquetMetadataStore.getColumnMappers(TEST_URI)).thenReturn(null);
+    when(parquetColumnPrefetchStore.getColumnMappers(TEST_URI)).thenReturn(null);
 
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
         new ParquetPredictivePrefetchingTask(
@@ -132,17 +132,17 @@ public class ParquetPredictivePrefetchingTaskTest {
             Telemetry.NOOP,
             LogicalIOConfiguration.DEFAULT,
             physicalIO,
-            parquetMetadataStore);
+            parquetColumnPrefetchStore);
 
     assertFalse(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
-    verify(parquetMetadataStore, times(0)).addRecentColumn(any());
+    verify(parquetColumnPrefetchStore, times(0)).addRecentColumn(any());
   }
 
   @Test
   void testPrefetchRecentColumns() throws IOException {
     // Given: prefetching task with some recent columns
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    ParquetMetadataStore parquetMetadataStore = mock(ParquetMetadataStore.class);
+    ParquetColumnPrefetchStore parquetColumnPrefetchStore = mock(ParquetColumnPrefetchStore.class);
 
     StringBuilder columnNames = new StringBuilder();
     columnNames.append("sk_test").append("sk_test_2").append("sk_test_3");
@@ -175,7 +175,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     recentColumns.add("sk_test");
     recentColumns.add("sk_test_2");
     recentColumns.add("sk_test_3");
-    when(parquetMetadataStore.getUniqueRecentColumnsForSchema(schemaHash))
+    when(parquetColumnPrefetchStore.getUniqueRecentColumnsForSchema(schemaHash))
         .thenReturn(recentColumns);
 
     // When: recent columns get prefetched
@@ -185,7 +185,7 @@ public class ParquetPredictivePrefetchingTaskTest {
             Telemetry.NOOP,
             LogicalIOConfiguration.DEFAULT,
             physicalIO,
-            parquetMetadataStore);
+            parquetColumnPrefetchStore);
     parquetPredictivePrefetchingTask.prefetchRecentColumns(
         new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap));
 
@@ -212,7 +212,7 @@ public class ParquetPredictivePrefetchingTaskTest {
             Telemetry.NOOP,
             LogicalIOConfiguration.DEFAULT,
             physicalIO,
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
+            new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT));
 
     // When: the underlying PhysicalIO always throws
     doThrow(new IOException("Error in prefetch")).when(physicalIO).execute(any(IOPlan.class));

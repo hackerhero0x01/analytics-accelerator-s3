@@ -26,7 +26,7 @@ import lombok.NonNull;
 public class ParquetPrefetcher {
   @NonNull private final S3URI s3URI;
   @NonNull private final LogicalIOConfiguration logicalIOConfiguration;
-  @NonNull private final ParquetMetadataStore parquetMetadataStore;
+  @NonNull private final ParquetColumnPrefetchStore parquetColumnPrefetchStore;
   @NonNull private final Telemetry telemetry;
 
   // Tasks
@@ -49,25 +49,26 @@ public class ParquetPrefetcher {
    *     object store
    * @param telemetry an instance of {@link Telemetry} to use
    * @param logicalIOConfiguration the LogicalIO's configuration
-   * @param parquetMetadataStore a common place for Parquet usage information
+   * @param parquetColumnPrefetchStore a common place for Parquet usage information
    */
   public ParquetPrefetcher(
       S3URI s3Uri,
       PhysicalIO physicalIO,
       Telemetry telemetry,
       LogicalIOConfiguration logicalIOConfiguration,
-      ParquetMetadataStore parquetMetadataStore) {
+      ParquetColumnPrefetchStore parquetColumnPrefetchStore) {
     this(
         s3Uri,
         logicalIOConfiguration,
-        parquetMetadataStore,
+        parquetColumnPrefetchStore,
         telemetry,
-        new ParquetMetadataParsingTask(s3Uri, parquetMetadataStore),
+        new ParquetMetadataParsingTask(s3Uri, parquetColumnPrefetchStore),
         new ParquetPrefetchTailTask(s3Uri, telemetry, logicalIOConfiguration, physicalIO),
         new ParquetReadTailTask(s3Uri, telemetry, logicalIOConfiguration, physicalIO),
-        new ParquetPrefetchRemainingColumnTask(s3Uri, telemetry, physicalIO, parquetMetadataStore),
+        new ParquetPrefetchRemainingColumnTask(
+            s3Uri, telemetry, physicalIO, parquetColumnPrefetchStore),
         new ParquetPredictivePrefetchingTask(
-            s3Uri, telemetry, logicalIOConfiguration, physicalIO, parquetMetadataStore));
+            s3Uri, telemetry, logicalIOConfiguration, physicalIO, parquetColumnPrefetchStore));
   }
 
   /**
@@ -171,7 +172,7 @@ public class ParquetPrefetcher {
   }
 
   private boolean shouldPrefetch() {
-    return parquetMetadataStore.getColumnMappers(s3URI) == null
+    return parquetColumnPrefetchStore.getColumnMappers(s3URI) == null
         && (logicalIOConfiguration.isMetadataAwarePrefetchingEnabled()
             || logicalIOConfiguration.isPredictivePrefetchingEnabled());
   }

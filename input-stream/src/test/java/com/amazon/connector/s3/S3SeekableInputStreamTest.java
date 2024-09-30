@@ -6,8 +6,8 @@ import static org.mockito.Mockito.*;
 
 import com.amazon.connector.s3.io.logical.LogicalIO;
 import com.amazon.connector.s3.io.logical.LogicalIOConfiguration;
+import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.io.logical.impl.ParquetLogicalIOImpl;
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import com.amazon.connector.s3.io.physical.data.BlobStore;
@@ -366,7 +366,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
                           physicalIO,
                           TestTelemetry.DEFAULT,
                           LogicalIOConfiguration.DEFAULT,
-                          new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT));
+                          new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT));
                   try (SeekableInputStream stream =
                       new S3SeekableInputStream(TEST_URI, logicalIO, TestTelemetry.DEFAULT)) {
                     byte[] buffer = new byte[4];
@@ -416,7 +416,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),
             TestTelemetry.DEFAULT,
             LogicalIOConfiguration.DEFAULT,
-            new ParquetMetadataStore(LogicalIOConfiguration.DEFAULT)),
+            new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)),
         TestTelemetry.DEFAULT);
   }
 }

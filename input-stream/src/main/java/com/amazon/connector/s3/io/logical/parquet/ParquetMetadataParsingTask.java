@@ -1,6 +1,6 @@
 package com.amazon.connector.s3.io.logical.parquet;
 
-import com.amazon.connector.s3.io.logical.impl.ParquetMetadataStore;
+import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.util.S3URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 public class ParquetMetadataParsingTask {
   private final S3URI s3URI;
   private final ParquetParser parquetParser;
-  private final ParquetMetadataStore parquetMetadataStore;
+  private final ParquetColumnPrefetchStore parquetColumnPrefetchStore;
 
   private static final Logger LOG = LoggerFactory.getLogger(ParquetMetadataParsingTask.class);
 
@@ -29,10 +29,11 @@ public class ParquetMetadataParsingTask {
    * Creates a new instance of {@link ParquetMetadataParsingTask}.
    *
    * @param s3URI the S3Uri of the object
-   * @param parquetMetadataStore object containing Parquet usage information
+   * @param parquetColumnPrefetchStore object containing Parquet usage information
    */
-  public ParquetMetadataParsingTask(S3URI s3URI, ParquetMetadataStore parquetMetadataStore) {
-    this(s3URI, parquetMetadataStore, new ParquetParser());
+  public ParquetMetadataParsingTask(
+      S3URI s3URI, ParquetColumnPrefetchStore parquetColumnPrefetchStore) {
+    this(s3URI, parquetColumnPrefetchStore, new ParquetParser());
   }
 
   /**
@@ -40,16 +41,16 @@ public class ParquetMetadataParsingTask {
    * is useful for testing as it allows dependency injection.
    *
    * @param s3URI the S3Uri of the object
-   * @param parquetMetadataStore object containing Parquet usage information
+   * @param parquetColumnPrefetchStore object containing Parquet usage information
    * @param parquetParser parser for getting the file metadata
    */
   ParquetMetadataParsingTask(
       @NonNull S3URI s3URI,
-      @NonNull ParquetMetadataStore parquetMetadataStore,
+      @NonNull ParquetColumnPrefetchStore parquetColumnPrefetchStore,
       @NonNull ParquetParser parquetParser) {
     this.s3URI = s3URI;
     this.parquetParser = parquetParser;
-    this.parquetMetadataStore = parquetMetadataStore;
+    this.parquetColumnPrefetchStore = parquetColumnPrefetchStore;
   }
 
   /**
@@ -63,7 +64,7 @@ public class ParquetMetadataParsingTask {
       FileMetaData fileMetaData =
           parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
       ColumnMappers columnMappers = buildColumnMaps(fileMetaData);
-      parquetMetadataStore.putColumnMappers(this.s3URI, columnMappers);
+      parquetColumnPrefetchStore.putColumnMappers(this.s3URI, columnMappers);
       return columnMappers;
     } catch (Exception e) {
       LOG.error(
