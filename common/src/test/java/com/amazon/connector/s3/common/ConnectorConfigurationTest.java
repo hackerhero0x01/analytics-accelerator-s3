@@ -2,13 +2,16 @@ package com.amazon.connector.s3.common;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class ConnectorConfigurationTest {
-
   private static final String TEST_PREFIX = "s3.connector";
   private static final String MAP_PREFIX = "map";
 
@@ -31,6 +34,24 @@ public class ConnectorConfigurationTest {
   }
 
   @Test
+  void testConstructorWithNulls() {
+    assertThrows(
+        NullPointerException.class, () -> new ConnectorConfiguration((Map<String, String>) null));
+    assertThrows(
+        NullPointerException.class,
+        () -> new ConnectorConfiguration((Map<String, String>) null, "Foo"));
+    assertThrows(
+        NullPointerException.class,
+        () -> new ConnectorConfiguration(getDefaultConfigurationMap("Foo"), null));
+    assertThrows(
+        NullPointerException.class,
+        () -> new ConnectorConfiguration((Iterable<Map.Entry<String, String>>) null, "Foo"));
+    assertThrows(
+        NullPointerException.class,
+        () -> new ConnectorConfiguration(getDefaultConfigurationMap("Foo").entrySet(), null));
+  }
+
+  @Test
   void testMapPrefix() {
     ConnectorConfiguration configuration =
         new ConnectorConfiguration(
@@ -50,6 +71,41 @@ public class ConnectorConfigurationTest {
 
     assertNotNull(configuration);
     assertEquals("randomString", configuration.getString("key", "randomString"));
+  }
+
+  @Test
+  void testGetWithNullKey() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    assertThrows(NullPointerException.class, () -> configuration.getInt(null, 0));
+    assertThrows(NullPointerException.class, () -> configuration.getRequiredInt(null));
+    assertThrows(NullPointerException.class, () -> configuration.getLong(null, 0));
+    assertThrows(NullPointerException.class, () -> configuration.getRequiredLong(null));
+    assertThrows(NullPointerException.class, () -> configuration.getString(null, ""));
+    assertThrows(NullPointerException.class, () -> configuration.getRequiredString(null));
+    assertThrows(NullPointerException.class, () -> configuration.getDouble(null, 0));
+    assertThrows(NullPointerException.class, () -> configuration.getRequiredDouble(null));
+    assertThrows(NullPointerException.class, () -> configuration.getBoolean(null, true));
+    assertThrows(NullPointerException.class, () -> configuration.getRequiredBoolean(null));
+  }
+
+  @Test
+  void testReturnValues() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    assertEquals("1", configuration.getString("intConfig", "randomString"));
+    assertEquals("1.0", configuration.getString("doubleConfig", "randomString"));
+    assertEquals("1", configuration.getString("longConfig", "randomString"));
+    assertEquals("true", configuration.getString("booleanConfig", "randomString"));
+    assertEquals("stringConfigValue", configuration.getString("stringConfig", "randomString"));
+  }
+
+  @Test
+  void testReturnValuesNoPrefix() {
+    ConnectorConfiguration configuration = new ConnectorConfiguration(getDefaultNoPrefixMap());
+    assertEquals("1", configuration.getString("intConfig", "randomString"));
+    assertEquals("1.0", configuration.getString("doubleConfig", "randomString"));
+    assertEquals("1", configuration.getString("longConfig", "randomString"));
+    assertEquals("true", configuration.getString("booleanConfig", "randomString"));
+    assertEquals("stringConfigValue", configuration.getString("stringConfig", "randomString"));
   }
 
   @Test
@@ -77,6 +133,19 @@ public class ConnectorConfigurationTest {
   }
 
   @Test
+  void testGetIntRequired() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    int intConfig = configuration.getRequiredInt("intConfig");
+    assertEquals(1, intConfig);
+  }
+
+  @Test
+  void testGetIntRequiredThrowsIfNotSet() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    assertThrows(IllegalArgumentException.class, () -> configuration.getRequiredInt("intConfig1"));
+  }
+
+  @Test
   void testGetLong() {
     ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
     long longConfig = configuration.getLong("longConfig", 0);
@@ -87,6 +156,20 @@ public class ConnectorConfigurationTest {
   void testGetLongThrows() {
     ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
     assertThrows(NumberFormatException.class, () -> configuration.getLong("stringConfig", 0));
+  }
+
+  @Test
+  void testGetLongRequired() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    long longConfig = configuration.getRequiredLong("longConfig");
+    assertEquals(1, longConfig);
+  }
+
+  @Test
+  void testGetLongRequiredThrowsIfNotSet() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    assertThrows(
+        IllegalArgumentException.class, () -> configuration.getRequiredLong("longConfig1"));
   }
 
   @Test
@@ -103,6 +186,20 @@ public class ConnectorConfigurationTest {
   }
 
   @Test
+  void testGetRequiredDouble() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    double doubleConfig = configuration.getRequiredDouble("doubleConfig");
+    assertEquals(1.0, doubleConfig);
+  }
+
+  @Test
+  void testGetDoubleThrowsIfNotSet() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    assertThrows(
+        IllegalArgumentException.class, () -> configuration.getRequiredDouble("stringConfig"));
+  }
+
+  @Test
   void testGetBoolean() {
     ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
     boolean booleanConfig = configuration.getBoolean("booleanConfig", false);
@@ -116,11 +213,40 @@ public class ConnectorConfigurationTest {
   }
 
   @Test
+  void testGetRequiredBoolean() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    boolean booleanConfig = configuration.getRequiredBoolean("booleanConfig");
+    assertTrue(booleanConfig);
+  }
+
+  @Test
+  void testGetRequiredBooleanThrowsIfNotSet() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    assertThrows(
+        IllegalArgumentException.class, () -> configuration.getRequiredBoolean("booleanConfig1"));
+  }
+
+  @Test
   void testGetString() {
     ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
     String stringConfig = configuration.getString("stringConfig", "randomString");
     assertInstanceOf(String.class, stringConfig);
     assertEquals("stringConfigValue", stringConfig);
+  }
+
+  @Test
+  void testGetRequiredString() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    String stringConfig = configuration.getRequiredString("stringConfig");
+    assertInstanceOf(String.class, stringConfig);
+    assertEquals("stringConfigValue", stringConfig);
+  }
+
+  @Test
+  void testGetRequiredStringThrowsIfNotSet() {
+    ConnectorConfiguration configuration = getDefaultConfiguration(TEST_PREFIX);
+    assertThrows(
+        IllegalArgumentException.class, () -> configuration.getRequiredString("stringConfig1"));
   }
 
   private static ConnectorConfiguration getDefaultConfiguration(String prefix) {
@@ -135,6 +261,16 @@ public class ConnectorConfigurationTest {
     defaultMap.put(prefix + ".longConfig", "1");
     defaultMap.put(prefix + ".booleanConfig", "true");
     defaultMap.put(prefix + ".stringConfig", "stringConfigValue");
+    return defaultMap;
+  }
+
+  private static Map<String, String> getDefaultNoPrefixMap() {
+    Map<String, String> defaultMap = new HashMap<>();
+    defaultMap.put("intConfig", "1");
+    defaultMap.put("doubleConfig", "1.0");
+    defaultMap.put("longConfig", "1");
+    defaultMap.put("booleanConfig", "true");
+    defaultMap.put("stringConfig", "stringConfigValue");
     return defaultMap;
   }
 

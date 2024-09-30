@@ -1,6 +1,8 @@
 package com.amazon.connector.s3.common;
 
 import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import lombok.Getter;
@@ -15,8 +17,8 @@ import lombok.NonNull;
  * fs.s3a.connector.logicalio.b = "foo" fs.s3a.connector.physicalio.a = 42
  * fs.s3a.connector.physicalio.y = "bar"
  *
- * <p>One can create a {@link ConnectorConfiguration} instance as follows: MapBasedConfiguration
- * conf = new MapBasedConfiguration(map, "fs.s3a.connector"); and getInt("physicalio.a", 0) will
+ * <p>One can create a {@link ConnectorConfiguration} instance as follows: ConnectorConfiguration
+ * conf = new ConnectorConfiguration(map, "fs.s3a.connector"); and getInt("physicalio.a", 0) will
  * return 42. Note that getter did not require initial prefix already passed to {@link
  * ConnectorConfiguration} (i.e. "fs.s3a.connector").
  *
@@ -26,22 +28,26 @@ import lombok.NonNull;
  * subConf.getInt("a", 0) will return 42.
  */
 public final class ConnectorConfiguration {
-
-  /**
-   * Expected prefix for properties related to Connector Framework for S3. Get prefix for properties
-   * related to Connector Framework for S3.
-   *
-   * @return String
-   */
+  /** Prefix identifying all values we are interested in. "" indicates all properties */
   @Getter private final String prefix;
-
+  /** Underlying set of key/value pairs */
   private final Map<String, String> configuration;
 
   /**
-   * Constructs {@link ConnectorConfiguration} from Map<String, String> and prependPrefix. Keys not
-   * starting with prefix will be omitted from the map.
+   * Constructs {@link ConnectorConfiguration} from Map<String, String>. All keys are included in
+   * the configuration
    *
-   * @param configurationMap configuration from upstream service
+   * @param configurationMap
+   */
+  public ConnectorConfiguration(@NonNull Map<String, String> configurationMap) {
+    this(configurationMap, "");
+  }
+
+  /**
+   * Constructs {@link ConnectorConfiguration} from Map<String, String> and prependPrefix. Keys not
+   * starting with prefix will be omitted from the configuration.
+   *
+   * @param configurationMap key/value set of {@link Map} representing the configuration
    * @param prefix prefix for properties related to Connector Framework for S3
    */
   public ConnectorConfiguration(
@@ -51,9 +57,10 @@ public final class ConnectorConfiguration {
 
   /**
    * Constructs {@link ConnectorConfiguration} from Iterable of Map.Entry<String, String> and
-   * prependPrefix. Keys not starting with prefix will be omitted from the map.
+   * prependPrefix. Keys not starting with prefix will be omitted from the configuration.
    *
-   * @param iterableConfiguration Iterable of Map.Entry<String, String> from user
+   * @param iterableConfiguration key/value iterable of {@link Map} entries representing the
+   *     configuration
    * @param prefix prefix for properties related to Connector Framework for S3
    */
   public ConnectorConfiguration(
@@ -86,8 +93,19 @@ public final class ConnectorConfiguration {
    * @return int
    */
   public int getInt(@NonNull String key, int defaultValue) throws NumberFormatException {
-    String value = getValue(key);
-    return value != null ? Integer.parseInt(value) : defaultValue;
+    return getValue(key, Integer::parseInt, () -> defaultValue);
+  }
+
+  /**
+   * Get integer value for a given key. If key is not found, return default value. Note that this
+   * method will throw an exception if the value is not a valid integer or the value is not set
+   *
+   * @param key suffix of the configuration to retrieve. Full search key will be this.getPrefix +
+   *     "." + key
+   * @return int
+   */
+  public int getRequiredInt(@NonNull String key) throws NumberFormatException {
+    return getValue(key, Integer::parseInt, () -> throwIfNotPresent(key));
   }
 
   /**
@@ -100,8 +118,19 @@ public final class ConnectorConfiguration {
    * @return long
    */
   public long getLong(@NonNull String key, long defaultValue) throws NumberFormatException {
-    String value = getValue(key);
-    return value != null ? Long.parseLong(value) : defaultValue;
+    return getValue(key, Long::parseLong, () -> defaultValue);
+  }
+
+  /**
+   * Get Long value for a given key. If key is not found, return default value. Note that this
+   * method will throw an exception if the value is not a valid long or the value is not set
+   *
+   * @param key suffix of the configuration to retrieve. Full search key will be this.getPrefix +
+   *     "." + key
+   * @return long
+   */
+  public long getRequiredLong(@NonNull String key) throws NumberFormatException {
+    return getValue(key, Long::parseLong, () -> throwIfNotPresent(key));
   }
 
   /**
@@ -113,8 +142,18 @@ public final class ConnectorConfiguration {
    * @return String
    */
   public String getString(@NonNull String key, String defaultValue) {
-    String value = getValue(key);
-    return value != null ? value : defaultValue;
+    return getValue(key, Function.identity(), () -> defaultValue);
+  }
+
+  /**
+   * Get String value for a given key. If key is not found, return default value.
+   *
+   * @param key suffix of the configuration to retrieve. Full search key will be this.getPrefix +
+   *     "." + key
+   * @return String
+   */
+  public String getRequiredString(@NonNull String key) {
+    return getValue(key, Function.identity(), () -> throwIfNotPresent(key));
   }
 
   /**
@@ -126,8 +165,18 @@ public final class ConnectorConfiguration {
    * @return boolean
    */
   public boolean getBoolean(@NonNull String key, boolean defaultValue) {
-    String value = getValue(key);
-    return value != null ? Boolean.parseBoolean(value) : defaultValue;
+    return getValue(key, Boolean::parseBoolean, () -> defaultValue);
+  }
+
+  /**
+   * Get Boolean value for a given key. If key is not found, return default value.
+   *
+   * @param key suffix of the configuration to retrieve. Full search key will be this.getPrefix +
+   *     "." + key
+   * @return boolean
+   */
+  public boolean getRequiredBoolean(@NonNull String key) {
+    return getValue(key, Boolean::parseBoolean, () -> throwIfNotPresent(key));
   }
 
   /**
@@ -140,15 +189,63 @@ public final class ConnectorConfiguration {
    * @return Double
    */
   public double getDouble(@NonNull String key, double defaultValue) throws NumberFormatException {
-    String value = getValue(key);
-    return value != null ? Double.parseDouble(value) : defaultValue;
+    return getValue(key, Double::parseDouble, () -> defaultValue);
   }
 
-  private String getValue(String key) {
-    return configuration.get(expandKey(key));
+  /**
+   * Get Double value for a given key. If key is not found, return default value. Note that this
+   * method will throw an exception if the value is not a valid double or the value is not set.
+   *
+   * @param key suffix of the configuration to retrieve. Full search key will be this.getPrefix +
+   *     "." + key
+   * @return Double
+   */
+  public double getRequiredDouble(@NonNull String key) throws NumberFormatException {
+    return getValue(key, Double::parseDouble, () -> throwIfNotPresent(key));
   }
 
+  /**
+   * Gets the value based on the key, the casts it to the desired type using the supplied 'caster'.
+   * If the value is not set (that is, the map contains `null`), the value gets initialized using
+   * the supplied `defaultValueSupplier`
+   *
+   * @param key suffix of the configuration to retrieve. Full search key will be this.getPrefix + *
+   *     "." + key
+   * @param caster function used to cast String to the desired type
+   * @param defaultValueSupplier supplies default value when not set
+   * @param <T> the desired type of the value
+   * @return strongly typed result using the semantics above
+   */
+  private <T> T getValue(
+      @NonNull String key, Function<String, T> caster, Supplier<T> defaultValueSupplier) {
+    String value = configuration.get(expandKey(key));
+    return (value != null) ? caster.apply(value) : defaultValueSupplier.get();
+  }
+
+  /**
+   * Throws an exception when a given key is not present
+   *
+   * @param key the key
+   * @param <T> the desired type of the value
+   * @return nothing, exception is always thrown.
+   */
+  private static <T> T throwIfNotPresent(String key) {
+    throw new IllegalArgumentException(
+        String.format("Required configuration '%s' is not set.", key));
+  }
+
+  /**
+   * Expands the supplied key by appending the prefix to it
+   *
+   * @param key the key
+   * @return fully qualified key name
+   */
   private String expandKey(String key) {
-    return this.prefix + '.' + key;
+    // If the prefix is empty, do not attempt to expand
+    if (this.prefix.isEmpty()) {
+      return key;
+    } else {
+      return this.prefix + '.' + key;
+    }
   }
 }
