@@ -37,7 +37,7 @@ public final class ConnectorConfiguration {
    * Constructs {@link ConnectorConfiguration} from Map<String, String>. All keys are included in
    * the configuration
    *
-   * @param configurationMap
+   * @param configurationMap key/value set of {@link Map} representing the configuration
    */
   public ConnectorConfiguration(@NonNull Map<String, String> configurationMap) {
     this(configurationMap, "");
@@ -205,7 +205,7 @@ public final class ConnectorConfiguration {
   }
 
   /**
-   * Gets the value based on the key, the casts it to the desired type using the supplied 'caster'.
+   * Gets the value based on the key, then casts it to the desired type using the supplied 'caster'.
    * If the value is not set (that is, the map contains `null`), the value gets initialized using
    * the supplied `defaultValueSupplier`
    *
