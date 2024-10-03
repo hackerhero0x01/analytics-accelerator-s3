@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.physical.prefetcher;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
 import org.junit.jupiter.api.Test;
 
 public class SequentialReadProgressionTest {
@@ -10,7 +11,8 @@ public class SequentialReadProgressionTest {
   @Test
   public void test__sequentialReadProgression__asExpected() {
     // Given: a SequentialReadProgression
-    SequentialReadProgression sequentialReadProgression = new SequentialReadProgression();
+    SequentialReadProgression sequentialReadProgression =
+        new SequentialReadProgression(PhysicalIOConfiguration.DEFAULT);
 
     // When & Then: size is requested for a generation --> size is correct
     assertEquals(2 * ONE_MB, sequentialReadProgression.getSizeForGeneration(0));

@@ -3,16 +3,17 @@ package com.amazon.connector.s3.io.physical.prefetcher;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 
 import com.amazon.connector.s3.common.Preconditions;
+import com.amazon.connector.s3.io.physical.PhysicalIOConfiguration;
+import lombok.AllArgsConstructor;
 
 /**
  * Class that implements a mathematical function telling us the size of blocks we should prefetch in
  * a sequential read.
  */
+@AllArgsConstructor
 public class SequentialReadProgression {
 
-  // TODO: we may want to expose these as customer configurable
-  private static double BASE = 4.0;
-  private static double ALPHA = 1;
+  private final PhysicalIOConfiguration configuration;
 
   /**
    * Given a generation, returns the size of a sequential prefetch block for that generation. This
@@ -25,6 +26,11 @@ public class SequentialReadProgression {
     Preconditions.checkArgument(0 <= generation, "`generation` must be non-negative");
 
     // 2, 8, 32, 64
-    return 2 * ONE_MB * (long) Math.pow(BASE, Math.floor(ALPHA * generation));
+    return 2
+        * ONE_MB
+        * (long)
+            Math.pow(
+                configuration.getSequentialPrefetchBase(),
+                Math.floor(configuration.getSequentialPrefetchSpeed() * generation));
   }
 }

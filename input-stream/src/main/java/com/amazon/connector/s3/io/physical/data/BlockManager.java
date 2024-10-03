@@ -54,7 +54,7 @@ public class BlockManager implements Closeable {
     this.configuration = configuration;
     this.blockStore = new BlockStore(s3URI, metadataStore);
     this.patternDetector = new SequentialPatternDetector(blockStore);
-    this.sequentialReadProgression = new SequentialReadProgression();
+    this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
     this.rangeOptimiser = new RangeOptimiser(configuration);
   }
