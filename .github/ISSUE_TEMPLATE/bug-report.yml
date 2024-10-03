@@ -1,0 +1,65 @@
+name: Bug report
+description: File a bug report
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to submit a bug report!
+  - type: markdown
+    attributes:
+      value: |
+        **Note: Security issues should not be reported here.**
+        Please follow the [security policy for this repository](../../CONTRIBUTING.md#security-issue-notifications)).
+  - type: input
+    id: dats3-version
+    attributes:
+      label: Data Accelerator Toolkit for Amazon S3 Version
+      description: |
+        Which version of Data Accelerator Toolkit for Amazon S3 are you using?
+        If you are building from source or a fork, please state that.
+      placeholder: x.y
+    validations:
+      required: true
+  - type: input
+    id: region
+    attributes:
+      label: AWS Region
+      description: Which AWS region did you experience the bug in?
+      placeholder: us-east-1
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: Describe the running environment
+      description: |
+        What else can you share about the environment you are running the project in?
+        For example, was this using Amazon EC2? Which type/OS version/architecture?
+      placeholder: Running in EC2 <instance type> on Amazon Linux 2.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Please also tell us what you expected to happen.
+      placeholder: A description of the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](../../CODE_OF_CONDUCT.md)
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
