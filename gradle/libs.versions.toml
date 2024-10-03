@@ -13,6 +13,7 @@ log4j = "2.23.1"
 jqwik = "1.8.5"
 jqwik-testcontainers = "0.5.2"
 testcontainers-testcontainers = "1.16.2"
+test-logger="4.0.0"
 
 [libraries]
 # S3-related dependencies
@@ -27,6 +28,7 @@ parquet-format = { module = "org.apache.parquet:parquet-format", version.ref = "
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 spotless = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 spotbugs = { module = "com.github.spotbugs.snom:spotbugs-gradle-plugin", version.ref = "spotbugs" }
+test-logger = { module = "com.adarshr:gradle-test-logger-plugin", version.ref = "test-logger" }
 log4j-api = { module = "org.apache.logging.log4j:log4j-api", version.ref = "log4j" }
 log4j-core = { module = "org.apache.logging.log4j:log4j-core", version.ref = "log4j" }
 

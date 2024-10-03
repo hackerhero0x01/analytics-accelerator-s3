@@ -1,3 +1,4 @@
+import com.adarshr.gradle.testlogger.theme.ThemeType
 import com.github.spotbugs.snom.Confidence
 import com.github.spotbugs.snom.Effort
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -23,6 +24,9 @@ plugins {
     // SpotBugs
     id("com.github.spotbugs")
 
+    // Test logger
+    id("com.adarshr.test-logger")
+
     checkstyle
 }
 
@@ -47,6 +51,25 @@ spotbugs {
     excludeFilter = file("spotbugs-exclude.xml")
     effort = Effort.MAX
     reportLevel = Confidence.LOW
+}
+
+testlogger {
+    theme = ThemeType.MOCHA
+    showExceptions = true
+    showStackTraces = true
+    showFullStackTraces = false
+    showCauses = true
+    slowThreshold = 2000 // everything over two seconds is considered slow
+    showSummary = true
+    showSimpleNames = false
+    showPassed = true
+    showSkipped = true
+    showFailed = true
+    showOnlySlow = false
+    showStandardStreams = false
+    showPassedStandardStreams = true
+    showSkippedStandardStreams = true
+    showFailedStandardStreams = true
 }
 
 
