@@ -60,18 +60,19 @@ public class PhysicalIOConfiguration {
   private static final String PART_SIZE_BYTES_KEY = "partsizebytes";
 
   /**
-   * Base constant in the sequential prefetching geometric progression.
-   * See {@link com.amazon.connector.s3.io.physical.prefetcher.SequentialReadProgression} for the exact formula.
-   * {@link PhysicalIOConfiguration#DEFAULT_SEQUENTIAL_PREFETCH_BASE} by default.
+   * Base constant in the sequential prefetching geometric progression. See {@link
+   * com.amazon.connector.s3.io.physical.prefetcher.SequentialReadProgression} for the exact
+   * formula. {@link PhysicalIOConfiguration#DEFAULT_SEQUENTIAL_PREFETCH_BASE} by default.
    */
   @Builder.Default private double sequentialPrefetchBase = DEFAULT_SEQUENTIAL_PREFETCH_BASE;
 
   private static final String SEQUENTIAL_PREFETCH_BASE_KEY = "sequentialprefetch.base";
 
   /**
-   * Constant controlling the rate of physical block _growth_ in the sequential prefetching geometric progression.
-   * See {@link com.amazon.connector.s3.io.physical.prefetcher.SequentialReadProgression} for the exact formula.
-   * {@link PhysicalIOConfiguration#DEFAULT_SEQUENTIAL_PREFETCH_SPEED} by default.
+   * Constant controlling the rate of physical block _growth_ in the sequential prefetching
+   * geometric progression. See {@link
+   * com.amazon.connector.s3.io.physical.prefetcher.SequentialReadProgression} for the exact
+   * formula. {@link PhysicalIOConfiguration#DEFAULT_SEQUENTIAL_PREFETCH_SPEED} by default.
    */
   @Builder.Default private double sequentialPrefetchSpeed = DEFAULT_SEQUENTIAL_PREFETCH_SPEED;
 
