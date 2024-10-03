@@ -1,6 +1,7 @@
 package com.amazon.connector.s3.io.physical.data;
 
 import static com.amazon.connector.s3.util.Constants.ONE_KB;
+import static com.amazon.connector.s3.util.Constants.ONE_MB;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -161,11 +162,39 @@ public class BlockManagerTest {
     assertEquals(1, lastRequest.getRange().getLength());
   }
 
+  @Test
+  void regressionTestSequentialPrefetchShouldNotShrinkRanges() {
+    // Given: BlockManager with some blocks loaded
+    ObjectClient objectClient = mock(ObjectClient.class);
+    BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_MB, PhysicalIOConfiguration.builder().sequentialPrefetchBase(2.0).build());
+    blockManager.makeRangeAvailable(20_837_974, 8_323_072, ReadMode.SYNC);
+    blockManager.makeRangeAvailable(20_772_438, 65_536, ReadMode.SYNC);
+    blockManager.makeRangeAvailable(29_161_046, 4_194_305, ReadMode.SYNC);
+    blockManager.makeRangeAvailable(106_182_410, 1_048_576, ReadMode.SYNC);
+
+    // When: [29161046 - 37549653] is requested
+    blockManager.makeRangeAvailable(29_161_046, 8_388_608, ReadMode.SYNC);
+
+    // Then: position 33_355_351 should be available
+    assertDoesNotThrow(
+        () ->
+            blockManager
+                .getBlock(33_355_351)
+                .orElseThrow(
+                    () ->
+                        new IllegalStateException(
+                            "block should have been available because it was requested before")));
+  }
+
   private BlockManager getTestBlockManager(int size) {
     return getTestBlockManager(mock(ObjectClient.class), size);
   }
 
   private BlockManager getTestBlockManager(ObjectClient objectClient, int size) {
+    return getTestBlockManager(objectClient, size, PhysicalIOConfiguration.DEFAULT);
+  }
+
+  private BlockManager getTestBlockManager(ObjectClient objectClient, int size, PhysicalIOConfiguration configuration) {
     S3URI testUri = S3URI.of("foo", "bar");
     when(objectClient.getObject(any()))
         .thenReturn(
@@ -179,6 +208,6 @@ public class BlockManagerTest {
         objectClient,
         metadataStore,
         TestTelemetry.DEFAULT,
-        PhysicalIOConfiguration.DEFAULT);
+        configuration);
   }
 }

@@ -126,7 +126,10 @@ public class BlockManager implements Closeable {
     final long generation;
     if (patternDetector.isSequentialRead(pos)) {
       generation = patternDetector.getGeneration(pos);
-      effectiveEnd = truncatePos(pos + sequentialReadProgression.getSizeForGeneration(generation));
+      effectiveEnd =
+          Math.max(
+              effectiveEnd,
+              truncatePos(pos + sequentialReadProgression.getSizeForGeneration(generation)));
     } else {
       generation = 0;
     }

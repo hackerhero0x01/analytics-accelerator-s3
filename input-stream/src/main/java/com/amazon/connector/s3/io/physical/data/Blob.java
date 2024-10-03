@@ -78,11 +78,16 @@ public class Blob implements Closeable {
     int numBytesRead = 0;
 
     while (numBytesRead < len && nextPosition < contentLength()) {
+      final long nextPositionFinal = nextPosition;
       Block nextBlock =
           blockManager
               .getBlock(nextPosition)
               .orElseThrow(
-                  () -> new IllegalStateException("This block should have been available."));
+                  () ->
+                      new IllegalStateException(
+                          String.format(
+                              "This block (for position %s) should have been available.",
+                              nextPositionFinal)));
 
       int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
 
