@@ -15,12 +15,12 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 
 /** Object client, based on AWS SDK v2 */
 public class S3SdkObjectClient implements ObjectClient {
-  public static final String HEADER_USER_AGENT = "User-Agent";
+  private static final String HEADER_USER_AGENT = "User-Agent";
   private static final String HEADER_REFERER = "Referer";
 
-  @Getter private S3AsyncClient s3AsyncClient = null;
-  private final Telemetry telemetry;
-  private final UserAgent userAgent;
+  @Getter @NonNull private final S3AsyncClient s3AsyncClient;
+  @NonNull private final Telemetry telemetry;
+  @NonNull private final UserAgent userAgent;
   private final boolean closeAsyncClient;
 
   /**
@@ -30,7 +30,7 @@ public class S3SdkObjectClient implements ObjectClient {
    *
    * @param s3AsyncClient Underlying client to be used for making requests to S3.
    */
-  public S3SdkObjectClient(@NonNull S3AsyncClient s3AsyncClient) {
+  public S3SdkObjectClient(S3AsyncClient s3AsyncClient) {
     this(s3AsyncClient, ObjectClientConfiguration.DEFAULT);
   }
 
@@ -42,7 +42,7 @@ public class S3SdkObjectClient implements ObjectClient {
    * @param s3AsyncClient Underlying client to be used for making requests to S3.
    * @param closeAsyncClient if true, close the passed client on close.
    */
-  public S3SdkObjectClient(@NonNull S3AsyncClient s3AsyncClient, boolean closeAsyncClient) {
+  public S3SdkObjectClient(S3AsyncClient s3AsyncClient, boolean closeAsyncClient) {
     this(s3AsyncClient, ObjectClientConfiguration.DEFAULT, closeAsyncClient);
   }
 
@@ -54,8 +54,7 @@ public class S3SdkObjectClient implements ObjectClient {
    * @param objectClientConfiguration Configuration for object client.
    */
   public S3SdkObjectClient(
-      @NonNull S3AsyncClient s3AsyncClient,
-      @NonNull ObjectClientConfiguration objectClientConfiguration) {
+      S3AsyncClient s3AsyncClient, ObjectClientConfiguration objectClientConfiguration) {
     this(s3AsyncClient, objectClientConfiguration, true);
   }
 

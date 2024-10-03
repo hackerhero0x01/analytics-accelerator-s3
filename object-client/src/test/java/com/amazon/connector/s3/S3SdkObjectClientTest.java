@@ -31,9 +31,27 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 @SuppressFBWarnings(
-    value = "NP_NONNULL_PARAM_VIOLATION",
-    justification = "We mean to pass nulls to checks")
+    value = {"NP_NONNULL_PARAM_VIOLATION", "SIC_INNER_SHOULD_BE_STATIC_ANON"},
+    justification =
+        "We mean to pass nulls to checks. Also, closures cannot be made static in this case")
 public class S3SdkObjectClientTest {
+  @Test
+  void testForNullsInConstructor() {
+    try (S3AsyncClient client = mock(S3AsyncClient.class)) {
+      SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+          NullPointerException.class,
+          () -> new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT, true));
+      SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+          NullPointerException.class, () -> new S3SdkObjectClient(client, null, true));
+      SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+          NullPointerException.class,
+          () -> new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT));
+      SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+          NullPointerException.class, () -> new S3SdkObjectClient(null, true));
+      SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+          NullPointerException.class, () -> new S3SdkObjectClient(null));
+    }
+  }
 
   @Test
   void testCloseCallsInnerCloseWhenInstructed() {
@@ -144,6 +162,7 @@ public class S3SdkObjectClientTest {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static S3AsyncClient createMockClient() {
     S3AsyncClient s3AsyncClient = mock(S3AsyncClient.class);
 
