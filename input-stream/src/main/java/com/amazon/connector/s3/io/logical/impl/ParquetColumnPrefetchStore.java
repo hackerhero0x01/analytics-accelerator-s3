@@ -81,13 +81,13 @@ public class ParquetColumnPrefetchStore {
         configuration,
         new LinkedHashMap<S3URI, ColumnMappers>() {
           @Override
-          protected boolean removeEldestEntry(final Map.Entry eldest) {
+          protected boolean removeEldestEntry(final Map.Entry<S3URI, ColumnMappers> eldest) {
             return this.size() > configuration.getParquetMetadataStoreSize();
           }
         },
         new LinkedHashMap<Integer, LinkedList<String>>() {
           @Override
-          protected boolean removeEldestEntry(final Map.Entry eldest) {
+          protected boolean removeEldestEntry(final Map.Entry<Integer, LinkedList<String>> eldest) {
             return this.size() > configuration.getMaxColumnAccessCountStoreSize();
           }
         });

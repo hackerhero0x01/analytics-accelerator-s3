@@ -62,6 +62,13 @@ java {
     }
 }
 
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.add("-Werror") // treat warnings as errors
+    options.compilerArgs.add("-Xlint:all")
+    options.compilerArgs.add("-Xlint:-serial") // we do not use Java serialization at all, reduce noise
+    options.compilerArgs.add("-Xlint:-classfile") // TODO: log4j dependency triggers this. Fix this when we remove it
+    options.isDeprecation = true
+}
 
 
 tasks.named<Test>("test") {

@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import org.apache.parquet.format.FileMetaData;
-import org.apache.parquet.format.InterningProtocol;
 import shaded.parquet.org.apache.thrift.TException;
 import shaded.parquet.org.apache.thrift.protocol.TCompactProtocol;
 import shaded.parquet.org.apache.thrift.protocol.TProtocol;
@@ -62,8 +61,9 @@ class ParquetParser {
     return protocol(new TIOStreamTransport(from));
   }
 
-  private static InterningProtocol protocol(TIOStreamTransport t) {
-    return new InterningProtocol(new TCompactProtocol(t));
+  @SuppressWarnings("deprecation")
+  private static org.apache.parquet.format.InterningProtocol protocol(TIOStreamTransport t) {
+    return new org.apache.parquet.format.InterningProtocol(new TCompactProtocol(t));
   }
 
   private static int readIntLittleEndian(InputStream in) throws IOException {

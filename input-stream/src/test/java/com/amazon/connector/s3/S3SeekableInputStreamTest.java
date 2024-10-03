@@ -167,15 +167,11 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   void testLogicalIOGetsClosed() throws IOException {
     // Given
     LogicalIO logicalIO = mock(LogicalIO.class);
-    try (S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_URI, logicalIO, TestTelemetry.DEFAULT)) {
-
-      // When
-      stream.close();
-
-      // Then
-      verify(logicalIO, times(1)).close();
-    }
+    S3SeekableInputStream stream =
+        new S3SeekableInputStream(TEST_URI, logicalIO, TestTelemetry.DEFAULT);
+    stream.close();
+    // Then
+    verify(logicalIO, times(1)).close();
   }
 
   @Test

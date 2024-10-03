@@ -38,6 +38,7 @@ public class MetadataStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void test__close__closesAllElements() {
     // Given:
     // - a MetadataStore with caching turned on

@@ -570,6 +570,7 @@ public class PreconditionsTest {
     return params;
   }
 
+  @SuppressWarnings("unchecked")
   private static <T> T getArbitraryInstance(Class<T> type) {
     if (type == char.class) {
       return (T) Character.class.cast(' ');

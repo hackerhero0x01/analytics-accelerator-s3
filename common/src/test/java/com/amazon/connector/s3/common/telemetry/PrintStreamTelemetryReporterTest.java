@@ -129,7 +129,7 @@ public class PrintStreamTelemetryReporterTest {
         () -> {
           try (PrintStreamTelemetryReporter reporter =
               new PrintStreamTelemetryReporter(System.out)) {
-            new PrintStreamTelemetryReporter(System.out).reportComplete(null);
+            reporter.reportComplete(null);
           }
         });
   }

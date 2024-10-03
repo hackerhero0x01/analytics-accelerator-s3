@@ -49,7 +49,8 @@ public class MetadataStore implements Closeable {
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>>() {
               @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
+              protected boolean removeEldestEntry(
+                  final Map.Entry<S3URI, CompletableFuture<ObjectMetadata>> eldest) {
                 return this.size() > configuration.getMetadataStoreCapacity();
               }
             });

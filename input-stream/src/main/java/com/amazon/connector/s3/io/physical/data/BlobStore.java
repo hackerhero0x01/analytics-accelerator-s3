@@ -43,7 +43,7 @@ public class BlobStore implements Closeable {
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, Blob>() {
               @Override
-              protected boolean removeEldestEntry(final Map.Entry eldest) {
+              protected boolean removeEldestEntry(final Map.Entry<S3URI, Blob> eldest) {
                 return this.size() > configuration.getBlobStoreCapacity();
               }
             });

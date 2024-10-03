@@ -24,6 +24,7 @@ public final class SpotBugsLambdaWorkaround {
    * @param <C> return type
    */
   @SneakyThrows
+  @SuppressWarnings("try")
   public static <T extends Throwable, C extends Closeable> void assertThrowsClosableResult(
       Class<T> expectedType, ThrowingSupplier<C> executable) {
     try (C result = executable.get()) {
