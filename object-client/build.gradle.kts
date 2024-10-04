@@ -4,7 +4,7 @@
 
 plugins {
     id("buildlogic.java-library-conventions")
-    id("io.freefair.lombok") version "8.6"
+    id("io.freefair.lombok") version "8.10"
     `maven-publish`
 }
 
