@@ -79,7 +79,7 @@ jobs:
         run: mvn install:install-file -Dfile=input-stream/build/libs/input-stream-all.jar -DgroupId=com.amazon.connector.s3 -DartifactId=input-stream -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
 
       - name: Setup Hadoop SSH deploy key
-        uses: webfactory/ssh-agent@v0.7.0
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.HADOOP_STAGING_SSH_KEY }}
 
@@ -127,7 +127,7 @@ jobs:
           mvn install:install-file -Dfile=common/build/libs/common.jar -DgroupId=com.amazon.connector.s3 -DartifactId=common -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
 
       - name: Setup Iceberg SSH deploy key
-        uses: webfactory/ssh-agent@v0.7.0
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.ICEBERG_STAGING_SSH_KEY }}
 
