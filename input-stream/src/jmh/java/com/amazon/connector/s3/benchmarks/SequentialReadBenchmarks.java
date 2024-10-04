@@ -39,4 +39,44 @@ public class SequentialReadBenchmarks {
       super(BenchmarkObject.RANDOM_128MB);
     }
   }
+
+  /** Runs the sequential benchmark for 256MB object */
+  public static class Seq_Read_256MB extends SequentialRead {
+    /** Constructs the benchmark */
+    public Seq_Read_256MB() {
+      super(BenchmarkObject.RANDOM_256MB);
+    }
+  }
+
+  /** Runs the sequential benchmark for 512MB object */
+  public static class Seq_Read_512MB extends SequentialRead {
+    /** Constructs the benchmark */
+    public Seq_Read_512MB() {
+      super(BenchmarkObject.RANDOM_512MB);
+    }
+  }
+
+  /** Runs the sequential benchmark for 512MB object */
+  public static class Seq_Read_1GB extends SequentialRead {
+    /** Constructs the benchmark */
+    public Seq_Read_1GB() {
+      super(BenchmarkObject.RANDOM_1G);
+    }
+  }
+
+  /** Runs the sequential benchmark for 512MB object */
+  public static class Seq_Read_5GB extends SequentialRead {
+    /** Constructs the benchmark */
+    public Seq_Read_5GB() {
+      super(BenchmarkObject.RANDOM_5G);
+    }
+  }
+
+  /** Runs the sequential benchmark for 512MB object */
+  public static class Seq_Read_10GB extends SequentialRead {
+    /** Constructs the benchmark */
+    public Seq_Read_10GB() {
+      super(BenchmarkObject.RANDOM_10G);
+    }
+  }
 }
