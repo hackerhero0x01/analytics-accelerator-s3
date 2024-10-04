@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.logical;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 
 import com.amazon.connector.s3.common.ConnectorConfiguration;
+import com.amazon.connector.s3.util.PrefetchMode;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -22,6 +23,7 @@ public class LogicalIOConfiguration {
   private static final int DEFAULT_PARQUET_METADATA_STORE_SIZE = 45;
   private static final int DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE = 15;
   private static final String DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX = "^.*.(parquet|par)$";
+  private static final String DEFAULT_PREFETCHING_MODE = PrefetchMode.ALL.toString();
 
   @Builder.Default private boolean footerCachingEnabled = DEFAULT_FOOTER_CACHING_ENABLED;
 
@@ -46,6 +48,12 @@ public class LogicalIOConfiguration {
 
   private static final String METADATA_AWARE_PREFETCHING_ENABLED_KEY =
       "metadata.aware.prefetching.enabled";
+
+  @Builder.Default
+  private String prefetchingMode = DEFAULT_PREFETCHING_MODE;
+
+  private static final String PREFETCHING_MODE_KEY =
+      "prefetching.mode";
 
   @Builder.Default
   private boolean predictivePrefetchingEnabled = DEFAULT_PREDICTIVE_PREFETCHING_ENABLED;
@@ -110,6 +118,11 @@ public class LogicalIOConfiguration {
         .parquetFormatSelectorRegex(
             configuration.getString(
                 PARQUET_FORMAT_SELECTOR_REGEX, DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX))
+        .prefetchingMode(
+            configuration.getString(
+                DEFAULT_PREFETCHING_MODE, DEFAULT_PREFETCHING_MODE
+            )
+        )
         .build();
   }
 }

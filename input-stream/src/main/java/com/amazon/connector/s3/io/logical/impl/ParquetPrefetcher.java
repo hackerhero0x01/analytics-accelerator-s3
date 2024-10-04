@@ -7,8 +7,11 @@ import com.amazon.connector.s3.io.logical.parquet.*;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
+import com.amazon.connector.s3.util.PrefetchMode;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
+
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -100,8 +103,7 @@ public class ParquetPrefetcher {
    */
   private CompletableFuture<IOPlanExecution> prefetchRemainingColumnChunkImpl(
       long position, int len) {
-    if (logicalIOConfiguration.isMetadataAwarePrefetchingEnabled()
-        && !logicalIOConfiguration.isPredictivePrefetchingEnabled()) {
+    if (PrefetchMode.COLUMN_BOUND.equalsValue(logicalIOConfiguration.getPrefetchingMode())) {
       // TODO: https://github.com/awslabs/s3-connector-framework/issues/88
       return CompletableFuture.supplyAsync(
           () -> parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(position, len));
@@ -153,9 +155,12 @@ public class ParquetPrefetcher {
 
   private CompletableFuture<IOPlanExecution> prefetchPredictedColumns(
       CompletableFuture<ColumnMappers> columnMappersCompletableFuture) {
-    if (logicalIOConfiguration.isPredictivePrefetchingEnabled()) {
-      return columnMappersCompletableFuture.thenApply(
-          parquetPredictivePrefetchingTask::prefetchRecentColumns);
+
+    if (PrefetchMode.ALL.equalsValue(logicalIOConfiguration.getPrefetchingMode())) {
+      return columnMappersCompletableFuture.thenApply((ColumnMappers columnMappers) ->
+          parquetPredictivePrefetchingTask.prefetchRecentColumns(columnMappers,
+              parquetColumnPrefetchStore.constructRowGroupsToPrefetch(
+              Optional.empty())));
     }
 
     return CompletableFuture.completedFuture(
@@ -172,8 +177,6 @@ public class ParquetPrefetcher {
   }
 
   private boolean shouldPrefetch() {
-    return parquetColumnPrefetchStore.getColumnMappers(s3URI) == null
-        && (logicalIOConfiguration.isMetadataAwarePrefetchingEnabled()
-            || logicalIOConfiguration.isPredictivePrefetchingEnabled());
+    return parquetColumnPrefetchStore.getColumnMappers(s3URI) == null;
   }
 }

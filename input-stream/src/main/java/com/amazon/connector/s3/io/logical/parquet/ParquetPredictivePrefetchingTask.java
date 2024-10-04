@@ -8,6 +8,7 @@ import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.request.Range;
+import com.amazon.connector.s3.util.PrefetchMode;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.util.ArrayList;
@@ -103,12 +104,22 @@ public class ParquetPredictivePrefetchingTask {
       if (columnMappers.getOffsetIndexToColumnMap().containsKey(position)) {
         ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
         parquetColumnPrefetchStore.addRecentColumn(columnMetadata);
+
+        // When prefetch mode is cautious, only prefetch columns from the row group
+        if (PrefetchMode.CAUTIOUS.equalsValue(logicalIOConfiguration.getPrefetchingMode())
+            && !parquetColumnPrefetchStore.isRowGroupPrefetched(s3Uri, columnMetadata.getRowGroupIndex())) {
+          prefetchRecentColumns(columnMappers, parquetColumnPrefetchStore.constructRowGroupsToPrefetch(Optional.of(columnMetadata)));
+          parquetColumnPrefetchStore.putSafelyPrefetched(s3Uri, columnMetadata.getRowGroupIndex());
+        }
+
         return Optional.of(columnMetadata.getColumnName());
       }
     }
 
+
     return Optional.empty();
   }
+
 
   /**
    * If any recent columns exist in the current parquet file, prefetch them.
@@ -116,7 +127,7 @@ public class ParquetPredictivePrefetchingTask {
    * @param columnMappers Parquet file column mappings
    * @return ranges prefetched
    */
-  public IOPlanExecution prefetchRecentColumns(ColumnMappers columnMappers) {
+  public IOPlanExecution prefetchRecentColumns(ColumnMappers columnMappers, List<Integer> rowGroupsToPrefetch) {
     return telemetry.measureStandard(
         () ->
             Operation.builder()
@@ -134,10 +145,12 @@ public class ParquetPredictivePrefetchingTask {
               List<ColumnMetadata> columnMetadataList =
                   columnMappers.getColumnNameToColumnMap().get(recentColumn);
               for (ColumnMetadata columnMetadata : columnMetadataList) {
-                prefetchRanges.add(
-                    new Range(
-                        columnMetadata.getStartPos(),
-                        columnMetadata.getStartPos() + columnMetadata.getCompressedSize() - 1));
+                if (rowGroupsToPrefetch.contains(columnMetadata.getRowGroupIndex())) {
+                  prefetchRanges.add(
+                      new Range(
+                          columnMetadata.getStartPos(),
+                          columnMetadata.getStartPos() + columnMetadata.getCompressedSize() - 1));
+                }
               }
             }
           }

@@ -5,12 +5,15 @@ import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -69,6 +72,9 @@ public class ParquetColumnPrefetchStore {
    */
   private final Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema;
 
+
+  private final Map<S3URI, List<Integer>> cautiousPrefetches;
+
   private final LogicalIOConfiguration configuration;
 
   /**
@@ -90,6 +96,12 @@ public class ParquetColumnPrefetchStore {
           protected boolean removeEldestEntry(final Map.Entry<Integer, LinkedList<String>> eldest) {
             return this.size() > configuration.getMaxColumnAccessCountStoreSize();
           }
+        },
+        new LinkedHashMap<S3URI, List<Integer>>() {
+          @Override
+          protected boolean removeEldestEntry(final Map.Entry<S3URI, List<Integer>> eldest) {
+            return this.size() > configuration.getMaxColumnAccessCountStoreSize();
+          }
         });
   }
 
@@ -104,10 +116,12 @@ public class ParquetColumnPrefetchStore {
   ParquetColumnPrefetchStore(
       LogicalIOConfiguration configuration,
       Map<S3URI, ColumnMappers> columnMappersStore,
-      Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema) {
+      Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema,
+      Map<S3URI, List<Integer>> cautiousPrefetches) {
     this.configuration = configuration;
     this.columnMappersStore = columnMappersStore;
     this.recentlyReadColumnsPerSchema = recentlyReadColumnsPerSchema;
+    this.cautiousPrefetches = cautiousPrefetches;
   }
 
   /**
@@ -201,5 +215,38 @@ public class ParquetColumnPrefetchStore {
     }
 
     return Collections.emptySet();
+  }
+
+
+  public synchronized Boolean isRowGroupPrefetched(S3URI s3URI, Integer rowGroupIndex) {
+    List<Integer> rowGroupsPrefetched = cautiousPrefetches.get(s3URI);
+
+    if (rowGroupsPrefetched == null) {
+      return false;
+    }
+
+    // If columns for this row group have already been prefetched, don't prefetch again
+    return rowGroupsPrefetched.contains(rowGroupIndex);
+  }
+
+  public synchronized void putSafelyPrefetched(S3URI s3URI, Integer rowGroupIndex) {
+    List<Integer> rowGroupsPrefetched = cautiousPrefetches.getOrDefault(s3URI, new ArrayList<>());
+    rowGroupsPrefetched.add(rowGroupIndex);
+    cautiousPrefetches.put(s3URI, rowGroupsPrefetched);
+  }
+
+  public List<Integer> constructRowGroupsToPrefetch(
+      Optional<ColumnMetadata> columnMetadataOptional) {
+
+    List<Integer> rowGroupsToPrefetch = new ArrayList<>();
+
+    if (columnMetadataOptional.isPresent()) {
+      ColumnMetadata columnMetadata = columnMetadataOptional.get();
+      rowGroupsToPrefetch.add(columnMetadata.getRowGroupIndex());
+    } else {
+      rowGroupsToPrefetch.add(0);
+    }
+
+    return rowGroupsToPrefetch;
   }
 }
