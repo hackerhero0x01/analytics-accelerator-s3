@@ -1,0 +1,60 @@
+package com.amazon.connector.s3.benchmarks.common;
+
+import java.io.Closeable;
+import java.io.IOException;
+import lombok.Getter;
+import lombok.NonNull;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+
+/** This carries the state of the benchmark execution */
+@Getter
+public class BenchmarkContext implements Closeable {
+  @NonNull private final BenchmarkConfiguration configuration;
+  @NonNull private final S3AsyncClient s3Client;
+  @NonNull private final S3AsyncClient s3CrtClient;
+
+  /**
+   * Creates an instance of {@link BenchmarkContext}
+   *
+   * @param configuration an instance of {@link BenchmarkConfiguration}
+   */
+  public BenchmarkContext(@NonNull BenchmarkConfiguration configuration) {
+    this.configuration = configuration;
+    this.s3Client =
+        S3AsyncClientFactory.createS3AsyncClient(configuration.getClientFactoryConfiguration());
+    this.s3CrtClient =
+        S3AsyncClientFactory.createS3CrtAsyncClient(configuration.getClientFactoryConfiguration());
+
+    // test connections
+    testConnection(this.s3Client, configuration);
+    testConnection(this.s3CrtClient, configuration);
+  }
+
+  /**
+   * Test connection by issuing a list against the bucket and prefix
+   *
+   * @param s3Client the client
+   * @param configuration configuration
+   */
+  private static void testConnection(S3AsyncClient s3Client, BenchmarkConfiguration configuration) {
+    ListObjectsV2Request listObjectsV2Request =
+        ListObjectsV2Request.builder()
+            .bucket(configuration.getBucket())
+            .prefix(configuration.getPrefix())
+            .maxKeys(10)
+            .build();
+    s3Client.listObjectsV2(listObjectsV2Request).join();
+  }
+
+  /**
+   * Closes all the resources associated with the context
+   *
+   * @throws IOException any IO error thrown
+   */
+  @Override
+  public void close() throws IOException {
+    this.s3Client.close();
+    this.s3CrtClient.close();
+  }
+}

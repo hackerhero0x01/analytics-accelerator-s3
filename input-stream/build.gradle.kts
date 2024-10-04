@@ -10,6 +10,7 @@ plugins {
     id("io.freefair.lombok") version "8.10"
     id("me.champeau.jmh") version "0.7.2"
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("io.morethan.jmhreport") version "0.9.6"
     `maven-publish`
 }
 
@@ -37,6 +38,7 @@ dependencies {
     implementation(libs.log4j.core)
 
     jmhImplementation(libs.s3)
+    jmhImplementation(libs.s3.transfer.manager)
 
     testImplementation(libs.s3)
     testImplementation(libs.junit.jupiter)
@@ -120,6 +122,10 @@ tasks.build {dependsOn(shadowJar)}
 
 tasks.check { dependsOn(refTest) }
 
+val jmhOutputPath = "reports/jmh"
+val jmhJsonOutputResultsPath = "reports/jmh/results.json"
+val jmhHumanOutputResultsPath = "reports/jmh/human-readable-output.txt"
+
 // JMH micro-benchmarks
 jmh {
     jmhVersion = "1.37"
@@ -127,8 +133,20 @@ jmh {
     forceGC = true
     includeTests = false
     resultFormat = "JSON"
+    //humanOutputFile = project.layout.buildDirectory.file(jmhHumanOutputResultsPath)
+    resultsFile = project.layout.buildDirectory.file(jmhJsonOutputResultsPath)
     zip64 = true
 }
+
+jmhReport {
+    jmhResultPath = project.layout.buildDirectory.file(jmhJsonOutputResultsPath).get().toString()
+    jmhReportOutput = project.layout.buildDirectory.file(jmhOutputPath).get().toString()
+}
+
+tasks.jmh {
+    finalizedBy(tasks.jmhReport)
+}
+
 
 publishing {
     publications {
