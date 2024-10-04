@@ -71,12 +71,4 @@ public class SequentialReadBenchmarks {
       super(BenchmarkObject.RANDOM_5G);
     }
   }
-
-  /** Runs the sequential benchmark for 512MB object */
-  public static class Seq_Read_10GB extends SequentialRead {
-    /** Constructs the benchmark */
-    public Seq_Read_10GB() {
-      super(BenchmarkObject.RANDOM_10G);
-    }
-  }
 }
