@@ -73,7 +73,7 @@ public class ParquetColumnPrefetchStore {
   private final Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema;
 
 
-  private final Map<S3URI, List<Integer>> cautiousPrefetches;
+  private final Map<S3URI, List<Integer>> rowGroupsPrefetched;
 
   private final LogicalIOConfiguration configuration;
 
@@ -117,11 +117,11 @@ public class ParquetColumnPrefetchStore {
       LogicalIOConfiguration configuration,
       Map<S3URI, ColumnMappers> columnMappersStore,
       Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema,
-      Map<S3URI, List<Integer>> cautiousPrefetches) {
+      Map<S3URI, List<Integer>> rowGroupsPrefetched) {
     this.configuration = configuration;
     this.columnMappersStore = columnMappersStore;
     this.recentlyReadColumnsPerSchema = recentlyReadColumnsPerSchema;
-    this.cautiousPrefetches = cautiousPrefetches;
+    this.rowGroupsPrefetched = rowGroupsPrefetched;
   }
 
   /**
@@ -219,34 +219,25 @@ public class ParquetColumnPrefetchStore {
 
 
   public synchronized Boolean isRowGroupPrefetched(S3URI s3URI, Integer rowGroupIndex) {
-    List<Integer> rowGroupsPrefetched = cautiousPrefetches.get(s3URI);
+    List<Integer> rowGroupsPrefetchedForKey = rowGroupsPrefetched.get(s3URI);
 
-    if (rowGroupsPrefetched == null) {
+    if (rowGroupsPrefetchedForKey == null) {
       return false;
     }
 
     // If columns for this row group have already been prefetched, don't prefetch again
-    return rowGroupsPrefetched.contains(rowGroupIndex);
+    return rowGroupsPrefetchedForKey.contains(rowGroupIndex);
   }
 
-  public synchronized void putSafelyPrefetched(S3URI s3URI, Integer rowGroupIndex) {
-    List<Integer> rowGroupsPrefetched = cautiousPrefetches.getOrDefault(s3URI, new ArrayList<>());
-    rowGroupsPrefetched.add(rowGroupIndex);
-    cautiousPrefetches.put(s3URI, rowGroupsPrefetched);
+  /**
+   *
+   * @param s3URI
+   * @param rowGroupIndex
+   */
+  public synchronized void storePrefetchedRowGroupIndex(S3URI s3URI, Integer rowGroupIndex) {
+    List<Integer> rowGroupsPrefetchedForKey = rowGroupsPrefetched.getOrDefault(s3URI, new ArrayList<>());
+    rowGroupsPrefetchedForKey.add(rowGroupIndex);
+    rowGroupsPrefetched.put(s3URI, rowGroupsPrefetchedForKey);
   }
 
-  public List<Integer> constructRowGroupsToPrefetch(
-      Optional<ColumnMetadata> columnMetadataOptional) {
-
-    List<Integer> rowGroupsToPrefetch = new ArrayList<>();
-
-    if (columnMetadataOptional.isPresent()) {
-      ColumnMetadata columnMetadata = columnMetadataOptional.get();
-      rowGroupsToPrefetch.add(columnMetadata.getRowGroupIndex());
-    } else {
-      rowGroupsToPrefetch.add(0);
-    }
-
-    return rowGroupsToPrefetch;
-  }
 }

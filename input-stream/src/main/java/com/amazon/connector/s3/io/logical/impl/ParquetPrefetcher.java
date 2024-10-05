@@ -159,7 +159,7 @@ public class ParquetPrefetcher {
     if (PrefetchMode.ALL.equalsValue(logicalIOConfiguration.getPrefetchingMode())) {
       return columnMappersCompletableFuture.thenApply((ColumnMappers columnMappers) ->
           parquetPredictivePrefetchingTask.prefetchRecentColumns(columnMappers,
-              parquetColumnPrefetchStore.constructRowGroupsToPrefetch(
+              ParquetUtils.constructRowGroupsToPrefetch(
               Optional.empty())));
     }
 
@@ -173,7 +173,7 @@ public class ParquetPrefetcher {
    * @param position the position to record
    */
   public void addToRecentColumnList(long position) {
-    this.parquetPredictivePrefetchingTask.addToRecentColumnList(position);
+   this.parquetPredictivePrefetchingTask.addToRecentColumnList(position);
   }
 
   private boolean shouldPrefetch() {

@@ -105,12 +105,8 @@ public class ParquetPredictivePrefetchingTask {
         ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
         parquetColumnPrefetchStore.addRecentColumn(columnMetadata);
 
-        // When prefetch mode is cautious, only prefetch columns from the row group
-        if (PrefetchMode.CAUTIOUS.equalsValue(logicalIOConfiguration.getPrefetchingMode())
-            && !parquetColumnPrefetchStore.isRowGroupPrefetched(s3Uri, columnMetadata.getRowGroupIndex())) {
-          prefetchRecentColumns(columnMappers, parquetColumnPrefetchStore.constructRowGroupsToPrefetch(Optional.of(columnMetadata)));
-          parquetColumnPrefetchStore.putSafelyPrefetched(s3Uri, columnMetadata.getRowGroupIndex());
-        }
+        // Maybe prefetch all recent columns for the current row group, if they have not been prefetched already.
+        prefetchCurrentRowGroup(columnMappers, columnMetadata);
 
         return Optional.of(columnMetadata.getColumnName());
       }
@@ -118,6 +114,16 @@ public class ParquetPredictivePrefetchingTask {
 
 
     return Optional.empty();
+  }
+
+
+ private void prefetchCurrentRowGroup(ColumnMappers columnMappers, ColumnMetadata columnMetadata) {
+    // When prefetch mode is cautious, only prefetch columns from the row group
+    if (PrefetchMode.CAUTIOUS.equalsValue(logicalIOConfiguration.getPrefetchingMode())
+        && !parquetColumnPrefetchStore.isRowGroupPrefetched(s3Uri, columnMetadata.getRowGroupIndex())) {
+      prefetchRecentColumns(columnMappers, ParquetUtils.constructRowGroupsToPrefetch(Optional.of(columnMetadata)));
+      parquetColumnPrefetchStore.storePrefetchedRowGroupIndex(s3Uri, columnMetadata.getRowGroupIndex());
+    }
   }
 
 
