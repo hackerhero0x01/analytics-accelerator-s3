@@ -98,42 +98,54 @@ public class ParquetPredictivePrefetchingTask {
    * @return name of column added as recent column
    */
   public Optional<String> addToRecentColumnList(long position) {
-    if (logicalIOConfiguration.isPredictivePrefetchingEnabled()
-        && parquetColumnPrefetchStore.getColumnMappers(s3Uri) != null) {
+    if (parquetColumnPrefetchStore.getColumnMappers(s3Uri) != null) {
       ColumnMappers columnMappers = parquetColumnPrefetchStore.getColumnMappers(s3Uri);
       if (columnMappers.getOffsetIndexToColumnMap().containsKey(position)) {
         ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
         parquetColumnPrefetchStore.addRecentColumn(columnMetadata);
 
-        // Maybe prefetch all recent columns for the current row group, if they have not been prefetched already.
+        // Maybe prefetch all recent columns for the current row group, if they have not been
+        // prefetched already.
         prefetchCurrentRowGroup(columnMappers, columnMetadata);
 
         return Optional.of(columnMetadata.getColumnName());
       }
     }
 
-
     return Optional.empty();
   }
 
-
- private void prefetchCurrentRowGroup(ColumnMappers columnMappers, ColumnMetadata columnMetadata) {
-    // When prefetch mode is cautious, only prefetch columns from the row group
-    if (PrefetchMode.CAUTIOUS.equalsValue(logicalIOConfiguration.getPrefetchingMode())
-        && !parquetColumnPrefetchStore.isRowGroupPrefetched(s3Uri, columnMetadata.getRowGroupIndex())) {
-      prefetchRecentColumns(columnMappers, ParquetUtils.constructRowGroupsToPrefetch(Optional.of(columnMetadata)));
-      parquetColumnPrefetchStore.storePrefetchedRowGroupIndex(s3Uri, columnMetadata.getRowGroupIndex());
+  /**
+   * When PrefetchMode is ROW_GROUP, only prefetch recent columns when a read to a column is
+   * detected, and NOT on an open of the file. For prefetching, only prefetch recent columns that
+   * belong to the row group of the column currently being read, if they have not been prefetched
+   * already. Columns from this row group may have been prefetched already due to a read to another
+   * column for this row group.
+   *
+   * @param columnMappers Parquet file column mappings
+   * @param columnMetadata Column metadata of the current column being read
+   */
+  private void prefetchCurrentRowGroup(ColumnMappers columnMappers, ColumnMetadata columnMetadata) {
+    // When prefetch mode is per row group, only prefetch columns from the current row group.
+    if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.ROW_GROUP
+        && !parquetColumnPrefetchStore.isRowGroupPrefetched(
+            s3Uri, columnMetadata.getRowGroupIndex())) {
+      prefetchRecentColumns(
+          columnMappers, ParquetUtils.constructRowGroupsToPrefetch(columnMetadata));
+      parquetColumnPrefetchStore.storePrefetchedRowGroupIndex(
+          s3Uri, columnMetadata.getRowGroupIndex());
     }
   }
-
 
   /**
    * If any recent columns exist in the current parquet file, prefetch them.
    *
    * @param columnMappers Parquet file column mappings
+   * @param rowGroupsToPrefetch List of row group indexes to prefetch
    * @return ranges prefetched
    */
-  public IOPlanExecution prefetchRecentColumns(ColumnMappers columnMappers, List<Integer> rowGroupsToPrefetch) {
+  public IOPlanExecution prefetchRecentColumns(
+      ColumnMappers columnMappers, List<Integer> rowGroupsToPrefetch) {
     return telemetry.measureStandard(
         () ->
             Operation.builder()

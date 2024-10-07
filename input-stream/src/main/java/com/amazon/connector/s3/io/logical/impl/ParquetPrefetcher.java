@@ -10,8 +10,6 @@ import com.amazon.connector.s3.io.physical.plan.IOPlanState;
 import com.amazon.connector.s3.util.PrefetchMode;
 import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
-
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -103,7 +101,7 @@ public class ParquetPrefetcher {
    */
   private CompletableFuture<IOPlanExecution> prefetchRemainingColumnChunkImpl(
       long position, int len) {
-    if (PrefetchMode.COLUMN_BOUND.equalsValue(logicalIOConfiguration.getPrefetchingMode())) {
+    if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.COLUMN_BOUND) {
       // TODO: https://github.com/awslabs/s3-connector-framework/issues/88
       return CompletableFuture.supplyAsync(
           () -> parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(position, len));
@@ -156,11 +154,11 @@ public class ParquetPrefetcher {
   private CompletableFuture<IOPlanExecution> prefetchPredictedColumns(
       CompletableFuture<ColumnMappers> columnMappersCompletableFuture) {
 
-    if (PrefetchMode.ALL.equalsValue(logicalIOConfiguration.getPrefetchingMode())) {
-      return columnMappersCompletableFuture.thenApply((ColumnMappers columnMappers) ->
-          parquetPredictivePrefetchingTask.prefetchRecentColumns(columnMappers,
-              ParquetUtils.constructRowGroupsToPrefetch(
-              Optional.empty())));
+    if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.ALL) {
+      return columnMappersCompletableFuture.thenApply(
+          (ColumnMappers columnMappers) ->
+              parquetPredictivePrefetchingTask.prefetchRecentColumns(
+                  columnMappers, ParquetUtils.constructRowGroupsToPrefetch()));
     }
 
     return CompletableFuture.completedFuture(
@@ -173,10 +171,13 @@ public class ParquetPrefetcher {
    * @param position the position to record
    */
   public void addToRecentColumnList(long position) {
-   this.parquetPredictivePrefetchingTask.addToRecentColumnList(position);
+    if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.OFF) {
+      this.parquetPredictivePrefetchingTask.addToRecentColumnList(position);
+    }
   }
 
   private boolean shouldPrefetch() {
-    return parquetColumnPrefetchStore.getColumnMappers(s3URI) == null;
+    return logicalIOConfiguration.getPrefetchingMode() != PrefetchMode.OFF
+        && parquetColumnPrefetchStore.getColumnMappers(s3URI) == null;
   }
 }
