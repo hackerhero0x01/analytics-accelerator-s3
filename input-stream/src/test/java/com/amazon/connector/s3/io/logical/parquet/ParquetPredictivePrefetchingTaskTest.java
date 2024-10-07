@@ -17,6 +17,7 @@ import com.amazon.connector.s3.io.logical.impl.ParquetColumnPrefetchStore;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlan;
 import com.amazon.connector.s3.request.Range;
+import com.amazon.connector.s3.util.PrefetchMode;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -118,6 +119,57 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
     verify(parquetColumnPrefetchStore).addRecentColumn(columnMetadata);
+  }
+
+  @Test
+  void testRowGroupPrefetch() throws IOException {
+    PhysicalIO physicalIO = mock(PhysicalIO.class);
+    ParquetColumnPrefetchStore parquetColumnPrefetchStore = mock(ParquetColumnPrefetchStore.class);
+
+    List<ColumnMetadata> columnMetadataList = new ArrayList<>();
+    HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
+    HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
+    ColumnMetadata sk_test = new ColumnMetadata(0, "sk_test", 100, 500, "sk_test".hashCode());
+    offsetIndexToColumnMap.put(100L, sk_test);
+    columnMetadataList.add(sk_test);
+
+    ColumnMetadata sk_test_row_group_1 =
+        new ColumnMetadata(1, "sk_test", 800, 500, "sk_test".hashCode());
+    offsetIndexToColumnMap.put(800L, sk_test);
+    columnMetadataList.add(sk_test_row_group_1);
+
+    columnNameToColumnMap.put("sk_test", columnMetadataList);
+
+    ColumnMappers columnMappers = new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap);
+    ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
+        new ParquetPredictivePrefetchingTask(
+            TEST_URI,
+            Telemetry.NOOP,
+            LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.ROW_GROUP).build(),
+            physicalIO,
+            parquetColumnPrefetchStore);
+
+    when(parquetColumnPrefetchStore.isRowGroupPrefetched(TEST_URI, 0)).thenReturn(false);
+    when(parquetColumnPrefetchStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
+
+    Set<String> recentColumns = new HashSet<>();
+    recentColumns.add("sk_test");
+    when(parquetColumnPrefetchStore.getUniqueRecentColumnsForSchema("sk_test".hashCode()))
+        .thenReturn(recentColumns);
+
+    assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
+    verify(parquetColumnPrefetchStore).addRecentColumn(sk_test);
+
+    // Then: physical IO gets the correct plan. Only recent columns from the current row
+    // group are prefetched.
+    ArgumentCaptor<IOPlan> ioPlanArgumentCaptor = ArgumentCaptor.forClass(IOPlan.class);
+    verify(physicalIO).execute(ioPlanArgumentCaptor.capture());
+
+    IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
+    List<Range> expectedRanges = new ArrayList<>();
+
+    expectedRanges.add(new Range(100, 599));
+    assertTrue(ioPlan.getPrefetchRanges().containsAll(expectedRanges));
   }
 
   @Test
