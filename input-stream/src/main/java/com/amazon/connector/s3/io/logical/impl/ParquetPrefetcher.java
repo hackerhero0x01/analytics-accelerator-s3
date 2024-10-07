@@ -171,7 +171,7 @@ public class ParquetPrefetcher {
    * @param position the position to record
    */
   public void addToRecentColumnList(long position) {
-    if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.OFF) {
+    if (logicalIOConfiguration.getPrefetchingMode() != PrefetchMode.OFF) {
       this.parquetPredictivePrefetchingTask.addToRecentColumnList(position);
     }
   }

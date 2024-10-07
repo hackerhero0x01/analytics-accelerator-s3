@@ -74,7 +74,7 @@ public class ParquetColumnPrefetchStore {
    * This is a mapping of S3 URI's of Parquet files to a list of row group indexes prefetched. This
    * is used when {@link com.amazon.connector.s3.util.PrefetchMode} is equal to ROW_GROUP. In this
    * mode, prefetching only happens when a read to a column is detected. This is different to the
-   * ALL mode, where prefetching will happen on the first open of the file mode.
+   * ALL mode, where prefetching will happen on the first open of the file.
    *
    * <p>In ROW_GROUP mode, only columns that belong to the row group of the column currently being
    * read are prefetched. For example, for a file with 2 row groups with Parquet metadata: [ [<name:
