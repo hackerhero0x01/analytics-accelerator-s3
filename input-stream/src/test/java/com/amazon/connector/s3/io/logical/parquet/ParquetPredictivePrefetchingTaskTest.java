@@ -21,6 +21,7 @@ import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -156,6 +157,11 @@ public class ParquetPredictivePrefetchingTaskTest {
     sk_testColumnMetadataList.add(sk_test1);
     offsetIndexToColumnMap.put(100L, sk_test1);
 
+    // Should not be prefetched as it does not belong to the first row group.
+    ColumnMetadata sk_test1_row_group_1 = new ColumnMetadata(1, "test", 1800, 500, schemaHash);
+    sk_testColumnMetadataList.add(sk_test1_row_group_1);
+    offsetIndexToColumnMap.put(1800L, sk_test1_row_group_1);
+
     List<ColumnMetadata> sk_test_2ColumnMetadataList = new ArrayList<>();
     ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test_2", 600, 500, schemaHash);
     sk_test_2ColumnMetadataList.add(sk_test2);
@@ -187,7 +193,8 @@ public class ParquetPredictivePrefetchingTaskTest {
             physicalIO,
             parquetColumnPrefetchStore);
     parquetPredictivePrefetchingTask.prefetchRecentColumns(
-        new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap));
+        new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap),
+        ParquetUtils.constructRowGroupsToPrefetch());
 
     // Then: physical IO gets the correct plan
     ArgumentCaptor<IOPlan> ioPlanArgumentCaptor = ArgumentCaptor.forClass(IOPlan.class);
@@ -222,7 +229,7 @@ public class ParquetPredictivePrefetchingTaskTest {
         CompletionException.class,
         () ->
             parquetPredictivePrefetchingTask.prefetchRecentColumns(
-                new ColumnMappers(new HashMap<>(), new HashMap<>())));
+                new ColumnMappers(new HashMap<>(), new HashMap<>()), Collections.emptyList()));
   }
 
   private int getHashCode(StringBuilder stringToHash) {

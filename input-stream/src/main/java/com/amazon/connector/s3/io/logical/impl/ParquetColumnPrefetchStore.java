@@ -125,6 +125,8 @@ public class ParquetColumnPrefetchStore {
    * @param configuration LogicalIO configuration
    * @param columnMappersStore Store of column mappings
    * @param recentlyReadColumnsPerSchema List of recent read columns for each schema
+   * @param rowGroupsPrefetched Map of Parquet file URI to row groups that have been prefetched for
+   *     it
    */
   ParquetColumnPrefetchStore(
       LogicalIOConfiguration configuration,
@@ -237,7 +239,7 @@ public class ParquetColumnPrefetchStore {
    * @param rowGroupIndex to check
    * @return Boolean returns true if this row group has been prefetched for this key
    */
-  public synchronized Boolean isRowGroupPrefetched(S3URI s3URI, Integer rowGroupIndex) {
+  public synchronized boolean isRowGroupPrefetched(S3URI s3URI, Integer rowGroupIndex) {
     List<Integer> rowGroupsPrefetchedForKey = rowGroupsPrefetched.get(s3URI);
 
     if (rowGroupsPrefetchedForKey == null) {

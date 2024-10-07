@@ -18,6 +18,13 @@ public enum PrefetchMode {
     this.name = name;
   }
 
+  /**
+   * Converts user supplied configuration to enum. Defaults to ROW_GROUP is user input is not
+   * recognised.
+   *
+   * @param prefetchMode user supplier prefetch mode
+   * @return PrefetchMode enum to use
+   */
   public static PrefetchMode fromString(String prefetchMode) {
     for (PrefetchMode value : values()) {
       if (value.name.equalsIgnoreCase(prefetchMode)) {
