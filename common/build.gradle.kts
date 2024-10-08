@@ -26,8 +26,6 @@ tasks.withType<JavaCompile>().configureEach {
 publishing {
     publications {
         create<MavenPublication>("common") {
-            // TODO: update this when we figure out versioning
-            //  ticket: https://app.asana.com/0/1206885953994785/1207481230403504/f
             groupId = "com.amazon.connector.s3"
             version = "0.0.1"
 
