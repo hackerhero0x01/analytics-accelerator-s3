@@ -8,7 +8,7 @@ import lombok.Getter;
 public final class UserAgent {
   // Hard-coded user-agent string
   private static final String UA_STRING = "s3connectorframework";
-  
+
   private static final String VERSION_INFO = null;
   /**
    * Disallowed characters in the user agent token: @see <a
