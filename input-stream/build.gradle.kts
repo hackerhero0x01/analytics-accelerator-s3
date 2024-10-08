@@ -7,7 +7,7 @@ import com.github.spotbugs.snom.SpotBugsTask
 
 plugins {
     id("buildlogic.java-library-conventions")
-    id("io.freefair.lombok") version "8.10"
+    id("io.freefair.lombok") version "8.10.2"
     id("me.champeau.jmh") version "0.7.2"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("io.morethan.jmhreport") version "0.9.6"
@@ -151,8 +151,6 @@ tasks.jmh {
 publishing {
     publications {
         create<MavenPublication>("inputStream") {
-            // TODO: update this when we figure out versioning
-            //  ticket: https://app.asana.com/0/1206885953994785/1207481230403504/f
             groupId = "com.amazon.connector.s3"
             version = "0.0.1"
 

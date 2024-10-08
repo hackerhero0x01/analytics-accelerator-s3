@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.amazon.connector.s3.S3SeekableInputStreamConfiguration;
 import com.amazon.connector.s3.S3SeekableInputStreamConfigurationTest;
 import com.amazon.connector.s3.common.ConnectorConfiguration;
+import com.amazon.connector.s3.util.PrefetchMode;
 import org.junit.jupiter.api.Test;
 
 public class LogicalIOConfigurationTest {
@@ -36,7 +37,8 @@ public class LogicalIOConfigurationTest {
     assertEquals(20, logicalIOConfiguration.getFooterCachingSize());
     // This should be equal to Default since Property Prefix is not s3.connector.
     assertEquals(
-        LogicalIOConfiguration.DEFAULT.isPredictivePrefetchingEnabled(),
-        logicalIOConfiguration.isPredictivePrefetchingEnabled());
+        LogicalIOConfiguration.DEFAULT.getPrefetchingMode(),
+        logicalIOConfiguration.getPrefetchingMode());
+    assertEquals(logicalIOConfiguration.getPrefetchingMode(), PrefetchMode.ROW_GROUP);
   }
 }

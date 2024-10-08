@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.logical;
 import static com.amazon.connector.s3.util.Constants.ONE_MB;
 
 import com.amazon.connector.s3.common.ConnectorConfiguration;
+import com.amazon.connector.s3.util.PrefetchMode;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -16,12 +17,10 @@ public class LogicalIOConfiguration {
   private static final long DEFAULT_FOOTER_CACHING_SIZE = ONE_MB;
   private static final boolean DEFAULT_SMALL_OBJECT_PREFETCHING_ENABLED = true;
   private static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 3 * ONE_MB;
-  private static final boolean DEFAULT_METADATA_AWARE_PREFETCHING_ENABLED = true;
-  private static final boolean DEFAULT_PREDICTIVE_PREFETCHING_ENABLED = true;
-  private static final boolean DEFAULT_PREDICTIVE_PREFETCHING_ENABLED_DEFAULT = true;
   private static final int DEFAULT_PARQUET_METADATA_STORE_SIZE = 45;
   private static final int DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE = 15;
   private static final String DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX = "^.*.(parquet|par)$";
+  private static final PrefetchMode DEFAULT_PREFETCHING_MODE = PrefetchMode.ROW_GROUP;
 
   @Builder.Default private boolean footerCachingEnabled = DEFAULT_FOOTER_CACHING_ENABLED;
 
@@ -41,23 +40,12 @@ public class LogicalIOConfiguration {
 
   private static final String SMALL_OBJECT_SIZE_THRESHOLD_KEY = "small.object.size.threshold";
 
-  @Builder.Default
-  private boolean metadataAwarePrefetchingEnabled = DEFAULT_METADATA_AWARE_PREFETCHING_ENABLED;
-
   private static final String METADATA_AWARE_PREFETCHING_ENABLED_KEY =
       "metadata.aware.prefetching.enabled";
 
-  @Builder.Default
-  private boolean predictivePrefetchingEnabled = DEFAULT_PREDICTIVE_PREFETCHING_ENABLED;
+  @Builder.Default private PrefetchMode prefetchingMode = DEFAULT_PREFETCHING_MODE;
 
-  private static final String PREDICTIVE_PREFETCHING_ENABLED_KEY = "predictive.prefetching.enabled";
-
-  // TODO: Adding temporary feature flag to control over fetching. To be removed as part of:
-  // https://app.asana.com/0/1206885953994785/1207811274063025
-  @Builder.Default
-  private boolean preventOverFetchingEnabled = DEFAULT_PREDICTIVE_PREFETCHING_ENABLED_DEFAULT;
-
-  private static final String PREVENT_OVER_FETCHING_ENABLED_KEY = "prevent.over.fetching.enabled";
+  private static final String PREFETCHING_MODE_KEY = "prefetching.mode";
 
   @Builder.Default private int parquetMetadataStoreSize = DEFAULT_PARQUET_METADATA_STORE_SIZE;
 
@@ -92,15 +80,6 @@ public class LogicalIOConfiguration {
         .smallObjectSizeThreshold(
             configuration.getLong(
                 SMALL_OBJECT_SIZE_THRESHOLD_KEY, DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD))
-        .metadataAwarePrefetchingEnabled(
-            configuration.getBoolean(
-                METADATA_AWARE_PREFETCHING_ENABLED_KEY, DEFAULT_METADATA_AWARE_PREFETCHING_ENABLED))
-        .predictivePrefetchingEnabled(
-            configuration.getBoolean(
-                PREDICTIVE_PREFETCHING_ENABLED_KEY, DEFAULT_PREDICTIVE_PREFETCHING_ENABLED))
-        .preventOverFetchingEnabled(
-            configuration.getBoolean(
-                PREVENT_OVER_FETCHING_ENABLED_KEY, DEFAULT_PREDICTIVE_PREFETCHING_ENABLED_DEFAULT))
         .parquetMetadataStoreSize(
             configuration.getInt(
                 PARQUET_METADATA_STORE_SIZE_KEY, DEFAULT_PARQUET_METADATA_STORE_SIZE))
@@ -110,6 +89,9 @@ public class LogicalIOConfiguration {
         .parquetFormatSelectorRegex(
             configuration.getString(
                 PARQUET_FORMAT_SELECTOR_REGEX, DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX))
+        .prefetchingMode(
+            PrefetchMode.fromString(
+                configuration.getString(PREFETCHING_MODE_KEY, DEFAULT_PREFETCHING_MODE.toString())))
         .build();
   }
 }

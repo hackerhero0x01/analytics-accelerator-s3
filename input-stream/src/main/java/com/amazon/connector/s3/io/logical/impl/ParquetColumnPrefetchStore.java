@@ -5,6 +5,7 @@ import com.amazon.connector.s3.io.logical.parquet.ColumnMappers;
 import com.amazon.connector.s3.io.logical.parquet.ColumnMetadata;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -69,6 +70,24 @@ public class ParquetColumnPrefetchStore {
    */
   private final Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema;
 
+  /**
+   * This is a mapping of S3 URI's of Parquet files to a list of row group indexes prefetched. This
+   * is used when {@link com.amazon.connector.s3.util.PrefetchMode} is equal to ROW_GROUP. In this
+   * mode, prefetching only happens when a read to a column is detected. This is different to the
+   * ALL mode, where prefetching will happen on the first open of the file.
+   *
+   * <p>In ROW_GROUP mode, only columns that belong to the row group of the column currently being
+   * read are prefetched. For example, for a file with 2 row groups with Parquet metadata: [ [<name:
+   * ss_a, offset: 100>, <name: ss_b, offset: 500>], [<name: ss_a, offset: 800>, <name: ss_b,
+   * offset: 1200>] ]
+   *
+   * <p>When there is a read at position to 100 or 500, this corresponds to a read to ss_a or ss_b
+   * from row group 0, so in this case, any recent columns from row group 0 will be prefetched. 0
+   * will then be added to this rowGroupsPrefetched map, so that if another read happens to a column
+   * in this row group, prefetches for the row group are not triggerred again.
+   */
+  private final Map<S3URI, List<Integer>> rowGroupsPrefetched;
+
   private final LogicalIOConfiguration configuration;
 
   /**
@@ -90,6 +109,12 @@ public class ParquetColumnPrefetchStore {
           protected boolean removeEldestEntry(final Map.Entry<Integer, LinkedList<String>> eldest) {
             return this.size() > configuration.getMaxColumnAccessCountStoreSize();
           }
+        },
+        new LinkedHashMap<S3URI, List<Integer>>() {
+          @Override
+          protected boolean removeEldestEntry(final Map.Entry<S3URI, List<Integer>> eldest) {
+            return this.size() > configuration.getParquetMetadataStoreSize();
+          }
         });
   }
 
@@ -100,14 +125,18 @@ public class ParquetColumnPrefetchStore {
    * @param configuration LogicalIO configuration
    * @param columnMappersStore Store of column mappings
    * @param recentlyReadColumnsPerSchema List of recent read columns for each schema
+   * @param rowGroupsPrefetched Map of Parquet file URI to row groups that have been prefetched for
+   *     it
    */
   ParquetColumnPrefetchStore(
       LogicalIOConfiguration configuration,
       Map<S3URI, ColumnMappers> columnMappersStore,
-      Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema) {
+      Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema,
+      Map<S3URI, List<Integer>> rowGroupsPrefetched) {
     this.configuration = configuration;
     this.columnMappersStore = columnMappersStore;
     this.recentlyReadColumnsPerSchema = recentlyReadColumnsPerSchema;
+    this.rowGroupsPrefetched = rowGroupsPrefetched;
   }
 
   /**
@@ -201,5 +230,38 @@ public class ParquetColumnPrefetchStore {
     }
 
     return Collections.emptySet();
+  }
+
+  /**
+   * Checks if columns for a row group have been prefetched.
+   *
+   * @param s3URI to check row group index for
+   * @param rowGroupIndex to check
+   * @return Boolean returns true if this row group has been prefetched for this key
+   */
+  public synchronized boolean isRowGroupPrefetched(S3URI s3URI, Integer rowGroupIndex) {
+    List<Integer> rowGroupsPrefetchedForKey = rowGroupsPrefetched.get(s3URI);
+
+    if (rowGroupsPrefetchedForKey == null) {
+      return false;
+    }
+
+    // If columns for this row group have already been prefetched, don't prefetch again
+    return rowGroupsPrefetchedForKey.contains(rowGroupIndex);
+  }
+
+  /**
+   * Stores row group indexes for which columns have been prefetched for a particular S3 URI. This
+   * is required when prefetch mode is ROW_GROUP, where only recent columns for the current row
+   * group being read are prefetched.
+   *
+   * @param s3URI to store prefetched row indexes for
+   * @param rowGroupIndex for which recent columns have been prefetched
+   */
+  public synchronized void storePrefetchedRowGroupIndex(S3URI s3URI, Integer rowGroupIndex) {
+    List<Integer> rowGroupsPrefetchedForKey =
+        rowGroupsPrefetched.getOrDefault(s3URI, new ArrayList<>());
+    rowGroupsPrefetchedForKey.add(rowGroupIndex);
+    rowGroupsPrefetched.put(s3URI, rowGroupsPrefetchedForKey);
   }
 }

@@ -3,6 +3,7 @@ package com.amazon.connector.s3.io.logical.impl;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -22,14 +23,11 @@ import com.amazon.connector.s3.io.logical.parquet.ParquetReadTailTask;
 import com.amazon.connector.s3.io.physical.PhysicalIO;
 import com.amazon.connector.s3.io.physical.plan.IOPlanExecution;
 import com.amazon.connector.s3.io.physical.plan.IOPlanState;
+import com.amazon.connector.s3.util.PrefetchMode;
 import com.amazon.connector.s3.util.S3URI;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.ByteBuffer;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 @SuppressFBWarnings(
     value = "NP_NONNULL_PARAM_VIOLATION",
@@ -220,10 +218,7 @@ public class ParquetPrefetcherTest {
   public void testConfigurationsPrefetchRemainingColumnChunkEnabled() {
     // Given: config with metadata awareness ENABLED but predictive prefetching DISABLED
     LogicalIOConfiguration logicalIOConfiguration =
-        LogicalIOConfiguration.builder()
-            .metadataAwarePrefetchingEnabled(true)
-            .predictivePrefetchingEnabled(false)
-            .build();
+        LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.COLUMN_BOUND).build();
 
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
         mock(ParquetPrefetchRemainingColumnTask.class);
@@ -246,16 +241,11 @@ public class ParquetPrefetcherTest {
         .prefetchRemainingColumnChunk(anyLong(), anyInt());
   }
 
-  @ParameterizedTest
-  @MethodSource("prefetchRemainingColumnChunkShouldBeSkipped")
-  public void testConfigurationsPrefetchRemainingColumnChunkDisabled(
-      boolean metadataAwarePrefetching, boolean predictivePrefetching) {
+  @Test
+  public void testConfigurationsPrefetchRemainingColumnChunkDisabled() {
     // Given: config that should not trigger prefetching
     LogicalIOConfiguration logicalIOConfiguration =
-        LogicalIOConfiguration.builder()
-            .metadataAwarePrefetchingEnabled(metadataAwarePrefetching)
-            .predictivePrefetchingEnabled(predictivePrefetching)
-            .build();
+        LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.OFF).build();
 
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
         mock(ParquetPrefetchRemainingColumnTask.class);
@@ -281,7 +271,8 @@ public class ParquetPrefetcherTest {
   @Test
   public void testConfigurationsPrefetchFooterAndBuildMetadataDefaultConfig() {
     // Given: default LogicalIO configuration
-    LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
+    LogicalIOConfiguration logicalIOConfiguration =
+        LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.ALL).build();
 
     ParquetPrefetchTailTask parquetPrefetchTailTask = mock(ParquetPrefetchTailTask.class);
     ParquetReadTailTask parquetReadTailTask = getTestParquetReadTailTask();
@@ -310,14 +301,14 @@ public class ParquetPrefetcherTest {
     verify(parquetMetadataParsingTask, times(1)).storeColumnMappers(any(FileTail.class));
     // Then: predictive reads are also triggered
     verify(parquetPredictivePrefetchingTask, times(1))
-        .prefetchRecentColumns(any(ColumnMappers.class));
+        .prefetchRecentColumns(any(ColumnMappers.class), anyList());
   }
 
   @Test
   public void testConfigurationsPrefetchFooterAndBuildMetadataNoPredictivePrefetching() {
     // Given: config with predictive prefetching disabled
     LogicalIOConfiguration logicalIOConfiguration =
-        LogicalIOConfiguration.builder().predictivePrefetchingEnabled(false).build();
+        LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.OFF).build();
 
     ParquetPrefetchTailTask parquetPrefetchTailTask = mock(ParquetPrefetchTailTask.class);
     ParquetReadTailTask parquetReadTailTask = getTestParquetReadTailTask();
@@ -348,10 +339,7 @@ public class ParquetPrefetcherTest {
   public void testConfigurationsPrefetchFooterAndBuildMetadataAllPrefetchDisabled() {
     // Given: config with all prefetching disabled
     LogicalIOConfiguration logicalIOConfiguration =
-        LogicalIOConfiguration.builder()
-            .predictivePrefetchingEnabled(false)
-            .metadataAwarePrefetchingEnabled(false)
-            .build();
+        LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.OFF).build();
 
     ParquetPrefetchTailTask parquetPrefetchTailTask = mock(ParquetPrefetchTailTask.class);
     ParquetReadTailTask parquetReadTailTask = getTestParquetReadTailTask();
@@ -429,11 +417,6 @@ public class ParquetPrefetcherTest {
 
     // Then: it is also added within the task
     verify(parquetPredictivePrefetchingTask, times(1)).addToRecentColumnList(100);
-  }
-
-  private static Stream<Arguments> prefetchRemainingColumnChunkShouldBeSkipped() {
-    return Stream.of(
-        Arguments.of(true, true), Arguments.of(false, true), Arguments.of(false, false));
   }
 
   private ParquetReadTailTask getTestParquetReadTailTask() {

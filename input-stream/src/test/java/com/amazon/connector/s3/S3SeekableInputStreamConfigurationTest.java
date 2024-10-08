@@ -69,8 +69,8 @@ public class S3SeekableInputStreamConfigurationTest {
     assertEquals(20, streamConfiguration.getLogicalIOConfiguration().getFooterCachingSize());
     // This should be equal to Default since Property Prefix is not s3.connector.
     assertEquals(
-        LogicalIOConfiguration.DEFAULT.isPredictivePrefetchingEnabled(),
-        streamConfiguration.getLogicalIOConfiguration().isPredictivePrefetchingEnabled());
+        LogicalIOConfiguration.DEFAULT.getPrefetchingMode(),
+        streamConfiguration.getLogicalIOConfiguration().getPrefetchingMode());
 
     assertNotNull(streamConfiguration.getPhysicalIOConfiguration());
     assertEquals(10, streamConfiguration.getPhysicalIOConfiguration().getMetadataStoreCapacity());

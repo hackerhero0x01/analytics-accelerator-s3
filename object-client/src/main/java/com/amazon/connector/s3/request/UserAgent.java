@@ -8,9 +8,7 @@ import lombok.Getter;
 public final class UserAgent {
   // Hard-coded user-agent string
   private static final String UA_STRING = "s3connectorframework";
-  // TODO: Get VersionInfo and append it to UA. We need to understand how to create (if we want a)
-  // global version (for InputStream and ObjectClient).
-  // https://app.asana.com/0/1206885953994785/1207481230403504/f
+
   private static final String VERSION_INFO = null;
   /**
    * Disallowed characters in the user agent token: @see <a
