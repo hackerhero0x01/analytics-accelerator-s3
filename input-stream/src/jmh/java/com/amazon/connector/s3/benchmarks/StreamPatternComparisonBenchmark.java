@@ -10,7 +10,7 @@ import org.openjdk.jmh.annotations.Param;
 /**
  * This benchmarks fixes the ReadPattern, and then, for each object size, replays the pattern on
  * "raw" clients as well as "DAT" streams that sit on the clients The main point here is to
- * determine which combo is the fastest for each pattern
+ * determine which combo is the fastest for each pattern.
  */
 public abstract class StreamPatternComparisonBenchmark extends ComparisonBenchmarkBase {
   // NOTE: all params here must come after "object", so they should start with any letter after "o".

@@ -22,7 +22,8 @@ import software.amazon.awssdk.transfer.s3.model.UploadRequest;
 /**
  * Generates random data with a given size to test sequential reads . It uses {@link
  * S3TransferManager} backed by the CRT to upload data. It is able to generate objects of very large
- * sizes (GBs), as it doesn't materialize them in memory or local disk and uses
+ * sizes (GBs), as it doesn't materialize them in memory or local disk and uses the subscriber model
+ * to upload data in chunks.
  */
 public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
   /**

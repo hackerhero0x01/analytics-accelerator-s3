@@ -27,9 +27,10 @@ public enum S3Object {
       "random-256mb.bin", 256 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
   RANDOM_512MB(
       "random-512mb.bin", 512 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
-  RANDOM_1G("random-1G.bin", SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
-  RANDOM_5G("random-5G.bin", 5L * SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
-  RANDOM_10G("random-10G.bin", 10L * SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL);
+  RANDOM_1GB("random-1gb.bin", SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
+  RANDOM_5GB("random-5gb.bin", 5L * SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
+  RANDOM_10GB(
+      "random-10gb.bin", 10L * SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL);
 
   private final String name;
   private final long size;

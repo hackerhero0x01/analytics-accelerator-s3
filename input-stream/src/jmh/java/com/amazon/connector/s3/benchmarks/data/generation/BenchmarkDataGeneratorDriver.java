@@ -29,7 +29,7 @@ public class BenchmarkDataGeneratorDriver {
    *   <li>`S3_TEST_REGION` - the region the bucket is in
    * </ul>
    *
-   * <p>The rest allows to fine tune the CRT, buffer sizes and so on and are zet to sensible
+   * <p>The rest allows to fine tune the CRT, buffer sizes and so on and are set to sensible
    * defaults.
    *
    * @param args program arguments are currently ignored
