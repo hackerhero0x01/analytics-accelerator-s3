@@ -1,6 +1,8 @@
 package com.amazon.connector.s3.benchmarks.data.generation;
 
-import com.amazon.connector.s3.benchmarks.common.BenchmarkContext;
+import com.amazon.connector.s3.access.S3ExecutionContext;
+import com.amazon.connector.s3.access.S3ObjectKind;
+import com.amazon.connector.s3.common.Preconditions;
 import com.amazon.connector.s3.util.S3URI;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ThreadLocalRandom;
@@ -17,15 +19,19 @@ import software.amazon.awssdk.transfer.s3.S3TransferManager;
 import software.amazon.awssdk.transfer.s3.model.CompletedUpload;
 import software.amazon.awssdk.transfer.s3.model.UploadRequest;
 
-/** Generates random data with a given size */
+/**
+ * Generates random data with a given size to test sequential reads . It uses {@link
+ * S3TransferManager} backed by the CRT to upload data. It is able to generate objects of very large
+ * sizes (GBs), as it doesn't materialize them in memory or local disk and uses
+ */
 public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
   /**
    * Creates an instance of random data generator
    *
-   * @param context an instance of {@link BenchmarkContext}
+   * @param context an instance of {@link S3ExecutionContext}
    */
-  public RandomSequentialObjectGenerator(@NonNull BenchmarkContext context) {
-    super(context, BenchmarkObjectGeneratorKind.RANDOM_SEQUENTIAL);
+  public RandomSequentialObjectGenerator(@NonNull S3ExecutionContext context) {
+    super(context, S3ObjectKind.RANDOM_SEQUENTIAL);
   }
 
   /**
@@ -36,6 +42,7 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
    */
   @Override
   public void generate(S3URI s3URI, long size) {
+    // Figure out the buffer size.
     int bufferSize =
         (int)
             Math.min(
@@ -44,11 +51,18 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
                     .getConfiguration()
                     .getClientFactoryConfiguration()
                     .getCrtPartSizeInBytes());
+    Preconditions.checkArgument(bufferSize > 0);
+
+    // Start outputting progress to console
     String progressPrefix = "[" + s3URI + "] ";
     System.out.println(
         progressPrefix + "Generating with " + size + " bytes [" + bufferSize + " bytes buffer]");
+
+    // Create the CRT-backed S3TransferManager
     try (S3TransferManager s3TransferManager =
         S3TransferManager.builder().s3Client(this.getContext().getS3CrtClient()).build()) {
+
+      // Create the upload request based on the publisher
       UploadRequest uploadRequest =
           UploadRequest.builder()
               .putObjectRequest(
@@ -57,19 +71,25 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
                   AsyncRequestBody.fromPublisher(
                       new RandomDataGeneratorPublisher(size, bufferSize)))
               .build();
+
+      // Start the upload - this will trigger calls to RandomDataGeneratorPublisher below
       System.out.println(progressPrefix + "Uploading");
       CompletedUpload completedUpload =
           s3TransferManager.upload(uploadRequest).completionFuture().join();
       System.out.println(progressPrefix + "Done");
 
+      // Verify the size and MD5 of the data to see that they match
       System.out.println(progressPrefix + "Verifying data...");
+
+      // Get object metadata via HEAD
       HeadObjectResponse headObjectResponse =
           this.getContext()
               .getS3CrtClient()
               .headObject(
                   HeadObjectRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build())
               .join();
-      System.out.println(progressPrefix + "Done");
+
+      // Verify length
       if (headObjectResponse.contentLength() != size) {
         throw new IllegalStateException(
             progressPrefix
@@ -79,6 +99,7 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
                 + headObjectResponse.contentLength());
       }
 
+      // Verify eTag
       if (!completedUpload.response().eTag().equals(headObjectResponse.eTag())) {
         throw new IllegalStateException(
             progressPrefix
@@ -87,6 +108,7 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
                 + "; actual eTag: "
                 + headObjectResponse.eTag());
       }
+      System.out.println(progressPrefix + "Done");
     }
   }
 
@@ -102,48 +124,75 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
      * @param bufferSize buffer size
      */
     RandomDataGeneratorPublisher(long size, int bufferSize) {
+      Preconditions.checkArgument(size > 0);
+      Preconditions.checkArgument(bufferSize > 0);
       this.bufferSize = bufferSize;
       this.bytesRemaining = new AtomicLong(size);
     }
     /**
-     * Called by the {@link S3TransferManager} to subscribe to new data
+     * Called by the {@link S3TransferManager} to subscribe to new data. The model is pub-sub based;
+     * {@link S3TransferManager} will call this and then will proceed pulling data from the
+     * subscription.
      *
-     * @param s the {@link Subscriber} that will consume signals from this {@link Publisher}
+     * @param subscriber the {@link Subscriber} that will consume signals from this {@link
+     *     Publisher}
      */
     @Override
-    public void subscribe(@NonNull Subscriber<? super ByteBuffer> s) {
-      s.onSubscribe(
+    public void subscribe(@NonNull Subscriber<? super ByteBuffer> subscriber) {
+      // Give subscriber a subscription to pull on
+      subscriber.onSubscribe(
           new Subscription() {
+            /**
+             * {@link S3TransferManager} will call this to fill out the stream
+             *
+             * @param n the strictly positive number of elements to requests to the upstream {@link
+             *     Publisher}
+             */
             @Override
             public void request(long n) {
-              // Report progress
+              // S3TransferManager requests one buffer at a time, and the code is written with this
+              // assumption.
+              Preconditions.checkArgument(n == 1);
+
+              // We assume that we generate a chunk of size `bufferSize` here. We grab the next
+              // "bufferSize" chunk
               long remaining = bytesRemaining.addAndGet(-1 * bufferSize);
-              // Figure out how much we should fetch and whether we should complete
+
+              // Figure out how much we should fetch and whether we should complete. The easy case
+              // where `remaining` > 0
+              // This means we grabbed exactly `bufferSize` worth of data to allocate. If it turned
+              // negative, this means that
+              // we should generate less and the complete right after - we are at the end
               int currentBufferSize = bufferSize;
               boolean completed = false;
               if (remaining < 0) {
                 completed = true;
                 remaining = -1 * remaining;
-                // we are buffer size past the end, this means a concurrent fetch completed this
+                // We are buffer size past the end, this means a concurrent fetch completed the
+                // buffer.
+                // This should not happen in practice (S3TransferManager does this serially), but we
+                // can handle it, so we do
                 if (remaining >= bufferSize) {
                   remaining = -1;
                 }
                 currentBufferSize = (int) remaining;
               }
 
-              // Allocate data and return it
+              // Allocate data and return it, if the math determined that we can
               if (currentBufferSize > 0) {
+                // Generate random bytes into the buffer and return
                 ByteBuffer byteBuffer = ByteBuffer.allocate(currentBufferSize);
                 ThreadLocalRandom.current().nextBytes(byteBuffer.array());
-                s.onNext(byteBuffer);
+                subscriber.onNext(byteBuffer);
               }
 
               // Completed if we are done
               if (completed) {
-                s.onComplete();
+                subscriber.onComplete();
               }
             }
 
+            /** Nothing to do here */
             @Override
             public void cancel() {}
           });

@@ -1,17 +1,18 @@
 package com.amazon.connector.s3.benchmarks.data.generation;
 
-import com.amazon.connector.s3.benchmarks.common.BenchmarkContext;
+import com.amazon.connector.s3.access.S3ExecutionContext;
+import com.amazon.connector.s3.access.S3ObjectKind;
 import com.amazon.connector.s3.util.S3URI;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
-/** Based class for all generators */
+/** Base class for all generators */
 @Getter
 @RequiredArgsConstructor
 public abstract class BenchmarkObjectGenerator {
-  @NonNull private final BenchmarkContext context;
-  @NonNull private final BenchmarkObjectGeneratorKind kind;
+  @NonNull private final S3ExecutionContext context;
+  @NonNull private final S3ObjectKind kind;
 
   /**
    * Generate data

@@ -1,28 +1,33 @@
 package com.amazon.connector.s3.benchmarks;
 
-import static com.amazon.connector.s3.benchmarks.data.generation.Constants.ONE_MB_IN_BYTES;
-
-import com.amazon.connector.s3.benchmarks.common.*;
+import com.amazon.connector.s3.access.*;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.Getter;
 import lombok.NonNull;
 import org.openjdk.jmh.annotations.*;
-import software.amazon.awssdk.services.s3.S3AsyncClient;
 
 /**
  * Base class for benchmarks that iterate through the client types and stream types All derived
  * benchmarks are going to be run with Java Async and CRT clients, as well as SDK GET streams as the
  * seekable streams
  */
+@Fork(1)
+@Warmup(iterations = 1)
+@Measurement(iterations = 5)
+@BenchmarkMode(Mode.SingleShotTime)
 @State(Scope.Benchmark)
-public abstract class BenchmarkBase {
-  @Getter @Param S3ClientKind client;
-  @Getter @Param S3InputStreamKind stream;
+public abstract class BenchmarkBase extends ExecutionBase {
+  // NOTE: be super careful with @Params naming, JMH seems to order the tests
+  // by ordering the field names alphabetically, affecting grouping that is shown by the reports
+  // In this case, id we want to compare performance for each object size (which we do)
+  // `object` needs to come first.
 
-  @NonNull private final AtomicReference<BenchmarkContext> benchmarkContext = new AtomicReference<>();
+  // TODO: add more form factors
+  @Param({"RANDOM_1MB", "RANDOM_4MB"})
+  public S3Object object;
 
+  @NonNull private final AtomicReference<S3ExecutionContext> s3ExecutionContext = new AtomicReference<>();
   /**
    * Sets up the benchmarking context
    *
@@ -30,7 +35,8 @@ public abstract class BenchmarkBase {
    */
   @Setup(Level.Trial)
   public void setUp() throws IOException {
-    this.benchmarkContext.getAndSet(new BenchmarkContext(BenchmarkConfiguration.fromEnvironment()));
+    this.s3ExecutionContext.getAndSet(
+        new S3ExecutionContext(S3ExecutionConfiguration.fromEnvironment()));
   }
 
   /**
@@ -40,7 +46,7 @@ public abstract class BenchmarkBase {
    */
   @TearDown(Level.Trial)
   public void tearDown() throws IOException {
-    this.benchmarkContext.getAndSet(null).close();
+    this.s3ExecutionContext.getAndSet(null).close();
   }
 
   /**
@@ -48,94 +54,68 @@ public abstract class BenchmarkBase {
    *
    * @return benchmark context
    */
-  public BenchmarkContext getBenchmarkContext() {
-    return this.benchmarkContext.get();
+  public S3ExecutionContext getS3ExecutionContext() {
+    return this.s3ExecutionContext.get();
   }
 
   /**
-   * Runs the benchmarks
+   * Benchmarks should override this to return the object to benchmark against on each iteration
    *
-   * @param benchmarkObject {@link BenchmarkObject}
+   * @return object to benchmark against
    */
-  protected final void run(BenchmarkObject benchmarkObject)
-      throws IOException, InterruptedException {
-    System.out.println(
-        String.format(
-            "{stream: \"%s\", client: \"%s\", object: \"%s\"}",
-            this.getStream(), this.getClient(), benchmarkObject.toString()));
+  protected abstract S3Object getObject();
 
-    switch (this.getStream()) {
-      case S3_SDK_GET:
-        processS3RawStream(benchmarkObject);
-        break;
-      case S3_DAT_GET:
-        processS3DATStream(benchmarkObject);
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown S3InputStreamKind: " + this.getStream());
-    }
+  /**
+   * Benchmarks should override this to return the read pattern kind
+   *
+   * @return read pattern kind
+   */
+  protected abstract StreamReadPatternKind getReadPatternKind();
+
+  /**
+   * Benchmarks can override this to return the {@link DATInputStreamConfigurationKind}
+   *
+   * @return {@link DATInputStreamConfigurationKind}
+   */
+  protected DATInputStreamConfigurationKind getDATInputStreamConfigurationKind() {
+    return DATInputStreamConfigurationKind.DEFAULT;
+  }
+
+  @Benchmark
+  public void execute() throws Exception {
+    this.executeBenchmark();
   }
 
   /**
-   * Processes with {@link S3AsyncClient}
+   * Benchmark specific execution
    *
-   * @param benchmarkObject {@link BenchmarkObject}
-   * @throws IOException IO error, if encountered
+   * @throws Exception any error thrown
    */
-  protected abstract void processS3RawStream(BenchmarkObject benchmarkObject)
-      throws IOException, InterruptedException;
+  protected abstract void executeBenchmark() throws Exception;
 
   /**
-   * Processes with {@link com.amazon.connector.s3.S3SeekableInputStream}
+   * Executes the pattern on DAT based on the contextual parameters.
    *
-   * @param benchmarkObject {@link BenchmarkObject}
-   * @throws IOException IO error, if encountered
+   * @throws IOException if IO error is thrown
    */
-  protected abstract void processS3DATStream(BenchmarkObject benchmarkObject)
-      throws IOException, InterruptedException;
+  protected void executeReadPatternOnDAT() throws IOException {
+    S3Object s3Object = this.getObject();
+    executeReadPatternOnDAT(
+        s3Object,
+        this.getReadPatternKind().getStreamReadPattern(s3Object),
+        // Use default configuration
+        this.getDATInputStreamConfigurationKind(),
+        Optional.empty());
+  }
 
   /**
-   * Consumes the stream by reading
+   * Executes the pattern on S3 SDK based on the contextual parameters.
    *
-   * @param inputStream the {@link InputStream}
-   * @param benchmarkObject {@link BenchmarkObject}
-   * @param length of data to read
-   * @throws IOException thrown on IO error
+   * @throws IOException if IO error is thrown
    */
-  protected void drainStream(
-      @NonNull InputStream inputStream, @NonNull BenchmarkObject benchmarkObject, long length)
-      throws IOException {
-    // Set buffer size to min between the object size and whatever the config specifies
-    int bufferSize =
-        (int)
-            Math.min(
-                (long) this.getBenchmarkContext().getConfiguration().getBufferSizeMb()
-                    * ONE_MB_IN_BYTES,
-                benchmarkObject.getSize());
-    byte[] b = new byte[bufferSize];
-    // Adjust the size to not exceed the object size
-    length = Math.min(length, benchmarkObject.getSize());
-
-    // Now just read sequentially
-    long totalReadBytes = 0;
-    int readBytes = 0;
-    do {
-      // determine the size to read - it's either the buffer size or less, if we are getting to the
-      // end
-      int readSize = (int) Math.min(bufferSize, length - readBytes);
-      if (readSize <= 0) {
-        break;
-      }
-      readBytes = inputStream.read(b, 0, readSize);
-      if (readBytes > 0) {
-        totalReadBytes += readBytes;
-      }
-    } while (readBytes > 0);
-
-    // Verify that we have drained the whole thing
-    if (totalReadBytes != length) {
-      throw new IllegalStateException(
-          "Read " + totalReadBytes + " bytes but expected " + benchmarkObject.getSize());
-    }
+  protected void executeReadPatternDirectly() throws IOException {
+    S3Object s3Object = this.getObject();
+    executeReadPatternDirectly(
+        s3Object, this.getReadPatternKind().getStreamReadPattern(s3Object), Optional.empty());
   }
 }

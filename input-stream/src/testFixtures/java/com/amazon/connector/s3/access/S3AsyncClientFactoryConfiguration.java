@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.benchmarks.common;
+package com.amazon.connector.s3.access;
 
 import com.amazon.connector.s3.common.ConnectorConfiguration;
 import lombok.*;
@@ -8,14 +8,14 @@ import software.amazon.awssdk.regions.Region;
 @Value
 @Builder
 public class S3AsyncClientFactoryConfiguration {
-  public static final String REGION_KEY = "BENCH_REGION";
-  public static final String CRT_PART_SIZE_BYTES_KEY = "BENCH_CRT_PART_SIZE_BYTES";
-  public static final String CRT_NATIVE_MEMORY_BYTES_KEY = "BENCH_CRT_NATIVE_MEMORY_BYTES";
-  public static final String CRT_MAX_CONCURRENCY_KEY = "BENCH_CRT_MAX_CONCURRENCY_BYTES";
+  public static final String REGION_KEY = "S3_TEST_REGION";
+  public static final String CRT_PART_SIZE_BYTES_KEY = "S3_TEST_CRT_PART_SIZE_BYTES";
+  public static final String CRT_NATIVE_MEMORY_BYTES_KEY = "S3_TEST_CRT_NATIVE_MEMORY_BYTES";
+  public static final String CRT_MAX_CONCURRENCY_KEY = "S3_TEST_CRT_MAX_CONCURRENCY_BYTES";
   public static final String CRT_CHECKSUM_VALIDATION_ENABLED_KEY =
-      "BENCH_CRT_CHECKSUM_VALIDATION_ENABLED";
-  public static final String CRT_READ_BUFFER_SIZE_BYTES_KEY = "BENCH_CRT_READ_BUFFER_SIZE_BYTES";
-  public static final String CRT_TARGET_THROUGHPUT_GBPS_KEY = "BENCH_CRT_TARGET_THROUGHPUT_GBPS";
+      "S3_TEST_CRT_CHECKSUM_VALIDATION_ENABLED";
+  public static final String CRT_READ_BUFFER_SIZE_BYTES_KEY = "S3_TEST_CRT_READ_BUFFER_SIZE_BYTES";
+  public static final String CRT_TARGET_THROUGHPUT_GBPS_KEY = "S3_TEST_CRT_TARGET_THROUGHPUT_GBPS";
 
   public static final Region DEFAULT_REGION = Region.US_EAST_1;
   public static final long DEFAULT_CRT_PART_SIZE_BYTES = 8 * 1024 * 1024;

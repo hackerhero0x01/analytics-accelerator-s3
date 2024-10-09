@@ -1,9 +1,9 @@
-package com.amazon.connector.s3.benchmarks.common;
+package com.amazon.connector.s3.access;
 
 import lombok.NonNull;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
-/** Small factory that creates and verifies the valid state of the Async client */
+/** Small factory that creates the Async client */
 public class S3AsyncClientFactory {
   /**
    * Builds a regular async Java client

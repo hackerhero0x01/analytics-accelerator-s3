@@ -1,7 +1,8 @@
-package com.amazon.connector.s3.benchmarks.common;
+package com.amazon.connector.s3.access;
 
 import java.util.List;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.Singular;
 import lombok.Value;
 
@@ -9,5 +10,5 @@ import lombok.Value;
 @Value
 @Builder
 public class StreamReadPattern {
-  @Singular List<StreamRead> streamReads;
+  @Singular @NonNull List<StreamRead> streamReads;
 }

@@ -1,4 +1,4 @@
-package com.amazon.connector.s3.benchmarks.common;
+package com.amazon.connector.s3.access;
 
 import lombok.Builder;
 import lombok.Value;

@@ -1,0 +1,115 @@
+package com.amazon.connector.s3.access;
+
+import java.io.IOException;
+import java.util.Optional;
+import lombok.NonNull;
+import software.amazon.awssdk.core.checksums.Crc32CChecksum;
+
+/**
+ * This class is a base for performance (JMH) and integration tests and contains common
+ * functionality to create and drain streams, replay read patterns etc
+ */
+public abstract class ExecutionBase {
+  /**
+   * Returns the current {@link S3ExecutionContext}
+   *
+   * @return {@link S3ExecutionContext}
+   */
+  protected abstract S3ExecutionContext getS3ExecutionContext();
+
+  /**
+   * Returns current client kind
+   *
+   * @return {@link S3ClientKind}
+   */
+  protected abstract S3ClientKind getClientKind();
+
+  /**
+   * Creates an instance of {@link S3AsyncClientStreamReader} that uses {@link
+   * software.amazon.awssdk.services.s3.S3AsyncClient} to read from S3
+   *
+   * @param s3ClientKind S3 Client kind
+   * @return an instance of {@link S3AsyncClientStreamReader}
+   */
+  protected S3AsyncClientStreamReader createS3AsyncClientStreamReader(
+      @NonNull S3ClientKind s3ClientKind) {
+    return new S3AsyncClientStreamReader(
+        s3ClientKind.getS3Client(this.getS3ExecutionContext()),
+        this.getS3ExecutionContext().getConfiguration().getBaseUri(),
+        this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
+  }
+
+  /**
+   * Creates an instance of {@link S3DATClientStreamReader} that uses DAT to read from S3
+   *
+   * @param s3ClientKind S3 Client kind
+   * @param DATInputStreamConfigurationKind {@link
+   *     com.amazon.connector.s3.S3SeekableInputStreamConfiguration} kind
+   * @return an instance of {@link S3DATClientStreamReader}
+   */
+  protected S3DATClientStreamReader createS3DATClientStreamReader(
+      @NonNull S3ClientKind s3ClientKind,
+      @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind) {
+    return new S3DATClientStreamReader(
+        s3ClientKind.getS3Client(this.getS3ExecutionContext()),
+        DATInputStreamConfigurationKind.getValue(),
+        this.getS3ExecutionContext().getConfiguration().getBaseUri(),
+        this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
+  }
+
+  /**
+   * Executes a pattern directly on an S3 Client.
+   *
+   * @param s3Object {@link } S3 Object to run the pattern on
+   * @param streamReadPattern the read pattern
+   * @param checksum checksum to update, if specified
+   * @throws IOException IO error, if thrown
+   */
+  protected void executeReadPatternDirectly(
+      S3Object s3Object, StreamReadPattern streamReadPattern, Optional<Crc32CChecksum> checksum)
+      throws IOException {
+    try (S3AsyncClientStreamReader s3AsyncClientStreamReader =
+        this.createS3AsyncClientStreamReader(getClientKind())) {
+      s3AsyncClientStreamReader.readPattern(s3Object, streamReadPattern, checksum);
+    }
+  }
+
+  /**
+   * Executes a pattern on DAT
+   *
+   * @param s3Object {@link S3Object} S3 Object to run the pattern on
+   * @param DATInputStreamConfigurationKind DAT configuration
+   * @param streamReadPattern the read pattern
+   * @param checksum checksum to update, if specified
+   * @throws IOException IO error, if thrown
+   */
+  protected void executeReadPatternOnDAT(
+      S3Object s3Object,
+      StreamReadPattern streamReadPattern,
+      DATInputStreamConfigurationKind DATInputStreamConfigurationKind,
+      Optional<Crc32CChecksum> checksum)
+      throws IOException {
+    try (S3DATClientStreamReader s3DATClientStreamReader =
+        this.createS3DATClientStreamReader(getClientKind(), DATInputStreamConfigurationKind)) {
+      executeReadPatternOnDAT(s3Object, s3DATClientStreamReader, streamReadPattern, checksum);
+    }
+  }
+
+  /**
+   * Executes a pattern on DAT
+   *
+   * @param s3Object {@link S3Object} S3 Object to run the pattern on
+   * @param s3DATClientStreamReader DAT stream reader
+   * @param streamReadPattern the read pattern
+   * @param checksum checksum to update, if specified
+   * @throws IOException IO error, if thrown
+   */
+  protected void executeReadPatternOnDAT(
+      S3Object s3Object,
+      S3DATClientStreamReader s3DATClientStreamReader,
+      StreamReadPattern streamReadPattern,
+      Optional<Crc32CChecksum> checksum)
+      throws IOException {
+    s3DATClientStreamReader.readPattern(s3Object, streamReadPattern, checksum);
+  }
+}
