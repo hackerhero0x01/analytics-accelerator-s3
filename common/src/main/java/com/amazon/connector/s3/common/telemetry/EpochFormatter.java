@@ -12,7 +12,7 @@ public final class EpochFormatter {
   private final @Getter @NonNull String pattern;
   private final @Getter @NonNull Locale locale;
   private final @Getter @NonNull TimeZone timeZone;
-  private final @NonNull SimpleDateFormat dateFormat;
+  private final @NonNull ThreadLocal<SimpleDateFormat> dateFormat;
 
   /** Default pattern */
   public static final String DEFAULT_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
@@ -35,8 +35,13 @@ public final class EpochFormatter {
     this.pattern = pattern;
     this.timeZone = timeZone;
     this.locale = locale;
-    this.dateFormat = new SimpleDateFormat(pattern, locale);
-    this.dateFormat.setTimeZone(timeZone);
+    this.dateFormat =
+        ThreadLocal.withInitial(
+            () -> {
+              SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, locale);
+              simpleDateFormat.setTimeZone(timeZone);
+              return simpleDateFormat;
+            });
   }
 
   /** Creates the {@link EpochFormatter} with sensible default. */
@@ -51,7 +56,7 @@ public final class EpochFormatter {
    * @return formatted epoch
    */
   public String formatMillis(long epochMillis) {
-    return dateFormat.format(epochMillis);
+    return dateFormat.get().format(epochMillis);
   }
 
   /**
@@ -61,6 +66,6 @@ public final class EpochFormatter {
    * @return formatted epoch
    */
   public String formatNanos(long epochNanos) {
-    return dateFormat.format(TimeUnit.NANOSECONDS.toMillis(epochNanos));
+    return dateFormat.get().format(TimeUnit.NANOSECONDS.toMillis(epochNanos));
   }
 }
