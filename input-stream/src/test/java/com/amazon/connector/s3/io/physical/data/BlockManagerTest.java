@@ -166,7 +166,11 @@ public class BlockManagerTest {
   void regressionTestSequentialPrefetchShouldNotShrinkRanges() {
     // Given: BlockManager with some blocks loaded
     ObjectClient objectClient = mock(ObjectClient.class);
-    BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_MB, PhysicalIOConfiguration.builder().sequentialPrefetchBase(2.0).build());
+    BlockManager blockManager =
+        getTestBlockManager(
+            objectClient,
+            128 * ONE_MB,
+            PhysicalIOConfiguration.builder().sequentialPrefetchBase(2.0).build());
     blockManager.makeRangeAvailable(20_837_974, 8_323_072, ReadMode.SYNC);
     blockManager.makeRangeAvailable(20_772_438, 65_536, ReadMode.SYNC);
     blockManager.makeRangeAvailable(29_161_046, 4_194_305, ReadMode.SYNC);
@@ -194,7 +198,8 @@ public class BlockManagerTest {
     return getTestBlockManager(objectClient, size, PhysicalIOConfiguration.DEFAULT);
   }
 
-  private BlockManager getTestBlockManager(ObjectClient objectClient, int size, PhysicalIOConfiguration configuration) {
+  private BlockManager getTestBlockManager(
+      ObjectClient objectClient, int size, PhysicalIOConfiguration configuration) {
     S3URI testUri = S3URI.of("foo", "bar");
     when(objectClient.getObject(any()))
         .thenReturn(
@@ -204,10 +209,6 @@ public class BlockManagerTest {
     MetadataStore metadataStore = mock(MetadataStore.class);
     when(metadataStore.get(any())).thenReturn(ObjectMetadata.builder().contentLength(size).build());
     return new BlockManager(
-        testUri,
-        objectClient,
-        metadataStore,
-        TestTelemetry.DEFAULT,
-        configuration);
+        testUri, objectClient, metadataStore, TestTelemetry.DEFAULT, configuration);
   }
 }
