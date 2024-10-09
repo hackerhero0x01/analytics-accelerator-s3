@@ -1,22 +1,22 @@
 ## Description of change
-
 <!-- Thank you for submitting a pull request!-->
 <!-- Please describe your contribution here. What and why? -->
 <!-- Please ensure your commit messages follow these [guidelines](https://chris.beams.io/posts/git-commit/). -->
 
-Relevant issues: 
-
+#### Relevant issues
 <!-- Please add issue numbers. -->
+<!-- Please also link them to this PR. -->
 
-## Does this change impact existing behavior?
+#### Does this contribution introduce any breaking changes to the existing APIs or behaviors?
+<!-- Please explain why this was necessary. -->
 
-<!-- Please confirm there's no breaking change, or call our any behavior changes you think are necessary. -->
+#### Does this contribution introduce any new public APIs or behaviors?
+<!-- Please describe them and explain what scenarios they target.  -->
 
-## Testing
-<!-- Please describe how these changes were tested. -->
+#### How was the contribution tested?
+<!-- Please describe how this contribution was tested. -->
 
-## Does this change need a changelog entry in any of the crates?
-
+#### Does this contribution need a changelog entry?
 - [ ] I have updated the CHANGELOG or README if appropriate
 
 ---
