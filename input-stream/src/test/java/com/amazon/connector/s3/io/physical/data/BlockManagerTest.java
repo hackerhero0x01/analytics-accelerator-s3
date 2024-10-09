@@ -180,6 +180,9 @@ public class BlockManagerTest {
     blockManager.makeRangeAvailable(29_161_046, 8_388_608, ReadMode.SYNC);
 
     // Then: position 33_355_351 should be available
+    // This was throwing before, and it shouldn't, given that 33_355_351 is contained in [29161046 -
+    // 37549653].
+    // The positions here are from a real-life workload scenario.
     assertDoesNotThrow(
         () ->
             blockManager
