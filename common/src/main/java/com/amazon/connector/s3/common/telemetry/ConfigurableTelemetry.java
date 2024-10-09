@@ -3,7 +3,7 @@ package com.amazon.connector.s3.common.telemetry;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
-import org.apache.logging.log4j.Level;
+import org.slf4j.event.Level;
 
 /**
  * This is a version of {@link DefaultTelemetry} that is assembled from the configuration. This is a
@@ -53,7 +53,7 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
           Optional.of(
               new LoggingTelemetryReporter(
                   configuration.getLoggingName(),
-                  Level.getLevel(configuration.getLoggingLevel()),
+                  Level.valueOf(configuration.getLoggingLevel()),
                   EpochFormatter.DEFAULT));
     }
 

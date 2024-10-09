@@ -9,8 +9,7 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.log4j.api)
-    implementation(libs.log4j.core)
+    implementation(libs.slf4j.api)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)

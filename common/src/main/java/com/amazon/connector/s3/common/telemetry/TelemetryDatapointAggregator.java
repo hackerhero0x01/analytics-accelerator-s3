@@ -10,8 +10,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class provides a simple metric/operation aggregation functionality. For every metric
@@ -32,7 +32,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
   /** This is the task that flushes data on a regular basis, if set up */
   private final AtomicReference<ScheduledExecutorService> flushTask;
 
-  private static final Logger LOG = LogManager.getLogger(TelemetryDatapointAggregator.class);
+  private static final Logger LOG = LoggerFactory.getLogger(TelemetryDatapointAggregator.class);
 
   /**
    * Creates a new instance of {@link TelemetryDatapointAggregator}

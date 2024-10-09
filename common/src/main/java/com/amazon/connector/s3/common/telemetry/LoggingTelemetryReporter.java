@@ -1,10 +1,12 @@
 package com.amazon.connector.s3.common.telemetry;
 
+import com.amazon.connector.s3.util.LogHelper;
+import java.util.Optional;
 import lombok.Getter;
 import lombok.NonNull;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 /**
  * This {@link TelemetryReporter} outputs telemetry into a log with a given name and level. {@link
@@ -42,7 +44,7 @@ class LoggingTelemetryReporter implements TelemetryReporter {
     this.loggerName = loggerName;
     this.epochFormatter = epochFormatter;
     this.loggerLevel = loggerLevel;
-    this.logger = LogManager.getLogger(loggerName);
+    this.logger = LoggerFactory.getLogger(loggerName);
   }
 
   /**
@@ -53,10 +55,12 @@ class LoggingTelemetryReporter implements TelemetryReporter {
    */
   @Override
   public void reportStart(long epochTimestampNanos, Operation operation) {
-    this.logger.log(
+    LogHelper.logAtLevel(
+        this.logger,
         this.loggerLevel,
         OperationMeasurement.getOperationStartingString(
-            operation, epochTimestampNanos, this.epochFormatter));
+            operation, epochTimestampNanos, this.epochFormatter),
+        Optional.empty());
   }
 
   /**
@@ -71,11 +75,11 @@ class LoggingTelemetryReporter implements TelemetryReporter {
       OperationMeasurement operationMeasurement = (OperationMeasurement) datapointMeasurement;
       if (operationMeasurement.getError().isPresent()) {
         // If the operation failed, always record as error.
-        this.logger.log(Level.ERROR, message, operationMeasurement.getError().get());
+        LogHelper.logAtLevel(this.logger, Level.ERROR, message, operationMeasurement.getError());
         return;
       }
     }
-    this.logger.log(this.loggerLevel, message);
+    LogHelper.logAtLevel(this.logger, this.loggerLevel, message, Optional.empty());
   }
 
   /** Flushes any intermediate state of the reporters In this case, this is a no-op */

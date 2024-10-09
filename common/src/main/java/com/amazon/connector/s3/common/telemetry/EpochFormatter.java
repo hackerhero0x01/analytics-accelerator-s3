@@ -1,18 +1,18 @@
 package com.amazon.connector.s3.common.telemetry;
 
+import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.NonNull;
-import org.apache.logging.log4j.core.util.datetime.FastDateFormat;
 
 /** Formatter used to output dates and times */
 public final class EpochFormatter {
   private final @Getter @NonNull String pattern;
   private final @Getter @NonNull Locale locale;
   private final @Getter @NonNull TimeZone timeZone;
-  private final @NonNull FastDateFormat dateFormat;
+  private final @NonNull SimpleDateFormat dateFormat;
 
   /** Default pattern */
   public static final String DEFAULT_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
@@ -35,7 +35,8 @@ public final class EpochFormatter {
     this.pattern = pattern;
     this.timeZone = timeZone;
     this.locale = locale;
-    this.dateFormat = FastDateFormat.getInstance(pattern, timeZone, locale);
+    this.dateFormat = new SimpleDateFormat(pattern, locale);
+    this.dateFormat.setTimeZone(timeZone);
   }
 
   /** Creates the {@link EpochFormatter} with sensible default. */

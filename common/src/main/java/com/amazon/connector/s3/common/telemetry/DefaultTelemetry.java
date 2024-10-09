@@ -4,8 +4,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import lombok.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** This is a set of operations that support adding telemetry for operation execution. */
 @Getter
@@ -26,7 +26,7 @@ public class DefaultTelemetry implements Telemetry {
   /** Telemetry level */
   @NonNull @Getter private final TelemetryLevel level;
 
-  private static final Logger LOG = LogManager.getLogger(DefaultTelemetry.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultTelemetry.class);
 
   /** Flushes the underlying reporter */
   @Override

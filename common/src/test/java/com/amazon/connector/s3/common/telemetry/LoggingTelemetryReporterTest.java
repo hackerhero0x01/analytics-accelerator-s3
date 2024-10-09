@@ -7,8 +7,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.ZoneId;
 import java.util.Locale;
 import java.util.TimeZone;
-import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
+import org.slf4j.event.Level;
 
 @SuppressFBWarnings(
     value = "NP_NONNULL_PARAM_VIOLATION",

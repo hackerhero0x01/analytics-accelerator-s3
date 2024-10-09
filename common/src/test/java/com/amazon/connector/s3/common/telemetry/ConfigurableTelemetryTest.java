@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
-import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
+import org.slf4j.event.Level;
 
 public class ConfigurableTelemetryTest {
   @Test

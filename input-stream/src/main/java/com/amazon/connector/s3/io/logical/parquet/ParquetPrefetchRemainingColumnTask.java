@@ -12,8 +12,8 @@ import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Task for prefetching the remainder of a column chunk. */
 public class ParquetPrefetchRemainingColumnTask {
@@ -24,7 +24,8 @@ public class ParquetPrefetchRemainingColumnTask {
 
   private static final String OPERATION_PARQUET_PREFETCH_COLUMN_CHUNK =
       "parquet.task.prefetch.column.chunk";
-  private static final Logger LOG = LogManager.getLogger(ParquetPrefetchRemainingColumnTask.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(ParquetPrefetchRemainingColumnTask.class);
 
   /**
    * When a column chunk at position x is read partially, prefetch the remaining bytes of the chunk.

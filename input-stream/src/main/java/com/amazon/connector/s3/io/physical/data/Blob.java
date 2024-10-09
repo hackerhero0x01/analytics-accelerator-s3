@@ -11,12 +11,12 @@ import com.amazon.connector.s3.util.S3URI;
 import com.amazon.connector.s3.util.StreamAttributes;
 import java.io.Closeable;
 import lombok.NonNull;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A Blob representing an object. */
 public class Blob implements Closeable {
-  private static final Logger LOG = LogManager.getLogger(Blob.class);
+  private static final Logger LOG = LoggerFactory.getLogger(Blob.class);
   private static final String OPERATION_EXECUTE = "blob.execute";
 
   private final S3URI s3URI;

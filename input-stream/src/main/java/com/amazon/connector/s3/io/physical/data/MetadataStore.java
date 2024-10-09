@@ -15,8 +15,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Class responsible for fetching and potentially caching object metadata. */
 @SuppressFBWarnings(
@@ -28,7 +28,7 @@ public class MetadataStore implements Closeable {
   private final Telemetry telemetry;
   private final Map<S3URI, CompletableFuture<ObjectMetadata>> cache;
 
-  private static final Logger LOG = LogManager.getLogger(MetadataStore.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MetadataStore.class);
   private static final String OPERATION_METADATA_HEAD_ASYNC = "metadata.store.head.async";
   private static final String OPERATION_METADATA_HEAD_JOIN = "metadata.store.head.join";
 

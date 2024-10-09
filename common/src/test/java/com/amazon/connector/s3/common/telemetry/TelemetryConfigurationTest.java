@@ -9,8 +9,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.logging.log4j.Level;
 import org.junit.jupiter.api.Test;
+import org.slf4j.event.Level;
 
 @SuppressFBWarnings(
     value = "NP_NONNULL_PARAM_VIOLATION",

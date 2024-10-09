@@ -7,13 +7,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A BlockStore, which is a collection of Blocks. */
 public class BlockStore implements Closeable {
 
-  private static final Logger LOG = LogManager.getLogger(BlockStore.class);
+  private static final Logger LOG = LoggerFactory.getLogger(BlockStore.class);
 
   private final S3URI s3URI;
   private final MetadataStore metadataStore;
