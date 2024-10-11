@@ -57,19 +57,23 @@ s3SeekableInputStreamFactory.close();
 
 ## Summary of Optimisations
 
-`S3SeekableInputStreamFactory` can be used to initialise streams for all file types. When the S3URI has the file extension `.parquet` or `.par`, there are some Parquet specific optimisations that are used. Specifically, these are:
+Data Accelerator Toolkit for Amazon S3 accelerates read performance of objects stored in Amazon S3 by integrating AWS Common Run Time (CRT) libraries, delivering read-only workload optimizations, and implementing optimizations specific to Parquet files. 
+The AWS CRT is a software library built for interacting with AWS services, that implements best practice performance design patterns, including timeouts, retries, and automatic request parallelization for high throughput.
+`S3SeekableInputStreamFactory` can be used to initialise streams for all file types to benefit from read-only workload optimizations on top of benefits coming from CRT. These optimizations are:
+
+* Sequential prefetching - The toolkit detects sequential read patterns to prefetch data to reduce latency, and reading the full object when the object is small to minimize the number of read operations.
+* Small object prefetching - The toolkit will prefetch the object if the object size is less than 3MB.
+
+ When the S3URI has the file extension `.parquet` or `.par`, there are some Parquet specific optimisations that are used. Specifically, these are:
 
 * Parquet footer caching - The toolkit reads the last 1MB of a parquet file as soon as a stream to a parquet object is opened and caches it in memory. This is done to prevent multiple small GET requests that occur at the tail
   of the file for the parquet metadata, pageIndex and bloom filter structures. 
-* Small object prefetching - The toolkit will prefetch the object if the object size is less than 3MB.
 * Predictive column prefetching - The toolkit tracks recent columns being read using parquet metadata. When
   subsequent parquet files which have these columns are opened, the toolkit will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened and it also contains columns named `x` and `y`, the toolkit will prefetch them asynchronously. 
 
-Data Accelerator Toolkit for Amazon S3 also implements read performance improvements for sequential reads. When a sequential read pattern is detected, sequential prefetching will start to prefetch data following a user-configurable geometric progression.
-
 ## Contributions
 
-We welcome contributions to Data Accelerator Toolkit for Amazon S3! Please see [CONTRIBUTING](CONTRIBUTING.md) for more information on how to report bugs or submit pull requests.
+We welcome contributions to Data Accelerator Toolkit for Amazon S3! Please see [CONTRIBUTING](doc/CONTRIBUTING.md) for more information on how to report bugs or build from source or submit pull requests.
 
 ## Security
 
