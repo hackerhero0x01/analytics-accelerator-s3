@@ -1,57 +1,82 @@
-# S3 Connector Framework
+# Data Accelerator Toolkit for S3
 
-This package hosts a set of shared primitives that can be used to build common connector functionality.
+Data Accelerator Toolkit for Amazon S3 (DATS3) is an open source library that accelerates data access to S3 for client applications, lowering processing times and compute costs for your data-intensive workloads. With this toolkit, you can make the most efficient use of your compute resources by implementing S3 best practices for performance and optimizations specific to Parquet files, such as caching object metadata located in the footer of the object and predictive column pre-fetching.
 
-# Build system
+Data Accelerator Toolkit for Amazon S3 improves the price performance for your data analytics applications, including workloads based on Apache Spark and open table formats such as Apache Iceberg. For example, Data Accelerator Toolkit accelerates query execution time by up to 1.3X based on internal benchmarking data for a typical Apache Spark workload.
 
-The project is configured to be built via Gradle (Gradle 8.7). It also targets Java 8, as this is the most commonly used Java version in Data Lake stacks right now.
+## Current status
 
-**Please be careful to not accidentally take a dependency on Java 11 and above - this is a one-way door** 
+Data Accelerator Toolkit for Amazon S3 is **currently an alpha release and should not be used in production**. We're especially interested in early feedback on features, performance, and compatibility. Please send feedback by [opening a GitHub issue](https://github.com/awslabs/s3-connector-framework/issues/new/choose).
 
-# Building
-* To invoke a build and run tests: `./gradlew build`
-* To run reference tests: `./gradlew referenceTest`
-* To apply formatting: `./gradlew spotlessApply`
-* To list all tasks: `./gradlew tasks`
-* To publish JARs to Maven local: `./gradlew publishToMavenLocal`
-* To build JMH benchmarks JAR: `./gradlew jmhJar`
+## Getting Started
 
-# Microbenchmarks
+Data Accelerator Toolkit for Amazon S3 provides an interface for a seekable input stream. The library is currently being integrated and tested with the [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.) client and [Apache Iceberg’s S3FileIO](https://iceberg.apache.org/).
 
-We have a basic set of micro-benchmarks which test full sequential read, forward seeks, backward seeks and a 
-Parquet-like ("jumping around") read pattern.
-## Configuration
-To generate data and run benchmarks, you first need to configure your environment variables. They are as follows:
-* `S3_TEST_BUCKET` - the bucket benchmarks and the data generation runs against.
-* `S3_TEST_REGION` - the region the bucket belongs to.
-* `S3_TEST_PREFIX` - the prefix within the bucket that benchmarks and the data generation runs against
+To get started, import the DATS3 dependency from Maven into your project:
 
-## Data Generation
-After your environment is configured, you can generate data to run benchmarks against.
-* Build the `jmhJar` : `./gradlew jmhJar`
-* Run the generator: `java -cp input-stream/build/libs/input-stream-jmh.jar software.amazon.s3.dataaccelerator.benchmarks.data.generation.BenchmarkDataGeneratorDriver`
-This will generate all the necessary data and upload it to the bucket and prefix identified by the `S3_TEST_BUCKET` and `S3_TEST_PREFIX` respectively.
+```
+    <dependency>
+      <groupId>software.amazon.s3.dataaccelerator</groupId>
+      <artifactId>dataaccelerator-s3</artifactId>
+      <version>1.0.0</version>
+      <scope>compile</scope>
+    </dependency>
+```
 
+Then, initialise DATS3's `S3SeekableInputStreamFactory`
 
-## Running the Benchmarks
-There are two ways:
-1. Just run `./gradlew jmh --rerun`. (The reason for re-run is a Gradle-quirk. You may want to re-run benchmarks even when
-you did not actually change the source of your project: `--rerun` turns off the Gradle optimisation that falls through
-build steps when nothing changed.)
-2. Run `java -jar input-stream/build/libs/input-stream-jmh.jar` (but don't forget to build the JMH JAR first; this you
-can do with the `jmhJar` command listed above). 
+```
+S3AsyncClient crtClient = S3CrtAsyncClient.builder().maxConcurrency(600).build();
+S3SeekableInputStreamFactory s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(
+                new S3SdkObjectClient(this.crtClient), S3SeekableInputStreamConfiguration.DEFAULT);
+```
 
-## Developing integrations
+Note: The `S3SeekableInputStreamFactory` can be initialised with both the [S3AsyncClient](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/S3AsyncClient.html) and the [S3 CRT client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html). Usage of the S3 CRT client is recommended due to its enhanced connection pool management and [higher throughput on downloads](https://aws.amazon.com/blogs/developer/introducing-crt-based-s3-client-and-the-s3-transfer-manager-in-the-aws-sdk-for-java-2-x/). For both clients, it is recommended to initialise them with a higher concurrency value to fully benefit from DATS3's optimisations. This is because DATS3 makes multiple parallel requests to S3 to prefetch data asynchronously. For the Java S3AsyncClient, max connections can be increased like so:
 
-When you are building this library into connectors, your IDE will need to be aware of the JARs (common, object-client,
-input-stream). Consuming these via Maven/Gradle is natural, and you can use `./gradlew publishToMavenLocal` to have the
-built JARs installed to your Maven local repository (this is `~/.m2` most of the time).
+```
+NettyNioAsyncHttpClient.Builder httpClientBuilder =
+        NettyNioAsyncHttpClient.builder()
+        .maxConcurrency(600);
 
+S3AsyncClient s3AsyncClient = S3AsyncClient.builder().httpClientBuilder(httpClientBuilder).build(); 
+```
+
+To open a stream: 
+
+```
+S3SeekableInputStream s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(S3URI.of(bucket, key));
+```
+
+For more details on usage of this stream, please refer to the [SeekableInputStream](https://github.com/awslabs/s3-connector-framework/blob/main/input-stream/src/main/java/software/amazon/s3/dataaccelerator/SeekableInputStream.java) interface.
+
+When the `S3SeekableInputStreamFactory` is no longer required to create new streams, close it to free resources (eg: caches for prefetched data) held by the factory. 
+
+```
+s3SeekableInputStreamFactory.close();
+```
+
+## Summary of Optimisations
+
+`S3SeekableInputStreamFactory` can be used to initialise streams for all file types. When the S3URI has the file extension `.parquet` or `.par`, there are some Parquet specific optimisations that are used. Specifically, these are:
+
+* Parquet footer caching - DATS3 reads the last 1MB of a parquet file as soon as a stream to a parquet object is opened and caches it in memory. This is done to prevent multiple small GET requests that occur at the tail
+  of the file for the parquet metadata, pageIndex and bloom filter structures. 
+* Small object prefetching - DATS3 will prefetch the object If the object size is less than 3MB.
+* Predictive column prefetching - DATS3 tracks recent columns being read using parquet metadata. When
+  subsequent parquet files which have these columns are opened, DATS3 will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened and it also contains columns named `x` and `y`, CFS3 will prefetch them asynchronously. 
+
+DATS3 also implements read performance improvements for sequential reads. When a sequential read pattern is detected, sequential prefetching will start to prefetch in 8MB blocks in an increasing GP. 
+
+## Contributions
+
+We welcome contributions to Data Accelerator Toolkit for Amazon S3! Please see [CONTRIBUTING](CONTRIBUTING.md) for more information on how to report bugs or submit pull requests.
 
 ## Security
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
 
 ## License
 
 This project is licensed under the Apache-2.0 License.
+
+See the [LICENSE](LICENSE) for a list of licenses used by DATS3.
