@@ -63,7 +63,7 @@ s3SeekableInputStreamFactory.close();
   of the file for the parquet metadata, pageIndex and bloom filter structures. 
 * Small object prefetching - DATS3 will prefetch the object If the object size is less than 3MB.
 * Predictive column prefetching - DATS3 tracks recent columns being read using parquet metadata. When
-  subsequent parquet files which have these columns are opened, DATS3 will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened and it also contains columns named `x` and `y`, CFS3 will prefetch them asynchronously. 
+  subsequent parquet files which have these columns are opened, DATS3 will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened and it also contains columns named `x` and `y`, DATS3 will prefetch them asynchronously. 
 
 DATS3 also implements read performance improvements for sequential reads. When a sequential read pattern is detected, sequential prefetching will start to prefetch in 8MB blocks in an increasing GP. 
 
