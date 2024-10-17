@@ -31,8 +31,8 @@ public class SequentialReadProgressionTest {
 
     // When & Then: size is requested for a generation --> size is correct
     assertEquals(2 * ONE_MB, sequentialReadProgression.getSizeForGeneration(0));
-    assertEquals(8 * ONE_MB, sequentialReadProgression.getSizeForGeneration(1));
-    assertEquals(32 * ONE_MB, sequentialReadProgression.getSizeForGeneration(2));
-    assertEquals(128 * ONE_MB, sequentialReadProgression.getSizeForGeneration(3));
+    assertEquals(4 * ONE_MB, sequentialReadProgression.getSizeForGeneration(1));
+    assertEquals(8 * ONE_MB, sequentialReadProgression.getSizeForGeneration(2));
+    assertEquals(16 * ONE_MB, sequentialReadProgression.getSizeForGeneration(3));
   }
 }

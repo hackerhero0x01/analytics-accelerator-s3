@@ -37,7 +37,7 @@ public class PhysicalIOConfiguration {
   private static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
   private static final long DEFAULT_MAX_RANGE_SIZE = 8 * ONE_MB;
   private static final long DEFAULT_PART_SIZE = 8 * ONE_MB;
-  private static final double DEFAULT_SEQUENTIAL_PREFETCH_BASE = 4.0;
+  private static final double DEFAULT_SEQUENTIAL_PREFETCH_BASE = 2.0;
   private static final double DEFAULT_SEQUENTIAL_PREFETCH_SPEED = 1.0;
 
   /** Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_BLOB_STORE} by default. */
