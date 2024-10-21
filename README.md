@@ -2,6 +2,7 @@
 
 Data Accelerator Toolkit for Amazon S3 is an open source library that accelerates data access to S3 for client applications, lowering processing times and compute costs for your data-intensive workloads. With this toolkit, you can make the most efficient use of your compute resources by implementing S3 best practices for performance and optimizations specific to Parquet files, such as caching object metadata located in the footer of the object and predictive column pre-fetching.
 
+
 Data Accelerator Toolkit for Amazon S3 improves the price performance for your data analytics applications, including workloads based on Apache Spark and open table formats such as Apache Iceberg. 
 
 ## Current status
