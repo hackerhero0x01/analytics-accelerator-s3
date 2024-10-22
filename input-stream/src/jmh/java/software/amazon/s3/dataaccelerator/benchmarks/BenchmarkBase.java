@@ -38,8 +38,7 @@ public abstract class BenchmarkBase extends ExecutionBase {
   // In this case, id we want to compare performance for each object size (which we do)
   // `object` needs to come first.
 
-  // TODO: add more form factors
-  @Param({"RANDOM_1MB", "RANDOM_4MB"})
+  @Param({"RANDOM_1MB", "RANDOM_16MB", "RANDOM_128MB", "RANDOM_1GB"})
   public S3Object object;
 
   @NonNull private final AtomicReference<S3ExecutionContext> s3ExecutionContext = new AtomicReference<>();
