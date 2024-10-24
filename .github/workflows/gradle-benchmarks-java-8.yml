@@ -50,4 +50,3 @@ jobs:
 
     - name: Run the benchmark
       run: ./gradlew jmh --rerun
-      
