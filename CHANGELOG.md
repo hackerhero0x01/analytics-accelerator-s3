@@ -1,5 +1,6 @@
 ## Unreleased
 
+* Update parquet prefetching logic to track adjacent columns
 * Change default of sequential prefetch base to 2.0
 * Added CHANGELOG
 

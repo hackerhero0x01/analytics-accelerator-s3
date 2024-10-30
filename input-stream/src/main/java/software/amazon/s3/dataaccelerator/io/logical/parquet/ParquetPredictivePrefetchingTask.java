@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
@@ -113,7 +112,7 @@ public class ParquetPredictivePrefetchingTask {
    * @param len the length of the current read
    * @return name of column added as recent column
    */
-  public Optional<String> addToRecentColumnList(long position, int len) {
+  public List<ColumnMetadata> addToRecentColumnList(long position, int len) {
     if (parquetColumnPrefetchStore.getColumnMappers(s3Uri) != null) {
       ColumnMappers columnMappers = parquetColumnPrefetchStore.getColumnMappers(s3Uri);
       if (columnMappers.getOffsetIndexToColumnMap().containsKey(position)) {
@@ -123,10 +122,11 @@ public class ParquetPredictivePrefetchingTask {
         // prefetched already.
         prefetchCurrentRowGroup(columnMappers, columnMetadata);
 
-        addAdjacentColumnsInLength(columnMetadata, columnMappers, position, len);
+        List<ColumnMetadata> addedColumns =
+            addAdjacentColumnsInLength(columnMetadata, columnMappers, position, len);
+        addedColumns.add(columnMetadata);
 
-        return Optional.of(columnMetadata.getColumnName());
-
+        return addedColumns;
       } else if (len > logicalIOConfiguration.getMinAdjacentColumnLength()) {
         // If the read does not align to a column boundary, then check if it lies within the
         // boundary of a column, this can happen when reading adjacent columns, where reads don't
@@ -136,11 +136,11 @@ public class ParquetPredictivePrefetchingTask {
         // reading dictionaries/columnIndexes,
         // parquet-mr issues thousands of 1 byte read(0, pos, 1), and so without this we will end up
         // in this else clause more times than intended!
-        addCurrentColumnAtPosition(position);
+        return addCurrentColumnAtPosition(position);
       }
     }
 
-    return Optional.empty();
+    return Collections.emptyList();
   }
 
   /**
@@ -238,7 +238,7 @@ public class ParquetPredictivePrefetchingTask {
    * @param position The current position in the read
    * @return Optional<ColumnMetadata> The column added to the recently read list
    */
-  private Optional<ColumnMetadata> addCurrentColumnAtPosition(long position) {
+  private List<ColumnMetadata> addCurrentColumnAtPosition(long position) {
     ArrayList<Long> columnPositions =
         new ArrayList<>(
             parquetColumnPrefetchStore
@@ -246,6 +246,16 @@ public class ParquetPredictivePrefetchingTask {
                 .getOffsetIndexToColumnMap()
                 .keySet());
     Collections.sort(columnPositions);
+
+    // For the last index, also add its end position so we can track reads that lie within
+    // that column boundary
+    long lastColumnStartPos = columnPositions.get(columnPositions.size() - 1);
+    ColumnMetadata lastColumnMetadata =
+        parquetColumnPrefetchStore
+            .getColumnMappers(s3Uri)
+            .getOffsetIndexToColumnMap()
+            .get(lastColumnStartPos);
+    columnPositions.add(lastColumnStartPos + lastColumnMetadata.getCompressedSize());
 
     for (int i = 0; i < columnPositions.size() - 1; i++) {
       if (position > columnPositions.get(i) && position < columnPositions.get(i + 1)) {
@@ -255,11 +265,13 @@ public class ParquetPredictivePrefetchingTask {
                 .getOffsetIndexToColumnMap()
                 .get(columnPositions.get(i));
         parquetColumnPrefetchStore.addRecentColumn(currentColumnMetadata);
-        return Optional.of(currentColumnMetadata);
+        List<ColumnMetadata> addedColumns = new ArrayList<>();
+        addedColumns.add(currentColumnMetadata);
+        return addedColumns;
       }
     }
 
-    return Optional.empty();
+    return Collections.emptyList();
   }
 
   /**
@@ -278,9 +290,10 @@ public class ParquetPredictivePrefetchingTask {
    */
   private List<ColumnMetadata> addAdjacentColumnsInLength(
       ColumnMetadata columnMetadata, ColumnMappers columnMappers, long position, int len) {
+    List<ColumnMetadata> addedColumns = new ArrayList<>();
+
     if (len > columnMetadata.getCompressedSize()
         && len > logicalIOConfiguration.getMinAdjacentColumnLength()) {
-      List<ColumnMetadata> addedColumns = new ArrayList<>();
 
       long remainingLen = len - columnMetadata.getCompressedSize();
       long currentPos = position + columnMetadata.getCompressedSize();
@@ -298,11 +311,9 @@ public class ParquetPredictivePrefetchingTask {
         currentPos = currentPos + columnMetadata.getCompressedSize();
         addedColumns.add(currentColumnMetadata);
       }
-
-      return addedColumns;
     }
 
-    return Collections.emptyList();
+    return addedColumns;
   }
 
   private Set<String> getRecentColumns(HashMap<Long, ColumnMetadata> offsetIndexToColumnMap) {
