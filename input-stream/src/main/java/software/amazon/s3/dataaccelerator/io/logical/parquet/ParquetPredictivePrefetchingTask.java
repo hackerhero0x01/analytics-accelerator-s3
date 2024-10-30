@@ -15,6 +15,8 @@
  */
 package software.amazon.s3.dataaccelerator.io.logical.parquet;
 
+import static software.amazon.s3.dataaccelerator.util.Constants.DEFAULT_MIN_ADJACENT_COLUMN_LENGTH;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -127,7 +129,7 @@ public class ParquetPredictivePrefetchingTask {
         addedColumns.add(columnMetadata);
 
         return addedColumns;
-      } else if (len > logicalIOConfiguration.getMinAdjacentColumnLength()) {
+      } else if (len > DEFAULT_MIN_ADJACENT_COLUMN_LENGTH) {
         // If the read does not align to a column boundary, then check if it lies within the
         // boundary of a column, this can happen when reading adjacent columns, where reads don't
         // always start at the file_offset. The check for len >
@@ -184,7 +186,7 @@ public class ParquetPredictivePrefetchingTask {
           List<Range> prefetchRanges = new ArrayList<>();
           for (String recentColumn : getRecentColumns(columnMappers.getOffsetIndexToColumnMap())) {
             if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
-              LOG.info(
+              LOG.debug(
                   "Column {} found in schema for {}, adding to prefetch list",
                   recentColumn,
                   this.s3Uri.getKey());
@@ -292,8 +294,7 @@ public class ParquetPredictivePrefetchingTask {
       ColumnMetadata columnMetadata, ColumnMappers columnMappers, long position, int len) {
     List<ColumnMetadata> addedColumns = new ArrayList<>();
 
-    if (len > columnMetadata.getCompressedSize()
-        && len > logicalIOConfiguration.getMinAdjacentColumnLength()) {
+    if (len > columnMetadata.getCompressedSize() && len > DEFAULT_MIN_ADJACENT_COLUMN_LENGTH) {
 
       long remainingLen = len - columnMetadata.getCompressedSize();
       long currentPos = position + columnMetadata.getCompressedSize();
@@ -302,13 +303,13 @@ public class ParquetPredictivePrefetchingTask {
         ColumnMetadata currentColumnMetadata =
             columnMappers.getOffsetIndexToColumnMap().get(currentPos);
 
-        if (currentColumnMetadata == null) {
+        if (currentColumnMetadata == null || columnMetadata.getCompressedSize() == 0) {
           break;
         }
 
         parquetColumnPrefetchStore.addRecentColumn(currentColumnMetadata);
-        remainingLen = remainingLen - columnMetadata.getCompressedSize();
-        currentPos = currentPos + columnMetadata.getCompressedSize();
+        remainingLen = remainingLen - currentColumnMetadata.getCompressedSize();
+        currentPos = currentPos + currentColumnMetadata.getCompressedSize();
         addedColumns.add(currentColumnMetadata);
       }
     }
