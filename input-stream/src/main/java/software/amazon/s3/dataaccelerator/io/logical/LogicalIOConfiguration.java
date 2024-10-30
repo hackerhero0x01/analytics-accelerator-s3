@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.dataaccelerator.io.logical;
 
+import static software.amazon.s3.dataaccelerator.util.Constants.ONE_KB;
 import static software.amazon.s3.dataaccelerator.util.Constants.ONE_MB;
 
 import lombok.Builder;
@@ -36,6 +37,7 @@ public class LogicalIOConfiguration {
   private static final int DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE = 15;
   private static final String DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX = "^.*.(parquet|par)$";
   private static final PrefetchMode DEFAULT_PREFETCHING_MODE = PrefetchMode.ROW_GROUP;
+  private static final long DEFAULT_MIN_ADJACENT_COLUMN_LENGTH = 500 * ONE_KB;
 
   @Builder.Default private boolean footerCachingEnabled = DEFAULT_FOOTER_CACHING_ENABLED;
 
@@ -75,6 +77,10 @@ public class LogicalIOConfiguration {
 
   private static final String PARQUET_FORMAT_SELECTOR_REGEX = "parquet.format.selector.regex";
 
+  @Builder.Default private long minAdjacentColumnLength = DEFAULT_MIN_ADJACENT_COLUMN_LENGTH;
+
+  private static final String MIN_ADJACENT_COLUMN_LENGTH_KEY = "parquet.min.adjacent.column.length";
+
   public static final LogicalIOConfiguration DEFAULT = LogicalIOConfiguration.builder().build();
 
   /**
@@ -107,6 +113,9 @@ public class LogicalIOConfiguration {
         .prefetchingMode(
             PrefetchMode.fromString(
                 configuration.getString(PREFETCHING_MODE_KEY, DEFAULT_PREFETCHING_MODE.toString())))
+        .minAdjacentColumnLength(
+            configuration.getLong(
+                MIN_ADJACENT_COLUMN_LENGTH_KEY, DEFAULT_MIN_ADJACENT_COLUMN_LENGTH))
         .build();
   }
 }

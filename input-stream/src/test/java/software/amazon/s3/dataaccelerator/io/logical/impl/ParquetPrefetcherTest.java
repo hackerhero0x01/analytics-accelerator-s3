@@ -428,10 +428,10 @@ public class ParquetPrefetcherTest {
             parquetPredictivePrefetchingTask);
 
     // When: a column is added to recent list
-    parquetPrefetcher.addToRecentColumnList(100);
+    parquetPrefetcher.addToRecentColumnList(100, 0);
 
     // Then: it is also added within the task
-    verify(parquetPredictivePrefetchingTask, times(1)).addToRecentColumnList(100);
+    verify(parquetPredictivePrefetchingTask, times(1)).addToRecentColumnList(100, 0);
   }
 
   private ParquetReadTailTask getTestParquetReadTailTask() {

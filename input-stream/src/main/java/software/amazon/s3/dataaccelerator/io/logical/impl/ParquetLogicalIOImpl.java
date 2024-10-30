@@ -68,7 +68,7 @@ public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
   public int read(byte[] buf, int off, int len, long position) throws IOException {
     // Perform async prefetching before doing the blocking read
     this.parquetPrefetcher.prefetchRemainingColumnChunk(position, len);
-    this.parquetPrefetcher.addToRecentColumnList(position);
+    this.parquetPrefetcher.addToRecentColumnList(position, len);
 
     return super.read(buf, off, len, position);
   }

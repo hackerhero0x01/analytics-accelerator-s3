@@ -184,10 +184,11 @@ public class ParquetPrefetcher {
    * Record this position in the recent column list
    *
    * @param position the position to record
+   * @param len The length of the current read
    */
-  public void addToRecentColumnList(long position) {
+  public void addToRecentColumnList(long position, int len) {
     if (logicalIOConfiguration.getPrefetchingMode() != PrefetchMode.OFF) {
-      this.parquetPredictivePrefetchingTask.addToRecentColumnList(position);
+      this.parquetPredictivePrefetchingTask.addToRecentColumnList(position, len);
     }
   }
 

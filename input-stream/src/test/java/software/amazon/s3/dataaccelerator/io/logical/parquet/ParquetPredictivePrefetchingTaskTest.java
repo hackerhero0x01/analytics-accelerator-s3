@@ -132,7 +132,7 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     when(parquetColumnPrefetchStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
 
-    assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
+    assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100, 0).isPresent());
     verify(parquetColumnPrefetchStore).addRecentColumn(columnMetadata);
   }
 
@@ -144,6 +144,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     List<ColumnMetadata> columnMetadataList = new ArrayList<>();
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
+
     ColumnMetadata sk_test = new ColumnMetadata(0, "sk_test", 100, 500, "sk_test".hashCode());
     offsetIndexToColumnMap.put(100L, sk_test);
     columnMetadataList.add(sk_test);
@@ -172,7 +173,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     when(parquetColumnPrefetchStore.getUniqueRecentColumnsForSchema("sk_test".hashCode()))
         .thenReturn(recentColumns);
 
-    assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
+    assertTrue(parquetPredictivePrefetchingTask.addToRecentColumnList(100, 0).isPresent());
     verify(parquetColumnPrefetchStore).addRecentColumn(sk_test);
 
     // Then: physical IO gets the correct plan. Only recent columns from the current row
@@ -202,7 +203,7 @@ public class ParquetPredictivePrefetchingTaskTest {
             physicalIO,
             parquetColumnPrefetchStore);
 
-    assertFalse(parquetPredictivePrefetchingTask.addToRecentColumnList(100).isPresent());
+    assertFalse(parquetPredictivePrefetchingTask.addToRecentColumnList(100, 0).isPresent());
     verify(parquetColumnPrefetchStore, times(0)).addRecentColumn(any());
   }
 
