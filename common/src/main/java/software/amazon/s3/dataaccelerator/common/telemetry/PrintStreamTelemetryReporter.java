@@ -24,6 +24,7 @@ import lombok.NonNull;
 class PrintStreamTelemetryReporter implements TelemetryReporter {
   @NonNull private final PrintStream printStream;
   @NonNull private final EpochFormatter epochFormatter;
+  @NonNull private final TelemetryFormat telemetryFormat;
 
   /**
    * Creates a new instance of {@link PrintStreamTelemetryReporter}.
@@ -35,6 +36,7 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
       @NonNull PrintStream printStream, @NonNull EpochFormatter epochFormatter) {
     this.printStream = printStream;
     this.epochFormatter = epochFormatter;
+    this.telemetryFormat = null;
   }
 
   /**
@@ -56,8 +58,7 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
   @Override
   public void reportStart(long epochTimestampNanos, Operation operation) {
     printStream.println(
-        OperationMeasurement.getOperationStartingString(
-            operation, epochTimestampNanos, this.epochFormatter));
+        telemetryFormat.renderOperationStart(operation, epochTimestampNanos, this.epochFormatter));
   }
 
   /**
@@ -67,7 +68,8 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
    */
   @Override
   public void reportComplete(@NonNull TelemetryDatapointMeasurement datapointMeasurement) {
-    printStream.println(datapointMeasurement.toString(epochFormatter));
+    printStream.println(
+        telemetryFormat.renderDatapointMeasurement(datapointMeasurement, epochFormatter));
   }
 
   /**

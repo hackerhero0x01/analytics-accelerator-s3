@@ -77,6 +77,12 @@ public class MetricMeasurement extends TelemetryDatapointMeasurement {
     return toString(epochFormatter, DEFAULT_COMPLETE_FORMAT_STRING);
   }
 
+  @Override
+  public String toString(
+      @NonNull TelemetryFormat telemetryFormat, @NonNull EpochFormatter epochFormatter) {
+    return telemetryFormat.renderMetricMeasurement(this, epochFormatter);
+  }
+
   /**
    * Returns the String representation of the {@link MetricMeasurement}.
    *

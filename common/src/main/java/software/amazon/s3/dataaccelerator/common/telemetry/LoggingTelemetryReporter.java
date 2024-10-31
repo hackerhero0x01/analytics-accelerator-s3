@@ -33,6 +33,7 @@ class LoggingTelemetryReporter implements TelemetryReporter {
   @Getter @NonNull private final String loggerName;
   @Getter @NonNull private final Level loggerLevel;
   @NonNull private final Logger logger;
+  @NonNull private final TelemetryFormat telemetryFormat;
 
   /** Default logging loggerLevel */
   public static Level DEFAULT_LOGGING_LEVEL = Level.INFO;
@@ -60,6 +61,7 @@ class LoggingTelemetryReporter implements TelemetryReporter {
     this.epochFormatter = epochFormatter;
     this.loggerLevel = loggerLevel;
     this.logger = LoggerFactory.getLogger(loggerName);
+    this.telemetryFormat = null;
   }
 
   /**
@@ -73,8 +75,7 @@ class LoggingTelemetryReporter implements TelemetryReporter {
     LogHelper.logAtLevel(
         this.logger,
         this.loggerLevel,
-        OperationMeasurement.getOperationStartingString(
-            operation, epochTimestampNanos, this.epochFormatter),
+        this.telemetryFormat.renderOperationStart(operation, epochTimestampNanos, epochFormatter),
         Optional.empty());
   }
 
@@ -85,7 +86,7 @@ class LoggingTelemetryReporter implements TelemetryReporter {
    */
   @Override
   public void reportComplete(@NonNull TelemetryDatapointMeasurement datapointMeasurement) {
-    String message = datapointMeasurement.toString(epochFormatter);
+    String message = datapointMeasurement.toString(telemetryFormat, epochFormatter);
     if (datapointMeasurement instanceof OperationMeasurement) {
       OperationMeasurement operationMeasurement = (OperationMeasurement) datapointMeasurement;
       if (operationMeasurement.getError().isPresent()) {
