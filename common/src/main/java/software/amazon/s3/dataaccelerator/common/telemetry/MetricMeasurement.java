@@ -28,8 +28,6 @@ public class MetricMeasurement extends TelemetryDatapointMeasurement {
   /** Metric value. */
   private final double value;
 
-  public static final String DEFAULT_COMPLETE_FORMAT_STRING = "[%s] %s: %,.2f";
-
   /**
    * Creates a new instance of {@link MetricMeasurement}
    *
@@ -64,39 +62,10 @@ public class MetricMeasurement extends TelemetryDatapointMeasurement {
     return (Metric) this.getDatapoint();
   }
 
-  /**
-   * Returns the String representation of the {@link MetricMeasurement}. {@link
-   * MetricMeasurement#DEFAULT_COMPLETE_FORMAT_STRING} will be used to format the string. The
-   * parameters are supplied in the following order: 1 - start epoch, String 2 - metric, String 3 -
-   * value, double.
-   *
-   * @param epochFormatter an instance of {@link EpochFormatter} to format the epochTimestampNanos.
-   * @return the String representation of the {@link MetricMeasurement}.
-   */
-  public String toString(@NonNull EpochFormatter epochFormatter) {
-    return toString(epochFormatter, DEFAULT_COMPLETE_FORMAT_STRING);
-  }
-
   @Override
   public String toString(
       @NonNull TelemetryFormat telemetryFormat, @NonNull EpochFormatter epochFormatter) {
     return telemetryFormat.renderMetricMeasurement(this, epochFormatter);
-  }
-
-  /**
-   * Returns the String representation of the {@link MetricMeasurement}.
-   *
-   * @param epochFormatter an instance of {@link EpochFormatter} to format the epochTimestampNanos.
-   * @param formatString format string to format the output. The parameters are supplied in the
-   *     following order: 11 - start epoch, String 2 - metric, String 3 - value, double.
-   * @return the String representation of the {@link MetricMeasurement}.
-   */
-  public String toString(@NonNull EpochFormatter epochFormatter, @NonNull String formatString) {
-    return String.format(
-        formatString,
-        epochFormatter.formatNanos(this.getEpochTimestampNanos()),
-        this.getMetric(),
-        this.getValue());
   }
 
   /**

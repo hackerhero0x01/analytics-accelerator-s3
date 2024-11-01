@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
     justification = "We mean to pass nulls to checks")
 public class MetricMeasurementTest {
   private static final long TEST_EPOCH_NANOS = 1722944779101123456L;
+  private static final TelemetryFormat telemetryFormat = new DefaultTelemetryFormat();
 
   @Test
   void testCreate() {
@@ -122,7 +123,7 @@ public class MetricMeasurementTest {
             .build();
     assertEquals(
         "[2024-08-06T17:46:19.101Z] S3.GET(Foo=Bar): 123.00",
-        metricMeasurement.toString(epochFormatter));
+        metricMeasurement.toString(telemetryFormat, epochFormatter));
   }
 
   @Test
@@ -140,7 +141,10 @@ public class MetricMeasurementTest {
             .value(123L)
             .kind(MetricMeasurementKind.AGGREGATE)
             .build();
-    assertTrue(metricMeasurement.toString(epochFormatter).contains("] S3.GET(Foo=Bar): 123.00"));
+    assertTrue(
+        metricMeasurement
+            .toString(telemetryFormat, epochFormatter)
+            .contains("] S3.GET(Foo=Bar): 123.00"));
   }
 
   @Test
@@ -172,8 +176,9 @@ public class MetricMeasurementTest {
             .value(123L)
             .kind(MetricMeasurementKind.AGGREGATE)
             .build();
-    assertThrows(NullPointerException.class, () -> metricMeasurement.toString(null, ""));
     assertThrows(
-        NullPointerException.class, () -> metricMeasurement.toString(epochFormatter, null));
+        NullPointerException.class, () -> metricMeasurement.toString(null, epochFormatter));
+    assertThrows(
+        NullPointerException.class, () -> metricMeasurement.toString(telemetryFormat, null));
   }
 }
