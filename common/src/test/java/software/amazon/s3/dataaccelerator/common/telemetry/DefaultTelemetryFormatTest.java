@@ -218,7 +218,7 @@ public class DefaultTelemetryFormatTest {
   }
 
   @Test
-  void testRenderMetricMeasurement() {
+  void testRenderMetricMeasurementRaw() {
     EpochFormatter epochFormatter =
         new EpochFormatter(
             EpochFormatter.DEFAULT_PATTERN,
@@ -235,5 +235,26 @@ public class DefaultTelemetryFormatTest {
 
     String toString = telemetryFormat.renderMetricMeasurement(metricMeasurement, epochFormatter);
     assertEquals(toString, "[2024-08-06T17:46:19.101Z] testMetric: 1.00");
+  }
+
+  @Test
+  void testRenderMetricMeasurementAggregate() {
+    EpochFormatter epochFormatter =
+        new EpochFormatter(
+            EpochFormatter.DEFAULT_PATTERN,
+            TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
+            Locale.ENGLISH);
+    Metric metric = Metric.builder().name("S3.GET").attribute("Foo", "Bar").build();
+    MetricMeasurement metricMeasurement =
+        MetricMeasurement.builder()
+            .metric(metric)
+            .epochTimestampNanos(TEST_EPOCH_NANOS)
+            .value(123L)
+            .kind(MetricMeasurementKind.AGGREGATE)
+            .build();
+    assertTrue(
+        metricMeasurement
+            .toString(telemetryFormat, epochFormatter)
+            .contains("] S3.GET(Foo=Bar): 123.00"));
   }
 }
