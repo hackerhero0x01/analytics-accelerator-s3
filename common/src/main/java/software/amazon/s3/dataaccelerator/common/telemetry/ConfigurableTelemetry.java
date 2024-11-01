@@ -69,13 +69,16 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
               new LoggingTelemetryReporter(
                   configuration.getLoggingName(),
                   Level.valueOf(configuration.getLoggingLevel()),
-                  EpochFormatter.DEFAULT));
+                  EpochFormatter.DEFAULT,
+                  new DefaultTelemetryFormat()));
     }
 
     // Create console reporter.
     if (configuration.isStdOutEnabled()) {
       stdOutTelemetryReporter =
-          Optional.of(new PrintStreamTelemetryReporter(System.out, EpochFormatter.DEFAULT));
+          Optional.of(
+              new PrintStreamTelemetryReporter(
+                  System.out, EpochFormatter.DEFAULT, new DefaultTelemetryFormat()));
     }
 
     // Create the final reporter

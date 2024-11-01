@@ -15,6 +15,17 @@
  */
 package software.amazon.s3.dataaccelerator.common.telemetry;
 
+/**
+ * A {@link TelemetryFormat} to produce human-readable telemetry log traces.
+ *
+ * <p>This implementation produces logs in the default format. This is mainly useful for operators
+ * and developers to quickly understand software behaviour. For more structured telemetry formats
+ * check the other implementations, like JSONTelemetryFormat.
+ *
+ * <p>Operations are logged as: TODO
+ *
+ * <p>Metrics are logged as: TODO
+ */
 public class DefaultTelemetryFormat implements TelemetryFormat {
 
   private static final String METRIC_FORMAT_STRING = "[%s] %s: %,.2f";

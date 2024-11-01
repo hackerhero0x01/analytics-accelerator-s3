@@ -31,12 +31,15 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
    *
    * @param printStream an instance of {@link PrintStream to output to}.
    * @param epochFormatter an instance of {@link EpochFormatter to use to format epochs}.
+   * @param telemetryFormat an instance of {@link TelemetryFormat to format telemetry with}
    */
   public PrintStreamTelemetryReporter(
-      @NonNull PrintStream printStream, @NonNull EpochFormatter epochFormatter) {
+      @NonNull PrintStream printStream,
+      @NonNull EpochFormatter epochFormatter,
+      @NonNull TelemetryFormat telemetryFormat) {
     this.printStream = printStream;
     this.epochFormatter = epochFormatter;
-    this.telemetryFormat = null;
+    this.telemetryFormat = telemetryFormat;
   }
 
   /**
@@ -46,7 +49,7 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
    * @param printStream the {@link PrintStream} to output telemetry to.
    */
   public PrintStreamTelemetryReporter(PrintStream printStream) {
-    this(printStream, EpochFormatter.DEFAULT);
+    this(printStream, EpochFormatter.DEFAULT, new DefaultTelemetryFormat());
   }
 
   /**

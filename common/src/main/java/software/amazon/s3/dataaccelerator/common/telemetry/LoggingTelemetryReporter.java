@@ -43,7 +43,11 @@ class LoggingTelemetryReporter implements TelemetryReporter {
 
   /** Creates a new instance of {@link LoggingTelemetryReporter} with sensible defaults. */
   public LoggingTelemetryReporter() {
-    this(DEFAULT_LOGGING_NAME, DEFAULT_LOGGING_LEVEL, EpochFormatter.DEFAULT);
+    this(
+        DEFAULT_LOGGING_NAME,
+        DEFAULT_LOGGING_LEVEL,
+        EpochFormatter.DEFAULT,
+        new DefaultTelemetryFormat());
   }
 
   /**
@@ -52,16 +56,18 @@ class LoggingTelemetryReporter implements TelemetryReporter {
    * @param loggerName logger name.
    * @param loggerLevel logger level.
    * @param epochFormatter an instance of {@link EpochFormatter to use to format epochs}.
+   * @param telemetryFormat an instance of {@link TelemetryFormat to use to format telemetry with}
    */
   public LoggingTelemetryReporter(
       @NonNull String loggerName,
       @NonNull Level loggerLevel,
-      @NonNull EpochFormatter epochFormatter) {
+      @NonNull EpochFormatter epochFormatter,
+      @NonNull TelemetryFormat telemetryFormat) {
     this.loggerName = loggerName;
     this.epochFormatter = epochFormatter;
     this.loggerLevel = loggerLevel;
     this.logger = LoggerFactory.getLogger(loggerName);
-    this.telemetryFormat = null;
+    this.telemetryFormat = telemetryFormat;
   }
 
   /**
