@@ -67,7 +67,7 @@ public class TelemetryConfiguration {
   /** Enable aggregations. */
   @Builder.Default boolean aggregationsEnabled = DEFAULT_AGGREGATIONS_ENABLED;
   /** Aggregations flush interval. */
-  @Builder.Default @NonNull Optional<Duration> aggregationsFlushInterval = Optional.empty();
+  @Builder.Default @NonNull Optional<Duration> aggregationsFlushInterval = Optional.of(Duration.of(10, ChronoUnit.SECONDS));
   /** Logging level. */
   @Builder.Default @NonNull String loggingLevel = DEFAULT_LOGGING_LEVEL;
   /** Logger name. */
