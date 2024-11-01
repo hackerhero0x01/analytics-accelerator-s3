@@ -46,7 +46,7 @@ public class TelemetryConfiguration {
 
   // Aggregations are off by default
   public static final String AGGREGATIONS_ENABLED_KEY = "aggregations.enabled";
-  public static final boolean DEFAULT_AGGREGATIONS_ENABLED = true;
+  public static final boolean DEFAULT_AGGREGATIONS_ENABLED = false;
 
   // Aggregations flush interval is not set by default
   public static final String AGGREGATIONS_FLUSH_INTERVAL_SECONDS_KEY =
@@ -67,7 +67,7 @@ public class TelemetryConfiguration {
   /** Enable aggregations. */
   @Builder.Default boolean aggregationsEnabled = DEFAULT_AGGREGATIONS_ENABLED;
   /** Aggregations flush interval. */
-  @Builder.Default @NonNull Optional<Duration> aggregationsFlushInterval = Optional.of(Duration.of(10, ChronoUnit.SECONDS));
+  @Builder.Default @NonNull Optional<Duration> aggregationsFlushInterval = Optional.empty();
   /** Logging level. */
   @Builder.Default @NonNull String loggingLevel = DEFAULT_LOGGING_LEVEL;
   /** Logger name. */

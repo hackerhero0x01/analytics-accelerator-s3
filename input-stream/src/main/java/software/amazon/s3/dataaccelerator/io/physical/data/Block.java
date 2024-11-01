@@ -17,11 +17,9 @@ package software.amazon.s3.dataaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.s3.dataaccelerator.common.Preconditions;
-import software.amazon.s3.dataaccelerator.common.telemetry.Metric;
 import software.amazon.s3.dataaccelerator.common.telemetry.Operation;
 import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.dataaccelerator.request.GetRequest;
@@ -51,8 +49,6 @@ public class Block implements Closeable {
 
   private static final String OPERATION_BLOCK_GET_ASYNC = "block.get.async";
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
-
-  private static final AtomicLong ongoing = new AtomicLong(0);
 
   /**
    * Constructs a Block. data.
@@ -87,9 +83,6 @@ public class Block implements Closeable {
     this.s3URI = s3URI;
     this.range = new Range(start, end);
 
-    telemetry.measure(
-        Metric.builder().name("onGoingBlockTransactions").build(), ongoing.getAndIncrement());
-
     this.source =
         this.telemetry.measureCritical(
             () ->
@@ -106,7 +99,6 @@ public class Block implements Closeable {
                     .referrer(new Referrer(range.toHttpString(), readMode))
                     .build()));
     this.data = this.source.thenApply(StreamUtils::toByteArray);
-    this.data.thenRun(() -> ongoing.decrementAndGet());
   }
 
   /**
