@@ -15,6 +15,8 @@
  */
 package software.amazon.s3.dataaccelerator.common.telemetry;
 
+import lombok.NonNull;
+
 /**
  * A {@link TelemetryFormat} to produce human-readable telemetry log traces.
  *
@@ -32,13 +34,14 @@ public class DefaultTelemetryFormat implements TelemetryFormat {
 
   @Override
   public String renderDatapointMeasurement(
-      TelemetryDatapointMeasurement datapointMeasurement, EpochFormatter epochFormatter) {
+      @NonNull TelemetryDatapointMeasurement datapointMeasurement,
+      @NonNull EpochFormatter epochFormatter) {
     return datapointMeasurement.toString(this, epochFormatter);
   }
 
   @Override
   public String renderMetricMeasurement(
-      MetricMeasurement metricMeasurement, EpochFormatter epochFormatter) {
+      @NonNull MetricMeasurement metricMeasurement, @NonNull EpochFormatter epochFormatter) {
     return String.format(
         METRIC_FORMAT_STRING,
         epochFormatter.formatNanos(metricMeasurement.getEpochTimestampNanos()),
@@ -52,7 +55,9 @@ public class DefaultTelemetryFormat implements TelemetryFormat {
 
   @Override
   public String renderOperationStart(
-      Operation operation, long epochTimestampNanos, EpochFormatter epochFormatter) {
+      @NonNull Operation operation,
+      long epochTimestampNanos,
+      @NonNull EpochFormatter epochFormatter) {
     return String.format(
         OPERATION_START_FORMAT_STRING, epochFormatter.formatNanos(epochTimestampNanos), operation);
   }
@@ -62,7 +67,7 @@ public class DefaultTelemetryFormat implements TelemetryFormat {
 
   @Override
   public String renderOperationEnd(
-      OperationMeasurement operationMeasurement, EpochFormatter epochFormatter) {
+      @NonNull OperationMeasurement operationMeasurement, @NonNull EpochFormatter epochFormatter) {
     String result =
         String.format(
             OPERATION_COMPLETE_FORMAT_STRING,

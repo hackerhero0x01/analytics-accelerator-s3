@@ -59,7 +59,7 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
    * @param operation and instance of {@link Operation} to start
    */
   @Override
-  public void reportStart(long epochTimestampNanos, Operation operation) {
+  public void reportStart(long epochTimestampNanos, @NonNull Operation operation) {
     printStream.println(
         telemetryFormat.renderOperationStart(operation, epochTimestampNanos, this.epochFormatter));
   }

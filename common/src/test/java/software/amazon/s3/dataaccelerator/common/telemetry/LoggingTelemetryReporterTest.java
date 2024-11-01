@@ -61,7 +61,8 @@ public class LoggingTelemetryReporterTest {
             TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
             Locale.ENGLISH);
     try (LoggingTelemetryReporter reporter =
-        new LoggingTelemetryReporter("foo", Level.ERROR, epochFormatter)) {
+        new LoggingTelemetryReporter(
+            "foo", Level.ERROR, epochFormatter, new DefaultTelemetryFormat())) {
       assertEquals("foo", reporter.getLoggerName());
       assertEquals(Level.ERROR, reporter.getLoggerLevel());
       assertEquals(epochFormatter, reporter.getEpochFormatter());
@@ -123,12 +124,17 @@ public class LoggingTelemetryReporterTest {
   void testCreateWithNulls() {
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
-        () -> new LoggingTelemetryReporter(null, Level.ERROR, EpochFormatter.DEFAULT));
+        () ->
+            new LoggingTelemetryReporter(
+                null, Level.ERROR, EpochFormatter.DEFAULT, new DefaultTelemetryFormat()));
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
-        () -> new LoggingTelemetryReporter("foo", null, EpochFormatter.DEFAULT));
+        () ->
+            new LoggingTelemetryReporter(
+                "foo", null, EpochFormatter.DEFAULT, new DefaultTelemetryFormat()));
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class, () -> new LoggingTelemetryReporter("foo", Level.ERROR, null));
+        NullPointerException.class,
+        () -> new LoggingTelemetryReporter("foo", Level.ERROR, null, new DefaultTelemetryFormat()));
   }
 
   @Test

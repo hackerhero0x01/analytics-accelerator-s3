@@ -49,7 +49,8 @@ public class PrintStreamTelemetryReporterTest {
             TimeZone.getTimeZone(ZoneId.of("BST", ZoneId.SHORT_IDS)),
             Locale.ENGLISH);
     try (PrintStreamTelemetryReporter reporter =
-        new PrintStreamTelemetryReporter(System.out, epochFormatter)) {
+        new PrintStreamTelemetryReporter(
+            System.out, epochFormatter, new DefaultTelemetryFormat())) {
       assertEquals(reporter.getPrintStream(), System.out);
       assertEquals(reporter.getEpochFormatter(), epochFormatter);
     }
@@ -60,10 +61,13 @@ public class PrintStreamTelemetryReporterTest {
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class, () -> new PrintStreamTelemetryReporter(null));
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class, () -> new PrintStreamTelemetryReporter(System.out, null));
+        NullPointerException.class,
+        () -> new PrintStreamTelemetryReporter(System.out, null, new DefaultTelemetryFormat()));
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
-        () -> new PrintStreamTelemetryReporter(null, EpochFormatter.DEFAULT));
+        () ->
+            new PrintStreamTelemetryReporter(
+                null, EpochFormatter.DEFAULT, new DefaultTelemetryFormat()));
   }
 
   @Test
@@ -122,7 +126,8 @@ public class PrintStreamTelemetryReporterTest {
 
     PrintStream printStream = mock(PrintStream.class);
     try (PrintStreamTelemetryReporter reporter =
-        new PrintStreamTelemetryReporter(printStream, epochFormatter)) {
+        new PrintStreamTelemetryReporter(
+            printStream, epochFormatter, new DefaultTelemetryFormat())) {
       reporter.reportComplete(operationMeasurement);
       ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -176,7 +181,7 @@ public class PrintStreamTelemetryReporterTest {
 
     PrintStream printStream = mock(PrintStream.class);
     PrintStreamTelemetryReporter reporter =
-        new PrintStreamTelemetryReporter(printStream, epochFormatter);
+        new PrintStreamTelemetryReporter(printStream, epochFormatter, new DefaultTelemetryFormat());
     reporter.reportStart(TEST_EPOCH_NANOS, operation);
     ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
 
