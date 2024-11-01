@@ -24,9 +24,16 @@ import lombok.NonNull;
  * and developers to quickly understand software behaviour. For more structured telemetry formats
  * check the other implementations, like JSONTelemetryFormat.
  *
- * <p>Operations are logged as: TODO
+ * <p>Operations are logged, e.g., like this:
  *
- * <p>Metrics are logged as: TODO
+ * <pre>{@code
+ * [2024-11-01T08:18:49.745Z] [  start] [1ive<--hpbi] block.get.async(thread_id=267, uri=s3://bucket/key)
+ * ...
+ * [2024-11-01T08:18:44.988Z] [success] [1ive<--hpbi] block.get.async(generation=0, thread_id=267,
+ * range=[785237-1772252], uri=s3://bucket/key): 238,830,003 ns
+ * }</pre>
+ *
+ * <p>Metrics are logged as:
  */
 public class DefaultTelemetryFormat implements TelemetryFormat {
 

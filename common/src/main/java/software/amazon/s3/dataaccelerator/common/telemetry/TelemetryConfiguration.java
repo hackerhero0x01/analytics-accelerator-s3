@@ -46,7 +46,7 @@ public class TelemetryConfiguration {
 
   // Aggregations are off by default
   public static final String AGGREGATIONS_ENABLED_KEY = "aggregations.enabled";
-  public static final boolean DEFAULT_AGGREGATIONS_ENABLED = false;
+  public static final boolean DEFAULT_AGGREGATIONS_ENABLED = true;
 
   // Aggregations flush interval is not set by default
   public static final String AGGREGATIONS_FLUSH_INTERVAL_SECONDS_KEY =
