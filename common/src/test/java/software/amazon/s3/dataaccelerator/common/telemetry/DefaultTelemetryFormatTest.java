@@ -18,6 +18,7 @@ package software.amazon.s3.dataaccelerator.common.telemetry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static software.amazon.s3.dataaccelerator.CustomAssertions.assertContains;
 
 import java.time.ZoneId;
 import java.util.Locale;
@@ -252,9 +253,43 @@ public class DefaultTelemetryFormatTest {
             .value(123L)
             .kind(MetricMeasurementKind.AGGREGATE)
             .build();
-    assertTrue(
-        metricMeasurement
-            .toString(telemetryFormat, epochFormatter)
-            .contains("] S3.GET(Foo=Bar): 123.00"));
+
+    assertContains(
+        metricMeasurement.toString(telemetryFormat, epochFormatter), "] S3.GET(Foo=Bar): 123.00");
+  }
+
+  @Test
+  void testOperationFormat() {
+    Operation operation1 = Operation.builder().id("op1").name("S3.GET").build();
+    Operation operation2 =
+        Operation.builder()
+            .id("op2")
+            .name("S3.GET")
+            .attribute("foo", "bar")
+            .attribute("x", "y")
+            .build();
+    Operation operation3 = Operation.builder().id("op3").name("S3.GET").parent(operation1).build();
+    Operation operation4 =
+        Operation.builder()
+            .id("op4")
+            .name("S3.GET")
+            .attribute("foo", "bar")
+            .parent(operation1)
+            .build();
+    String threadAttributeAsString =
+        CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
+
+    assertEquals(
+        "[op1] S3.GET(" + threadAttributeAsString + ")",
+        telemetryFormat.renderOperation(operation1));
+    assertEquals(
+        "[op2] S3.GET(" + threadAttributeAsString + ", foo=bar, x=y)",
+        telemetryFormat.renderOperation(operation2));
+    assertEquals(
+        "[op3<-op1] S3.GET(" + threadAttributeAsString + ")",
+        telemetryFormat.renderOperation(operation3));
+    assertEquals(
+        "[op4<-op1] S3.GET(" + threadAttributeAsString + ", foo=bar)",
+        telemetryFormat.renderOperation(operation4));
   }
 }

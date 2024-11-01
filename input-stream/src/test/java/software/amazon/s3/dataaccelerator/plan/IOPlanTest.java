@@ -55,13 +55,13 @@ public class IOPlanTest {
     ranges.add(new Range(1, 2));
     ranges.add(new Range(10, 20));
     IOPlan ioPlan = new IOPlan(ranges);
-    assertEquals("[[1-2], [10-20]]", ioPlan.toString());
+    assertEquals("[1-2,10-20]", ioPlan.toString());
   }
 
   @Test
   void testRangeToString() {
     IOPlan ioPlan = new IOPlan(new Range(1, 2));
-    assertEquals("[[1-2]]", ioPlan.toString());
+    assertEquals("[1-2]", ioPlan.toString());
   }
 
   @Test

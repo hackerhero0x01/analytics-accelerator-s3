@@ -35,7 +35,8 @@ public class PrintStreamTelemetryReporterTest {
 
   @Test
   public void testCreate() {
-    try (PrintStreamTelemetryReporter reporter = new PrintStreamTelemetryReporter(System.out)) {
+    try (PrintStreamTelemetryReporter reporter =
+        new PrintStreamTelemetryReporter(System.out, new DefaultTelemetryFormat())) {
       assertEquals(reporter.getPrintStream(), System.out);
       assertEquals(reporter.getEpochFormatter(), EpochFormatter.DEFAULT);
     }
@@ -59,10 +60,14 @@ public class PrintStreamTelemetryReporterTest {
   @Test
   public void testCreateWithNulls() {
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class, () -> new PrintStreamTelemetryReporter(null));
+        NullPointerException.class,
+        () -> new PrintStreamTelemetryReporter(null, new DefaultTelemetryFormat()));
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () -> new PrintStreamTelemetryReporter(System.out, null, new DefaultTelemetryFormat()));
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+        NullPointerException.class,
+        () -> new PrintStreamTelemetryReporter(System.out, EpochFormatter.DEFAULT, null));
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () ->
@@ -83,7 +88,8 @@ public class PrintStreamTelemetryReporterTest {
             .build();
 
     PrintStream printStream = mock(PrintStream.class);
-    try (PrintStreamTelemetryReporter reporter = new PrintStreamTelemetryReporter(printStream)) {
+    try (PrintStreamTelemetryReporter reporter =
+        new PrintStreamTelemetryReporter(printStream, new DefaultTelemetryFormat())) {
       reporter.reportComplete(operationMeasurement);
       ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
 
@@ -100,7 +106,8 @@ public class PrintStreamTelemetryReporterTest {
   @Test
   public void testFlush() {
     PrintStream printStream = mock(PrintStream.class);
-    try (PrintStreamTelemetryReporter reporter = new PrintStreamTelemetryReporter(printStream)) {
+    try (PrintStreamTelemetryReporter reporter =
+        new PrintStreamTelemetryReporter(printStream, new DefaultTelemetryFormat())) {
       reporter.flush();
       verify(printStream).flush();
     }
@@ -148,7 +155,7 @@ public class PrintStreamTelemetryReporterTest {
         NullPointerException.class,
         () -> {
           try (PrintStreamTelemetryReporter reporter =
-              new PrintStreamTelemetryReporter(System.out)) {
+              new PrintStreamTelemetryReporter(System.out, new DefaultTelemetryFormat())) {
             reporter.reportComplete(null);
           }
         });
@@ -158,14 +165,18 @@ public class PrintStreamTelemetryReporterTest {
   public void testReportStart() {
     Operation operation = Operation.builder().name("foo").attribute("A", 42).build();
     PrintStream printStream = mock(PrintStream.class);
-    try (PrintStreamTelemetryReporter reporter = new PrintStreamTelemetryReporter(printStream)) {
+    try (PrintStreamTelemetryReporter reporter =
+        new PrintStreamTelemetryReporter(printStream, new DefaultTelemetryFormat())) {
       reporter.reportStart(TEST_EPOCH_NANOS, operation);
       ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
 
       verify(printStream).println(stringCaptor.capture());
       String threadAttributeAsString =
           CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
-      assertTrue(stringCaptor.getValue().contains("foo(A=42, " + threadAttributeAsString + ")"));
+      String subString = "foo(A=42, " + threadAttributeAsString + ")";
+      assertTrue(
+          stringCaptor.getValue().contains(subString),
+          String.format("Expected '%s' to be present in '%s'", subString, stringCaptor.getValue()));
       assertTrue(stringCaptor.getValue().contains("[  start]"));
     }
   }
@@ -197,6 +208,8 @@ public class PrintStreamTelemetryReporterTest {
   public void testReportStartThrowsOnNull() {
     assertThrows(
         NullPointerException.class,
-        () -> new PrintStreamTelemetryReporter(System.out).reportStart(TEST_EPOCH_NANOS, null));
+        () ->
+            new PrintStreamTelemetryReporter(System.out, new DefaultTelemetryFormat())
+                .reportStart(TEST_EPOCH_NANOS, null));
   }
 }

@@ -405,35 +405,6 @@ public class OperationTest {
   }
 
   @Test
-  void testToString() {
-    Operation operation1 = Operation.builder().id("op1").name("S3.GET").build();
-    Operation operation2 =
-        Operation.builder()
-            .id("op2")
-            .name("S3.GET")
-            .attribute("foo", "bar")
-            .attribute("x", "y")
-            .build();
-    Operation operation3 = Operation.builder().id("op3").name("S3.GET").parent(operation1).build();
-    Operation operation4 =
-        Operation.builder()
-            .id("op4")
-            .name("S3.GET")
-            .attribute("foo", "bar")
-            .parent(operation1)
-            .build();
-    String threadAttributeAsString =
-        CommonAttributes.THREAD_ID.getName() + "=" + Thread.currentThread().getId();
-
-    assertEquals("[op1] S3.GET(" + threadAttributeAsString + ")", operation1.toString());
-    assertEquals(
-        "[op2] S3.GET(" + threadAttributeAsString + ", foo=bar, x=y)", operation2.toString());
-    assertEquals("[op3<-op1] S3.GET(" + threadAttributeAsString + ")", operation3.toString());
-    assertEquals(
-        "[op4<-op1] S3.GET(" + threadAttributeAsString + ", foo=bar)", operation4.toString());
-  }
-
-  @Test
   void testCreateOperationWithNullsMustThrow() {
     assertThrows(
         NullPointerException.class,

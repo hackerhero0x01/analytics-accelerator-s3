@@ -15,6 +15,8 @@
  */
 package software.amazon.s3.dataaccelerator.common.telemetry;
 
+import java.util.Map;
+
 /**
  * An interface defining what formatting telemetry means.
  *
@@ -65,4 +67,20 @@ public interface TelemetryFormat {
    */
   String renderOperationEnd(
       OperationMeasurement operationMeasurement, EpochFormatter epochFormatter);
+
+  /**
+   * Given an {@link Operation}, return its String representation.
+   *
+   * @param operation the {@link Operation} instance to render
+   * @return a string representation of the {@link Operation}
+   */
+  String renderOperation(Operation operation);
+
+  /**
+   * Renders a map of telemetry {@link Attribute}s into a {@link String} representation
+   *
+   * @param attributes the {@link Attribute}s to render and append
+   * @return a {@link String} representation of the {@link Attribute}s
+   */
+  String renderTelemetryAttributes(Map<String, Attribute> attributes);
 }

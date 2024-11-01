@@ -110,34 +110,6 @@ public class Operation extends TelemetryDatapoint {
     return new OperationBuilder();
   }
 
-  /**
-   * Returns the String representation of the {@link Operation}.
-   *
-   * @return the String representation of the {@link Operation}.
-   */
-  @Override
-  public String toString() {
-    StringBuilder stringBuilder = new StringBuilder();
-    // id
-    stringBuilder.append("[");
-    stringBuilder.append(id);
-
-    // add parent id, if present
-    if (parent.isPresent()) {
-      stringBuilder.append("<-");
-      stringBuilder.append(parent.get().getId());
-    }
-    stringBuilder.append("] ");
-
-    // name
-    stringBuilder.append(this.getName());
-
-    // attributes
-    appendAttributes(stringBuilder);
-
-    return stringBuilder.toString();
-  }
-
   /** Builder for {@link Operation} */
   public static class OperationBuilder
       extends TelemetryDatapointBuilder<Operation, OperationBuilder> {

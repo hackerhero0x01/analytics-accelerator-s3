@@ -58,6 +58,9 @@ public class TelemetryConfiguration {
   public static final String LOGGING_NAME_KEY = "logging.name";
   public static final String DEFAULT_LOGGING_NAME = LoggingTelemetryReporter.DEFAULT_LOGGING_NAME;
 
+  public static final String TELEMETRY_FORMAT_KEY = "telemetry.format";
+  public static final String DEFAULT_TELEMETRY_FORMAT = DefaultTelemetryFormat.TELEMETRY_CONFIG_ID;
+
   /** Telemetry level. */
   @Builder.Default String level = DEFAULT_LEVEL;
   /** Enable standard output. */
@@ -72,6 +75,8 @@ public class TelemetryConfiguration {
   @Builder.Default @NonNull String loggingLevel = DEFAULT_LOGGING_LEVEL;
   /** Logger name. */
   @Builder.Default @NonNull String loggingName = DEFAULT_LOGGING_NAME;
+  /** Telemetry format. */
+  @Builder.Default @NonNull String telemetryFormat = DEFAULT_TELEMETRY_FORMAT;
 
   /** Default configuration for {@link ConfigurableTelemetry}. */
   public static final TelemetryConfiguration DEFAULT = TelemetryConfiguration.builder().build();

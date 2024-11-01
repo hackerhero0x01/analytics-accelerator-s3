@@ -47,9 +47,10 @@ class PrintStreamTelemetryReporter implements TelemetryReporter {
    * EpochFormatter}.
    *
    * @param printStream the {@link PrintStream} to output telemetry to.
+   * @param telemetryFormat the {@link TelemetryFormat} to use for formatting
    */
-  public PrintStreamTelemetryReporter(PrintStream printStream) {
-    this(printStream, EpochFormatter.DEFAULT, new DefaultTelemetryFormat());
+  public PrintStreamTelemetryReporter(PrintStream printStream, TelemetryFormat telemetryFormat) {
+    this(printStream, EpochFormatter.DEFAULT, telemetryFormat);
   }
 
   /**

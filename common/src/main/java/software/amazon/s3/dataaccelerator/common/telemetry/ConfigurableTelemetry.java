@@ -70,7 +70,7 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
                   configuration.getLoggingName(),
                   Level.valueOf(configuration.getLoggingLevel()),
                   EpochFormatter.DEFAULT,
-                  new DefaultTelemetryFormat()));
+                  createTelemetryFormat(configuration)));
     }
 
     // Create console reporter.
@@ -78,7 +78,7 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
       stdOutTelemetryReporter =
           Optional.of(
               new PrintStreamTelemetryReporter(
-                  System.out, EpochFormatter.DEFAULT, new DefaultTelemetryFormat()));
+                  System.out, EpochFormatter.DEFAULT, createTelemetryFormat(configuration)));
     }
 
     // Create the final reporter
@@ -95,6 +95,24 @@ public class ConfigurableTelemetry extends DefaultTelemetry {
     } else {
       // all reporters disabled. resort to NoOp
       return new NoOpTelemetryReporter();
+    }
+  }
+
+  /**
+   * Creates the desired {@link TelemetryFormat}.
+   *
+   * @param configuration the {@link TelemetryConfiguration}
+   * @return the {@link TelemetryFormat} specified by the configuration
+   */
+  private static TelemetryFormat createTelemetryFormat(TelemetryConfiguration configuration) {
+    switch (configuration.getTelemetryFormat()) {
+      case DefaultTelemetryFormat.TELEMETRY_CONFIG_ID:
+        return new DefaultTelemetryFormat();
+      case JSONTelemetryFormat.TELEMETRY_CONFIG_ID:
+        return new JSONTelemetryFormat();
+      default:
+        throw new IllegalArgumentException(
+            "Unsupported telemetry format: " + configuration.getTelemetryFormat());
     }
   }
 

@@ -18,6 +18,7 @@ package software.amazon.s3.dataaccelerator.io.physical.plan;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.s3.dataaccelerator.request.Range;
@@ -53,6 +54,8 @@ public class IOPlan {
    */
   @Override
   public String toString() {
-    return this.prefetchRanges.toString();
+    return "["
+        + this.prefetchRanges.stream().map(Range::toString).collect(Collectors.joining(","))
+        + "]";
   }
 }

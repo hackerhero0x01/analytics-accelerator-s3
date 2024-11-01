@@ -195,4 +195,45 @@ public class ConfigurableTelemetryTest {
 
     assertInstanceOf(NoOpTelemetryReporter.class, telemetry.getReporter());
   }
+
+  @Test
+  void testCreateWithDefaultTelemetryFormat() {
+    TelemetryConfiguration configuration =
+        TelemetryConfiguration.builder().stdOutEnabled(true).loggingEnabled(false).build();
+
+    ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
+    PrintStreamTelemetryReporter reporter = (PrintStreamTelemetryReporter) telemetry.getReporter();
+
+    assertInstanceOf(DefaultTelemetryFormat.class, reporter.getTelemetryFormat());
+  }
+
+  @Test
+  void testCreateWithJSONTelemetryFormat() {
+    TelemetryConfiguration configuration =
+        TelemetryConfiguration.builder()
+            .stdOutEnabled(true)
+            .loggingEnabled(false)
+            .telemetryFormat("json")
+            .build();
+
+    ConfigurableTelemetry telemetry = new ConfigurableTelemetry(configuration);
+    PrintStreamTelemetryReporter reporter = (PrintStreamTelemetryReporter) telemetry.getReporter();
+
+    assertInstanceOf(JSONTelemetryFormat.class, reporter.getTelemetryFormat());
+  }
+
+  @Test
+  void testCreateWithUnknownTelemetryFormat() {
+    TelemetryConfiguration configuration =
+        TelemetryConfiguration.builder()
+            .stdOutEnabled(true)
+            .loggingEnabled(false)
+            .telemetryFormat("nonsense")
+            .build();
+
+    Exception e =
+        assertThrows(
+            IllegalArgumentException.class, () -> new ConfigurableTelemetry(configuration));
+    assertTrue(e.getMessage().contains("Unsupported telemetry format: nonsense"), e.getMessage());
+  }
 }

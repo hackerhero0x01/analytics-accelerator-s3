@@ -45,42 +45,6 @@ public abstract class TelemetryDatapoint {
   }
 
   /**
-   * Returns the String representation of the {@link TelemetryDatapoint}.
-   *
-   * @return the String representation of the {@link TelemetryDatapoint}
-   */
-  @Override
-  public String toString() {
-    StringBuilder stringBuilder = new StringBuilder();
-    stringBuilder.append(name);
-    appendAttributes(stringBuilder);
-
-    return stringBuilder.toString();
-  }
-
-  /**
-   * Adds attribute representation values to the instance if {@link StringBuilder}
-   *
-   * @param stringBuilder instance if {@link StringBuilder} to add attribute representation to.
-   */
-  protected void appendAttributes(@NonNull StringBuilder stringBuilder) {
-    // attributes
-    if (!attributes.isEmpty()) {
-      stringBuilder.append("(");
-      int count = 0;
-      for (Attribute attribute : attributes.values()) {
-        stringBuilder.append(attribute.getName());
-        stringBuilder.append("=");
-        stringBuilder.append(attribute.getValue());
-        if (++count != attributes.size()) {
-          stringBuilder.append(", ");
-        }
-      }
-      stringBuilder.append(")");
-    }
-  }
-
-  /**
    * The builder base for {@link TelemetryDatapoint}
    *
    * @param <T> a subtype for {@link TelemetryDatapoint}

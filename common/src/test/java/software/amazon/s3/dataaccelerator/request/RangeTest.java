@@ -52,9 +52,9 @@ public class RangeTest {
 
   static Stream<Arguments> validStringRanges() {
     return Stream.of(
-        Arguments.of(1, 5, "[1-5]"),
-        Arguments.of(0, 0, "[0-0]"),
-        Arguments.of(100, Long.MAX_VALUE, "[100-" + Long.MAX_VALUE + "]"));
+        Arguments.of(1, 5, "1-5"),
+        Arguments.of(0, 0, "0-0"),
+        Arguments.of(100, Long.MAX_VALUE, "100-" + Long.MAX_VALUE));
   }
 
   static Stream<Arguments> validHttpStringRanges() {

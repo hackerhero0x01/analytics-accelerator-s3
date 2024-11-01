@@ -101,17 +101,4 @@ public class MetricMeasurementTest {
     assertEquals(metricMeasurement1.hashCode(), metricMeasurement2.hashCode());
     assertNotEquals(metricMeasurement2.hashCode(), metricMeasurement3.hashCode());
   }
-
-  @Test
-  void tesToStringNull() {
-    Metric metric = Metric.builder().name("S3.GET").attribute("Foo", "Bar").build();
-    MetricMeasurement metricMeasurement =
-        MetricMeasurement.builder()
-            .metric(metric)
-            .epochTimestampNanos(TEST_EPOCH_NANOS)
-            .value(123L)
-            .kind(MetricMeasurementKind.AGGREGATE)
-            .build();
-    assertThrows(NullPointerException.class, () -> metricMeasurement.toString(null));
-  }
 }

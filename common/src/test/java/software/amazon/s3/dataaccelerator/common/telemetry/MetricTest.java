@@ -103,21 +103,4 @@ public class MetricTest {
     Metric.MetricBuilder builder = Metric.builder().name("S3.GET").attribute("foo", "bar");
     assertThrows(IllegalArgumentException.class, () -> builder.attribute("foo", "bar"));
   }
-
-  @Test
-  void testToString() {
-    assertEquals(
-        "S3.GET(Foo=Bar)",
-        Metric.builder().name("S3.GET").attribute("Foo", "Bar").build().toString());
-    assertEquals(
-        "S3.GET(Foo=Bar, X=Y)",
-        Metric.builder()
-            .name("S3.GET")
-            .attribute("Foo", "Bar")
-            .attribute("X", "Y")
-            .build()
-            .toString());
-
-    assertEquals("S3.GET", Metric.builder().name("S3.GET").build().toString());
-  }
 }

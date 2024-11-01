@@ -49,16 +49,6 @@ public abstract class TelemetryDatapointMeasurement {
    * Returns the String representation of the {@link TelemetryDatapoint}
    *
    * @param telemetryFormat the {@link TelemetryFormat} that controls the output format
-   * @return the String representation of the {@link TelemetryDatapoint}.
-   */
-  public String toString(TelemetryFormat telemetryFormat) {
-    return toString(telemetryFormat, EpochFormatter.DEFAULT);
-  }
-
-  /**
-   * Returns the String representation of the {@link TelemetryDatapoint}
-   *
-   * @param telemetryFormat the {@link TelemetryFormat} that controls the output format
    * @param epochFormatter the {@link EpochFormatter} that controls the formatting of epochs
    * @return the String representation of the {@link TelemetryDatapoint}.
    */

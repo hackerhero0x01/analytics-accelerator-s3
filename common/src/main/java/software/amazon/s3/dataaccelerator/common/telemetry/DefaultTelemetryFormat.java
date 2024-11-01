@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.dataaccelerator.common.telemetry;
 
+import java.util.Map;
 import lombok.NonNull;
 
 /**
@@ -41,6 +42,8 @@ import lombok.NonNull;
  */
 public class DefaultTelemetryFormat implements TelemetryFormat {
 
+  public static final String TELEMETRY_CONFIG_ID = "default"; // this is the default implementation
+
   private static final String METRIC_FORMAT_STRING = "[%s] %s: %,.2f";
 
   @Override
@@ -56,7 +59,7 @@ public class DefaultTelemetryFormat implements TelemetryFormat {
     return String.format(
         METRIC_FORMAT_STRING,
         epochFormatter.formatNanos(metricMeasurement.getEpochTimestampNanos()),
-        metricMeasurement.getMetric(),
+        renderMetric(metricMeasurement.getMetric()),
         metricMeasurement.getValue());
   }
 
@@ -70,7 +73,9 @@ public class DefaultTelemetryFormat implements TelemetryFormat {
       long epochTimestampNanos,
       @NonNull EpochFormatter epochFormatter) {
     return String.format(
-        OPERATION_START_FORMAT_STRING, epochFormatter.formatNanos(epochTimestampNanos), operation);
+        OPERATION_START_FORMAT_STRING,
+        epochFormatter.formatNanos(epochTimestampNanos),
+        renderOperation(operation));
   }
 
   private static final String SUCCESS = "success";
@@ -84,7 +89,7 @@ public class DefaultTelemetryFormat implements TelemetryFormat {
             OPERATION_COMPLETE_FORMAT_STRING,
             epochFormatter.formatNanos(operationMeasurement.getEpochTimestampNanos()),
             operationMeasurement.succeeded() ? SUCCESS : FAILURE,
-            operationMeasurement.getOperation(),
+            renderOperation(operationMeasurement.getOperation()),
             operationMeasurement.getElapsedTimeNanos());
 
     if (operationMeasurement.getError().isPresent()) {
@@ -95,5 +100,57 @@ public class DefaultTelemetryFormat implements TelemetryFormat {
               operationMeasurement.getError().get().getMessage());
     }
     return result;
+  }
+
+  @Override
+  public String renderOperation(Operation operation) {
+    StringBuilder stringBuilder = new StringBuilder();
+    // id
+    stringBuilder.append("[");
+    stringBuilder.append(operation.getId());
+
+    // add parent id, if present
+    operation
+        .getParent()
+        .ifPresent(
+            parent -> {
+              stringBuilder.append("<-");
+              stringBuilder.append(parent.getId());
+            });
+    stringBuilder.append("] ");
+
+    // name
+    stringBuilder.append(operation.getName());
+
+    // attributes
+    stringBuilder.append(renderTelemetryAttributes(operation.getAttributes()));
+
+    return stringBuilder.toString();
+  }
+
+  @Override
+  public String renderTelemetryAttributes(Map<String, Attribute> attributes) {
+    StringBuilder stringBuilder = new StringBuilder();
+    if (!attributes.isEmpty()) {
+      stringBuilder.append("(");
+      int count = 0;
+      for (Attribute attribute : attributes.values()) {
+        stringBuilder.append(attribute.getName());
+        stringBuilder.append("=");
+        stringBuilder.append(attribute.getValue());
+        if (++count != attributes.size()) {
+          stringBuilder.append(", ");
+        }
+      }
+      stringBuilder.append(")");
+    }
+    return stringBuilder.toString();
+  }
+
+  private String renderMetric(Metric metric) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(metric.getName());
+    sb.append(renderTelemetryAttributes(metric.getAttributes()));
+    return sb.toString();
   }
 }

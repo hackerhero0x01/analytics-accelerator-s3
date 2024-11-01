@@ -135,6 +135,9 @@ public class LoggingTelemetryReporterTest {
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () -> new LoggingTelemetryReporter("foo", Level.ERROR, null, new DefaultTelemetryFormat()));
+    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
+        NullPointerException.class,
+        () -> new LoggingTelemetryReporter("foo", Level.ERROR, EpochFormatter.DEFAULT, null));
   }
 
   @Test
