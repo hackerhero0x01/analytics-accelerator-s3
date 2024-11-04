@@ -175,6 +175,7 @@ public class Block implements Closeable {
                 .name(OPERATION_BLOCK_GET_JOIN)
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(this.range))
+                .attribute(StreamAttributes.rangeLength(this.range.getLength()))
                 .build(),
         this.data);
   }

@@ -100,7 +100,9 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
 
       default:
         return new DefaultLogicalIOImpl(
-            new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry));
+            s3URI,
+            new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry),
+            telemetry);
     }
   }
 

@@ -36,10 +36,13 @@ public class PhysicalIOImpl implements PhysicalIO {
   private final BlobStore blobStore;
   private final Telemetry telemetry;
 
+  private final long physicalIOBirth = System.nanoTime();
+
   private static final String OPERATION_READ = "physical.io.read";
   private static final String OPERATION_EXECUTE = "physical.io.execute";
   private static final String FLAVOR_TAIL = "tail";
   private static final String FLAVOR_BYTE = "byte";
+
   /**
    * Construct a new instance of PhysicalIOV2.
    *
@@ -79,6 +82,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
+
     return this.telemetry.measureVerbose(
         () ->
             Operation.builder()
@@ -86,6 +90,9 @@ public class PhysicalIOImpl implements PhysicalIO {
                 .attribute(StreamAttributes.variant(FLAVOR_BYTE))
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(pos, pos))
+                .attribute(
+                    StreamAttributes.physicalIORelativeTimestamp(
+                        System.nanoTime() - physicalIOBirth))
                 .build(),
         () -> blobStore.get(s3URI).read(pos));
   }
@@ -113,6 +120,9 @@ public class PhysicalIOImpl implements PhysicalIO {
                 .name(OPERATION_READ)
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(pos, pos + len - 1))
+                .attribute(
+                    StreamAttributes.physicalIORelativeTimestamp(
+                        System.nanoTime() - physicalIOBirth))
                 .build(),
         () -> blobStore.get(s3URI).read(buf, off, len, pos));
   }
@@ -137,6 +147,9 @@ public class PhysicalIOImpl implements PhysicalIO {
                 .attribute(StreamAttributes.variant(FLAVOR_TAIL))
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(contentLength - len, contentLength - 1))
+                .attribute(
+                    StreamAttributes.physicalIORelativeTimestamp(
+                        System.nanoTime() - physicalIOBirth))
                 .build(),
         () -> blobStore.get(s3URI).read(buf, off, len, contentLength - len));
   }
@@ -149,12 +162,15 @@ public class PhysicalIOImpl implements PhysicalIO {
    */
   @Override
   public IOPlanExecution execute(IOPlan ioPlan) {
-    return telemetry.measureStandard(
+    return telemetry.measureVerbose(
         () ->
             Operation.builder()
                 .name(OPERATION_EXECUTE)
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.ioPlan(ioPlan))
+                .attribute(
+                    StreamAttributes.physicalIORelativeTimestamp(
+                        System.nanoTime() - physicalIOBirth))
                 .build(),
         () -> blobStore.get(s3URI).execute(ioPlan));
   }

@@ -45,7 +45,7 @@ public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
       @NonNull Telemetry telemetry,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
       @NonNull ParquetColumnPrefetchStore parquetColumnPrefetchStore) {
-    super(physicalIO);
+    super(s3Uri, physicalIO, telemetry);
 
     // Initialise prefetcher and start prefetching
     this.parquetPrefetcher =

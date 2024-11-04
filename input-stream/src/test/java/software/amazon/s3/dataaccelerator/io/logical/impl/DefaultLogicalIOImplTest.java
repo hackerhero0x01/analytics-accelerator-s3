@@ -20,11 +20,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
+import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.dataaccelerator.io.physical.PhysicalIO;
+import software.amazon.s3.dataaccelerator.request.ObjectMetadata;
 import software.amazon.s3.dataaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -35,19 +38,29 @@ public class DefaultLogicalIOImplTest {
 
   @Test
   void testConstructor() {
-    assertNotNull(new DefaultLogicalIOImpl(mock(PhysicalIO.class)));
+    assertNotNull(
+        new DefaultLogicalIOImpl(TEST_URI, mock(PhysicalIO.class), mock(Telemetry.class)));
   }
 
   @Test
   void testConstructorThrowsOnNullArgument() {
-    assertThrows(NullPointerException.class, () -> new DefaultLogicalIOImpl(null));
+    assertThrows(
+        NullPointerException.class,
+        () -> new DefaultLogicalIOImpl(null, mock(PhysicalIO.class), mock(Telemetry.class)));
+    assertThrows(
+        NullPointerException.class,
+        () -> new DefaultLogicalIOImpl(TEST_URI, null, mock(Telemetry.class)));
+    assertThrows(
+        NullPointerException.class,
+        () -> new DefaultLogicalIOImpl(TEST_URI, mock(PhysicalIO.class), null));
   }
 
   @Test
   void testCloseDependencies() throws IOException {
     // Given
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(physicalIO);
+    DefaultLogicalIOImpl logicalIO =
+        new DefaultLogicalIOImpl(TEST_URI, physicalIO, mock(Telemetry.class));
 
     // When: close called
     logicalIO.close();
@@ -59,7 +72,8 @@ public class DefaultLogicalIOImplTest {
   @Test
   void testRead() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(physicalIO);
+    DefaultLogicalIOImpl logicalIO =
+        new DefaultLogicalIOImpl(TEST_URI, physicalIO, mock(Telemetry.class));
 
     logicalIO.read(5);
     verify(physicalIO).read(5);
@@ -68,7 +82,7 @@ public class DefaultLogicalIOImplTest {
   @Test
   void testReadWithBuffer() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(physicalIO);
+    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(TEST_URI, physicalIO, Telemetry.NOOP);
 
     byte[] buffer = new byte[5];
     logicalIO.read(buffer, 0, 5, 5);
@@ -78,7 +92,8 @@ public class DefaultLogicalIOImplTest {
   @Test
   void testReadTail() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(physicalIO);
+    when(physicalIO.metadata()).thenReturn(ObjectMetadata.builder().contentLength(123).build());
+    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(TEST_URI, physicalIO, Telemetry.NOOP);
 
     byte[] buffer = new byte[5];
     logicalIO.readTail(buffer, 0, 5);

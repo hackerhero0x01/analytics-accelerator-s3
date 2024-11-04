@@ -31,7 +31,13 @@ public enum StreamAttributes {
   EFFECTIVE_RANGE("range.effective"),
   GENERATION("generation"),
   COLUMN("column"),
-  IOPLAN("ioplan");
+  IOPLAN("ioplan"),
+  LOGICAL_READ_POSITION("logicalread.position"),
+  LOGICAL_READ_LENGTH("logicalread.length"),
+  RANGE_LENGTH("range.length"),
+  STREAM_RELATIVE_TS("stream.relative_ts"),
+  LOGICAL_IO_REL_TIMESTAMP("logicalio.ts"),
+  PHYSICAL_IO_REL_TIMESTAMP("physicalio.ts");
   private final String name;
 
   /**
@@ -124,5 +130,65 @@ public enum StreamAttributes {
    */
   public static Attribute ioPlan(IOPlan ioPlan) {
     return Attribute.of(StreamAttributes.IOPLAN.getName(), ioPlan.toString());
+  }
+
+  /**
+   * Creates an {@link Attribute} for recording timestamps since the start of stream.
+   *
+   * @param ts the timestamp to record
+   * @return The new instance of the {@link Attribute}
+   */
+  public static Attribute streamRelativeTimestamp(long ts) {
+    return Attribute.of(StreamAttributes.STREAM_RELATIVE_TS.getName(), ts);
+  }
+
+  /**
+   * Creates an {@link Attribute} to record the position of reads.
+   *
+   * @param pos the position to record
+   * @return The new instance of the {@link Attribute}
+   */
+  public static Attribute logicalReadPosition(long pos) {
+    return Attribute.of(StreamAttributes.LOGICAL_READ_POSITION.getName(), pos);
+  }
+
+  /**
+   * Creates an {@link Attribute} to record the length of reads.
+   *
+   * @param len the length to record
+   * @return The new instance of the {@link Attribute}
+   */
+  public static Attribute logicalReadLength(int len) {
+    return Attribute.of(StreamAttributes.LOGICAL_READ_LENGTH.getName(), len);
+  }
+
+  /**
+   * Creates an {@link Attribute} to record timestamps relative to LogicalIO creation.
+   *
+   * @param ts the timestamp to record
+   * @return The new instance of the {@link Attribute}
+   */
+  public static Attribute logicalIORelativeTimestamp(long ts) {
+    return Attribute.of(StreamAttributes.LOGICAL_IO_REL_TIMESTAMP.getName(), ts);
+  }
+
+  /**
+   * Creates an {@link Attribute} to record timestamps relative to PhysicalIO creation.
+   *
+   * @param ts the timestamp to record
+   * @return The new instance of the {@link Attribute}
+   */
+  public static Attribute physicalIORelativeTimestamp(long ts) {
+    return Attribute.of(StreamAttributes.PHYSICAL_IO_REL_TIMESTAMP.getName(), ts);
+  }
+
+  /**
+   * Creates an {@link Attribute} to record timestamps relative to PhysicalIO creation.
+   *
+   * @param ts the timestamp to record
+   * @return The new instance of the {@link Attribute}
+   */
+  public static Attribute rangeLength(long ts) {
+    return Attribute.of(StreamAttributes.RANGE_LENGTH.getName(), ts);
   }
 }

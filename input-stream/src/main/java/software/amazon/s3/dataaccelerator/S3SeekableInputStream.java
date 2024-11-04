@@ -44,6 +44,9 @@ public class S3SeekableInputStream extends SeekableInputStream {
   private static final String FLAVOR_TAIL = "tail";
   private static final String FLAVOR_BYTE = "byte";
 
+  private static final String OPERATION_STREAM_CLOSE = "seekablestream.close";
+  private final long streamBirth = System.nanoTime();
+
   /**
    * Given a LogicalIO, creates a new instance of {@link S3SeekableInputStream}.
    *
@@ -209,7 +212,15 @@ public class S3SeekableInputStream extends SeekableInputStream {
    */
   @Override
   public void close() throws IOException {
-    this.logicalIO.close();
+    this.telemetry.measureVerbose(
+        () ->
+            Operation.builder()
+                .name(OPERATION_STREAM_CLOSE)
+                .attribute(
+                    StreamAttributes.streamRelativeTimestamp(System.nanoTime() - streamBirth))
+                .build(),
+        () -> this.logicalIO.close());
+
     // Flush telemetry after a stream closes to have full coverage of all operations of this stream
     this.telemetry.flush();
   }

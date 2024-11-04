@@ -1,5 +1,6 @@
 ## Unreleased
 
+* Add telemetry to logical and physical reads
 * Add a JSON `TelemetryFormat` implementation
 * Add `TelemetryFormat` interface and refactor
 * Update parquet prefetching logic to track adjacent columns
