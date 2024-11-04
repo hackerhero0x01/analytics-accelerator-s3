@@ -58,7 +58,7 @@ public class TelemetryConfiguration {
   public static final String LOGGING_NAME_KEY = "logging.name";
   public static final String DEFAULT_LOGGING_NAME = LoggingTelemetryReporter.DEFAULT_LOGGING_NAME;
 
-  public static final String TELEMETRY_FORMAT_KEY = "telemetry.format";
+  public static final String TELEMETRY_FORMAT_KEY = "format";
   public static final String DEFAULT_TELEMETRY_FORMAT = DefaultTelemetryFormat.TELEMETRY_CONFIG_ID;
 
   /** Telemetry level. */
