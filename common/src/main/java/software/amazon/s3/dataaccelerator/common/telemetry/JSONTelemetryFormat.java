@@ -74,7 +74,7 @@ public class JSONTelemetryFormat implements TelemetryFormat {
     StringBuilder sb = new StringBuilder("{");
     sb.append("\"eventType\":\"start\",");
     sb.append(String.format("\"timestamp\":%s,", epochTimestampNanos));
-    sb.append(String.format("\"id\":\"%s\",", epochTimestampNanos));
+    sb.append(String.format("\"id\":\"%s\",", operation.getId()));
 
     // Add operation with attributes
     sb.append(renderOperation(operation));
