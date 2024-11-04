@@ -16,6 +16,8 @@
 package software.amazon.s3.dataaccelerator.io.logical.impl;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+
 import lombok.NonNull;
 import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.dataaccelerator.io.logical.LogicalIOConfiguration;
@@ -44,13 +46,14 @@ public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
       @NonNull PhysicalIO physicalIO,
       @NonNull Telemetry telemetry,
       @NonNull LogicalIOConfiguration logicalIOConfiguration,
-      @NonNull ParquetColumnPrefetchStore parquetColumnPrefetchStore) {
+      @NonNull ParquetColumnPrefetchStore parquetColumnPrefetchStore,
+      ExecutorService executorService) {
     super(physicalIO);
 
     // Initialise prefetcher and start prefetching
     this.parquetPrefetcher =
         new ParquetPrefetcher(
-            s3Uri, physicalIO, telemetry, logicalIOConfiguration, parquetColumnPrefetchStore);
+            s3Uri, physicalIO, telemetry, logicalIOConfiguration, parquetColumnPrefetchStore, executorService);
     this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
   }
 

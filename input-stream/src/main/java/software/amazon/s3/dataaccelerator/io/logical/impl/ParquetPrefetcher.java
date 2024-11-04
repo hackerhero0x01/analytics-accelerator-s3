@@ -16,6 +16,9 @@
 package software.amazon.s3.dataaccelerator.io.logical.impl;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -52,10 +55,14 @@ public class ParquetPrefetcher {
   @NonNull private final ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask;
   @NonNull private final ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask;
 
+  @NonNull private ExecutorService executorService;
+
   private static final String OPERATION_PARQUET_PREFETCH_COLUMN_CHUNK =
       "parquet.prefetcher.prefetch.column.chunk.async";
   private static final String OPERATION_PARQUET_PREFETCH_FOOTER_AND_METADATA =
       "parquet.prefetcher.prefetch.footer.and.metadata.async";
+
+
 
   /**
    * Constructs a ParquetPrefetcher.
@@ -72,7 +79,8 @@ public class ParquetPrefetcher {
       PhysicalIO physicalIO,
       Telemetry telemetry,
       LogicalIOConfiguration logicalIOConfiguration,
-      ParquetColumnPrefetchStore parquetColumnPrefetchStore) {
+      ParquetColumnPrefetchStore parquetColumnPrefetchStore,
+      ExecutorService executorService) {
     this(
         s3Uri,
         logicalIOConfiguration,
@@ -84,7 +92,8 @@ public class ParquetPrefetcher {
         new ParquetPrefetchRemainingColumnTask(
             s3Uri, telemetry, physicalIO, parquetColumnPrefetchStore),
         new ParquetPredictivePrefetchingTask(
-            s3Uri, telemetry, logicalIOConfiguration, physicalIO, parquetColumnPrefetchStore));
+            s3Uri, telemetry, logicalIOConfiguration, physicalIO, parquetColumnPrefetchStore),
+        executorService);
   }
 
   /**
@@ -156,8 +165,8 @@ public class ParquetPrefetcher {
     if (shouldPrefetch()) {
       // TODO: https://github.com/awslabs/s3-connector-framework/issues/88
       CompletableFuture<ColumnMappers> columnMappersCompletableFuture =
-          CompletableFuture.supplyAsync(parquetReadTailTask::readFileTail)
-              .thenApply(parquetMetadataParsingTask::storeColumnMappers);
+          CompletableFuture.supplyAsync(parquetReadTailTask::readFileTail, executorService)
+              .thenApplyAsync(parquetMetadataParsingTask::storeColumnMappers, executorService);
 
       return prefetchPredictedColumns(columnMappersCompletableFuture);
     }
@@ -170,10 +179,10 @@ public class ParquetPrefetcher {
       CompletableFuture<ColumnMappers> columnMappersCompletableFuture) {
 
     if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.ALL) {
-      return columnMappersCompletableFuture.thenApply(
+      return columnMappersCompletableFuture.thenApplyAsync(
           (ColumnMappers columnMappers) ->
               parquetPredictivePrefetchingTask.prefetchRecentColumns(
-                  columnMappers, ParquetUtils.constructRowGroupsToPrefetch()));
+                  columnMappers, ParquetUtils.constructRowGroupsToPrefetch()), executorService);
     }
 
     return CompletableFuture.completedFuture(

@@ -16,6 +16,9 @@
 package software.amazon.s3.dataaccelerator;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
@@ -51,6 +54,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final Telemetry telemetry;
   private final ObjectFormatSelector objectFormatSelector;
 
+  private final ExecutorService executorService = Executors.newFixedThreadPool(400);
+
   /**
    * Creates a new instance of {@link S3SeekableInputStreamFactory}. This factory should be used to
    * create instances of the input stream to allow for sharing resources such as the object client
@@ -62,6 +67,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   public S3SeekableInputStreamFactory(
       @NonNull ObjectClient objectClient,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
+
     this.objectClient = objectClient;
     this.configuration = configuration;
     this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
@@ -96,7 +102,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
             new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry),
             telemetry,
             configuration.getLogicalIOConfiguration(),
-            parquetColumnPrefetchStore);
+            parquetColumnPrefetchStore, executorService);
 
       default:
         return new DefaultLogicalIOImpl(
