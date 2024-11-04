@@ -1,5 +1,7 @@
 ## Unreleased
 
+* Add a JSON `TelemetryFormat` implementation
+* Add `TelemetryFormat` interface and refactor
 * Update parquet prefetching logic to track adjacent columns
 * Change default of sequential prefetch base to 2.0
 * Added CHANGELOG
