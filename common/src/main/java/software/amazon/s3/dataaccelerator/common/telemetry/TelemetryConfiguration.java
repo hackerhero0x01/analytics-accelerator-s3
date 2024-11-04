@@ -107,6 +107,7 @@ public class TelemetryConfiguration {
         .aggregationsFlushInterval(aggregationsFlushInterval)
         .loggingName(configuration.getString(LOGGING_NAME_KEY, DEFAULT_LOGGING_NAME))
         .loggingLevel(configuration.getString(LOGGING_LEVEL_KEY, DEFAULT_LOGGING_LEVEL))
+        .telemetryFormat(configuration.getString(TELEMETRY_FORMAT_KEY, DEFAULT_TELEMETRY_FORMAT))
         .build();
   }
 }
