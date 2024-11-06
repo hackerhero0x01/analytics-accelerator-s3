@@ -912,4 +912,161 @@ public class DefaultTelemetryTest {
           () -> defaultTelemetry.measureStandard(() -> operation, (CompletableFuture<Long>) null));
     }
   }
+
+  @Test
+  void testMeasureConditionallyWithNulls() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    try (CollectingTelemetryReporter reporter = new CollectingTelemetryReporter()) {
+      try (DefaultTelemetry defaultTelemetry =
+          new DefaultTelemetry(
+              wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.STANDARD)) {
+
+        assertThrows(
+            NullPointerException.class,
+            () ->
+                defaultTelemetry.measureConditionally(
+                    null,
+                    () -> Operation.builder().name("test.name").build(),
+                    () -> 42L,
+                    number -> number < 100));
+        assertThrows(
+            NullPointerException.class,
+            () ->
+                defaultTelemetry.measureConditionally(
+                    TelemetryLevel.STANDARD, null, () -> 42L, number -> number < 100));
+        assertThrows(
+            NullPointerException.class,
+            () ->
+                defaultTelemetry.measureConditionally(
+                    TelemetryLevel.STANDARD,
+                    () -> Operation.builder().name("test.name").build(),
+                    null,
+                    null));
+        assertThrows(
+            NullPointerException.class,
+            () ->
+                defaultTelemetry.measureConditionally(
+                    TelemetryLevel.STANDARD,
+                    () -> Operation.builder().name("test.name").build(),
+                    () -> 42L,
+                    null));
+      }
+    }
+  }
+
+  @Test
+  void testMeasureConditionallyLevelIsRespected() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    try (CollectingTelemetryReporter reporter = new CollectingTelemetryReporter()) {
+      try (DefaultTelemetry defaultTelemetry =
+          new DefaultTelemetry(
+              wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.STANDARD)) {
+
+        long result =
+            defaultTelemetry.measureConditionally(
+                TelemetryLevel.VERBOSE,
+                () -> Operation.builder().name("test.name").build(),
+                () -> 42L, // just return a simple value
+                number -> number < 100); // this will evaluate to true
+
+        // Assert: result should be correct but no measurement logged
+        Optional<OperationMeasurement> operationMeasurement =
+            reporter.getOperationCompletions().stream().findFirst();
+        assertEquals(42L, result);
+        assertFalse(operationMeasurement.isPresent());
+      }
+    }
+  }
+
+  @Test
+  void testMeasureConditionallyWithTrueCondition() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    try (CollectingTelemetryReporter reporter = new CollectingTelemetryReporter()) {
+      try (DefaultTelemetry defaultTelemetry =
+          new DefaultTelemetry(
+              wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.STANDARD)) {
+
+        long result =
+            defaultTelemetry.measureConditionally(
+                TelemetryLevel.STANDARD,
+                () -> Operation.builder().name("test.name").build(),
+                () -> 42L, // just return a simple value
+                number -> number < 100); // this will evaluate to true
+
+        // Assert on measurement
+        OperationMeasurement operationMeasurement =
+            reporter.getOperationCompletions().stream().findFirst().get();
+        assertEquals(TelemetryLevel.STANDARD, operationMeasurement.getLevel());
+        assertEquals("test.name", operationMeasurement.getOperation().getName());
+        assertEquals(42L, result);
+      }
+    }
+  }
+
+  @Test
+  void testMeasureConditionallyWithFalseCondition() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    try (CollectingTelemetryReporter reporter = new CollectingTelemetryReporter()) {
+      try (DefaultTelemetry defaultTelemetry =
+          new DefaultTelemetry(
+              wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.STANDARD)) {
+
+        defaultTelemetry.measureConditionally(
+            TelemetryLevel.STANDARD,
+            () -> Operation.builder().name("test.name").build(),
+            () -> 42L, // just return a simple value
+            number -> number == 1337); // this will evaluate to false
+
+        // There should not be a measurement logged
+        Optional<OperationMeasurement> operationMeasurement =
+            reporter.getOperationCompletions().stream().findFirst();
+        assertFalse(operationMeasurement.isPresent());
+      }
+    }
+  }
+
+  @Test
+  void testMeasureConditionallyWithFalseConditionAndException() {
+    TickingClock wallClock = new TickingClock(0L);
+    TickingClock elapsedClock = new TickingClock(0L);
+    try (CollectingTelemetryReporter reporter = new CollectingTelemetryReporter()) {
+      try (DefaultTelemetry defaultTelemetry =
+          new DefaultTelemetry(
+              wallClock, elapsedClock, reporter, Optional.empty(), TelemetryLevel.STANDARD)) {
+
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                defaultTelemetry.measureConditionally(
+                    TelemetryLevel.STANDARD,
+                    () -> Operation.builder().name("test.name").build(),
+                    () -> {
+                      // silly test code to make exception throwing possible
+                      if (1 == 2) {
+                        return 5;
+                      }
+                      throw new RuntimeException("something went wrong");
+                    }, // throw an exception
+                    number -> number == 1337)); // this will evaluate to false
+
+        // There should be a measurement logged with an error
+        Optional<OperationMeasurement> operationMeasurement =
+            reporter.getOperationCompletions().stream().findFirst();
+        assertTrue(operationMeasurement.isPresent());
+        assertTrue(operationMeasurement.get().getError().isPresent());
+        assertTrue(operationMeasurement.get().getError().get() instanceof RuntimeException);
+        assertTrue(
+            operationMeasurement
+                .get()
+                .getError()
+                .get()
+                .getMessage()
+                .contains("something went wrong"));
+      }
+    }
+  }
 }

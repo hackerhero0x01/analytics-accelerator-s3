@@ -19,6 +19,7 @@ import java.io.IOException;
 import lombok.NonNull;
 import software.amazon.s3.dataaccelerator.common.telemetry.Operation;
 import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
+import software.amazon.s3.dataaccelerator.common.telemetry.TelemetryLevel;
 import software.amazon.s3.dataaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.dataaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.dataaccelerator.request.ObjectMetadata;
@@ -77,7 +78,8 @@ public class DefaultLogicalIOImpl implements LogicalIO {
   @Override
   public int read(byte[] buf, int off, int len, long position) throws IOException {
     // Perform read
-    return telemetry.measureVerbose(
+    return telemetry.measureConditionally(
+        TelemetryLevel.VERBOSE,
         () ->
             Operation.builder()
                 .name(OPERATION_LOGICAL_READ)
@@ -87,7 +89,8 @@ public class DefaultLogicalIOImpl implements LogicalIO {
                 .attribute(
                     StreamAttributes.logicalIORelativeTimestamp(System.nanoTime() - birthTimestamp))
                 .build(),
-        () -> physicalIO.read(buf, off, len, position));
+        () -> physicalIO.read(buf, off, len, position),
+        bytesRead -> bytesRead > 1);
   }
 
   @Override

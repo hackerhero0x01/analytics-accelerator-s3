@@ -17,6 +17,7 @@ package software.amazon.s3.dataaccelerator.common.telemetry;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.*;
 import org.slf4j.Logger;
@@ -122,6 +123,20 @@ public class DefaultTelemetry implements Telemetry {
     }
   }
 
+  @SneakyThrows
+  public <T> T measureConditionally(
+      @NonNull TelemetryLevel level,
+      @NonNull OperationSupplier operationSupplier,
+      @NonNull TelemetrySupplier<T> operationCode,
+      @NonNull Predicate<T> shouldMeasure) {
+    if (produceTelemetryFor(level)) {
+      return measureConditionallyImpl(
+          level, operationSupplier.apply(), operationCode, shouldMeasure);
+    } else {
+      return operationCode.apply();
+    }
+  }
+
   /**
    * Executes a given {@link Runnable} and record the telemetry as {@link Operation}.
    *
@@ -162,6 +177,43 @@ public class DefaultTelemetry implements Telemetry {
       operation.getContext().pushOperation(operation);
       T result = operationCode.apply();
       completeMeasurement(builder, Optional.empty());
+      return result;
+    } catch (Throwable error) {
+      completeMeasurement(builder, Optional.of(error));
+      throw error;
+    } finally {
+      operation.getContext().popOperation(operation);
+    }
+  }
+
+  /**
+   * Executes a given {@link Supplier<T>} and records the telemetry conditionally when the predicate
+   * evaluates to true.
+   *
+   * @param <T> the return type of the enclosed computation
+   * @param level level of the operation to record this execution as.
+   * @param operation operation to record this execution as.
+   * @param operationCode code to execute.
+   * @param shouldMeasure predicate to test with and decide whether the operation should be
+   *     recorded.
+   * @return the value that {@link Supplier<T>} returns.
+   */
+  @SneakyThrows
+  private <T> T measureConditionallyImpl(
+      TelemetryLevel level,
+      Operation operation,
+      TelemetrySupplier<T> operationCode,
+      Predicate<T> shouldMeasure) {
+    OperationMeasurement.OperationMeasurementBuilder builder = startMeasurement(level, operation);
+    try {
+      operation.getContext().pushOperation(operation);
+      T result = operationCode.apply();
+
+      // Only complete measurement if predicate evaluates to true
+      if (shouldMeasure.test(result)) {
+        completeMeasurement(builder, Optional.empty());
+      }
+
       return result;
     } catch (Throwable error) {
       completeMeasurement(builder, Optional.of(error));

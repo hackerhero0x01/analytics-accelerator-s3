@@ -18,6 +18,7 @@ package software.amazon.s3.dataaccelerator.common.telemetry;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.NonNull;
 
@@ -271,6 +272,23 @@ public interface Telemetry extends Closeable {
       OperationSupplier operationSupplier, CompletableFuture<T> operationCode) {
     return measureJoin(TelemetryLevel.VERBOSE, operationSupplier, operationCode);
   }
+
+  /**
+   * Helper method to reduce verbosity based on the result of the enclosed computation.
+   *
+   * @param <T> the return type of the enclosed computation
+   * @param level telemetry level
+   * @param operationSupplier operation to record this execution as
+   * @param operationCode the code to measure
+   * @param condition predicate to evaluate on the result of the computation. This determines if the
+   *     measurement gets recorded or not
+   * @return an instance of {@link T} that returns the same result as the one passed in.
+   */
+  <T> T measureConditionally(
+      TelemetryLevel level,
+      OperationSupplier operationSupplier,
+      TelemetrySupplier<T> operationCode,
+      Predicate<T> condition);
 
   /**
    * Records a measurement represented by a metric
