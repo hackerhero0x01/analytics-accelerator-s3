@@ -25,7 +25,8 @@ import software.amazon.s3.dataaccelerator.util.S3URI;
 @AllArgsConstructor
 enum ObjectClientTelemetry {
   URI("uri"),
-  RANGE("range");
+  RANGE("range"),
+  RANGE_LENGTH("range.length");
   private final String name;
 
   public static final String OPERATION_GET = "s3.client.get";
@@ -39,5 +40,15 @@ enum ObjectClientTelemetry {
    */
   public static Attribute uri(S3URI s3URI) {
     return Attribute.of(ObjectClientTelemetry.URI.getName(), s3URI.toString());
+  }
+
+  /**
+   * Creates an {@link Attribute} for the length of a range.
+   *
+   * @param length the length to measure
+   * @return The new instance of the {@link Attribute}.
+   */
+  public static Attribute rangeLength(long length) {
+    return Attribute.of(ObjectClientTelemetry.RANGE_LENGTH.getName(), length);
   }
 }
