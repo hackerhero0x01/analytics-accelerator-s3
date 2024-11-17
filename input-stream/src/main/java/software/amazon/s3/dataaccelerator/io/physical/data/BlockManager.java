@@ -157,7 +157,7 @@ public class BlockManager implements Closeable {
                 .name(OPERATION_MAKE_RANGE_AVAILABLE)
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(pos, pos + len - 1))
-                .attribute(StreamAttributes.effectiveRange(pos, pos + effectiveEndFinal - 1))
+                .attribute(StreamAttributes.effectiveRange(pos, effectiveEndFinal))
                 .attribute(StreamAttributes.generation(generation))
                 .build(),
         () -> {

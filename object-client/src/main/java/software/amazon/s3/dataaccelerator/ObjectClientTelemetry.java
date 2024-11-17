@@ -18,6 +18,7 @@ package software.amazon.s3.dataaccelerator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import software.amazon.s3.dataaccelerator.common.telemetry.Attribute;
+import software.amazon.s3.dataaccelerator.request.Range;
 import software.amazon.s3.dataaccelerator.util.S3URI;
 
 /** Helper class to streamline Telemetry calls. */
@@ -45,10 +46,21 @@ enum ObjectClientTelemetry {
   /**
    * Creates an {@link Attribute} for the length of a range.
    *
-   * @param length the length to measure
+   * @param range the range
    * @return The new instance of the {@link Attribute}.
    */
-  public static Attribute rangeLength(long length) {
-    return Attribute.of(ObjectClientTelemetry.RANGE_LENGTH.getName(), length);
+  public static Attribute range(Range range) {
+    return Attribute.of(ObjectClientTelemetry.RANGE.getName(), range.toString());
+  }
+
+  /**
+   * Creates an {@link Attribute} for the length of a range.
+   *
+   * @param range the length of the range to measure
+   * @return The new instance of the {@link Attribute}.
+   */
+  public static Attribute rangeLength(Range range) {
+    return Attribute.of(
+        ObjectClientTelemetry.RANGE_LENGTH.getName(), Long.toString(range.getLength()));
   }
 }

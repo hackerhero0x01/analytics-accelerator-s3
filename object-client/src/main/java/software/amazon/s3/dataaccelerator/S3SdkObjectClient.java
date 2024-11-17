@@ -161,7 +161,8 @@ public class S3SdkObjectClient implements ObjectClient {
             Operation.builder()
                 .name(ObjectClientTelemetry.OPERATION_GET)
                 .attribute(ObjectClientTelemetry.uri(getRequest.getS3Uri()))
-                .attribute(ObjectClientTelemetry.rangeLength(getRequest.getRange().getLength()))
+                .attribute(ObjectClientTelemetry.rangeLength(getRequest.getRange()))
+                .attribute(ObjectClientTelemetry.range(getRequest.getRange()))
                 .build(),
         s3AsyncClient
             .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
