@@ -34,6 +34,7 @@ import software.amazon.s3.dataaccelerator.io.logical.impl.ParquetColumnPrefetchS
 import software.amazon.s3.dataaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlanExecution;
+import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlanState;
 import software.amazon.s3.dataaccelerator.request.Range;
 import software.amazon.s3.dataaccelerator.util.PrefetchMode;
 import software.amazon.s3.dataaccelerator.util.S3URI;
@@ -133,12 +134,12 @@ public class ParquetPredictivePrefetchingTask {
         // If the read does not align to a column boundary, then check if it lies within the
         // boundary of a column, this can happen when reading adjacent columns, where reads don't
         // always start at the file_offset. The check for len >
-        // logicalIOConfiguration.getMinAdjacentColumnLength()
+        // DEFAULT_MIN_ADJACENT_COLUMN_LENGTH
         // is required to prevent doing this multiple times. This is especially important as when
         // reading dictionaries/columnIndexes,
         // parquet-mr issues thousands of 1 byte read(0, pos, 1), and so without this we will end up
         // in this else clause more times than intended!
-        return addCurrentColumnAtPosition(position);
+        return addCurrentColumnAtPosition(position, columnMappers);
       }
     }
 
@@ -212,7 +213,7 @@ public class ParquetPredictivePrefetchingTask {
                 "Error in executing predictive prefetch plan for {}. Will fallback to synchronous reading for this key.",
                 this.s3Uri.getKey(),
                 e);
-            throw new CompletionException("Error in executing predictive prefetching", e);
+            return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
           }
         });
   }
@@ -240,32 +241,23 @@ public class ParquetPredictivePrefetchingTask {
    * @param position The current position in the read
    * @return Optional<ColumnMetadata> The column added to the recently read list
    */
-  private List<ColumnMetadata> addCurrentColumnAtPosition(long position) {
+  private List<ColumnMetadata> addCurrentColumnAtPosition(
+      long position, ColumnMappers columnMappers) {
     ArrayList<Long> columnPositions =
-        new ArrayList<>(
-            parquetColumnPrefetchStore
-                .getColumnMappers(s3Uri)
-                .getOffsetIndexToColumnMap()
-                .keySet());
+        new ArrayList<>(columnMappers.getOffsetIndexToColumnMap().keySet());
     Collections.sort(columnPositions);
 
     // For the last index, also add its end position so we can track reads that lie within
     // that column boundary
     long lastColumnStartPos = columnPositions.get(columnPositions.size() - 1);
     ColumnMetadata lastColumnMetadata =
-        parquetColumnPrefetchStore
-            .getColumnMappers(s3Uri)
-            .getOffsetIndexToColumnMap()
-            .get(lastColumnStartPos);
+        columnMappers.getOffsetIndexToColumnMap().get(lastColumnStartPos);
     columnPositions.add(lastColumnStartPos + lastColumnMetadata.getCompressedSize());
 
     for (int i = 0; i < columnPositions.size() - 1; i++) {
       if (position > columnPositions.get(i) && position < columnPositions.get(i + 1)) {
         ColumnMetadata currentColumnMetadata =
-            parquetColumnPrefetchStore
-                .getColumnMappers(s3Uri)
-                .getOffsetIndexToColumnMap()
-                .get(columnPositions.get(i));
+            columnMappers.getOffsetIndexToColumnMap().get(columnPositions.get(i));
         parquetColumnPrefetchStore.addRecentColumn(currentColumnMetadata);
         List<ColumnMetadata> addedColumns = new ArrayList<>();
         addedColumns.add(currentColumnMetadata);
