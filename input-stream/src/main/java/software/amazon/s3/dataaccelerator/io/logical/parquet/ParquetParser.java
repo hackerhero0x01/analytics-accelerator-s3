@@ -23,25 +23,32 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import org.apache.parquet.format.FileMetaData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import shaded.parquet.org.apache.thrift.TException;
 import shaded.parquet.org.apache.thrift.protocol.TCompactProtocol;
 import shaded.parquet.org.apache.thrift.protocol.TProtocol;
 import shaded.parquet.org.apache.thrift.transport.TIOStreamTransport;
 import shaded.parquet.org.apache.thrift.transport.TTransportException;
 import software.amazon.s3.dataaccelerator.common.Preconditions;
+import software.amazon.s3.dataaccelerator.util.S3URI;
 
 /** Allows for parsing a tail of a parquet file to get its FileMetadata. */
 class ParquetParser {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ParquetParser.class);
 
   /**
    * Parses the tail of a parquet file to obtain its FileMetaData.
    *
    * @param fileTail tail bytes of parquet file to be parsed
    * @param contentLen The length of the parquet file tail to be parsed
+   * @param s3URI S3 URI
    * @return FileMetaData
    * @throws IOException
    */
-  public FileMetaData parseParquetFooter(ByteBuffer fileTail, int contentLen) throws IOException {
+  public FileMetaData parseParquetFooter(ByteBuffer fileTail, int contentLen, S3URI s3URI)
+      throws IOException {
 
     Preconditions.checkArgument(
         contentLen > PARQUET_MAGIC_STR_LENGTH + PARQUET_FOOTER_LENGTH_SIZE,
@@ -57,6 +64,16 @@ class ParquetParser {
 
     int fileMetadataLength = readIntLittleEndian(new ByteArrayInputStream(buff));
     int fileMetadataIndex = fileMetadataLengthIndex - fileMetadataLength;
+
+    if (fileMetadataIndex < 0) {
+      LOG.warn(
+          "Insufficient data in cached footer for {}. Required length  is {}, provided length of data is {}. Parquet optimisations will be turned off for this file. To prevent this, increase cached length using footer.caching.size",
+          s3URI.getKey(),
+          fileMetadataLength,
+          contentLen);
+      throw new IOException("Insufficient data in cached footer");
+    }
+
     fileTail.position(fileMetadataIndex);
     byte[] footer = new byte[fileMetadataLength];
     fileTail.get(footer, 0, fileMetadataLength);

@@ -230,7 +230,7 @@ public class ParquetMetadataParsingTaskTest {
   @Test
   void testParsingExceptionsRemappedToCompletionException() throws IOException {
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
-    when(mockedParquetParser.parseParquetFooter(any(ByteBuffer.class), anyInt()))
+    when(mockedParquetParser.parseParquetFooter(any(ByteBuffer.class), anyInt(), any(S3URI.class)))
         .thenThrow(new IOException("can not read FileMetaData"));
 
     ParquetMetadataParsingTask parquetMetadataParsingTask =
@@ -258,7 +258,7 @@ public class ParquetMetadataParsingTaskTest {
 
   private ColumnMappers getColumnMappers(FileMetaData fileMetaData) throws IOException {
     ParquetParser mockedParquetParser = mock(ParquetParser.class);
-    when(mockedParquetParser.parseParquetFooter(any(ByteBuffer.class), anyInt()))
+    when(mockedParquetParser.parseParquetFooter(any(ByteBuffer.class), anyInt(), any(S3URI.class)))
         .thenReturn(fileMetaData);
 
     ParquetMetadataParsingTask parquetMetadataParsingTask =

@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
@@ -43,6 +42,8 @@ import software.amazon.s3.dataaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.dataaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
 import software.amazon.s3.dataaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlan;
+import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlanExecution;
+import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlanState;
 import software.amazon.s3.dataaccelerator.request.Range;
 import software.amazon.s3.dataaccelerator.util.PrefetchMode;
 import software.amazon.s3.dataaccelerator.util.S3URI;
@@ -365,7 +366,7 @@ public class ParquetPredictivePrefetchingTaskTest {
   }
 
   @Test
-  void testExceptionRemappedToCompletionException() throws IOException {
+  void testExceptionInPrefetchingIsSwallowed() throws IOException {
     // Given: a task performing predictive prefetching
     PhysicalIO physicalIO = mock(PhysicalIO.class);
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
@@ -379,12 +380,10 @@ public class ParquetPredictivePrefetchingTaskTest {
     // When: the underlying PhysicalIO always throws
     doThrow(new IOException("Error in prefetch")).when(physicalIO).execute(any(IOPlan.class));
 
-    // Then: exceptions are wrapped by CompletionExceptions
-    assertThrows(
-        CompletionException.class,
-        () ->
-            parquetPredictivePrefetchingTask.prefetchRecentColumns(
-                new ColumnMappers(new HashMap<>(), new HashMap<>()), Collections.emptyList()));
+    assertEquals(
+        IOPlanExecution.builder().state(IOPlanState.SKIPPED).build(),
+        parquetPredictivePrefetchingTask.prefetchRecentColumns(
+            new ColumnMappers(new HashMap<>(), new HashMap<>()), Collections.emptyList()));
   }
 
   private int getHashCode(StringBuilder stringToHash) {

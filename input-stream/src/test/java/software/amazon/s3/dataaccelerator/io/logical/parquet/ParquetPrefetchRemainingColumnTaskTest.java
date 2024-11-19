@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.dataaccelerator.io.logical.parquet;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,7 +31,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.dataaccelerator.io.logical.LogicalIOConfiguration;
@@ -38,6 +38,8 @@ import software.amazon.s3.dataaccelerator.io.logical.impl.ParquetColumnPrefetchS
 import software.amazon.s3.dataaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.dataaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlan;
+import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlanExecution;
+import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlanState;
 import software.amazon.s3.dataaccelerator.request.Range;
 import software.amazon.s3.dataaccelerator.util.S3URI;
 
@@ -122,7 +124,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
   }
 
   @Test
-  void testExceptionRemappedToCompletionException() {
+  void testExceptionInPrefetchingIsSwallowed() {
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     offsetIndexToColumnMap.put(
         200L,
@@ -140,8 +142,8 @@ public class ParquetPrefetchRemainingColumnTaskTest {
 
     doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
 
-    assertThrows(
-        CompletionException.class,
-        () -> parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(200, 5 * ONE_MB));
+    assertEquals(
+        IOPlanExecution.builder().state(IOPlanState.SKIPPED).build(),
+        parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(200, 5 * ONE_MB));
   }
 }

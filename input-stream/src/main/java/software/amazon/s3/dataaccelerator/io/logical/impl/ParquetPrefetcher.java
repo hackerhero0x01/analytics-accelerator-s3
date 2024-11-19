@@ -15,10 +15,13 @@
  */
 package software.amazon.s3.dataaccelerator.io.logical.impl;
 
+import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.dataaccelerator.common.telemetry.Operation;
 import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.dataaccelerator.io.logical.LogicalIOConfiguration;
@@ -51,6 +54,8 @@ public class ParquetPrefetcher {
   @NonNull private final ParquetReadTailTask parquetReadTailTask;
   @NonNull private final ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask;
   @NonNull private final ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask;
+
+  private static final Logger LOG = LoggerFactory.getLogger(ParquetPrefetcher.class);
 
   private static final String OPERATION_PARQUET_PREFETCH_COLUMN_CHUNK =
       "parquet.prefetcher.prefetch.column.chunk.async";
@@ -157,7 +162,8 @@ public class ParquetPrefetcher {
       // TODO: https://github.com/awslabs/s3-connector-framework/issues/88
       CompletableFuture<ColumnMappers> columnMappersCompletableFuture =
           CompletableFuture.supplyAsync(parquetReadTailTask::readFileTail)
-              .thenApply(parquetMetadataParsingTask::storeColumnMappers);
+              .thenApply(parquetMetadataParsingTask::storeColumnMappers)
+              .exceptionally((e) -> new ColumnMappers(new HashMap<>(), new HashMap<>()));
 
       return prefetchPredictedColumns(columnMappersCompletableFuture);
     }
@@ -187,8 +193,15 @@ public class ParquetPrefetcher {
    * @param len The length of the current read
    */
   public void addToRecentColumnList(long position, int len) {
-    if (logicalIOConfiguration.getPrefetchingMode() != PrefetchMode.OFF) {
-      this.parquetPredictivePrefetchingTask.addToRecentColumnList(position, len);
+    try {
+      if (logicalIOConfiguration.getPrefetchingMode() != PrefetchMode.OFF) {
+        this.parquetPredictivePrefetchingTask.addToRecentColumnList(position, len);
+      }
+    } catch (Exception e) {
+      LOG.error(
+          "Error in adding column to recently read columns tracked list for {}. Will be unable to prefetch some columns and fallback to reading synchronously.",
+          s3URI.getKey(),
+          e);
     }
   }
 

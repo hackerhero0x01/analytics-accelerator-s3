@@ -77,7 +77,8 @@ public class ParquetMetadataParsingTask {
   public ColumnMappers storeColumnMappers(FileTail fileTail) {
     try {
       FileMetaData fileMetaData =
-          parquetParser.parseParquetFooter(fileTail.getFileTail(), fileTail.getFileTailLength());
+          parquetParser.parseParquetFooter(
+              fileTail.getFileTail(), fileTail.getFileTailLength(), this.s3URI);
       ColumnMappers columnMappers = buildColumnMaps(fileMetaData);
       parquetColumnPrefetchStore.putColumnMappers(this.s3URI, columnMappers);
       return columnMappers;

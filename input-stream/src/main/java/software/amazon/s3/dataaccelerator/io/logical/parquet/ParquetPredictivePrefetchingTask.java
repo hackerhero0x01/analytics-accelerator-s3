@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,29 +183,30 @@ public class ParquetPredictivePrefetchingTask {
                 .attribute(StreamAttributes.uri(this.s3Uri))
                 .build(),
         () -> {
-          List<Range> prefetchRanges = new ArrayList<>();
-          for (String recentColumn : getRecentColumns(columnMappers.getOffsetIndexToColumnMap())) {
-            if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
-              LOG.debug(
-                  "Column {} found in schema for {}, adding to prefetch list",
-                  recentColumn,
-                  this.s3Uri.getKey());
-              List<ColumnMetadata> columnMetadataList =
-                  columnMappers.getColumnNameToColumnMap().get(recentColumn);
-              for (ColumnMetadata columnMetadata : columnMetadataList) {
-                if (rowGroupsToPrefetch.contains(columnMetadata.getRowGroupIndex())) {
-                  prefetchRanges.add(
-                      new Range(
-                          columnMetadata.getStartPos(),
-                          columnMetadata.getStartPos() + columnMetadata.getCompressedSize() - 1));
+          try {
+            List<Range> prefetchRanges = new ArrayList<>();
+            for (String recentColumn :
+                getRecentColumns(columnMappers.getOffsetIndexToColumnMap())) {
+              if (columnMappers.getColumnNameToColumnMap().containsKey(recentColumn)) {
+                LOG.debug(
+                    "Column {} found in schema for {}, adding to prefetch list",
+                    recentColumn,
+                    this.s3Uri.getKey());
+                List<ColumnMetadata> columnMetadataList =
+                    columnMappers.getColumnNameToColumnMap().get(recentColumn);
+                for (ColumnMetadata columnMetadata : columnMetadataList) {
+                  if (rowGroupsToPrefetch.contains(columnMetadata.getRowGroupIndex())) {
+                    prefetchRanges.add(
+                        new Range(
+                            columnMetadata.getStartPos(),
+                            columnMetadata.getStartPos() + columnMetadata.getCompressedSize() - 1));
+                  }
                 }
               }
             }
-          }
 
-          IOPlan ioPlan =
-              (prefetchRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(prefetchRanges);
-          try {
+            IOPlan ioPlan =
+                (prefetchRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(prefetchRanges);
             return physicalIO.execute(ioPlan);
           } catch (Exception e) {
             LOG.error(
@@ -239,6 +239,7 @@ public class ParquetPredictivePrefetchingTask {
    * within the boundary of ss_b as 8MB > file offset of ss_b > and 8MB < fil_offset of ss_c.
    *
    * @param position The current position in the read
+   * @param columnMappers Parquet file column mappings
    * @return Optional<ColumnMetadata> The column added to the recently read list
    */
   private List<ColumnMetadata> addCurrentColumnAtPosition(

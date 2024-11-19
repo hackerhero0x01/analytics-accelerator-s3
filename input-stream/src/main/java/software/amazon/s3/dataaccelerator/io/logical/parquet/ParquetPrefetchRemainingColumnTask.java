@@ -15,7 +15,7 @@
  */
 package software.amazon.s3.dataaccelerator.io.logical.parquet;
 
-import java.util.concurrent.CompletionException;
+import java.io.IOException;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,20 +69,27 @@ public class ParquetPrefetchRemainingColumnTask {
    * @return ranges prefetched
    */
   public IOPlanExecution prefetchRemainingColumnChunk(long position, int len) {
-    ColumnMappers columnMappers = parquetColumnPrefetchStore.getColumnMappers(s3Uri);
-    if (columnMappers != null) {
-      ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
-      if (columnMetadata != null) {
-        return telemetry.measureVerbose(
-            () ->
-                Operation.builder()
-                    .name(OPERATION_PARQUET_PREFETCH_COLUMN_CHUNK)
-                    .attribute(StreamAttributes.column(columnMetadata.getColumnName()))
-                    .attribute(StreamAttributes.uri(this.s3Uri))
-                    .attribute(StreamAttributes.range(position, position + len - 1))
-                    .build(),
-            () -> executeRemainingColumnPrefetchPlan(columnMetadata, position, len));
+    try {
+      ColumnMappers columnMappers = parquetColumnPrefetchStore.getColumnMappers(s3Uri);
+      if (columnMappers != null) {
+        ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
+        if (columnMetadata != null) {
+          return telemetry.measureVerbose(
+              () ->
+                  Operation.builder()
+                      .name(OPERATION_PARQUET_PREFETCH_COLUMN_CHUNK)
+                      .attribute(StreamAttributes.column(columnMetadata.getColumnName()))
+                      .attribute(StreamAttributes.uri(this.s3Uri))
+                      .attribute(StreamAttributes.range(position, position + len - 1))
+                      .build(),
+              () -> executeRemainingColumnPrefetchPlan(columnMetadata, position, len));
+        }
       }
+    } catch (Exception e) {
+      LOG.error(
+          "Error in executing column chunk prefetching for {}. Will fallback to synchronous reading for this column.",
+          this.s3Uri.getKey(),
+          e);
     }
     return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
   }
@@ -96,20 +103,12 @@ public class ParquetPrefetchRemainingColumnTask {
    * @return result of plan execution
    */
   private IOPlanExecution executeRemainingColumnPrefetchPlan(
-      ColumnMetadata columnMetadata, long position, int len) {
+      ColumnMetadata columnMetadata, long position, int len) throws IOException {
     if (len < columnMetadata.getCompressedSize()) {
       long startRange = position + len;
       long endRange = startRange + (columnMetadata.getCompressedSize() - len);
       IOPlan ioPlan = new IOPlan(new Range(startRange, endRange));
-      try {
-        return physicalIO.execute(ioPlan);
-      } catch (Exception e) {
-        LOG.error(
-            "Error in executing remaining column chunk prefetch plan for {}. Will fallback to synchronous reading for this column.",
-            this.s3Uri.getKey(),
-            e);
-        throw new CompletionException("Error in executing remaining column prefetch plan", e);
-      }
+      return physicalIO.execute(ioPlan);
     }
 
     return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();

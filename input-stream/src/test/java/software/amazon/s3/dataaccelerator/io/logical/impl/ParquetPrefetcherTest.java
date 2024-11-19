@@ -27,7 +27,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.dataaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.dataaccelerator.io.logical.LogicalIOConfiguration;
@@ -39,6 +41,7 @@ import software.amazon.s3.dataaccelerator.io.logical.parquet.ParquetPrefetchRema
 import software.amazon.s3.dataaccelerator.io.logical.parquet.ParquetPrefetchTailTask;
 import software.amazon.s3.dataaccelerator.io.logical.parquet.ParquetReadTailTask;
 import software.amazon.s3.dataaccelerator.io.physical.PhysicalIO;
+import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlanExecution;
 import software.amazon.s3.dataaccelerator.io.physical.plan.IOPlanState;
 import software.amazon.s3.dataaccelerator.util.PrefetchMode;
@@ -432,6 +435,93 @@ public class ParquetPrefetcherTest {
 
     // Then: it is also added within the task
     verify(parquetPredictivePrefetchingTask, times(1)).addToRecentColumnList(100, 0);
+  }
+
+  @Test
+  public void testAddToRecentColumnListExceptionCaught() {
+    // Given: default LogicalIO configuration
+    LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
+    ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
+        mock(ParquetPredictivePrefetchingTask.class);
+
+    ParquetPrefetcher parquetPrefetcher =
+        getTestPrefetcher(
+            logicalIOConfiguration,
+            mock(ParquetColumnPrefetchStore.class),
+            mock(ParquetMetadataParsingTask.class),
+            mock(ParquetPrefetchTailTask.class),
+            mock(ParquetReadTailTask.class),
+            mock(ParquetPrefetchRemainingColumnTask.class),
+            parquetPredictivePrefetchingTask);
+
+    // When: a column is added to recent list
+    when(parquetPredictivePrefetchingTask.addToRecentColumnList(anyLong(), anyInt()))
+        .thenThrow(new NullPointerException());
+
+    assertDoesNotThrow(() -> parquetPrefetcher.addToRecentColumnList(100, 0));
+  }
+
+  @Test
+  public void prefetchFooterAndBuildMetadataReadTailExceptionCaught() {
+    LogicalIOConfiguration logicalIOConfiguration =
+        LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.ALL).build();
+
+    ParquetReadTailTask parquetReadTailTask = mock(ParquetReadTailTask.class);
+
+    ParquetPrefetcher parquetPrefetcher =
+        getTestPrefetcher(
+            logicalIOConfiguration,
+            mock(ParquetColumnPrefetchStore.class),
+            mock(ParquetMetadataParsingTask.class),
+            mock(ParquetPrefetchTailTask.class),
+            parquetReadTailTask,
+            mock(ParquetPrefetchRemainingColumnTask.class),
+            new ParquetPredictivePrefetchingTask(
+                TEST_URI,
+                Telemetry.NOOP,
+                logicalIOConfiguration,
+                mock(PhysicalIO.class),
+                mock(ParquetColumnPrefetchStore.class)));
+
+    when(parquetReadTailTask.readFileTail())
+        .thenThrow(new CompletionException("Error", new IOException()));
+
+    assertDoesNotThrow(() -> parquetPrefetcher.prefetchFooterAndBuildMetadata().join());
+  }
+
+  @Test
+  public void prefetchFooterAndBuildMetadataParseMetadataExceptionCaught() throws IOException {
+    LogicalIOConfiguration logicalIOConfiguration =
+        LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.ALL).build();
+
+    ParquetMetadataParsingTask parquetMetadataParsingTask = mock(ParquetMetadataParsingTask.class);
+    ParquetReadTailTask parquetReadTailTask = mock(ParquetReadTailTask.class);
+    PhysicalIO physicalIO = mock(PhysicalIO.class);
+    IOPlanExecution skippedIoPlanExecution =
+        IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
+
+    ParquetPrefetcher parquetPrefetcher =
+        getTestPrefetcher(
+            logicalIOConfiguration,
+            mock(ParquetColumnPrefetchStore.class),
+            parquetMetadataParsingTask,
+            mock(ParquetPrefetchTailTask.class),
+            parquetReadTailTask,
+            mock(ParquetPrefetchRemainingColumnTask.class),
+            new ParquetPredictivePrefetchingTask(
+                TEST_URI,
+                Telemetry.NOOP,
+                logicalIOConfiguration,
+                physicalIO,
+                mock(ParquetColumnPrefetchStore.class)));
+
+    when(parquetReadTailTask.readFileTail())
+        .thenReturn(new FileTail(ByteBuffer.wrap(new byte[5]), 5));
+    when(parquetMetadataParsingTask.storeColumnMappers(any(FileTail.class)))
+        .thenThrow(new CompletionException("Error", new IOException()));
+    when(physicalIO.execute(any(IOPlan.class))).thenReturn(skippedIoPlanExecution);
+
+    assertEquals(parquetPrefetcher.prefetchFooterAndBuildMetadata().join(), skippedIoPlanExecution);
   }
 
   private ParquetReadTailTask getTestParquetReadTailTask() {
