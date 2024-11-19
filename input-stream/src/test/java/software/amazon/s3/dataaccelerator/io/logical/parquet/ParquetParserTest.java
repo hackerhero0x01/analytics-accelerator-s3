@@ -123,8 +123,8 @@ public class ParquetParserTest {
       assertEquals((int) file.length(), bytesRead);
 
       byte[] tailBuffer = new byte[20];
-      int j =  (int) file.length() -1;
-      for (int i = 19 ; i >= 0; i--) {
+      int j = (int) file.length() - 1;
+      for (int i = 19; i >= 0; i--) {
         tailBuffer[i] = buffer[j];
         j--;
       }
@@ -132,7 +132,9 @@ public class ParquetParserTest {
       // Test the case where the tail buffer is < the size of the footer metadata.
       // In this case we want to throw an IOException
       ParquetParser parquetParser = new ParquetParser();
-      assertThrows(IOException.class, () -> parquetParser.parseParquetFooter(ByteBuffer.wrap(tailBuffer), 20, TEST_URI));
+      assertThrows(
+          IOException.class,
+          () -> parquetParser.parseParquetFooter(ByteBuffer.wrap(tailBuffer), 20, TEST_URI));
     }
   }
 }
