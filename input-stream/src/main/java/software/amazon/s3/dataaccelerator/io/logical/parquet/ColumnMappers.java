@@ -15,13 +15,13 @@
  */
 package software.amazon.s3.dataaccelerator.io.logical.parquet;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.Value;
 
 /** Mappings of parquet column file offset index to column name and vice versa. */
 @Value
 public class ColumnMappers {
-  HashMap<Long, ColumnMetadata> offsetIndexToColumnMap;
-  HashMap<String, List<ColumnMetadata>> columnNameToColumnMap;
+  Map<Long, ColumnMetadata> offsetIndexToColumnMap;
+  Map<String, List<ColumnMetadata>> columnNameToColumnMap;
 }

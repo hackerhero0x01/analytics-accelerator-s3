@@ -15,7 +15,7 @@
  */
 package software.amazon.s3.dataaccelerator.io.logical.impl;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -163,7 +163,8 @@ public class ParquetPrefetcher {
       CompletableFuture<ColumnMappers> columnMappersCompletableFuture =
           CompletableFuture.supplyAsync(parquetReadTailTask::readFileTail)
               .thenApply(parquetMetadataParsingTask::storeColumnMappers)
-              .exceptionally((e) -> new ColumnMappers(new HashMap<>(), new HashMap<>()));
+              .exceptionally(
+                  (e) -> new ColumnMappers(Collections.emptyMap(), Collections.emptyMap()));
 
       return prefetchPredictedColumns(columnMappersCompletableFuture);
     }
@@ -199,9 +200,7 @@ public class ParquetPrefetcher {
       }
     } catch (Exception e) {
       LOG.warn(
-          "Unable to add column to recently read columns tracked list for {}.",
-          s3URI.getKey(),
-          e);
+          "Unable to add column to recently read columns tracked list for {}.", s3URI.getKey(), e);
     }
   }
 

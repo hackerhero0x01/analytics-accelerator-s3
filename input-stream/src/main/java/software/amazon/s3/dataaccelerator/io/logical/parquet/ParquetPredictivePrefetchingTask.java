@@ -19,7 +19,6 @@ import static software.amazon.s3.dataaccelerator.util.Constants.DEFAULT_MIN_ADJA
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -209,10 +208,7 @@ public class ParquetPredictivePrefetchingTask {
                 (prefetchRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(prefetchRanges);
             return physicalIO.execute(ioPlan);
           } catch (Exception e) {
-            LOG.warn(
-                "Unable to prefetch columns for {}.",
-                this.s3Uri.getKey(),
-                e);
+            LOG.warn("Unable to prefetch columns for {}.", this.s3Uri.getKey(), e);
             return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
           }
         });
@@ -310,7 +306,7 @@ public class ParquetPredictivePrefetchingTask {
     return addedColumns;
   }
 
-  private Set<String> getRecentColumns(HashMap<Long, ColumnMetadata> offsetIndexToColumnMap) {
+  private Set<String> getRecentColumns(Map<Long, ColumnMetadata> offsetIndexToColumnMap) {
     if (!offsetIndexToColumnMap.isEmpty()) {
       Map.Entry<Long, ColumnMetadata> firstColumnData =
           offsetIndexToColumnMap.entrySet().iterator().next();

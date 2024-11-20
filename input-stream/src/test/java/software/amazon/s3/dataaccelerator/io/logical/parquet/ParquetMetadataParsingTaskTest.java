@@ -29,7 +29,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -133,7 +132,7 @@ public class ParquetMetadataParsingTaskTest {
     // Deserialize fileMetaData object
     FileMetaData fileMetaData = getFileMetadata(filename);
     ColumnMappers columnMappers = getColumnMappers(fileMetaData);
-    HashMap<String, List<ColumnMetadata>> columnNameToColumnMap =
+    Map<String, List<ColumnMetadata>> columnNameToColumnMap =
         columnMappers.getColumnNameToColumnMap();
 
     // parquet file "multi_row_group.parquet" in resources has 2 columns and 3 row groups. So the
@@ -200,7 +199,7 @@ public class ParquetMetadataParsingTaskTest {
     FileMetaData fileMetaData = getFileMetadata("src/test/resources/nested_data_metadata.ser");
     ColumnMappers columnMappers = getColumnMappers(fileMetaData);
 
-    HashMap<String, List<ColumnMetadata>> columnNameToColumnMap =
+    Map<String, List<ColumnMetadata>> columnNameToColumnMap =
         columnMappers.getColumnNameToColumnMap();
     assertEquals(8, columnNameToColumnMap.size());
 

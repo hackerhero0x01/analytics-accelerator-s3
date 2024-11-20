@@ -71,7 +71,13 @@ class ParquetParser {
           s3URI.getKey(),
           fileMetadataLength,
           contentLen);
-      throw new IOException("Insufficient data in cached footer for " + s3URI.getKey() + ". Required length  is " + fileMetadataLength + ", provided length of data is " + contentLen);
+      throw new IOException(
+          "Insufficient data in cached footer for "
+              + s3URI.getKey()
+              + ". Required length  is "
+              + fileMetadataLength
+              + ", provided length of data is "
+              + contentLen);
     }
 
     fileTail.position(fileMetadataIndex);
