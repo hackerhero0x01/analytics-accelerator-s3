@@ -80,8 +80,8 @@ public class ParquetPrefetchTailTask {
             physicalIO.execute(ioPlan);
             return ioPlan.getPrefetchRanges();
           } catch (Exception e) {
-            LOG.error(
-                "Error in executing tail prefetch plan for {}. Will fallback to reading footer synchronously.",
+            LOG.warn(
+                "Unable to prefetch file tail for {}, parquet prefetch optimisations will be disabled for this key.",
                 this.s3URI.getKey(),
                 e);
             throw new CompletionException("Error in executing tail prefetch plan", e);

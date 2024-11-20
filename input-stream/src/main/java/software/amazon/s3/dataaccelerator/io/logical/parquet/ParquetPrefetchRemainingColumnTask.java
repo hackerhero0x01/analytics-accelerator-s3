@@ -86,8 +86,8 @@ public class ParquetPrefetchRemainingColumnTask {
         }
       }
     } catch (Exception e) {
-      LOG.error(
-          "Error in executing column chunk prefetching for {}. Will fallback to synchronous reading for this column.",
+      LOG.warn(
+          "Unable to prefetch remaining column chunk for {}.",
           this.s3Uri.getKey(),
           e);
     }

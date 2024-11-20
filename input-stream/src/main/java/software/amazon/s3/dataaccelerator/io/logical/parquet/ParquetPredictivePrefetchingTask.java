@@ -209,8 +209,8 @@ public class ParquetPredictivePrefetchingTask {
                 (prefetchRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(prefetchRanges);
             return physicalIO.execute(ioPlan);
           } catch (Exception e) {
-            LOG.error(
-                "Error in executing predictive prefetch plan for {}. Will fallback to synchronous reading for this key.",
+            LOG.warn(
+                "Unable to prefetch columns for {}.",
                 this.s3Uri.getKey(),
                 e);
             return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
