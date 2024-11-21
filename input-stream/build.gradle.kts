@@ -18,7 +18,9 @@ plugins {
     id("io.morethan.jmhreport") version "0.9.6"
     `java-test-fixtures`
     id("com.github.jk1.dependency-license-report") version "2.9"
+    `signing`
     `maven-publish`
+    `java`
 }
 
 licenseReport {
@@ -204,14 +206,105 @@ tasks.jmh {
     finalizedBy(tasks.jmhReport)
 }
 
+tasks.jar {
+    enabled = false
+}
+
+tasks.named<Test>("test") {
+    classpath = sourceSets["main"].output + sourceSets["test"].output + configurations["testRuntimeClasspath"]
+}
+
+// Custom Shadow JAR
+tasks.register<ShadowJar>("customShadowJar") {
+    archiveBaseName.set("analyticsaccelerator-s3")
+    archiveClassifier.set("all")
+    archiveVersion.set("0.0.1")
+    from(sourceSets.main.get().output)
+}
+
+// Custom Sources JAR
+tasks.register<Jar>("customSourcesJar") {
+    archiveBaseName.set("analyticsaccelerator-s3")
+    archiveClassifier.set("sources")
+    archiveVersion.set("0.0.1")
+    from(sourceSets["main"].allSource)
+}
+
+// Custom Javadoc JAR
+tasks.register<Jar>("customJavadocJar") {
+    archiveBaseName.set("analyticsaccelerator-s3")
+    archiveClassifier.set("javadoc")
+    archiveVersion.set("0.0.1")
+    dependsOn(tasks.named("javadoc"))
+    from(tasks.javadoc.get().destinationDir)
+}
+
+// Override output
+tasks.withType<Jar>().configureEach {
+    enabled = name in setOf("customShadowJar", "customSourcesJar", "customJavadocJar")
+}
+
+tasks.javadoc {
+    options {
+        (this as StandardJavadocDocletOptions).apply {
+            addStringOption("Xdoclint:none", "-quiet")}
+    }
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
 
 publishing {
     publications {
-        create<MavenPublication>("inputStream") {
-            groupId = "com.amazon.connector.s3"
-            version = "0.0.1"
-
+        create<MavenPublication>("mavenJava") {
             from(components["java"])
+            artifact(tasks.named("customShadowJar").get()) {
+                classifier = null
+            }
+            artifact(tasks.named("customSourcesJar"))
+            artifact(tasks.named("customJavadocJar"))
+
+            groupId = "software.amazon.s3.analyticsaccelerator"
+            artifactId = "analyticsaccelerator-s3"
+            version = "0.0.1"
+            pom {
+                name = "S3 Analytics Accelerator Library for Amazon S3"
+                description = "S3 Analytics Accelerator Library for Amazon S3"
+                url = "https://github.com/awslabs/analytics-accelerator-s3"
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        organization = "Amazon Web Services"
+                        organizationUrl = "https://aws.amazon.com"
+                    }
+                }
+                scm {
+                    url = "https://github.com/awslabs/analytics-accelerator-s3/tree/main"
+                    connection = "scm:git:ssh://git@github.com:awslabs/analytics-accelerator-s3.git"
+                    developerConnection = "scm:git:ssh://git@github.com:awslabs/analytics-accelerator-s3.git"
+                }
+            }
         }
     }
+    repositories {
+        maven{
+            name = "sonatype"
+            url = uri("https://aws.oss.sonatype.org/service/local/staging/deploy/maven2/")
+           credentials {
+               username = findProperty("mavenUsername") as String? ?: ""
+               password = findProperty("mavenPassword") as String? ?: ""
+           }
+        }
+    }
+}
+
+signing {
+    sign(publishing.publications["mavenJava"])
 }

@@ -12,10 +12,12 @@
 bin
 build
 
-#Ignore junk and IDE files
+# Ignore junk and IDE files
 .DS_Store
 .gitattributes
 *.iml
 .vscode/
 
 .
+
+gradle.properties

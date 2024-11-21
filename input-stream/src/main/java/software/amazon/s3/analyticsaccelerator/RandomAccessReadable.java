@@ -33,6 +33,7 @@ public interface RandomAccessReadable extends Closeable {
    *
    * @param pos the position to read
    * @return an unsigned int representing the byte that was read
+   * @throws IOException if an error occurs while reading the file
    */
   int read(long pos) throws IOException;
 
@@ -44,6 +45,7 @@ public interface RandomAccessReadable extends Closeable {
    * @param len length of data to be read
    * @param pos the position to begin reading from
    * @return the total number of bytes read into the buffer
+   * @throws IOException if an error occurs while reading the file
    */
   int read(byte[] buf, int off, int len, long pos) throws IOException;
 
@@ -55,6 +57,7 @@ public interface RandomAccessReadable extends Closeable {
    * @param off start position in buffer at which data is written
    * @param len the number of bytes to read; the n-th byte should be the last byte of the stream.
    * @return the total number of bytes read into the buffer
+   * @throws IOException if an error occurs while reading the file
    */
   int readTail(byte[] buf, int off, int len) throws IOException;
 }

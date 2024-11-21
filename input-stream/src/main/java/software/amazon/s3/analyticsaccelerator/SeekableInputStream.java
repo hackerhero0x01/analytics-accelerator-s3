@@ -54,6 +54,7 @@ public abstract class SeekableInputStream extends InputStream {
    * @param off start position in buffer at which data is written
    * @param n the number of bytes to read; the n-th byte should be the last byte of the stream.
    * @return the total number of bytes read into the buffer
+   * @throws IOException if an error occurs while reading the file
    */
   public abstract int readTail(byte[] buf, int off, int n) throws IOException;
 }
