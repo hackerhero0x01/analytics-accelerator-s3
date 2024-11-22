@@ -122,7 +122,7 @@ public class ParquetPrefetcher {
   private CompletableFuture<IOPlanExecution> prefetchRemainingColumnChunkImpl(
       long position, int len) {
     if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.COLUMN_BOUND) {
-      // TODO: https://github.com/awslabs/s3-connector-framework/issues/88
+      // TODO: https://github.com/awslabs/analytics-accelerator-s3/issues/88
       return CompletableFuture.supplyAsync(
           () -> parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(position, len));
     }
@@ -159,7 +159,7 @@ public class ParquetPrefetcher {
     }
 
     if (shouldPrefetch()) {
-      // TODO: https://github.com/awslabs/s3-connector-framework/issues/88
+      // TODO: https://github.com/awslabs/analytics-accelerator-s3/issues/88
       CompletableFuture<ColumnMappers> columnMappersCompletableFuture =
           CompletableFuture.supplyAsync(parquetReadTailTask::readFileTail)
               .thenApply(parquetMetadataParsingTask::storeColumnMappers)

@@ -6,7 +6,7 @@ Analytics Accelerator Library for Amazon S3 improves the price performance for y
 
 ## Current status
 
-Analytics Accelerator Library for Amazon S3 is **currently an alpha release and should not be used in production**. We're especially interested in early feedback on features, performance, and compatibility. Please send feedback by [opening a GitHub issue](https://github.com/awslabs/s3-connector-framework/issues/new/choose).
+Analytics Accelerator Library for Amazon S3 is **currently an alpha release and should not be used in production**. We're especially interested in early feedback on features, performance, and compatibility. Please send feedback by [opening a GitHub issue](https://github.com/awslabs/analytics-accelerator-s3/issues/new/choose).
 
 ## Getting Started
 
@@ -48,7 +48,7 @@ To open a stream:
 S3SeekableInputStream s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(S3URI.of(bucket, key));
 ```
 
-For more details on the usage of this stream, please refer to the [SeekableInputStream](https://github.com/awslabs/s3-connector-framework/blob/main/input-stream/src/main/java/software/amazon/s3/analyticsaccelerator/SeekableInputStream.java) interface.
+For more details on the usage of this stream, please refer to the [SeekableInputStream](https://github.com/awslabs/analytics-accelerator-s3/blob/main/input-stream/src/main/java/software/amazon/s3/analyticsaccelerator/SeekableInputStream.java) interface.
 
 When the `S3SeekableInputStreamFactory` is no longer required to create new streams, close it to free resources (eg: caches for prefetched data) held by the factory. 
 

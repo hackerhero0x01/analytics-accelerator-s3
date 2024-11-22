@@ -86,7 +86,7 @@ jobs:
       - name: Checkout Hadoop
         uses: actions/checkout@v4
         with:
-          repository: amazon-contributing/private-hadoop-staging
+          repository: ${{ secrets.HADOOP_STAGING_PATH }}
           ref: s3-connector-framework
           path: hadoop
           ssh-key: ${{ secrets.HADOOP_STAGING_SSH_KEY }}
@@ -94,7 +94,7 @@ jobs:
       - name: Build Hadoop jar
         run: |
           mvn clean install -DskipTests
-          cd  /home/runner/work/s3-connector-framework/s3-connector-framework/hadoop/hadoop-tools/hadoop-aws/
+          cd  /home/runner/work/analytics-accelerator-s3/analytics-accelerator-s3/hadoop/hadoop-tools/hadoop-aws/
           mvn -Dparallel-tests -DtestsThreadCount=8 clean test
         working-directory: hadoop
 
@@ -134,7 +134,7 @@ jobs:
       - name: Checkout Iceberg
         uses: actions/checkout@v4
         with:
-          repository: amazon-contributing/private-iceberg-staging
+          repository: ${{ secrets.ICEBERG_STAGING_PATH }}
           ref: dat-s3
           path: iceberg
           ssh-key: ${{ secrets.ICEBERG_STAGING_SSH_KEY }}
@@ -147,14 +147,14 @@ jobs:
 
       - name: Rename iceberg-spark-runtime JAR path
         run: |
-          FILE_PATH_BASE=/home/runner/work/s3-connector-framework/s3-connector-framework/iceberg/spark/v3.5/spark-runtime/build/libs/
+          FILE_PATH_BASE=/home/runner/work/analytics-accelerator-s3/analytics-accelerator-s3/iceberg/spark/v3.5/spark-runtime/build/libs/
           cd "$FILE_PATH_BASE"
           FILE_NAME=$(ls | grep "iceberg-spark-runtime-3.5_2.12-[0-9a-f]*\.jar" | head -n 1)
           mv "$FILE_NAME" "iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
 
       - uses: actions/upload-artifact@v4
         with:
-          path: "/home/runner/work/s3-connector-framework/s3-connector-framework/iceberg/spark/v3.5/spark-runtime/build/libs/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
+          path: "/home/runner/work/analytics-accelerator-s3/analytics-accelerator-s3/iceberg/spark/v3.5/spark-runtime/build/libs/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
           name: "iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar"
 
   UploadArtifactsToS3:

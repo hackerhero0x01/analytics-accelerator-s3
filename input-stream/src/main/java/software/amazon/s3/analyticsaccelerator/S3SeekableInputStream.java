@@ -161,11 +161,11 @@ public class S3SeekableInputStream extends SeekableInputStream {
   @Override
   public void seek(long pos) throws IOException {
     // TODO: S3A throws an EOFException here, S3FileIO does IllegalArgumentException
-    // TODO: https://github.com/awslabs/s3-connector-framework/issues/84
+    // TODO: https://github.com/awslabs/analytics-accelerator-s3/issues/84
     Preconditions.checkArgument(pos >= 0, "position must be non-negative");
 
     // TODO: seeking past the end of the stream should be allowed.
-    // TODO: https://github.com/awslabs/s3-connector-framework/issues/83
+    // TODO: https://github.com/awslabs/analytics-accelerator-s3/issues/83
     if (pos >= getContentLength()) {
       throw new EOFException("zero-indexed seek position must be less than the object size");
     }
