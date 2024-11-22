@@ -10,5 +10,5 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
-rootProject.name = "s3-connector-framework"
+rootProject.name = "analytics-accelerator-s3"
 include("common", "object-client", "input-stream")
