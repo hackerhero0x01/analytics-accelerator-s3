@@ -21,14 +21,3 @@ dependencies {
 
 tasks.withType<JavaCompile>().configureEach {
 }
-
-publishing {
-    publications {
-        create<MavenPublication>("common") {
-            groupId = "com.amazon.connector.s3"
-            version = "0.0.1"
-
-            from(components["java"])
-        }
-    }
-}

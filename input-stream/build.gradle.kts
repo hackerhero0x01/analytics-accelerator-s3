@@ -109,8 +109,25 @@ tasks.named("compileReferenceTestJava", JavaCompile::class) {
 }
 
 val shadowJar = tasks.withType<ShadowJar> {
-    relocate("org.apache.parquet.format", "com.amazon.shaded.apache.parquet.format")
-    relocate("shaded.parquet.org.apache.thrift", "com.amazon.shaded.parquet.org.apache.thrift")
+
+    // include the LICENSE and NOTICE files for the shaded Jar
+    from(rootDir) {
+        include("LICENSE")
+        include("NOTICE")
+        include("THIRD-PARTY-NOTICES")
+    }
+
+    dependencies {
+        exclude(dependency("org.slf4j:slf4j-api"))
+        exclude(dependency("io.netty:"))
+        exclude {
+            it.moduleGroup.startsWith("software.amazon.awssdk", 0) ||
+                    it.moduleGroup.startsWith("software.amazon.eventstream", 0)
+        }
+    }
+
+    relocate("org.apache.parquet.format", "software.amazon.s3.shaded.apache.parquet.format")
+    relocate("shaded.parquet.org.apache.thrift", "software.amazon.s3.shaded.parquet.org.apache.thrift")
 }
 
 val refTest = task<Test>("referenceTest") {

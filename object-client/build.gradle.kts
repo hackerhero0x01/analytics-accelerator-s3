@@ -23,14 +23,3 @@ dependencies {
 tasks.test {
     environment("AWS_REGION", "eu-west-1")
 }
-
-publishing {
-    publications {
-        create<MavenPublication>("objectClient") {
-            groupId = "com.amazon.connector.s3"
-            version = "0.0.1"
-
-            from(components["java"])
-        }
-    }
-}
