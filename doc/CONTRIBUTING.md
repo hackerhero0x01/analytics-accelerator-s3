@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-Thank you for your interest in contributing to Data Accelerator Toolkit for Amazon S3. Whether it's a bug report, new feature, correction, or additional
+Thank you for your interest in contributing to Analytics Accelerator Library for Amazon S3. Whether it's a bug report, new feature, correction, or additional
 documentation, we greatly value feedback and contributions from our community.
 
 Please read through this document before submitting any issues or pull requests to ensure we have all the necessary
@@ -61,5 +61,5 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## Licensing
 
-Data Accelerator Toolkit for Amazon S3 is licensed under the Apache-2.0 license. 
+Analytics Accelerator Library for Amazon S3 is licensed under the Apache-2.0 license. 
 The pull request template will ask you to confirm the licensing of your contribution and to agree to the [Developer Certificate of Origin (DCO)](https://developercertificate.org/).

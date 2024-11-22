@@ -1,5 +1,6 @@
 ## Unreleased
 
+* Refactor package and module name
 * Add telemetry to logical and physical reads
 * Add a JSON `TelemetryFormat` implementation
 * Add `TelemetryFormat` interface and refactor

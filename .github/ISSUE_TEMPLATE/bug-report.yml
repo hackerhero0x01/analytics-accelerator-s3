@@ -14,9 +14,9 @@ body:
   - type: input
     id: dats3-version
     attributes:
-      label: Data Accelerator Toolkit for Amazon S3 Version
+      label: Analytics Accelerator Library for Amazon S3 Version
       description: |
-        Which version of Data Accelerator Toolkit for Amazon S3 are you using?
+        Which version of Analytics Accelerator Library for Amazon S3 are you using?
         If you are building from source or a fork, please state that.
       placeholder: x.y
     validations:
