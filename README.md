@@ -5,7 +5,7 @@ Analytics Accelerator Library for Amazon S3 is an open source library that accel
 With this library, you can: 
 * Lower processing times and compute costs for Amazon S3 data-intensive workloads.
 * Implement S3 best practices for performance. 
-* Utilize optimizations specific to [Apache Parquet](https://parquet.apache.org/) files, such as caching object metadata located in the footer of the object and predictive column pre-fetching.
+* Utilize optimizations specific to [Apache Parquet](https://parquet.apache.org/) files, such as pre-fetching metadata located in the footer of the object and predictive column pre-fetching.
 * Improve the price performance for your data analytics applications, including workloads based on [Apache Spark](https://spark.apache.org/) and open table formats such as [Apache Iceberg](https://iceberg.apache.org/). 
 
 ## Current status
