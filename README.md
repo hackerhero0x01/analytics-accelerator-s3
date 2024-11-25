@@ -74,7 +74,19 @@ The AWS CRT is a software library built for interacting with AWS services, that 
 * Parquet footer caching - The library reads the last 1MB of a parquet file as soon as a stream to a parquet object is opened and caches it in memory. This is done to prevent multiple small GET requests that occur at the tail
   of the file for the parquet metadata, `pageIndex`, and bloom filter structures. 
 * Predictive column prefetching - The library tracks recent columns being read using parquet metadata. When
-  subsequent parquet files which have these columns are opened, the library will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened, and it also contains columns named `x` and `y`, the library will prefetch them asynchronously. 
+  subsequent parquet files which have these columns are opened, the library will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened, and it also contains columns named `x` and `y`, the library will prefetch them asynchronously.
+
+## TPC-DS benchmarking summary
+These results are presented for demonstration purposes only. Note that a broad set of factors, including compute and storage variability, cluster configuration and compute choice can affect the performance of the queries. All the results have the margin of error of up to 3%.
+
+To establish the performance impact of changes we make, we rely on an industry standard benchmark derived from TPC-DS at 3 TB scale (note that our TPC-DS derived benchmark results are not directly comparable with official TPC-DS benchmark results). We have also found that the sizing of parquet and partitioning of the dataset have a substantive impact on the workload performance. Because of this, we have created several versions of the TPC-DS dataset, with focus on different object sizes(singular MiB to tens of GiB) and partitioning approaches.
+
+On S3A, we have observed an overall TPC-DS speed up between 10% and 27%, with some queries showing a speed-up over 40%.
+
+**We are currently observing a regression of up to 8% on queries similar to Q44** - see  issue 173 for further discussion. We have root caused this to data over-read due to overly aggressive columnar prefetching on large objects (>1GB) for highly selective queries that rely on solely on column dictionary data instead of column value scan to return results (e.g. `select * from store_sales where ss_customer_sk=X`). We expect to be addressing this in the next release.
+
+**The rest of TPC-DS queries show no regressions** within the specified margin of error.
+
 
 ## Contributions
 
