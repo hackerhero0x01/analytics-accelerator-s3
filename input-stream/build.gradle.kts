@@ -256,6 +256,8 @@ java {
     withSourcesJar()
 }
 
+val signingEnabled = project.hasProperty("signingEnabled") && project.property("signingEnabled") == "true"
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
@@ -306,5 +308,9 @@ publishing {
 }
 
 signing {
-    sign(publishing.publications["mavenJava"])
+    if (signingEnabled) {
+        sign(publishing.publications["mavenJava"])
+    } else {
+        logger.lifecycle("Signing is disabled because signingEnabled property is either not set or set to false.")
+    }
 }
