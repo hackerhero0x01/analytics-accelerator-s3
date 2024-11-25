@@ -120,6 +120,15 @@ val shadowJar = tasks.withType<ShadowJar> {
     dependencies {
         exclude(dependency("org.slf4j:slf4j-api"))
         exclude(dependency("io.netty:"))
+        exclude(dependency("javax.annotation:"))
+        exclude(dependency("org.reactivestreams:"))
+        exclude(dependency("org.apache.httpcomponents:"))
+        exclude(dependency("commons-codec:"))
+        exclude(dependency("commons-logging:"))
+
+
+
+
         exclude {
             it.moduleGroup.startsWith("software.amazon.awssdk", 0) ||
                     it.moduleGroup.startsWith("software.amazon.eventstream", 0)
