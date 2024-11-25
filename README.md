@@ -3,10 +3,10 @@
 Analytics Accelerator Library for Amazon S3 is an open source library that accelerates data access from client applications to Amazon S3. 
 
 With this library, you can: 
-* Lower processing times and compute costs for Amazon S3 data-intensive workloads.
+* Lower processing times and compute costs for for data analytics workloads.
 * Implement S3 best practices for performance. 
 * Utilize optimizations specific to [Apache Parquet](https://parquet.apache.org/) files, such as pre-fetching metadata located in the footer of the object and predictive column pre-fetching.
-* Improve the price performance for your data analytics applications, including workloads based on [Apache Spark](https://spark.apache.org/) and open table formats such as [Apache Iceberg](https://iceberg.apache.org/). 
+* Improve the price performance for your data analytics applications, such as workloads based on [Apache Spark](https://spark.apache.org/). 
 
 ## Current status
 
@@ -14,7 +14,7 @@ Analytics Accelerator Library for Amazon S3 is **currently an alpha release and 
 
 ## Getting Started
 
-Analytics Accelerator Library for Amazon S3 provides an interface for a seekable input stream. The library is currently being integrated and tested with the [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.) client and [Apache Iceberg’s S3FileIO](https://iceberg.apache.org/docs/1.6.0/aws/?h=s3fileio#s3-strong-consistency).
+Analytics Accelerator Library for Amazon S3 provides an interface for a seekable input stream. The library is currently being integrated and tested with the [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.) client.
 
 To get started, import the library dependency from Maven into your project:
 
@@ -62,23 +62,42 @@ s3SeekableInputStreamFactory.close();
 
 ## Summary of Optimizations
 
-Analytics Accelerator Library for Amazon S3 accelerates read performance of objects stored in Amazon S3 by integrating AWS Common Run Time (CRT) libraries, delivering read-only workload optimizations, and implementing optimizations specific to Parquet files. 
-The AWS CRT is a software library built for interacting with AWS services, that implements best practice performance design patterns, including timeouts, retries, and automatic request parallelization for high throughput.
-`S3SeekableInputStreamFactory` can be used to initialize streams for all file types to benefit from read-only workload optimizations on top of benefits coming from CRT. These optimizations are:
+Analytics Accelerator Library for Amazon S3 accelerates read performance of objects stored in Amazon S3 by integrating AWS Common Run Time (CRT) libraries and implementing optimizations specific to Apache Parquet files. The AWS CRT is a software library built for interacting with AWS services, that implements best practice performance design patterns, including timeouts, retries, and automatic request parallelization for high throughput. `S3SeekableInputStreamFactory` can be used to initialize streams for all file types to benefit from read optimizations on top of benefits coming from CRT. 
+
+These optimizations are:
 
 * Sequential prefetching - The library detects sequential read patterns to prefetch data and reduce latency, and reads the full object when the object is small to minimize the number of read operations.
 * Small object prefetching - The library will prefetch the object if the object size is less than 3MB.
 
- When the `S3URI` has the file extension `.parquet` or `.par`, we use the following Apache Parquet specific optimisations:
+ When the `S3URI` has the file extension `.parquet` or `.par`, we use the following Apache Parquet specific optimizations:
 
-* Parquet footer caching - The library reads the last 1MB of a parquet file as soon as a stream to a parquet object is opened and caches it in memory. This is done to prevent multiple small GET requests that occur at the tail
-  of the file for the parquet metadata, `pageIndex`, and bloom filter structures. 
+* Parquet footer caching - The library reads the last 1MB of a Parquet file as soon as a stream to a Parquet object is opened and caches it in memory. This is done to prevent multiple small GET requests that occur at the tail
+  of the file for the Parquet metadata, `pageIndex`, and bloom filter structures. 
 * Predictive column prefetching - The library tracks recent columns being read using parquet metadata. When
-  subsequent parquet files which have these columns are opened, the library will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened, and it also contains columns named `x` and `y`, the library will prefetch them asynchronously. 
+  subsequent Parquet files which have these columns are opened, the library will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened, and it also contains columns named `x` and `y`, the library will prefetch them asynchronously.
+
+## Benchmark Results 
+
+### Benchmarking Results -- November 25, 2024
+
+The current benchmarking results are provided for reference only. It is important to note that the performance of these queries can be affected by a variety of factors, including compute and storage variability, cluster configuration, and compute choice. All of the results presented have a margin of error of up to 3%.
+
+To establish the performance impact of changes, we rely on a benchmark derived from an industry standard TPC-DS benchmark at a 3 TB scale. It is important to note that our TPC-DS derived benchmark results are not directly comparable with official TPC-DS benchmark results. We also found that the sizing of Apache Parquet files and partitioning of the dataset have a substantive impact on the workload performance. As a result, we have created several versions of the test dataset, with a focus on different object sizes, ranging from singular MiBs to tens of GiBs, as well as various partitioning approaches
+
+On S3A, we have observed a total suite execution acceleration between 10% and 27%, with some queries showing a speed-up of up to 40%. 
+
+**Known issue:** We are currently observing a regression of up to 8% on queries similar to the Q44 in [issue 173](https://github.com/awslabs/analytics-accelerator-s3/issues/173). We have determined the root cause of this issue is a data over-read due to overly ea columnar prefetching when all of the following is true: 
+1. The query is filtering on dictionary encoded columns.
+1. The query is selective, and most objects do not contain the required data.
+1. The query operates on a multi-GB dataset.
+   
+We are actively working on this issue. You can track the progress in the [issue 173](https://github.com/awslabs/analytics-accelerator-s3/issues/173) page. 
+
+The remaining TPC-DS queries show no regressions within the specified margin of error.
 
 ## Contributions
 
-We welcome contributions to Analytics Accelerator Library for Amazon S3! Please see [CONTRIBUTING](doc/CONTRIBUTING.md) for more information on how to report bugs, build from source code, or submit pull requests.
+We welcome contributions to Analytics Accelerator Library for Amazon S3! Please see the [contributing guidelines](doc/CONTRIBUTING.md) for more information on how to report bugs, build from source code, or submit pull requests.
 
 ## Security
 
@@ -86,5 +105,5 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## License
 
-Analytics Accelerator Library for Amazon S3 is licensed under the Apache-2.0 license. 
+Analytics Accelerator Library for Amazon S3 is licensed under the [Apache-2.0 license](LICENSE). 
 The pull request template will ask you to confirm the licensing of your contribution and to agree to the [Developer Certificate of Origin (DCO)](https://developercertificate.org/).
