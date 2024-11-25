@@ -10,7 +10,7 @@ import com.github.jk1.license.render.TextReportRenderer
 
 val group = "software.amazon.s3.analyticsaccelerator"
 val artefact = "analyticsaccelerator-s3"
-val current_version = "0.0.1"
+val currentVersion = "0.0.1"
 
 plugins {
     id("buildlogic.java-library-conventions")
@@ -113,7 +113,7 @@ tasks.named("compileReferenceTestJava", JavaCompile::class) {
 val shadowJar = tasks.withType<ShadowJar> {
 
     archiveBaseName.set(artefact)
-    archiveVersion.set(current_version)
+    archiveVersion.set(currentVersion)
     archiveClassifier = null
 
     // include the LICENSE and NOTICE files for the shaded Jar
@@ -248,7 +248,7 @@ tasks.named<Test>("test") {
 tasks.register<Jar>("customSourcesJar") {
     archiveBaseName.set(artefact)
     archiveClassifier.set("sources")
-    archiveVersion.set(current_version)
+    archiveVersion.set(currentVersion)
     from(sourceSets["main"].allSource)
 }
 
@@ -257,7 +257,7 @@ tasks.register<Jar>("customSourcesJar") {
 tasks.register<Jar>("customJavadocJar") {
     archiveBaseName.set(artefact)
     archiveClassifier.set("javadoc")
-    archiveVersion.set(current_version)
+    archiveVersion.set(currentVersion)
     dependsOn(tasks.named("javadoc"))
     from(tasks.javadoc.get().destinationDir)
 }
@@ -270,22 +270,19 @@ tasks.javadoc {
     }
 }
 
-val javaComponent = components["java"] as AdhocComponentWithVariants
-javaComponent.withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
-javaComponent.withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
-
 val signingEnabled = project.hasProperty("signingEnabled") && project.property("signingEnabled") == "true"
 
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
-            from(javaComponent)
+
+            artifact(tasks["shadowJar"])
             artifact(tasks.named("customSourcesJar"))
             artifact(tasks.named("customJavadocJar"))
 
             groupId = group
             artifactId = artefact
-            version = current_version
+            version = currentVersion
 
             pom {
                 name = "S3 Analytics Accelerator Library for Amazon S3"
