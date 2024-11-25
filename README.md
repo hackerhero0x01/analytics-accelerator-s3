@@ -76,16 +76,22 @@ The AWS CRT is a software library built for interacting with AWS services, that 
 * Predictive column prefetching - The library tracks recent columns being read using parquet metadata. When
   subsequent parquet files which have these columns are opened, the library will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened, and it also contains columns named `x` and `y`, the library will prefetch them asynchronously.
 
-## TPC-DS benchmarking summary
-These results are presented for demonstration purposes only. Note that a broad set of factors, including compute and storage variability, cluster configuration and compute choice can affect the performance of the queries. All the results have the margin of error of up to 3%.
+## TPC-DS benchmarking summary (November 25th 2024) with [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.).
+The current TPC-DS benchmarking results are provided for reference only. It is important to note that the performance of these queries can be affected by a variety of factors, including compute and storage variability, cluster configuration, and compute choice. All the results presented have a margin of error of up to 3%.
 
-To establish the performance impact of changes we make, we rely on an industry standard benchmark derived from TPC-DS at 3 TB scale (note that our TPC-DS derived benchmark results are not directly comparable with official TPC-DS benchmark results). We have also found that the sizing of parquet and partitioning of the dataset have a substantive impact on the workload performance. Because of this, we have created several versions of the TPC-DS dataset, with focus on different object sizes(singular MiB to tens of GiB) and partitioning approaches.
+To establish the performance impact of changes, we rely on a benchmark derived from an industry standard TPC-DS benchmark at 3 TB scale. 
+It is important to note that our TPC-DS derived benchmark results are not directly comparable with official TPC-DS benchmark results. 
+We also found that the sizing of Parquet files and partitioning of the dataset have a substantive impact on the workload performance. 
+As a result, we have created several versions of the test dataset, with a focus on different object sizes ranging from singular MiBs to tens of GiBs, as well as various partitioning approaches.
 
-On S3A, we have observed an overall TPC-DS speed up between 10% and 27%, with some queries showing a speed-up over 40%.
+With [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.), we have observed a total suite execution acceleration between 10% and 27%, with some queries showing a speed-up of up to 40%.
 
-**We are currently observing a regression of up to 8% on queries similar to Q44** - see  issue 173 for further discussion. We have root caused this to data over-read due to overly aggressive columnar prefetching on large objects (>1GB) for highly selective queries that rely on solely on column dictionary data instead of column value scan to return results (e.g. `select * from store_sales where ss_customer_sk=X`). We expect to be addressing this in the next release.
+**Known issue**: we are currently observing a regression of up to 8% on queries similar to Q44 - see [issue 173](https://github.com/awslabs/analytics-accelerator-s3/issues/173) for further discussion. 
+We have root caused this to data over-reads due to overly eager columnar prefetching on large objects (>1GB) for highly selective queries that rely solely on column dictionary data instead of column value scan to return results (e.g. `select * from store_sales where ss_customer_sk=X`). 
+We are actively working on this issue. You can track the progress in the [issue page](https://github.com/awslabs/analytics-accelerator-s3/issues/173). 
 
-**The rest of TPC-DS queries show no regressions** within the specified margin of error.
+The rest of TPC-DS queries show no regressions within the specified margin of error.
+
 
 
 ## Contributions
