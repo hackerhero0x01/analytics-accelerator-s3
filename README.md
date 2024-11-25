@@ -87,7 +87,7 @@ As a result, we have created several versions of the test dataset, with a focus 
 With [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.), we have observed a total suite execution acceleration between 10% and 27%, with some queries showing a speed-up of up to 40%.
 
 **Known issue**: we are currently observing a regression of up to 8% on queries similar to Q44 - see [issue 173](https://github.com/awslabs/analytics-accelerator-s3/issues/173) for further discussion. 
-We have root caused this to data over-reads due to overly eager columnar prefetching on large objects (>1GB) for highly selective queries that rely solely on column dictionary data instead of column value scan to return results (e.g. `select * from store_sales where ss_customer_sk=X`). 
+We have root caused this to data over-reads due to overly eager columnar prefetching for highly selective queries that rely solely on column dictionary data instead of column value scan to return results (e.g. `select * from store_sales where ss_customer_sk=X`). 
 We are actively working on this issue. You can track the progress in the [issue page](https://github.com/awslabs/analytics-accelerator-s3/issues/173). 
 
 The rest of TPC-DS queries show no regressions within the specified margin of error.
