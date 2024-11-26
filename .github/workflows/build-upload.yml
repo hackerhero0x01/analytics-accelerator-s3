@@ -120,12 +120,6 @@ jobs:
         run: |
           ./gradlew publishToMavenLocal
 
-      - name: TEMPORARY publish updated versions to local Maven
-        run: |
-          mvn install:install-file -Dfile=input-stream/build/libs/input-stream.jar -DgroupId=com.amazon.connector.s3 -DartifactId=input-stream -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
-          mvn install:install-file -Dfile=object-client/build/libs/object-client.jar -DgroupId=com.amazon.connector.s3 -DartifactId=object-client -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
-          mvn install:install-file -Dfile=common/build/libs/common.jar -DgroupId=com.amazon.connector.s3 -DartifactId=common -Dversion=0.0.1 -Dpackaging=jar -DgeneratePom=true
-
       - name: Setup Iceberg SSH deploy key
         uses: webfactory/ssh-agent@v0.9.0
         with:
