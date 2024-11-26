@@ -3,7 +3,7 @@
 Analytics Accelerator Library for Amazon S3 is an open source library that accelerates data access from client applications to Amazon S3. 
 
 With this library, you can: 
-* Lower processing times and compute costs for for data analytics workloads.
+* Lower processing times and compute costs for data analytics workloads.
 * Implement S3 best practices for performance. 
 * Utilize optimizations specific to [Apache Parquet](https://parquet.apache.org/) files, such as pre-fetching metadata located in the footer of the object and predictive column pre-fetching.
 * Improve the price performance for your data analytics applications, such as workloads based on [Apache Spark](https://spark.apache.org/). 
@@ -14,7 +14,7 @@ Analytics Accelerator Library for Amazon S3 is **currently an alpha release and 
 
 ## Getting Started
 
-Analytics Accelerator Library for Amazon S3 provides an interface for a seekable input stream. The library is currently being integrated and tested with the [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.) client.
+Alpha version of the library provides an interface for a seekable input stream. The library is currently being integrated and tested with the [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.) client.
 
 To get started, import the library dependency from Maven into your project:
 
@@ -69,9 +69,9 @@ These optimizations are:
 * Sequential prefetching - The library detects sequential read patterns to prefetch data and reduce latency, and reads the full object when the object is small to minimize the number of read operations.
 * Small object prefetching - The library will prefetch the object if the object size is less than 3MB.
 
- When the `S3URI` has the file extension `.parquet` or `.par`, we use the following Apache Parquet specific optimizations:
+ When the object key ends with the file extension `.parquet` or `.par`, we use the following Apache Parquet specific optimizations:
 
-* Parquet footer caching - The library reads the last 1MB of a Parquet file as soon as a stream to a Parquet object is opened and caches it in memory. This is done to prevent multiple small GET requests that occur at the tail
+* Parquet footer caching - The library reads the tail of the object with configurable size (1MB by default) as soon as a stream to a Parquet object is opened and caches it in memory. This is done to prevent multiple small GET requests that occur at the tail
   of the file for the Parquet metadata, `pageIndex`, and bloom filter structures. 
 * Predictive column prefetching - The library tracks recent columns being read using parquet metadata. When
   subsequent Parquet files which have these columns are opened, the library will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened, and it also contains columns named `x` and `y`, the library will prefetch them asynchronously.
