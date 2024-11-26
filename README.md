@@ -86,7 +86,7 @@ To establish the performance impact of changes, we rely on a benchmark derived f
 
 On S3A, we have observed a total suite execution acceleration between 10% and 27%, with some queries showing a speed-up of up to 40%. 
 
-**Known issue:** We are currently observing a regression of up to 8% on queries similar to the Q44 in [issue 173](https://github.com/awslabs/analytics-accelerator-s3/issues/173). We have determined the root cause of this issue is a data over-read due to overly ea columnar prefetching when all of the following is true: 
+**Known issue:** We are currently observing a regression of up to 8% on queries similar to the Q44 in [issue 173](https://github.com/awslabs/analytics-accelerator-s3/issues/173). We have determined the root cause of this issue is a data over-read due to overly eager columnar prefetching when all of the following is true: 
 1. The query is filtering on dictionary encoded columns.
 1. The query is selective, and most objects do not contain the required data.
 1. The query operates on a multi-GB dataset.
