@@ -281,40 +281,9 @@ publishing {
 
             groupId = group
             artifactId = artefact
-            version = currentVersion
 
-            pom {
-                name = "S3 Analytics Accelerator Library for Amazon S3"
-                description = "S3 Analytics Accelerator Library for Amazon S3"
-                url = "https://github.com/awslabs/analytics-accelerator-s3"
-                licenses {
-                    license {
-                        name = "The Apache License, Version 2.0"
-                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-                    }
-                }
-                developers {
-                    developer {
-                        organization = "Amazon Web Services"
-                        organizationUrl = "https://aws.amazon.com"
-                    }
-                }
-                scm {
-                    url = "https://github.com/awslabs/analytics-accelerator-s3/tree/main"
-                    connection = "scm:git:ssh://git@github.com:awslabs/analytics-accelerator-s3.git"
-                    developerConnection = "scm:git:ssh://git@github.com:awslabs/analytics-accelerator-s3.git"
-                }
-            }
-        }
-
-        create<MavenPublication>("snapshot") {
-            artifact(tasks["shadowJar"])
-            artifact(tasks.named("customSourcesJar"))
-            artifact(tasks.named("customJavadocJar"))
-
-            groupId = group
-            artifactId = artefact
-            version = "$currentVersion-SNAPSHOT"
+            val isSnapshot = findProperty("snapshotBuild") == "true"
+            version = if (isSnapshot) "SNAPSHOT" else currentVersion;
 
             pom {
                 name = "S3 Analytics Accelerator Library for Amazon S3"
