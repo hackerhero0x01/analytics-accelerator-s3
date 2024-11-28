@@ -36,27 +36,12 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          ./gradlew build
+          ./gradlew -PsnapshotBuild=true build
 
       - uses: actions/upload-artifact@v4
         with:
-          path: "common/build/libs/common.jar"
-          name: "common.jar"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          path: "input-stream/build/libs/input-stream-all.jar"
-          name: "input-stream-all.jar"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          path: "input-stream/build/libs/input-stream.jar"
-          name: "input-stream.jar"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          path: "object-client/build/libs/object-client.jar"
-          name: "object-client.jar"
+          path: "input-stream/build/libs/analyticsaccelerator-s3-SNAPSHOT.jar"
+          name: "analyticsaccelerator-s3-SNAPSHOT.jar"
 
   BuildHadoopAndUploadArtifact:
     name: Build Hadoop artifacts
@@ -73,10 +58,7 @@ jobs:
 
       - name: Build and publish to local Maven with Gradle
         run: |
-          ./gradlew publishToMavenLocal
-
-      - name: Publish uber jar to local Maven
-        run: mvn install:install-file -Dfile=input-stream/build/libs/input-stream-all.jar -DgroupId=com.amazon.connector.s3 -DartifactId=input-stream -Dversion=1.0.0 -Dpackaging=jar -DgeneratePom=true
+          ./gradlew -PsnapshotBuild=true publishToMavenLocal
 
       - name: Setup Hadoop SSH deploy key
         uses: webfactory/ssh-agent@v0.9.0
@@ -161,19 +143,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: "common.jar"
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: "input-stream-all.jar"
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: "input-stream.jar"
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: "object-client.jar"
+          name: "analyticsaccelerator-s3-SNAPSHOT.jar"
 
       - uses: actions/download-artifact@v4
         with:
@@ -190,23 +160,11 @@ jobs:
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload common JAR to S3a treatment bucket
-        run: aws s3 cp common.jar s3://${{ env.S3_BUCKET }}/s3a/common-1.0.0.jar
+      - name: Upload analyticsaccelerator JAR to S3a treatment bucket
+        run: aws s3 cp analyticsaccelerator-s3-SNAPSHOT.jar s3://${{ env.S3_BUCKET }}/s3a/analyticsaccelerator-s3-SNAPSHOT.jar
 
-      - name: Upload common JAR to S3FileIO treatment bucket
-        run: aws s3 cp common.jar s3://${{ env.S3_BUCKET }}/s3fileio/common.jar
-
-      - name: Upload input-stream JAR to S3a treatment bucket
-        run: aws s3 cp input-stream-all.jar s3://${{ env.S3_BUCKET }}/s3a/input-stream-1.0.0.jar
-
-      - name: Upload input-stream JAR to S3FileIO treatment bucket
-        run: aws s3 cp input-stream.jar s3://${{ env.S3_BUCKET }}/s3fileio/input-stream.jar
-
-      - name: Upload object-client JAR to S3a treatment bucket
-        run: aws s3 cp object-client.jar s3://${{ env.S3_BUCKET }}/s3a/object-client-1.0.0.jar
-
-      - name: Upload object-client JAR to S3FileIO treatment bucket
-        run: aws s3 cp object-client.jar s3://${{ env.S3_BUCKET }}/s3fileio/object-client.jar
+      - name: Upload analyticsaccelerator JAR to S3FileIO treatment bucket
+        run: aws s3 cp analyticsaccelerator-s3-SNAPSHOT.jar s3://${{ env.S3_BUCKET }}/s3fileio/analyticsaccelerator-s3-SNAPSHOT.jar
 
       - name: Upload Iceberg JAR to S3FileIO treatment bucket
         run: aws s3 cp iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar s3://${{ env.S3_BUCKET }}/s3fileio/iceberg-spark-runtime-3.5_2.12-1.6.0-SNAPSHOT.jar

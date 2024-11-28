@@ -10,7 +10,10 @@ import com.github.jk1.license.render.TextReportRenderer
 
 val group = "software.amazon.s3.analyticsaccelerator"
 val artefact = "analyticsaccelerator-s3"
-val currentVersion = "0.0.1"
+val currentVersionNumber = "0.0.1"
+
+val isSnapshot = findProperty("snapshotBuild") == "true"
+val currentVersion = if (isSnapshot) "SNAPSHOT" else currentVersionNumber;
 
 plugins {
     id("buildlogic.java-library-conventions")
@@ -282,8 +285,7 @@ publishing {
             groupId = group
             artifactId = artefact
 
-            val isSnapshot = findProperty("snapshotBuild") == "true"
-            version = if (isSnapshot) "SNAPSHOT" else currentVersion;
+            version = currentVersion
 
             pom {
                 name = "S3 Analytics Accelerator Library for Amazon S3"
