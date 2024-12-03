@@ -16,6 +16,7 @@
 package software.amazon.s3.analyticsaccelerator.io.logical.parquet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_GB;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import java.util.List;
@@ -53,6 +54,58 @@ public class ParquetUtilsTest {
 
     assertEquals(range.getStart(), 0);
     assertEquals(range.getEnd(), 2 * ONE_MB - 1);
+  }
+
+  @Test
+  void testGetFileTailPrefetchRanges() {
+    List<Range> ranges =
+        ParquetUtils.getFileTailPrefetchRanges(LogicalIOConfiguration.DEFAULT, 0, 5 * ONE_MB);
+
+    assertEquals(ranges.size(), 2);
+
+    Range fileMetadataRange = ranges.get(0);
+    Range pageIndexRange = ranges.get(1);
+
+    assertEquals(
+        fileMetadataRange.getStart(),
+        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getFileMetadataPrefetchSize());
+    assertEquals(fileMetadataRange.getEnd(), 5 * ONE_MB - 1);
+
+    assertEquals(
+        pageIndexRange.getStart(),
+        5 * ONE_MB
+            - LogicalIOConfiguration.DEFAULT.getFileMetadataPrefetchSize()
+            - LogicalIOConfiguration.DEFAULT.getFilePageIndexPrefetchSize());
+    assertEquals(
+        pageIndexRange.getEnd(),
+        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getFileMetadataPrefetchSize() - 1);
+  }
+
+  @Test
+  void testGetLargeFileTailPrefetchRanges() {
+    long contentLength = 5L * ONE_GB;
+
+    List<Range> ranges =
+        ParquetUtils.getFileTailPrefetchRanges(LogicalIOConfiguration.DEFAULT, 0, contentLength);
+
+    assertEquals(ranges.size(), 2);
+
+    Range fileMetadataRange = ranges.get(0);
+    Range pageIndexRange = ranges.get(1);
+
+    assertEquals(
+        fileMetadataRange.getStart(),
+        contentLength - LogicalIOConfiguration.DEFAULT.getLargeFileMetadataPrefetchSize());
+    assertEquals(fileMetadataRange.getEnd(), contentLength - 1);
+
+    assertEquals(
+        pageIndexRange.getStart(),
+        contentLength
+            - LogicalIOConfiguration.DEFAULT.getLargeFileMetadataPrefetchSize()
+            - LogicalIOConfiguration.DEFAULT.getLargeFilePageIndexPrefetchSize());
+    assertEquals(
+        pageIndexRange.getEnd(),
+        contentLength - LogicalIOConfiguration.DEFAULT.getLargeFileMetadataPrefetchSize() - 1);
   }
 
   @Test

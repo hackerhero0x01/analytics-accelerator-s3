@@ -23,6 +23,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -86,7 +87,8 @@ public class ParquetPrefetchTailTaskTest {
         getPrefetchRangeList(
             configuration.getFileMetadataPrefetchSize(),
             configuration.getFilePageIndexPrefetchSize(),
-            configuration.getSmallObjectSizeThreshold());
+            configuration.getSmallObjectSizeThreshold(),
+            5L * configuration.getLargeFileSize());
 
     for (Map.Entry<Long, List<Range>> contentLengthToRangeList : contentSizeToRanges.entrySet()) {
       PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
@@ -124,7 +126,7 @@ public class ParquetPrefetchTailTaskTest {
   }
 
   private HashMap<Long, List<Range>> getPrefetchRangeList(
-      long footerSize, long pageIndexSize, long smallFileSize) {
+      long footerSize, long pageIndexSize, long smallFileSize, long largeFileSize) {
     return new HashMap<Long, List<Range>>() {
       {
         put(
@@ -164,6 +166,14 @@ public class ParquetPrefetchTailTaskTest {
                     new Range(
                         smallFileSize + 10 - footerSize - pageIndexSize,
                         smallFileSize + 10 - footerSize - 1));
+              }
+            });
+        put(
+            largeFileSize,
+            new ArrayList<Range>() {
+              {
+                add(new Range(largeFileSize - ONE_MB, largeFileSize - 1));
+                add(new Range(largeFileSize - ONE_MB - (8 * ONE_MB), largeFileSize - ONE_MB - 1));
               }
             });
       }

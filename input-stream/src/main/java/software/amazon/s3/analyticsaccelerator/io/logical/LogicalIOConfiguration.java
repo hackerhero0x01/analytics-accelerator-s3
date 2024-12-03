@@ -32,15 +32,11 @@ import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 public class LogicalIOConfiguration {
   private static final boolean DEFAULT_FOOTER_PREFETCH_ENABLED = true;
   private static final boolean DEFAULT_PAGE_INDEX_PREFETCH_ENABLED = true;
-
   private static final long DEFAULT_FILE_METADATA_PREFETCH_SIZE = 32 * ONE_KB;
   private static final long DEFAULT_LARGE_FILE_METADATA_PREFETCH_SIZE = ONE_MB;
-
   private static final long DEFAULT_FILE_PAGE_INDEX_PREFETCH_SIZE = ONE_MB;
   private static final long DEFAULT_LARGE_FILE_PAGE_INDEX_PREFETCH_SIZE = 8 * ONE_MB;
-
   private static final long DEFAULT_LARGE_FILE_SIZE = ONE_GB;
-
   private static final boolean DEFAULT_SMALL_OBJECT_PREFETCHING_ENABLED = true;
   private static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 3 * ONE_MB;
   private static final int DEFAULT_PARQUET_METADATA_STORE_SIZE = 45;
