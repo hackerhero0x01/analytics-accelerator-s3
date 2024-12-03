@@ -16,7 +16,6 @@
 package software.amazon.s3.analyticsaccelerator.io.logical.parquet;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -73,10 +72,10 @@ public class ParquetPrefetchTailTask {
         () -> {
           try {
             long contentLength = physicalIO.metadata().getContentLength();
-            Optional<Range> tailRangeOptional =
-                ParquetUtils.getFileTailRange(logicalIOConfiguration, 0, contentLength);
+            List<Range> ranges =
+                ParquetUtils.getFileTailPrefetchRanges(logicalIOConfiguration, 0, contentLength);
+            IOPlan ioPlan = new IOPlan(ranges);
             // Create a non-empty IOPlan only if we have a valid range to work with
-            IOPlan ioPlan = tailRangeOptional.map(IOPlan::new).orElse(IOPlan.EMPTY_PLAN);
             physicalIO.execute(ioPlan);
             return ioPlan.getPrefetchRanges();
           } catch (Exception e) {

@@ -26,6 +26,7 @@ import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 public final class ParquetUtils {
   /** Prevent direct instantiation, this is meant to be a facade. */
   private ParquetUtils() {}
+
   /**
    * Gets range of file tail to be read.
    *
@@ -37,14 +38,11 @@ public final class ParquetUtils {
   public static Optional<Range> getFileTailRange(
       LogicalIOConfiguration logicalIOConfiguration, long startRange, long contentLength) {
 
-    if (contentLength > logicalIOConfiguration.getFooterCachingSize()) {
-      boolean shouldPrefetchSmallFile =
-          logicalIOConfiguration.isSmallObjectsPrefetchingEnabled()
-              && contentLength <= logicalIOConfiguration.getSmallObjectSizeThreshold();
+    FooterPrefetchSize footerPrefetchSize =
+        getFooterPrefetchSize(logicalIOConfiguration, contentLength);
 
-      if (!shouldPrefetchSmallFile) {
-        startRange = contentLength - logicalIOConfiguration.getFooterCachingSize();
-      }
+    if (contentLength > footerPrefetchSize.getSize()) {
+      startRange = contentLength - footerPrefetchSize.getFileMetadataPrefetchSize();
     }
 
     // Return a range if we have non-zero range to work with, and Empty otherwise
@@ -52,6 +50,67 @@ public final class ParquetUtils {
       return Optional.of(new Range(startRange, contentLength - 1));
     } else {
       return Optional.empty();
+    }
+  }
+
+  /**
+   * Gets the ranges to prefetch from the tail. If the file is < smallObject threshold, then
+   * prefetch the whole file. Else, prefetch the fileMetadata and the pageIndex structures as
+   * separate requests. The fileMetadata will always be required, pageIndex may be required
+   * depending on the engine being used.
+   *
+   * @param logicalIOConfiguration logical io configuration
+   * @param startRange start of file
+   * @param contentLength length of file
+   * @return List of prefetch requests to make
+   */
+  public static List<Range> getFileTailPrefetchRanges(
+      LogicalIOConfiguration logicalIOConfiguration, long startRange, long contentLength) {
+
+    List<Range> ranges = new ArrayList<>();
+
+    FooterPrefetchSize footerPrefetchSize =
+        getFooterPrefetchSize(logicalIOConfiguration, contentLength);
+
+    if (contentLength > footerPrefetchSize.getSize()) {
+
+      boolean shouldPrefetchSmallFile =
+          logicalIOConfiguration.isSmallObjectsPrefetchingEnabled()
+              && contentLength <= logicalIOConfiguration.getSmallObjectSizeThreshold();
+
+      if (!shouldPrefetchSmallFile) {
+        long fileMetadataStartIndex =
+            contentLength - footerPrefetchSize.getFileMetadataPrefetchSize();
+        ranges.add(new Range(fileMetadataStartIndex, contentLength - 1));
+
+        if (logicalIOConfiguration.isPageIndexPrefetchEnabled()) {
+          ranges.add(
+              new Range(
+                  fileMetadataStartIndex - footerPrefetchSize.getPageIndexPrefetchSize(),
+                  fileMetadataStartIndex - 1));
+        }
+
+        return ranges;
+      }
+    }
+
+    if (startRange < contentLength) {
+      ranges.add(new Range(startRange, contentLength - 1));
+    }
+
+    return ranges;
+  }
+
+  private static FooterPrefetchSize getFooterPrefetchSize(
+      LogicalIOConfiguration logicalIOConfiguration, long contentLength) {
+    if (contentLength > logicalIOConfiguration.getLargeFileSize()) {
+      return new FooterPrefetchSize(
+          logicalIOConfiguration.getLargeFileMetadataPrefetchSize(),
+          logicalIOConfiguration.getLargeFilePageIndexPrefetchSize());
+    } else {
+      return new FooterPrefetchSize(
+          logicalIOConfiguration.getFileMetadataPrefetchSize(),
+          logicalIOConfiguration.getFilePageIndexPrefetchSize());
     }
   }
 

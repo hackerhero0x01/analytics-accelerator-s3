@@ -154,7 +154,7 @@ public class ParquetPrefetcher {
    *     result of this call
    */
   private CompletableFuture<IOPlanExecution> prefetchFooterAndBuildMetadataImpl() {
-    if (logicalIOConfiguration.isFooterCachingEnabled()) {
+    if (logicalIOConfiguration.isFooterPrefetchEnabled()) {
       parquetPrefetchTailTask.prefetchTail();
     }
 

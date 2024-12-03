@@ -13,17 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package software.amazon.s3.analyticsaccelerator.util;
+package software.amazon.s3.analyticsaccelerator.io.logical.parquet;
 
-/** S3SeekableInputStream constants. */
-public final class Constants {
-  /** Prevent instantiation, this is meant to be a facade */
-  private Constants() {}
+import lombok.Data;
 
-  public static final int ONE_KB = 1024;
-  public static final int ONE_MB = 1024 * 1024;
-  public static final int ONE_GB = 1024 * 1024 * 1024;
-  public static final int PARQUET_MAGIC_STR_LENGTH = 4;
-  public static final int PARQUET_FOOTER_LENGTH_SIZE = 4;
-  public static final long DEFAULT_MIN_ADJACENT_COLUMN_LENGTH = 500 * ONE_KB;
+/** Stores sizes to prefetch for file metadata and page index structures. */
+@Data
+public class FooterPrefetchSize {
+  private final long fileMetadataPrefetchSize;
+  private final long pageIndexPrefetchSize;
+
+  /**
+   * Gets total size of data to be read from the tail of the file
+   *
+   * @return size of file tail read
+   */
+  public long getSize() {
+    return fileMetadataPrefetchSize + pageIndexPrefetchSize;
+  }
 }

@@ -80,8 +80,8 @@ public class S3SeekableInputStreamConfigurationTest {
         S3SeekableInputStreamConfiguration.fromConfiguration(configuration);
 
     assertNotNull(streamConfiguration.getLogicalIOConfiguration());
-    assertFalse(streamConfiguration.getLogicalIOConfiguration().isFooterCachingEnabled());
-    assertEquals(20, streamConfiguration.getLogicalIOConfiguration().getFooterCachingSize());
+    assertFalse(streamConfiguration.getLogicalIOConfiguration().isPageIndexPrefetchEnabled());
+    assertEquals(20, streamConfiguration.getLogicalIOConfiguration().getFileMetadataPrefetchSize());
     // This should be equal to Default since Property Prefix is not s3.connector.
     assertEquals(
         LogicalIOConfiguration.DEFAULT.getPrefetchingMode(),
@@ -108,8 +108,8 @@ public class S3SeekableInputStreamConfigurationTest {
    */
   public static ConnectorConfiguration getConfiguration() {
     Map<String, String> properties = new HashMap<>();
-    properties.put(TEST_PREFIX + "." + LOGICAL_IO_PREFIX + ".footer.caching.enabled", "false");
-    properties.put(TEST_PREFIX + "." + LOGICAL_IO_PREFIX + ".footer.caching.size", "20");
+    properties.put(TEST_PREFIX + "." + LOGICAL_IO_PREFIX + ".page.index.prefetch.enabled", "false");
+    properties.put(TEST_PREFIX + "." + LOGICAL_IO_PREFIX + ".file.metadata.prefetch.size", "20");
     properties.put("invalidPrefix.logicalio.predictive.prefetching.enabled", "false");
     properties.put(TEST_PREFIX + "." + PHYSICAL_IO_PREFIX + ".metadatastore.capacity", "10");
     properties.put(TEST_PREFIX + "." + PHYSICAL_IO_PREFIX + ".blocksizebytes", "20");

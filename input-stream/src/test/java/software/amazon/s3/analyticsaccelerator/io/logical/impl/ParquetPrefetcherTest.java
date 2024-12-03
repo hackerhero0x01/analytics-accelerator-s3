@@ -392,7 +392,7 @@ public class ParquetPrefetcherTest {
   public void testConfigurationsPrefetchFooterAndBuildMetadataFooterCachingDisabled() {
     // Given: config with footer caching disabled
     LogicalIOConfiguration logicalIOConfiguration =
-        LogicalIOConfiguration.builder().footerCachingEnabled(false).build();
+        LogicalIOConfiguration.builder().footerPrefetchEnabled(false).build();
 
     ParquetPrefetchTailTask parquetPrefetchTailTask = mock(ParquetPrefetchTailTask.class);
 

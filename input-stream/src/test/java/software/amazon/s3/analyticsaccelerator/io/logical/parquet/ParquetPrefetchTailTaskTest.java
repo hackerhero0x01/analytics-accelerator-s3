@@ -80,11 +80,13 @@ public class ParquetPrefetchTailTaskTest {
   @Test
   void testTailPrefetch() {
     LogicalIOConfiguration configuration =
-        LogicalIOConfiguration.builder().footerCachingEnabled(true).build();
+        LogicalIOConfiguration.builder().footerPrefetchEnabled(true).build();
 
     HashMap<Long, List<Range>> contentSizeToRanges =
         getPrefetchRangeList(
-            configuration.getFooterCachingSize(), configuration.getSmallObjectSizeThreshold());
+            configuration.getFileMetadataPrefetchSize(),
+            configuration.getFilePageIndexPrefetchSize(),
+            configuration.getSmallObjectSizeThreshold());
 
     for (Map.Entry<Long, List<Range>> contentLengthToRangeList : contentSizeToRanges.entrySet()) {
       PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
@@ -121,7 +123,8 @@ public class ParquetPrefetchTailTaskTest {
     assertThrows(CompletionException.class, () -> parquetPrefetchTailTask.prefetchTail());
   }
 
-  private HashMap<Long, List<Range>> getPrefetchRangeList(long footerSize, long smallFileSize) {
+  private HashMap<Long, List<Range>> getPrefetchRangeList(
+      long footerSize, long pageIndexSize, long smallFileSize) {
     return new HashMap<Long, List<Range>>() {
       {
         put(
@@ -157,6 +160,10 @@ public class ParquetPrefetchTailTaskTest {
             new ArrayList<Range>() {
               {
                 add(new Range(smallFileSize + 10 - footerSize, smallFileSize + 9));
+                add(
+                    new Range(
+                        smallFileSize + 10 - footerSize - pageIndexSize,
+                        smallFileSize + 10 - footerSize - 1));
               }
             });
       }

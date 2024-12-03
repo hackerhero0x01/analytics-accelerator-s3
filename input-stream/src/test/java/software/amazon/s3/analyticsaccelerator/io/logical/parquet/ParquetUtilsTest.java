@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.logical.parquet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.Range;
@@ -30,21 +31,25 @@ public class ParquetUtilsTest {
         ParquetUtils.getFileTailRange(LogicalIOConfiguration.DEFAULT, 0, 5 * ONE_MB).get();
 
     assertEquals(
-        range.getStart(), 5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getFooterCachingSize());
+        range.getStart(),
+        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getFileMetadataPrefetchSize());
     assertEquals(range.getEnd(), 5 * ONE_MB - 1);
   }
 
   @Test
   void testGetFileTailRangeSmallFile() {
-    Range range =
-        ParquetUtils.getFileTailRange(
-                LogicalIOConfiguration.builder()
-                    .smallObjectsPrefetchingEnabled(true)
-                    .smallObjectSizeThreshold(2 * ONE_MB)
-                    .build(),
-                0,
-                2 * ONE_MB)
-            .get();
+    List<Range> ranges =
+        ParquetUtils.getFileTailPrefetchRanges(
+            LogicalIOConfiguration.builder()
+                .smallObjectsPrefetchingEnabled(true)
+                .smallObjectSizeThreshold(2 * ONE_MB)
+                .build(),
+            0,
+            2 * ONE_MB);
+
+    assertEquals(ranges.size(), 1);
+
+    Range range = ranges.get(0);
 
     assertEquals(range.getStart(), 0);
     assertEquals(range.getEnd(), 2 * ONE_MB - 1);
