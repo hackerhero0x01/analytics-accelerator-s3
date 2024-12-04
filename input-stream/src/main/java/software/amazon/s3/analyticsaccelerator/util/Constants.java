@@ -22,7 +22,7 @@ public final class Constants {
 
   public static final int ONE_KB = 1024;
   public static final int ONE_MB = 1024 * 1024;
-  public static final int ONE_GB = 1024 * 1024 * 1024;
+  public static final long ONE_GB = 1024 * 1024 * 1024;
   public static final int PARQUET_MAGIC_STR_LENGTH = 4;
   public static final int PARQUET_FOOTER_LENGTH_SIZE = 4;
   public static final long DEFAULT_MIN_ADJACENT_COLUMN_LENGTH = 500 * ONE_KB;

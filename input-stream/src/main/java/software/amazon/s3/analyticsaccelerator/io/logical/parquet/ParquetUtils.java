@@ -83,7 +83,7 @@ public final class ParquetUtils {
             contentLength - footerPrefetchSize.getFileMetadataPrefetchSize();
         ranges.add(new Range(fileMetadataStartIndex, contentLength - 1));
 
-        if (logicalIOConfiguration.isPageIndexPrefetchEnabled()) {
+        if (logicalIOConfiguration.isPrefetchPageIndexEnabled()) {
           ranges.add(
               new Range(
                   fileMetadataStartIndex - footerPrefetchSize.getPageIndexPrefetchSize(),
@@ -105,12 +105,12 @@ public final class ParquetUtils {
       LogicalIOConfiguration logicalIOConfiguration, long contentLength) {
     if (contentLength > logicalIOConfiguration.getLargeFileSize()) {
       return new FooterPrefetchSize(
-          logicalIOConfiguration.getLargeFileMetadataPrefetchSize(),
-          logicalIOConfiguration.getLargeFilePageIndexPrefetchSize());
+          logicalIOConfiguration.getPrefetchLargeFileMetadataSize(),
+          logicalIOConfiguration.getPrefetchLargeFilePageIndexSize());
     } else {
       return new FooterPrefetchSize(
-          logicalIOConfiguration.getFileMetadataPrefetchSize(),
-          logicalIOConfiguration.getFilePageIndexPrefetchSize());
+          logicalIOConfiguration.getPrefetchFileMetadataSize(),
+          logicalIOConfiguration.getPrefetchFilePageIndexSize());
     }
   }
 

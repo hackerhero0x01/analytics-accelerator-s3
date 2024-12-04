@@ -123,8 +123,7 @@ public class ParquetPredictivePrefetchingTask {
 
         // If the column has a dictionary and the length of the read is <= the size of the
         // dictionary, then assume current read is for a dictionary only.
-        if (columnMetadata.getDictionaryOffset() != 0
-            && len <= (columnMetadata.getDataPageOffset() - columnMetadata.getDictionaryOffset())) {
+        if (isDictionaryRead(columnMetadata, len)) {
           parquetColumnPrefetchStore.addRecentDictionary(columnMetadata);
           prefetchDictionariesForCurrentRowGroup(columnMappers, columnMetadata);
           addedColumns.add(columnMetadata);
@@ -369,5 +368,10 @@ public class ParquetPredictivePrefetchingTask {
     }
 
     return Collections.emptySet();
+  }
+
+  private boolean isDictionaryRead(ColumnMetadata columnMetadata, int len) {
+    return columnMetadata.getDictionaryOffset() != 0
+        && len <= (columnMetadata.getDataPageOffset() - columnMetadata.getDictionaryOffset());
   }
 }

@@ -98,7 +98,7 @@ public class ParquetLogicalIOImplTest {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
     LogicalIOConfiguration configuration =
         LogicalIOConfiguration.builder()
-            .footerPrefetchEnabled(false)
+            .prefetchFooterEnabled(false)
             .prefetchingMode(PrefetchMode.OFF)
             .build();
 

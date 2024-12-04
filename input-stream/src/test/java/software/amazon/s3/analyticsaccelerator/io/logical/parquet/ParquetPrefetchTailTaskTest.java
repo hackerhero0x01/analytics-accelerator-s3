@@ -81,12 +81,12 @@ public class ParquetPrefetchTailTaskTest {
   @Test
   void testTailPrefetch() {
     LogicalIOConfiguration configuration =
-        LogicalIOConfiguration.builder().footerPrefetchEnabled(true).build();
+        LogicalIOConfiguration.builder().prefetchFooterEnabled(true).build();
 
     HashMap<Long, List<Range>> contentSizeToRanges =
         getPrefetchRangeList(
-            configuration.getFileMetadataPrefetchSize(),
-            configuration.getFilePageIndexPrefetchSize(),
+            configuration.getPrefetchFileMetadataSize(),
+            configuration.getPrefetchFilePageIndexSize(),
             configuration.getSmallObjectSizeThreshold(),
             5L * configuration.getLargeFileSize());
 

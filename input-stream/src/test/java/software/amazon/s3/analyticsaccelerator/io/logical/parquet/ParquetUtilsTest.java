@@ -33,7 +33,7 @@ public class ParquetUtilsTest {
 
     assertEquals(
         range.getStart(),
-        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getFileMetadataPrefetchSize());
+        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getPrefetchFileMetadataSize());
     assertEquals(range.getEnd(), 5 * ONE_MB - 1);
   }
 
@@ -68,17 +68,17 @@ public class ParquetUtilsTest {
 
     assertEquals(
         fileMetadataRange.getStart(),
-        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getFileMetadataPrefetchSize());
+        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getPrefetchFileMetadataSize());
     assertEquals(fileMetadataRange.getEnd(), 5 * ONE_MB - 1);
 
     assertEquals(
         pageIndexRange.getStart(),
         5 * ONE_MB
-            - LogicalIOConfiguration.DEFAULT.getFileMetadataPrefetchSize()
-            - LogicalIOConfiguration.DEFAULT.getFilePageIndexPrefetchSize());
+            - LogicalIOConfiguration.DEFAULT.getPrefetchFileMetadataSize()
+            - LogicalIOConfiguration.DEFAULT.getPrefetchFilePageIndexSize());
     assertEquals(
         pageIndexRange.getEnd(),
-        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getFileMetadataPrefetchSize() - 1);
+        5 * ONE_MB - LogicalIOConfiguration.DEFAULT.getPrefetchFileMetadataSize() - 1);
   }
 
   @Test
@@ -95,17 +95,17 @@ public class ParquetUtilsTest {
 
     assertEquals(
         fileMetadataRange.getStart(),
-        contentLength - LogicalIOConfiguration.DEFAULT.getLargeFileMetadataPrefetchSize());
+        contentLength - LogicalIOConfiguration.DEFAULT.getPrefetchLargeFileMetadataSize());
     assertEquals(fileMetadataRange.getEnd(), contentLength - 1);
 
     assertEquals(
         pageIndexRange.getStart(),
         contentLength
-            - LogicalIOConfiguration.DEFAULT.getLargeFileMetadataPrefetchSize()
-            - LogicalIOConfiguration.DEFAULT.getLargeFilePageIndexPrefetchSize());
+            - LogicalIOConfiguration.DEFAULT.getPrefetchLargeFileMetadataSize()
+            - LogicalIOConfiguration.DEFAULT.getPrefetchLargeFilePageIndexSize());
     assertEquals(
         pageIndexRange.getEnd(),
-        contentLength - LogicalIOConfiguration.DEFAULT.getLargeFileMetadataPrefetchSize() - 1);
+        contentLength - LogicalIOConfiguration.DEFAULT.getPrefetchLargeFileMetadataSize() - 1);
   }
 
   @Test

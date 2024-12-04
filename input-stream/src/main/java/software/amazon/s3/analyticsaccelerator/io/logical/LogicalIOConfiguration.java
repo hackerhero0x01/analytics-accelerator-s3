@@ -30,54 +30,54 @@ import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 @Builder
 @EqualsAndHashCode
 public class LogicalIOConfiguration {
-  private static final boolean DEFAULT_FOOTER_PREFETCH_ENABLED = true;
-  private static final boolean DEFAULT_PAGE_INDEX_PREFETCH_ENABLED = true;
-  private static final long DEFAULT_FILE_METADATA_PREFETCH_SIZE = 32 * ONE_KB;
-  private static final long DEFAULT_LARGE_FILE_METADATA_PREFETCH_SIZE = ONE_MB;
-  private static final long DEFAULT_FILE_PAGE_INDEX_PREFETCH_SIZE = ONE_MB;
-  private static final long DEFAULT_LARGE_FILE_PAGE_INDEX_PREFETCH_SIZE = 8 * ONE_MB;
+  private static final boolean DEFAULT_PREFETCH_FOOTER_ENABLED = true;
+  private static final boolean DEFAULT_PREFETCH_PAGE_INDEX_ENABLED = true;
+  private static final long DEFAULT_PREFETCH_FILE_METADATA_SIZE = 32 * ONE_KB;
+  private static final long DEFAULT_PREFETCH_LARGE_FILE_METADATA_SIZE = ONE_MB;
+  private static final long DEFAULT_PREFETCH_FILE_PAGE_INDEX_SIZE = ONE_MB;
+  private static final long DEFAULT_PREFETCH_LARGE_FILE_PAGE_INDEX_SIZE = 8 * ONE_MB;
   private static final long DEFAULT_LARGE_FILE_SIZE = ONE_GB;
-  private static final boolean DEFAULT_SMALL_OBJECT_PREFETCHING_ENABLED = true;
+  private static final boolean DEFAULT_PREFETCHING_SMALL_OBJECT_ENABLED = true;
   private static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 3 * ONE_MB;
   private static final int DEFAULT_PARQUET_METADATA_STORE_SIZE = 45;
   private static final int DEFAULT_MAX_COLUMN_ACCESS_STORE_SIZE = 15;
   private static final String DEFAULT_PARQUET_FORMAT_SELECTOR_REGEX = "^.*.(parquet|par)$";
   private static final PrefetchMode DEFAULT_PREFETCHING_MODE = PrefetchMode.ROW_GROUP;
 
-  @Builder.Default private boolean footerPrefetchEnabled = DEFAULT_FOOTER_PREFETCH_ENABLED;
+  @Builder.Default private boolean prefetchFooterEnabled = DEFAULT_PREFETCH_FOOTER_ENABLED;
 
-  private static final String FOOTER_PREFETCH_ENABLED_KEY = "footer.prefetch.enabled";
+  private static final String FOOTER_PREFETCH_ENABLED_KEY = "prefetch.footer.enabled";
 
-  @Builder.Default private boolean pageIndexPrefetchEnabled = DEFAULT_PAGE_INDEX_PREFETCH_ENABLED;
+  @Builder.Default private boolean prefetchPageIndexEnabled = DEFAULT_PREFETCH_PAGE_INDEX_ENABLED;
 
-  private static final String PAGE_INDEX_PREFETCH_ENABLED_KEY = "page.index.prefetch.enabled";
+  private static final String PAGE_INDEX_PREFETCH_ENABLED_KEY = "prefetch.page.index.enabled";
 
-  @Builder.Default private long fileMetadataPrefetchSize = DEFAULT_FILE_METADATA_PREFETCH_SIZE;
+  @Builder.Default private long prefetchFileMetadataSize = DEFAULT_PREFETCH_FILE_METADATA_SIZE;
 
-  private static final String FILE_METADATA_PREFETCH_SIZE_KEY = "file.metadata.prefetch.size";
-
-  @Builder.Default
-  private long largeFileMetadataPrefetchSize = DEFAULT_LARGE_FILE_METADATA_PREFETCH_SIZE;
-
-  private static final String LARGE_FILE_METADATA_PREFETCH_SIZE_KEY =
-      "large.file.metadata.prefetch.size";
-
-  @Builder.Default private long filePageIndexPrefetchSize = DEFAULT_FILE_PAGE_INDEX_PREFETCH_SIZE;
-
-  private static final String FILE_PAGE_INDEX_PREFETCH_SIZE_KEY = "file.page.index.prefetch.size";
+  private static final String PREFETCH_FILE_METADATA_SIZE_KEY = "prefetch.file.metadata.size";
 
   @Builder.Default
-  private long largeFilePageIndexPrefetchSize = DEFAULT_LARGE_FILE_PAGE_INDEX_PREFETCH_SIZE;
+  private long prefetchLargeFileMetadataSize = DEFAULT_PREFETCH_LARGE_FILE_METADATA_SIZE;
+
+  private static final String PREFETCH_LARGE_FILE_METADATA_SIZE_KEY =
+      "prefetch.large.file.metadata.size";
+
+  @Builder.Default private long prefetchFilePageIndexSize = DEFAULT_PREFETCH_FILE_PAGE_INDEX_SIZE;
+
+  private static final String PREFETCH_FILE_PAGE_INDEX_SIZE_KEY = "prefetch.file.page.index.size";
+
+  @Builder.Default
+  private long prefetchLargeFilePageIndexSize = DEFAULT_PREFETCH_LARGE_FILE_PAGE_INDEX_SIZE;
 
   private static final String LARGE_FILE_PAGE_INDEX_PREFETCH_SIZE_KEY =
-      "large.file.page.index.prefetch.size";
+      "prefetch.large.file.page.index.size";
 
   @Builder.Default private long largeFileSize = DEFAULT_LARGE_FILE_SIZE;
 
   private static final String LARGE_FILE_SIZE = "large.file.size";
 
   @Builder.Default
-  private boolean smallObjectsPrefetchingEnabled = DEFAULT_SMALL_OBJECT_PREFETCHING_ENABLED;
+  private boolean smallObjectsPrefetchingEnabled = DEFAULT_PREFETCHING_SMALL_OBJECT_ENABLED;
 
   private static final String SMALL_OBJECTS_PREFETCHING_ENABLED_KEY =
       "small.objects.prefetching.enabled";
@@ -116,28 +116,28 @@ public class LogicalIOConfiguration {
    */
   public static LogicalIOConfiguration fromConfiguration(ConnectorConfiguration configuration) {
     return LogicalIOConfiguration.builder()
-        .footerPrefetchEnabled(
-            configuration.getBoolean(FOOTER_PREFETCH_ENABLED_KEY, DEFAULT_FOOTER_PREFETCH_ENABLED))
-        .pageIndexPrefetchEnabled(
+        .prefetchFooterEnabled(
+            configuration.getBoolean(FOOTER_PREFETCH_ENABLED_KEY, DEFAULT_PREFETCH_FOOTER_ENABLED))
+        .prefetchPageIndexEnabled(
             configuration.getBoolean(
-                PAGE_INDEX_PREFETCH_ENABLED_KEY, DEFAULT_PAGE_INDEX_PREFETCH_ENABLED))
-        .fileMetadataPrefetchSize(
+                PAGE_INDEX_PREFETCH_ENABLED_KEY, DEFAULT_PREFETCH_PAGE_INDEX_ENABLED))
+        .prefetchFileMetadataSize(
             configuration.getLong(
-                FILE_METADATA_PREFETCH_SIZE_KEY, DEFAULT_FILE_METADATA_PREFETCH_SIZE))
-        .largeFileMetadataPrefetchSize(
+                PREFETCH_FILE_METADATA_SIZE_KEY, DEFAULT_PREFETCH_FILE_METADATA_SIZE))
+        .prefetchLargeFileMetadataSize(
             configuration.getLong(
-                LARGE_FILE_METADATA_PREFETCH_SIZE_KEY, DEFAULT_LARGE_FILE_METADATA_PREFETCH_SIZE))
-        .filePageIndexPrefetchSize(
+                PREFETCH_LARGE_FILE_METADATA_SIZE_KEY, DEFAULT_PREFETCH_LARGE_FILE_METADATA_SIZE))
+        .prefetchFilePageIndexSize(
             configuration.getLong(
-                FILE_PAGE_INDEX_PREFETCH_SIZE_KEY, DEFAULT_FILE_PAGE_INDEX_PREFETCH_SIZE))
-        .largeFilePageIndexPrefetchSize(
+                PREFETCH_FILE_PAGE_INDEX_SIZE_KEY, DEFAULT_PREFETCH_FILE_PAGE_INDEX_SIZE))
+        .prefetchLargeFilePageIndexSize(
             configuration.getLong(
                 LARGE_FILE_PAGE_INDEX_PREFETCH_SIZE_KEY,
-                DEFAULT_LARGE_FILE_PAGE_INDEX_PREFETCH_SIZE))
+                DEFAULT_PREFETCH_LARGE_FILE_PAGE_INDEX_SIZE))
         .largeFileSize(configuration.getLong(LARGE_FILE_SIZE, DEFAULT_LARGE_FILE_SIZE))
         .smallObjectsPrefetchingEnabled(
             configuration.getBoolean(
-                SMALL_OBJECTS_PREFETCHING_ENABLED_KEY, DEFAULT_SMALL_OBJECT_PREFETCHING_ENABLED))
+                SMALL_OBJECTS_PREFETCHING_ENABLED_KEY, DEFAULT_PREFETCHING_SMALL_OBJECT_ENABLED))
         .smallObjectSizeThreshold(
             configuration.getLong(
                 SMALL_OBJECT_SIZE_THRESHOLD_KEY, DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD))

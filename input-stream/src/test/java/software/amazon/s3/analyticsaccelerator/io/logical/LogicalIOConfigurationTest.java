@@ -35,11 +35,11 @@ public class LogicalIOConfigurationTest {
   void testNonDefaults() {
     LogicalIOConfiguration configuration =
         LogicalIOConfiguration.builder()
-            .footerPrefetchEnabled(true)
-            .filePageIndexPrefetchSize(10)
+            .prefetchFooterEnabled(true)
+            .prefetchFilePageIndexSize(10)
             .build();
-    assertTrue(configuration.isFooterPrefetchEnabled());
-    assertEquals(10, configuration.getFilePageIndexPrefetchSize());
+    assertTrue(configuration.isPrefetchPageIndexEnabled());
+    assertEquals(10, configuration.getPrefetchFilePageIndexSize());
   }
 
   @Test
@@ -51,8 +51,8 @@ public class LogicalIOConfigurationTest {
     LogicalIOConfiguration logicalIOConfiguration =
         LogicalIOConfiguration.fromConfiguration(mappedConfiguration);
 
-    assertFalse(logicalIOConfiguration.isPageIndexPrefetchEnabled());
-    assertEquals(20, logicalIOConfiguration.getFileMetadataPrefetchSize());
+    assertFalse(logicalIOConfiguration.isPrefetchPageIndexEnabled());
+    assertEquals(20, logicalIOConfiguration.getPrefetchFileMetadataSize());
     // This should be equal to Default since Property Prefix is not s3.connector.
     assertEquals(
         LogicalIOConfiguration.DEFAULT.getPrefetchingMode(),

@@ -15,13 +15,24 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.logical.parquet;
 
-import lombok.Data;
+import lombok.Value;
 
 /** Stores sizes to prefetch for file metadata and page index structures. */
-@Data
+@Value
 public class FooterPrefetchSize {
-  private final long fileMetadataPrefetchSize;
-  private final long pageIndexPrefetchSize;
+  long fileMetadataPrefetchSize;
+  long pageIndexPrefetchSize;
+
+  /**
+   * Default constructor to store footer prefetch sizes
+   *
+   * @param fileMetadataPrefetchSize size of file metadata to prefetch from file tail
+   * @param pageIndexPrefetchSize size of page index to prefetch from file tail
+   */
+  public FooterPrefetchSize(long fileMetadataPrefetchSize, long pageIndexPrefetchSize) {
+    this.fileMetadataPrefetchSize = fileMetadataPrefetchSize;
+    this.pageIndexPrefetchSize = pageIndexPrefetchSize;
+  }
 
   /**
    * Gets total size of data to be read from the tail of the file
