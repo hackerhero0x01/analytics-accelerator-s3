@@ -47,19 +47,23 @@ public class ParquetColumnPrefetchStoreTest {
     int schemaHash = concatedColumnString.toString().hashCode();
     Map<S3URI, ColumnMappers> columnMappersStore = new HashMap<>();
     Map<S3URI, List<Integer>> rowGroupsPrefetched = new HashMap<>();
+    Map<S3URI, List<Integer>> dictionaryRowGroupsPrefetched = new HashMap<>();
 
-    ColumnMetadata sk_test = new ColumnMetadata(0, "sk_test", 0, 500, schemaHash);
-    ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test2", 0, 500, schemaHash);
-    ColumnMetadata sk_test3 = new ColumnMetadata(0, "sk_test3", 0, 500, schemaHash);
+    ColumnMetadata sk_test = new ColumnMetadata(0, "sk_test", 0, 0, 0, 500, schemaHash);
+    ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test2", 0, 0, 0, 500, schemaHash);
+    ColumnMetadata sk_test3 = new ColumnMetadata(0, "sk_test3", 0, 0, 0, 500, schemaHash);
 
     Map<Integer, LinkedList<String>> recentlyReadColumnsPerSchema = new HashMap<>();
+    Map<Integer, LinkedList<String>> recentlyReadDictionariesPerSchema = new HashMap<>();
 
     ParquetColumnPrefetchStore parquetColumnPrefetchStore =
         new ParquetColumnPrefetchStore(
             LogicalIOConfiguration.builder().maxColumnAccessCountStoreSize(3).build(),
             columnMappersStore,
             recentlyReadColumnsPerSchema,
-            rowGroupsPrefetched);
+            recentlyReadDictionariesPerSchema,
+            rowGroupsPrefetched,
+            dictionaryRowGroupsPrefetched);
 
     parquetColumnPrefetchStore.addRecentColumn(sk_test);
     parquetColumnPrefetchStore.addRecentColumn(sk_test2);
@@ -90,23 +94,43 @@ public class ParquetColumnPrefetchStoreTest {
 
   @Test
   public void isRowGroupPrefetched() {
-    Map<S3URI, List<Integer>> prefetchedRowGroups = new HashMap<>();
+    Map<S3URI, List<Integer>> columnRowGroupsPrefetched = new HashMap<>();
+    Map<S3URI, List<Integer>> dictionaryRowGroupsPrefetched = new HashMap<>();
 
     ParquetColumnPrefetchStore parquetColumnPrefetchStore =
         new ParquetColumnPrefetchStore(
             LogicalIOConfiguration.builder().maxColumnAccessCountStoreSize(3).build(),
             Collections.emptyMap(),
             Collections.emptyMap(),
-            prefetchedRowGroups);
+            Collections.emptyMap(),
+            columnRowGroupsPrefetched,
+            dictionaryRowGroupsPrefetched);
 
-    parquetColumnPrefetchStore.storePrefetchedRowGroupIndex(S3URI.of("test", "key"), 0);
-    parquetColumnPrefetchStore.storePrefetchedRowGroupIndex(S3URI.of("test", "key"), 1);
+    parquetColumnPrefetchStore.storeColumnPrefetchedRowGroupIndex(S3URI.of("test", "key"), 0);
+    parquetColumnPrefetchStore.storeColumnPrefetchedRowGroupIndex(S3URI.of("test", "key"), 1);
 
-    assertEquals(parquetColumnPrefetchStore.isRowGroupPrefetched(S3URI.of("test", "key"), 0), true);
-    assertEquals(parquetColumnPrefetchStore.isRowGroupPrefetched(S3URI.of("test", "key"), 1), true);
+    parquetColumnPrefetchStore.storeDictionaryPrefetchedRowGroupIndex(S3URI.of("test", "key"), 0);
+    parquetColumnPrefetchStore.storeDictionaryPrefetchedRowGroupIndex(S3URI.of("test", "key"), 1);
+
     assertEquals(
-        parquetColumnPrefetchStore.isRowGroupPrefetched(S3URI.of("test", "key"), 3), false);
+        parquetColumnPrefetchStore.isColumnRowGroupPrefetched(S3URI.of("test", "key"), 0), true);
     assertEquals(
-        parquetColumnPrefetchStore.isRowGroupPrefetched(S3URI.of("test", "key_3"), 0), false);
+        parquetColumnPrefetchStore.isDictionaryRowGroupPrefetched(S3URI.of("test", "key"), 0),
+        true);
+    assertEquals(
+        parquetColumnPrefetchStore.isColumnRowGroupPrefetched(S3URI.of("test", "key"), 1), true);
+    assertEquals(
+        parquetColumnPrefetchStore.isDictionaryRowGroupPrefetched(S3URI.of("test", "key"), 1),
+        true);
+    assertEquals(
+        parquetColumnPrefetchStore.isColumnRowGroupPrefetched(S3URI.of("test", "key"), 3), false);
+    assertEquals(
+        parquetColumnPrefetchStore.isDictionaryRowGroupPrefetched(S3URI.of("test", "key"), 3),
+        false);
+    assertEquals(
+        parquetColumnPrefetchStore.isColumnRowGroupPrefetched(S3URI.of("test", "key_3"), 0), false);
+    assertEquals(
+        parquetColumnPrefetchStore.isDictionaryRowGroupPrefetched(S3URI.of("test", "key_3"), 0),
+        false);
   }
 }

@@ -121,7 +121,7 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     ColumnMetadata columnMetadata =
-        new ColumnMetadata(0, "sk_test", 100, 500, "sk_test".hashCode());
+        new ColumnMetadata(0, "sk_test", 200, 100, 100, 500, "sk_test".hashCode());
     offsetIndexToColumnMap.put(100L, columnMetadata);
     ColumnMappers columnMappers = new ColumnMappers(offsetIndexToColumnMap, new HashMap<>());
     ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
@@ -134,7 +134,7 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     when(parquetColumnPrefetchStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
 
-    assertEquals(1, parquetPredictivePrefetchingTask.addToRecentColumnList(100, 0).size());
+    assertEquals(1, parquetPredictivePrefetchingTask.addToRecentColumnList(100, 400).size());
     verify(parquetColumnPrefetchStore).addRecentColumn(columnMetadata);
   }
 
@@ -147,12 +147,13 @@ public class ParquetPredictivePrefetchingTaskTest {
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
 
-    ColumnMetadata sk_test = new ColumnMetadata(0, "sk_test", 100, 500, "sk_test".hashCode());
+    ColumnMetadata sk_test =
+        new ColumnMetadata(0, "sk_test", 200, 100, 100, 500, "sk_test".hashCode());
     offsetIndexToColumnMap.put(100L, sk_test);
     columnMetadataList.add(sk_test);
 
     ColumnMetadata sk_test_row_group_1 =
-        new ColumnMetadata(1, "sk_test", 800, 500, "sk_test".hashCode());
+        new ColumnMetadata(1, "sk_test", 900, 800, 800, 500, "sk_test".hashCode());
     offsetIndexToColumnMap.put(800L, sk_test);
     columnMetadataList.add(sk_test_row_group_1);
 
@@ -167,7 +168,7 @@ public class ParquetPredictivePrefetchingTaskTest {
             physicalIO,
             parquetColumnPrefetchStore);
 
-    when(parquetColumnPrefetchStore.isRowGroupPrefetched(TEST_URI, 0)).thenReturn(false);
+    when(parquetColumnPrefetchStore.isColumnRowGroupPrefetched(TEST_URI, 0)).thenReturn(false);
     when(parquetColumnPrefetchStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
 
     Set<String> recentColumns = new HashSet<>();
@@ -175,7 +176,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     when(parquetColumnPrefetchStore.getUniqueRecentColumnsForSchema("sk_test".hashCode()))
         .thenReturn(recentColumns);
 
-    assertEquals(1, parquetPredictivePrefetchingTask.addToRecentColumnList(100, 0).size());
+    assertEquals(1, parquetPredictivePrefetchingTask.addToRecentColumnList(100, 200).size());
     verify(parquetColumnPrefetchStore).addRecentColumn(sk_test);
 
     // Then: physical IO gets the correct plan. Only recent columns from the current row
@@ -187,6 +188,59 @@ public class ParquetPredictivePrefetchingTaskTest {
     List<Range> expectedRanges = new ArrayList<>();
 
     expectedRanges.add(new Range(100, 599));
+    assertTrue(ioPlan.getPrefetchRanges().containsAll(expectedRanges));
+  }
+
+  @Test
+  void testRowGroupPrefetchForOnlyDictionary() throws IOException {
+    PhysicalIO physicalIO = mock(PhysicalIO.class);
+    ParquetColumnPrefetchStore parquetColumnPrefetchStore = mock(ParquetColumnPrefetchStore.class);
+
+    List<ColumnMetadata> columnMetadataList = new ArrayList<>();
+    HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
+    HashMap<String, List<ColumnMetadata>> columnNameToColumnMap = new HashMap<>();
+
+    ColumnMetadata sk_test =
+        new ColumnMetadata(0, "sk_test", 200, 100, 100, 500, "sk_test".hashCode());
+    offsetIndexToColumnMap.put(100L, sk_test);
+    columnMetadataList.add(sk_test);
+
+    ColumnMetadata sk_test_row_group_1 =
+        new ColumnMetadata(1, "sk_test", 900, 800, 800, 500, "sk_test".hashCode());
+    offsetIndexToColumnMap.put(800L, sk_test);
+    columnMetadataList.add(sk_test_row_group_1);
+
+    columnNameToColumnMap.put("sk_test", columnMetadataList);
+
+    ColumnMappers columnMappers = new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap);
+    ParquetPredictivePrefetchingTask parquetPredictivePrefetchingTask =
+        new ParquetPredictivePrefetchingTask(
+            TEST_URI,
+            Telemetry.NOOP,
+            LogicalIOConfiguration.builder().prefetchingMode(PrefetchMode.ROW_GROUP).build(),
+            physicalIO,
+            parquetColumnPrefetchStore);
+
+    when(parquetColumnPrefetchStore.isDictionaryRowGroupPrefetched(TEST_URI, 0)).thenReturn(false);
+    when(parquetColumnPrefetchStore.getColumnMappers(TEST_URI)).thenReturn(columnMappers);
+
+    Set<String> recentDictionaries = new HashSet<>();
+    recentDictionaries.add("sk_test");
+    when(parquetColumnPrefetchStore.getUniqueRecentDictionaryForSchema("sk_test".hashCode()))
+        .thenReturn(recentDictionaries);
+
+    assertEquals(1, parquetPredictivePrefetchingTask.addToRecentColumnList(100, 50).size());
+    verify(parquetColumnPrefetchStore).addRecentDictionary(sk_test);
+
+    // Then: physical IO gets the correct plan. Only recent columns from the current row
+    // group are prefetched.
+    ArgumentCaptor<IOPlan> ioPlanArgumentCaptor = ArgumentCaptor.forClass(IOPlan.class);
+    verify(physicalIO).execute(ioPlanArgumentCaptor.capture());
+
+    IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
+    List<Range> expectedRanges = new ArrayList<>();
+
+    expectedRanges.add(new Range(100, 199));
     assertTrue(ioPlan.getPrefetchRanges().containsAll(expectedRanges));
   }
 
@@ -223,25 +277,29 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     List<ColumnMetadata> sk_testColumnMetadataList = new ArrayList<>();
     ColumnMetadata sk_test1 =
-        new ColumnMetadata(0, "sk_test_1", 100 * ONE_KB, 600 * ONE_KB, schemaHash);
+        new ColumnMetadata(
+            0, "sk_test_1", 200 * ONE_KB, 100 * ONE_KB, 100 * ONE_KB, 600 * ONE_KB, schemaHash);
     sk_testColumnMetadataList.add(sk_test1);
     offsetIndexToColumnMap.put(100L * ONE_KB, sk_test1);
 
     List<ColumnMetadata> sk_test_2ColumnMetadataList = new ArrayList<>();
     ColumnMetadata sk_test2 =
-        new ColumnMetadata(0, "sk_test_2", 700 * ONE_KB, 800 * ONE_KB, schemaHash);
+        new ColumnMetadata(
+            0, "sk_test_2", 800 * ONE_KB, 700 * ONE_KB, 700 * ONE_KB, 800 * ONE_KB, schemaHash);
     sk_test_2ColumnMetadataList.add(sk_test2);
     offsetIndexToColumnMap.put(700L * ONE_KB, sk_test2);
 
     List<ColumnMetadata> sk_test_3ColumnMetadataList = new ArrayList<>();
     ColumnMetadata sk_test3 =
-        new ColumnMetadata(0, "sk_test_3", 1500 * ONE_KB, 200 * ONE_KB, schemaHash);
+        new ColumnMetadata(
+            0, "sk_test_3", 1650 * ONE_KB, 1500 * ONE_KB, 1500 * ONE_KB, 200 * ONE_KB, schemaHash);
     sk_test_3ColumnMetadataList.add(sk_test3);
     offsetIndexToColumnMap.put(1500L * ONE_KB, sk_test3);
 
     List<ColumnMetadata> sk_test_4ColumnMetadataList = new ArrayList<>();
     ColumnMetadata sk_test4 =
-        new ColumnMetadata(0, "sk_test_4", 1700 * ONE_KB, 800 * ONE_KB, schemaHash);
+        new ColumnMetadata(
+            0, "sk_test_4", 1800 * ONE_KB, 1700 * ONE_KB, 1700 * ONE_KB, 800 * ONE_KB, schemaHash);
     sk_test_4ColumnMetadataList.add(sk_test4);
     offsetIndexToColumnMap.put(1700L * ONE_KB, sk_test4);
 
@@ -309,23 +367,24 @@ public class ParquetPredictivePrefetchingTaskTest {
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
 
     List<ColumnMetadata> sk_testColumnMetadataList = new ArrayList<>();
-    ColumnMetadata sk_test1 = new ColumnMetadata(0, "test", 100, 500, schemaHash);
+    ColumnMetadata sk_test1 = new ColumnMetadata(0, "test", 100, 200, 100, 500, schemaHash);
     sk_testColumnMetadataList.add(sk_test1);
     offsetIndexToColumnMap.put(100L, sk_test1);
 
     // Should not be prefetched as it does not belong to the first row group.
-    ColumnMetadata sk_test1_row_group_1 = new ColumnMetadata(1, "test", 1800, 500, schemaHash);
+    ColumnMetadata sk_test1_row_group_1 =
+        new ColumnMetadata(1, "test", 1800, 1900, 1800, 500, schemaHash);
     sk_testColumnMetadataList.add(sk_test1_row_group_1);
     offsetIndexToColumnMap.put(1800L, sk_test1_row_group_1);
 
     List<ColumnMetadata> sk_test_2ColumnMetadataList = new ArrayList<>();
-    ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test_2", 600, 500, schemaHash);
+    ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test_2", 600, 700, 600, 500, schemaHash);
     sk_test_2ColumnMetadataList.add(sk_test2);
     offsetIndexToColumnMap.put(600L, sk_test2);
 
     List<ColumnMetadata> sk_test_3ColumnMetadataList = new ArrayList<>();
     ColumnMetadata sk_test3 =
-        new ColumnMetadata(0, "sk_test_3", 1100, 500, getHashCode(columnNames));
+        new ColumnMetadata(0, "sk_test_3", 1100, 1200, 1100, 500, getHashCode(columnNames));
     sk_test_3ColumnMetadataList.add(sk_test3);
     offsetIndexToColumnMap.put(1100L, sk_test3);
 
@@ -350,7 +409,8 @@ public class ParquetPredictivePrefetchingTaskTest {
             parquetColumnPrefetchStore);
     parquetPredictivePrefetchingTask.prefetchRecentColumns(
         new ColumnMappers(offsetIndexToColumnMap, columnNameToColumnMap),
-        ParquetUtils.constructRowGroupsToPrefetch());
+        ParquetUtils.constructRowGroupsToPrefetch(),
+        false);
 
     // Then: physical IO gets the correct plan
     ArgumentCaptor<IOPlan> ioPlanArgumentCaptor = ArgumentCaptor.forClass(IOPlan.class);
@@ -383,7 +443,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     assertEquals(
         IOPlanExecution.builder().state(IOPlanState.SKIPPED).build(),
         parquetPredictivePrefetchingTask.prefetchRecentColumns(
-            new ColumnMappers(new HashMap<>(), new HashMap<>()), Collections.emptyList()));
+            new ColumnMappers(new HashMap<>(), new HashMap<>()), Collections.emptyList(), false));
   }
 
   private int getHashCode(StringBuilder stringToHash) {

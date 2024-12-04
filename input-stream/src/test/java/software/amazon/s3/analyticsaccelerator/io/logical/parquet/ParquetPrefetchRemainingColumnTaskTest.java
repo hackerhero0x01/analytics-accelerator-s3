@@ -98,7 +98,8 @@ public class ParquetPrefetchRemainingColumnTaskTest {
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     offsetIndexToColumnMap.put(
         200L,
-        new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB, "ss_sold_date_sk".hashCode()));
+        new ColumnMetadata(
+            0, "ss_sold_date_sk", 2 * ONE_MB, 200, 200, 10 * ONE_MB, "ss_sold_date_sk".hashCode()));
 
     ParquetColumnPrefetchStore mockedParquetColumnPrefetchStore =
         mock(ParquetColumnPrefetchStore.class);
@@ -128,7 +129,8 @@ public class ParquetPrefetchRemainingColumnTaskTest {
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
     offsetIndexToColumnMap.put(
         200L,
-        new ColumnMetadata(0, "ss_sold_date_sk", 200, 10 * ONE_MB, "ss_sold_date_sk".hashCode()));
+        new ColumnMetadata(
+            0, "ss_sold_date_sk", 5 * ONE_MB, 200, 200, 10 * ONE_MB, "ss_sold_date_sk".hashCode()));
 
     ParquetColumnPrefetchStore mockedParquetColumnPrefetchStore =
         mock(ParquetColumnPrefetchStore.class);

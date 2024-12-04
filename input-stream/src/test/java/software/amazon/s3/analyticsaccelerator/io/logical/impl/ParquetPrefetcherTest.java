@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.io.logical.impl;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -319,7 +320,7 @@ public class ParquetPrefetcherTest {
     verify(parquetMetadataParsingTask, times(1)).storeColumnMappers(any(FileTail.class));
     // Then: predictive reads are also triggered
     verify(parquetPredictivePrefetchingTask, times(1))
-        .prefetchRecentColumns(any(ColumnMappers.class), anyList());
+        .prefetchRecentColumns(any(ColumnMappers.class), anyList(), anyBoolean());
   }
 
   @Test

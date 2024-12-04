@@ -121,8 +121,10 @@ public class ParquetPredictivePrefetchingTask {
       if (columnMappers.getOffsetIndexToColumnMap().containsKey(position)) {
         ColumnMetadata columnMetadata = columnMappers.getOffsetIndexToColumnMap().get(position);
 
-        // If the column has a dictionary and the length of the read is <= the size of the dictionary, then assume current read is for a dictionary only.
-        if (columnMetadata.getDictionaryOffset() != 0 && len <= (columnMetadata.getDataPageOffset() - columnMetadata.getDictionaryOffset())) {
+        // If the column has a dictionary and the length of the read is <= the size of the
+        // dictionary, then assume current read is for a dictionary only.
+        if (columnMetadata.getDictionaryOffset() != 0
+            && len <= (columnMetadata.getDataPageOffset() - columnMetadata.getDictionaryOffset())) {
           parquetColumnPrefetchStore.addRecentDictionary(columnMetadata);
           prefetchDictionariesForCurrentRowGroup(columnMappers, columnMetadata);
           addedColumns.add(columnMetadata);
@@ -132,8 +134,7 @@ public class ParquetPredictivePrefetchingTask {
           // prefetched already.
           prefetchColumnsForCurrentRowGroup(columnMappers, columnMetadata);
 
-          addedColumns =
-              addAdjacentColumnsInLength(columnMetadata, columnMappers, position, len);
+          addedColumns = addAdjacentColumnsInLength(columnMetadata, columnMappers, position, len);
           addedColumns.add(columnMetadata);
         }
 
@@ -154,15 +155,6 @@ public class ParquetPredictivePrefetchingTask {
     return Collections.emptyList();
   }
 
-
-  private void prefetchDictionariesForCurrentRowGroup(ColumnMappers columnMappers, ColumnMetadata columnMetadata) {
-    if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.ROW_GROUP &&
-        !parquetColumnPrefetchStore.isDictionaryRowGroupPrefetched(s3Uri, columnMetadata.getRowGroupIndex())) {
-      prefetchRecentColumns(columnMappers, ParquetUtils.constructRowGroupsToPrefetch(columnMetadata), true);
-      parquetColumnPrefetchStore.storeDictionaryPrefetchedRowGroupIndex(s3Uri, columnMetadata.getRowGroupIndex());
-    }
-  }
-
   /**
    * When PrefetchMode is ROW_GROUP, only prefetch recent columns when a read to a column is
    * detected, and NOT on an open of the file. For prefetching, only prefetch recent columns that
@@ -173,13 +165,28 @@ public class ParquetPredictivePrefetchingTask {
    * @param columnMappers Parquet file column mappings
    * @param columnMetadata Column metadata of the current column being read
    */
-  private void prefetchColumnsForCurrentRowGroup(ColumnMappers columnMappers, ColumnMetadata columnMetadata) {
+  private void prefetchColumnsForCurrentRowGroup(
+      ColumnMappers columnMappers, ColumnMetadata columnMetadata) {
     // When prefetch mode is per row group, only prefetch columns from the current row group.
     if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.ROW_GROUP
-        && !parquetColumnPrefetchStore.isColumnRowGroupPrefetched(s3Uri, columnMetadata.getRowGroupIndex())) {
+        && !parquetColumnPrefetchStore.isColumnRowGroupPrefetched(
+            s3Uri, columnMetadata.getRowGroupIndex())) {
       prefetchRecentColumns(
           columnMappers, ParquetUtils.constructRowGroupsToPrefetch(columnMetadata), false);
-      parquetColumnPrefetchStore.storeColumnPrefetchedRowGroupIndex(s3Uri, columnMetadata.getRowGroupIndex());
+      parquetColumnPrefetchStore.storeColumnPrefetchedRowGroupIndex(
+          s3Uri, columnMetadata.getRowGroupIndex());
+    }
+  }
+
+  private void prefetchDictionariesForCurrentRowGroup(
+      ColumnMappers columnMappers, ColumnMetadata columnMetadata) {
+    if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.ROW_GROUP
+        && !parquetColumnPrefetchStore.isDictionaryRowGroupPrefetched(
+            s3Uri, columnMetadata.getRowGroupIndex())) {
+      prefetchRecentColumns(
+          columnMappers, ParquetUtils.constructRowGroupsToPrefetch(columnMetadata), true);
+      parquetColumnPrefetchStore.storeDictionaryPrefetchedRowGroupIndex(
+          s3Uri, columnMetadata.getRowGroupIndex());
     }
   }
 
@@ -188,6 +195,7 @@ public class ParquetPredictivePrefetchingTask {
    *
    * @param columnMappers Parquet file column mappings
    * @param rowGroupsToPrefetch List of row group indexes to prefetch
+   * @param isDictionary true if the current prefetch is for dictionaries only
    * @return ranges prefetched
    */
   public IOPlanExecution prefetchRecentColumns(
@@ -209,12 +217,17 @@ public class ParquetPredictivePrefetchingTask {
                     columnMappers.getColumnNameToColumnMap().get(recentColumn);
                 for (ColumnMetadata columnMetadata : columnMetadataList) {
                   if (rowGroupsToPrefetch.contains(columnMetadata.getRowGroupIndex())) {
+                    // If the reader is currently reading dictionaries, only prefetch dictionary
+                    // bytes for the columns. This prevents over-reading for highly selective
+                    // queries, as we prefetch column data only if the predicate matches.
                     if (isDictionary && columnMetadata.getDictionaryOffset() != 0) {
                       prefetchRanges.add(
                           new Range(
                               columnMetadata.getDictionaryOffset(),
-                              columnMetadata.getDictionaryOffset() + (columnMetadata.getDataPageOffset() - columnMetadata.getDictionaryOffset() - 1))
-                      );
+                              columnMetadata.getDictionaryOffset()
+                                  + (columnMetadata.getDataPageOffset()
+                                      - columnMetadata.getDictionaryOffset()
+                                      - 1)));
                       LOG.info(
                           "Column dictionary {} found in schema for {}, and rowGroupIndex {}, adding to prefetch list",
                           recentColumn,
@@ -224,7 +237,9 @@ public class ParquetPredictivePrefetchingTask {
                       prefetchRanges.add(
                           new Range(
                               columnMetadata.getStartPos(),
-                              columnMetadata.getStartPos() + columnMetadata.getCompressedSize() - 1));
+                              columnMetadata.getStartPos()
+                                  + columnMetadata.getCompressedSize()
+                                  - 1));
                       LOG.info(
                           "Column {} found in schema for {}, and rowGroupIndex {}, adding to prefetch list",
                           recentColumn,
@@ -239,8 +254,8 @@ public class ParquetPredictivePrefetchingTask {
             IOPlan ioPlan =
                 (prefetchRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(prefetchRanges);
             return physicalIO.execute(ioPlan);
-          } catch (Exception e) {
-            LOG.warn("Unable to prefetch columns for {}.", this.s3Uri.getKey(), e);
+          } catch (Throwable t) {
+            LOG.warn("Unable to prefetch columns for {}.", this.s3Uri.getKey(), t);
             return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
           }
         });
@@ -338,7 +353,8 @@ public class ParquetPredictivePrefetchingTask {
     return addedColumns;
   }
 
-  private Set<String> getRecentColumns(Map<Long, ColumnMetadata> offsetIndexToColumnMap, boolean isDictionary) {
+  private Set<String> getRecentColumns(
+      Map<Long, ColumnMetadata> offsetIndexToColumnMap, boolean isDictionary) {
     if (!offsetIndexToColumnMap.isEmpty()) {
       Map.Entry<Long, ColumnMetadata> firstColumnData =
           offsetIndexToColumnMap.entrySet().iterator().next();
