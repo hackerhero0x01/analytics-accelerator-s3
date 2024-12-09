@@ -404,9 +404,12 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     S3SeekableInputStream seekableInputStream = getTestStream();
     seekableInputStream.close();
     SpotBugsLambdaWorkaround.assertReadResult(IOException.class, seekableInputStream::read, -1);
-    SpotBugsLambdaWorkaround.assertReadResult(IOException.class, () -> seekableInputStream.read(new byte[8]), -1);
-    SpotBugsLambdaWorkaround.assertReadResult(IOException.class, () -> seekableInputStream.read(new byte[8], 0, 8), -1);
-    SpotBugsLambdaWorkaround.assertReadResult(IOException.class, () -> seekableInputStream.readTail(new byte[8], 0, 8), -1);
+    SpotBugsLambdaWorkaround.assertReadResult(
+        IOException.class, () -> seekableInputStream.read(new byte[8]), -1);
+    SpotBugsLambdaWorkaround.assertReadResult(
+        IOException.class, () -> seekableInputStream.read(new byte[8], 0, 8), -1);
+    SpotBugsLambdaWorkaround.assertReadResult(
+        IOException.class, () -> seekableInputStream.readTail(new byte[8], 0, 8), -1);
   }
 
   @Test
