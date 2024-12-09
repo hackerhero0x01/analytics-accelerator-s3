@@ -75,7 +75,6 @@ public class SeekableStreamPropertiesTest extends StreamArbitraries {
     }
   }
 
-
   @Property
   void canCloseStreamMultipleTimes(@ForAll("streamSizes") int size) throws IOException {
     InMemoryS3SeekableInputStream s =
@@ -87,10 +86,9 @@ public class SeekableStreamPropertiesTest extends StreamArbitraries {
   @Property
   void accessToClosedStreamThrows(@ForAll("streamSizes") int size) throws IOException {
     InMemoryS3SeekableInputStream s =
-            new InMemoryS3SeekableInputStream("test-bucket", "test-key", size);
-      s.close();
-      assertThrows(IOException.class, () -> s.seek(123));
-      assertThrows(IOException.class, () -> s.read());
+        new InMemoryS3SeekableInputStream("test-bucket", "test-key", size);
+    s.close();
+    assertThrows(IOException.class, () -> s.seek(123));
+    assertThrows(IOException.class, () -> s.read());
   }
-
 }
