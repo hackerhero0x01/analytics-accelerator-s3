@@ -29,20 +29,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import software.amazon.awssdk.awscore.AwsClient;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.http.async.AbortableInputStreamSubscriber;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.awscore.AwsClient;
-import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
-import java.util.concurrent.CompletableFuture;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
+import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
@@ -216,13 +215,11 @@ public class S3SdkObjectClientTest {
     AwsClient unsupportedClient = mock(AwsClient.class);
     S3SdkObjectClient client = new S3SdkObjectClient(unsupportedClient);
 
-    assertThrows(UnsupportedOperationException.class, () ->
-            client.headObject(createHeadRequest()).join()
-    );
+    assertThrows(
+        UnsupportedOperationException.class, () -> client.headObject(createHeadRequest()).join());
 
-    assertThrows(UnsupportedOperationException.class, () ->
-            client.getObject(createGetRequest()).join()
-    );
+    assertThrows(
+        UnsupportedOperationException.class, () -> client.getObject(createGetRequest()).join());
   }
 
   @SuppressWarnings("unchecked")
@@ -250,13 +247,13 @@ public class S3SdkObjectClientTest {
     S3Client s3Client = mock(S3Client.class);
 
     when(s3Client.headObject(any(HeadObjectRequest.class)))
-            .thenReturn(HeadObjectResponse.builder().contentLength(42L).build());
+        .thenReturn(HeadObjectResponse.builder().contentLength(42L).build());
 
     when(s3Client.getObject(any(GetObjectRequest.class)))
-            .thenReturn(
-                    new ResponseInputStream<>(
-                            GetObjectResponse.builder().build(),
-                            AbortableInputStreamSubscriber.builder().build()));
+        .thenReturn(
+            new ResponseInputStream<>(
+                GetObjectResponse.builder().build(),
+                AbortableInputStreamSubscriber.builder().build()));
 
     doNothing().when(s3Client).close();
 
@@ -281,10 +278,9 @@ public class S3SdkObjectClientTest {
 
   private GetRequest createGetRequest() {
     return GetRequest.builder()
-            .s3Uri(S3URI.of("bucket", "key"))
-            .range(new Range(0, 20))
-            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
-            .build();
+        .s3Uri(S3URI.of("bucket", "key"))
+        .range(new Range(0, 20))
+        .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
+        .build();
   }
-
 }
