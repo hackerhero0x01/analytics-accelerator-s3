@@ -33,6 +33,10 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.http.async.AbortableInputStreamSubscriber;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.awscore.AwsClient;
+import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
+import java.util.concurrent.CompletableFuture;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
@@ -110,7 +114,7 @@ public class S3SdkObjectClientTest {
 
   @Test
   void testConstructorWithWrappedClient() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+    try (S3AsyncClient s3AsyncClient = createMockS3AsyncClient()) {
       S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
       assertNotNull(client);
     }
@@ -118,7 +122,7 @@ public class S3SdkObjectClientTest {
 
   @Test
   void testConstructorWithConfiguration() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+    try (S3AsyncClient s3AsyncClient = createMockS3AsyncClient()) {
       ObjectClientConfiguration configuration = ObjectClientConfiguration.DEFAULT;
       S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient, configuration);
       assertNotNull(client);
@@ -127,7 +131,7 @@ public class S3SdkObjectClientTest {
 
   @Test
   void testConstructorThrowsOnNullArgument() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+    try (S3AsyncClient s3AsyncClient = createMockS3AsyncClient()) {
       assertThrows(
           NullPointerException.class,
           () -> {
@@ -143,8 +147,8 @@ public class S3SdkObjectClientTest {
   }
 
   @Test
-  void testHeadObject() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+  void testHeadObjectWithS3AsyncClient() {
+    try (S3AsyncClient s3AsyncClient = createMockS3AsyncClient()) {
       S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
       assertEquals(
           client.headObject(HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build()).join(),
@@ -153,8 +157,8 @@ public class S3SdkObjectClientTest {
   }
 
   @Test
-  void testGetObjectWithRange() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+  void testGetObjectWithRangeWithS3AsyncClient() {
+    try (S3AsyncClient s3AsyncClient = createMockS3AsyncClient()) {
       S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
       assertInstanceOf(
           CompletableFuture.class,
@@ -169,7 +173,7 @@ public class S3SdkObjectClientTest {
 
   @Test
   void testObjectClientClose() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+    try (AwsClient s3AsyncClient = createMockS3AsyncClient()) {
       try (S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient)) {
         client.headObject(HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build());
       }
@@ -177,8 +181,52 @@ public class S3SdkObjectClientTest {
     }
   }
 
+  @Test
+  void testDoNotCloseObjectClient() {
+    AwsClient awsClient = createMockS3AsyncClient();
+    S3SdkObjectClient client = new S3SdkObjectClient(awsClient, false);
+    client.close();
+    verify(awsClient, never()).close();
+  }
+
+  @Test
+  void testConstructorWithAwsClient() {
+    AwsClient awsClient = createMockS3AsyncClient();
+    S3SdkObjectClient client = new S3SdkObjectClient(awsClient);
+    assertNotNull(client);
+    assertEquals(awsClient, client.getS3Client());
+  }
+
+  @Test
+  void testHeadObjectWithS3Client() {
+    S3Client syncClient = createMockS3Client();
+    S3SdkObjectClient client = new S3SdkObjectClient(syncClient);
+    assertHeadObjectResult(client);
+  }
+
+  @Test
+  void testGetObjectWithS3Client() {
+    S3Client syncClient = createMockS3Client();
+    S3SdkObjectClient client = new S3SdkObjectClient(syncClient);
+    assertGetObjectResult(client);
+  }
+
+  @Test
+  void testUnsupportedClientType() {
+    AwsClient unsupportedClient = mock(AwsClient.class);
+    S3SdkObjectClient client = new S3SdkObjectClient(unsupportedClient);
+
+    assertThrows(UnsupportedOperationException.class, () ->
+            client.headObject(createHeadRequest()).join()
+    );
+
+    assertThrows(UnsupportedOperationException.class, () ->
+            client.getObject(createGetRequest()).join()
+    );
+  }
+
   @SuppressWarnings("unchecked")
-  private static S3AsyncClient createMockClient() {
+  private static S3AsyncClient createMockS3AsyncClient() {
     S3AsyncClient s3AsyncClient = mock(S3AsyncClient.class);
 
     when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
@@ -197,4 +245,46 @@ public class S3SdkObjectClientTest {
 
     return s3AsyncClient;
   }
+
+  private static S3Client createMockS3Client() {
+    S3Client s3Client = mock(S3Client.class);
+
+    when(s3Client.headObject(any(HeadObjectRequest.class)))
+            .thenReturn(HeadObjectResponse.builder().contentLength(42L).build());
+
+    when(s3Client.getObject(any(GetObjectRequest.class)))
+            .thenReturn(
+                    new ResponseInputStream<>(
+                            GetObjectResponse.builder().build(),
+                            AbortableInputStreamSubscriber.builder().build()));
+
+    doNothing().when(s3Client).close();
+
+    return s3Client;
+  }
+
+  private void assertHeadObjectResult(S3SdkObjectClient client) {
+    CompletableFuture<ObjectMetadata> result = client.headObject(createHeadRequest());
+    assertNotNull(result);
+    assertEquals(42L, result.join().getContentLength());
+  }
+
+  private void assertGetObjectResult(S3SdkObjectClient client) {
+    CompletableFuture<ObjectContent> result = client.getObject(createGetRequest());
+    assertNotNull(result);
+    assertDoesNotThrow(() -> result.join());
+  }
+
+  private HeadRequest createHeadRequest() {
+    return HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build();
+  }
+
+  private GetRequest createGetRequest() {
+    return GetRequest.builder()
+            .s3Uri(S3URI.of("bucket", "key"))
+            .range(new Range(0, 20))
+            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
+            .build();
+  }
+
 }
