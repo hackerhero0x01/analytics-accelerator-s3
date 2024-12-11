@@ -367,24 +367,24 @@ public class ParquetPredictivePrefetchingTaskTest {
     HashMap<Long, ColumnMetadata> offsetIndexToColumnMap = new HashMap<>();
 
     List<ColumnMetadata> sk_testColumnMetadataList = new ArrayList<>();
-    ColumnMetadata sk_test1 = new ColumnMetadata(0, "test", 100, 200, 100, 500, schemaHash);
+    ColumnMetadata sk_test1 = new ColumnMetadata(0, "test", 200, 100, 100, 500, schemaHash);
     sk_testColumnMetadataList.add(sk_test1);
     offsetIndexToColumnMap.put(100L, sk_test1);
 
     // Should not be prefetched as it does not belong to the first row group.
     ColumnMetadata sk_test1_row_group_1 =
-        new ColumnMetadata(1, "test", 1800, 1900, 1800, 500, schemaHash);
+        new ColumnMetadata(1, "test", 1900, 1800, 1800, 500, schemaHash);
     sk_testColumnMetadataList.add(sk_test1_row_group_1);
     offsetIndexToColumnMap.put(1800L, sk_test1_row_group_1);
 
     List<ColumnMetadata> sk_test_2ColumnMetadataList = new ArrayList<>();
-    ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test_2", 600, 700, 600, 500, schemaHash);
+    ColumnMetadata sk_test2 = new ColumnMetadata(0, "sk_test_2", 700, 600, 600, 500, schemaHash);
     sk_test_2ColumnMetadataList.add(sk_test2);
     offsetIndexToColumnMap.put(600L, sk_test2);
 
     List<ColumnMetadata> sk_test_3ColumnMetadataList = new ArrayList<>();
     ColumnMetadata sk_test3 =
-        new ColumnMetadata(0, "sk_test_3", 1100, 1200, 1100, 500, getHashCode(columnNames));
+        new ColumnMetadata(0, "sk_test_3", 1400, 1300, 1300, 500, getHashCode(columnNames));
     sk_test_3ColumnMetadataList.add(sk_test3);
     offsetIndexToColumnMap.put(1100L, sk_test3);
 
@@ -419,9 +419,9 @@ public class ParquetPredictivePrefetchingTaskTest {
     IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
     List<Range> expectedRanges = new ArrayList<>();
 
-    expectedRanges.add(new Range(100, 599));
-    expectedRanges.add(new Range(600, 1099));
-    expectedRanges.add(new Range(1100, 1599));
+    // first two columns are consecutive, and so get merged
+    expectedRanges.add(new Range(100, 1099));
+    expectedRanges.add(new Range(1300, 1799));
     assertTrue(ioPlan.getPrefetchRanges().containsAll(expectedRanges));
   }
 
