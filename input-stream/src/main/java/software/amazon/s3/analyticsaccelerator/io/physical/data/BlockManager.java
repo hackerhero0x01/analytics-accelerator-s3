@@ -137,9 +137,12 @@ public class BlockManager implements Closeable {
     // effectiveEnd of the requested range
     long effectiveEnd = pos + Math.max(len, configuration.getReadAheadBytes()) - 1;
 
-    // Check sequential prefetching
+    // Check sequential prefetching. If read mode is ASYNC, that is the request is from the parquet
+    // prefetch path, then do not extend the request.
+    // TODO: Improve readModes, as tracked in
+    // https://github.com/awslabs/analytics-accelerator-s3/issues/195
     final long generation;
-    if (patternDetector.isSequentialRead(pos)) {
+    if (readMode != ReadMode.ASYNC && patternDetector.isSequentialRead(pos)) {
       generation = patternDetector.getGeneration(pos);
       effectiveEnd =
           Math.max(
