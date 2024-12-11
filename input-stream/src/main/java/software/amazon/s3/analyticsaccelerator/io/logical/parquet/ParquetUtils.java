@@ -143,4 +143,39 @@ public final class ParquetUtils {
 
     return rowGroupsToPrefetch;
   }
+
+  /**
+   * Merges consecutive ranges to avoid making multiple small requests. For example, if there are
+   * ranges [100-200, 500-600, 601-800, 801-900, 1000-1200], this list will be merged into [100-200,
+   * 500-900, 1000-1200]. This is a common scenario when reading smaller consecutive parquet
+   * columns, and when these consecutive columns are small (~1-2MB), making multiple GETs may,
+   * instead of a single larger merged request, may hurt performance.
+   *
+   * <p>This code can further be extended in the future, such that ranges that are not consecutive,
+   * but close enough together may also be merged. For example, ranges [100-200, 300-600] are not
+   * consecutive, but merging may be beneficial as the delta b/w them is only 100 bytes.
+   *
+   * @param ranges Range of requests to be merged
+   * @return merged ranges
+   */
+  public static List<Range> mergeRanges(List<Range> ranges) {
+    ranges.sort((Range a, Range b) -> a.getStart() > b.getStart() ? 1 : -1);
+    List<Range> mergedRanges = new ArrayList<>();
+
+    int i = 0;
+    while (i < ranges.size()) {
+      int k = i;
+
+      // while there are consecutive ranges, keep iterating
+      while (k < ranges.size() - 1 && ranges.get(k).getEnd() + 1 == ranges.get(k + 1).getStart()) {
+        k++;
+      }
+
+      mergedRanges.add(new Range(ranges.get(i).getStart(), ranges.get(k).getEnd()));
+
+      i = k + 1;
+    }
+
+    return mergedRanges;
+  }
 }

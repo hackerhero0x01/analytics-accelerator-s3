@@ -207,7 +207,10 @@ public class ParquetPredictivePrefetchingTask {
                 .build(),
         () -> {
           try {
-            List<Range> prefetchRanges = new ArrayList<>();
+            // Ranges for dictionary data only
+            List<Range> dictionaryRanges = new ArrayList<>();
+            // Ranges for column data
+            List<Range> columnRanges = new ArrayList<>();
 
             for (String recentColumn :
                 getRecentColumns(columnMappers.getOffsetIndexToColumnMap(), isDictionary)) {
@@ -220,7 +223,7 @@ public class ParquetPredictivePrefetchingTask {
                     // bytes for the columns. This prevents over-reading for highly selective
                     // queries, as we prefetch column data only if the predicate matches.
                     if (isDictionary && columnMetadata.getDictionaryOffset() != 0) {
-                      prefetchRanges.add(
+                      dictionaryRanges.add(
                           new Range(
                               columnMetadata.getDictionaryOffset(),
                               columnMetadata.getDictionaryOffset()
@@ -233,7 +236,7 @@ public class ParquetPredictivePrefetchingTask {
                           this.s3Uri.getKey(),
                           columnMetadata.getRowGroupIndex());
                     } else {
-                      prefetchRanges.add(
+                      columnRanges.add(
                           new Range(
                               columnMetadata.getStartPos(),
                               columnMetadata.getStartPos()
@@ -250,9 +253,13 @@ public class ParquetPredictivePrefetchingTask {
               }
             }
 
-            IOPlan ioPlan =
-                (prefetchRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(prefetchRanges);
-            return physicalIO.execute(ioPlan);
+            IOPlan dictionaryIoPlan =
+                (dictionaryRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(dictionaryRanges);
+            physicalIO.execute(dictionaryIoPlan);
+
+            IOPlan columnIoPlan =
+                (columnRanges.isEmpty()) ? IOPlan.EMPTY_PLAN : new IOPlan(columnRanges);
+            return physicalIO.execute(columnIoPlan);
           } catch (Throwable t) {
             LOG.warn("Unable to prefetch columns for {}.", this.s3Uri.getKey(), t);
             return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();

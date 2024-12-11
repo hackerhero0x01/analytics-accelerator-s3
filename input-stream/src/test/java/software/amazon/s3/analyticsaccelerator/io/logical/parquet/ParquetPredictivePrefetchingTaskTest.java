@@ -182,7 +182,7 @@ public class ParquetPredictivePrefetchingTaskTest {
     // Then: physical IO gets the correct plan. Only recent columns from the current row
     // group are prefetched.
     ArgumentCaptor<IOPlan> ioPlanArgumentCaptor = ArgumentCaptor.forClass(IOPlan.class);
-    verify(physicalIO).execute(ioPlanArgumentCaptor.capture());
+    verify(physicalIO, times(2)).execute(ioPlanArgumentCaptor.capture());
 
     IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
     List<Range> expectedRanges = new ArrayList<>();
@@ -235,9 +235,9 @@ public class ParquetPredictivePrefetchingTaskTest {
     // Then: physical IO gets the correct plan. Only recent columns from the current row
     // group are prefetched.
     ArgumentCaptor<IOPlan> ioPlanArgumentCaptor = ArgumentCaptor.forClass(IOPlan.class);
-    verify(physicalIO).execute(ioPlanArgumentCaptor.capture());
+    verify(physicalIO, times(2)).execute(ioPlanArgumentCaptor.capture());
 
-    IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
+    IOPlan ioPlan = ioPlanArgumentCaptor.getAllValues().get(0);
     List<Range> expectedRanges = new ArrayList<>();
 
     expectedRanges.add(new Range(100, 199));
@@ -414,7 +414,7 @@ public class ParquetPredictivePrefetchingTaskTest {
 
     // Then: physical IO gets the correct plan
     ArgumentCaptor<IOPlan> ioPlanArgumentCaptor = ArgumentCaptor.forClass(IOPlan.class);
-    verify(physicalIO).execute(ioPlanArgumentCaptor.capture());
+    verify(physicalIO, times(2)).execute(ioPlanArgumentCaptor.capture());
 
     IOPlan ioPlan = ioPlanArgumentCaptor.getValue();
     List<Range> expectedRanges = new ArrayList<>();

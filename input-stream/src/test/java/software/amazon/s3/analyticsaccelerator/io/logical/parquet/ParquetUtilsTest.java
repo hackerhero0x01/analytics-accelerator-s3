@@ -16,9 +16,11 @@
 package software.amazon.s3.analyticsaccelerator.io.logical.parquet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_GB;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
@@ -115,5 +117,32 @@ public class ParquetUtilsTest {
 
     assertEquals(range.getStart(), 0);
     assertEquals(range.getEnd(), 4);
+  }
+
+  @Test
+  void testMergeRanges() {
+
+    List<Range> ranges = new ArrayList<>();
+    ranges.add(new Range(8577000, 8578000));
+    ranges.add(new Range(8578001, 8579000));
+    ranges.add(new Range(4862808, 4966522));
+    ranges.add(new Range(4966523, 5414203));
+    ranges.add(new Range(447784, 899884));
+    ranges.add(new Range(4302424, 4862807));
+    ranges.add(new Range(5414204, 8572063));
+    ranges.add(new Range(8572073, 8574000));
+    ranges.add(new Range(8579001, 8579050));
+    ranges.add(new Range(8579060, 8579080));
+
+    List<Range> expectedRanges = new ArrayList<>();
+    expectedRanges.add(new Range(447784, 899884));
+    // Merge [4302424 - 4862807, 4862808  - 4966522, 4966523 - 5414203, 5414204, 8572063]
+    expectedRanges.add(new Range(4302424, 8572063));
+    expectedRanges.add(new Range(8572073, 8574000));
+    // Merge [8577000 - 8578000, 8578001 - 8579000,8579001 - 8579050]
+    expectedRanges.add(new Range(8577000, 8579050));
+    expectedRanges.add(new Range(8579060, 8579080));
+
+    assertTrue(expectedRanges.containsAll(ParquetUtils.mergeRanges(ranges)));
   }
 }
