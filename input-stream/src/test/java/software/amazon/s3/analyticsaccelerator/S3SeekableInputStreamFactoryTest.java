@@ -72,6 +72,20 @@ public class S3SeekableInputStreamFactoryTest {
   }
 
   @Test
+  void testCreateStreamWithContentLength() {
+    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            mock(ObjectClient.class),
+            S3SeekableInputStreamConfiguration.builder()
+                .logicalIOConfiguration(
+                    LogicalIOConfiguration.builder().prefetchFooterEnabled(false).build())
+                .build());
+    S3SeekableInputStream inputStream =
+        s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"), 500);
+    assertNotNull(inputStream);
+  }
+
+  @Test
   void testCreateIndependentStream() {
     S3SeekableInputStreamConfiguration configuration =
         S3SeekableInputStreamConfiguration.builder()
