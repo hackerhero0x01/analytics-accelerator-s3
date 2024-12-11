@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
@@ -117,7 +118,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
 
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
         new ParquetPrefetchRemainingColumnTask(
-            TEST_URI, Telemetry.NOOP, mockedPhysicalIO, mockedParquetColumnPrefetchStore);
+            TEST_URI, TestTelemetry.DEFAULT, mockedPhysicalIO, mockedParquetColumnPrefetchStore);
     parquetPrefetchRemainingColumnTask.prefetchRemainingColumnChunk(200, 5 * ONE_MB);
 
     verify(mockedPhysicalIO).execute(any(IOPlan.class));
@@ -140,7 +141,7 @@ public class ParquetPrefetchRemainingColumnTaskTest {
         .thenReturn(new ColumnMappers(offsetIndexToColumnMap, new HashMap<>()));
     ParquetPrefetchRemainingColumnTask parquetPrefetchRemainingColumnTask =
         new ParquetPrefetchRemainingColumnTask(
-            TEST_URI, Telemetry.NOOP, mockedPhysicalIO, mockedParquetColumnPrefetchStore);
+            TEST_URI, TestTelemetry.DEFAULT, mockedPhysicalIO, mockedParquetColumnPrefetchStore);
 
     doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
 

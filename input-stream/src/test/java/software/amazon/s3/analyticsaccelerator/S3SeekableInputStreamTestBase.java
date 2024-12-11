@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.analyticsaccelerator;
 
+import java.util.Optional;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
@@ -43,7 +44,8 @@ public class S3SeekableInputStreamTestBase {
   protected final LogicalIO fakeLogicalIO =
       new ParquetLogicalIOImpl(
           TEST_OBJECT,
-          new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),
+          new PhysicalIOImpl(
+              TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT, Optional.empty()),
           TestTelemetry.DEFAULT,
           logicalIOConfiguration,
           new ParquetColumnPrefetchStore(logicalIOConfiguration));

@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
@@ -44,7 +45,8 @@ public class PhysicalIOImplTest {
             TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 =
-        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT, Optional.empty());
 
     // When: we read
     // Then: returned data is correct
@@ -67,7 +69,8 @@ public class PhysicalIOImplTest {
             TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 =
-        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT, Optional.empty());
 
     // When: we read
     // Then: returned data is correct
