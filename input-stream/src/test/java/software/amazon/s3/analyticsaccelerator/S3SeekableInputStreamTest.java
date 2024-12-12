@@ -26,7 +26,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.utils.IoUtils;
@@ -371,8 +370,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
               () -> {
                 try {
                   PhysicalIO physicalIO =
-                      new PhysicalIOImpl(
-                          s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT, Optional.empty());
+                      new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
                   LogicalIO logicalIO =
                       new ParquetLogicalIOImpl(
                           TEST_OBJECT,
@@ -426,8 +424,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
         TEST_URI,
         new ParquetLogicalIOImpl(
             TEST_OBJECT,
-            new PhysicalIOImpl(
-                TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT, Optional.empty()),
+            new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),
             TestTelemetry.DEFAULT,
             LogicalIOConfiguration.DEFAULT,
             new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)),

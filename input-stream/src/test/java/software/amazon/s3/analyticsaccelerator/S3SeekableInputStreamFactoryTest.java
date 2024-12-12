@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
@@ -122,21 +121,17 @@ public class S3SeekableInputStreamFactoryTest {
         new S3SeekableInputStreamFactory(mock(ObjectClient.class), configuration);
 
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                S3URI.of("bucket", "key.parquet"), Optional.empty())
+        s3SeekableInputStreamFactory.createLogicalIO(S3URI.of("bucket", "key.parquet"))
             instanceof ParquetLogicalIOImpl);
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                S3URI.of("bucket", "key.par"), Optional.empty())
+        s3SeekableInputStreamFactory.createLogicalIO(S3URI.of("bucket", "key.par"))
             instanceof ParquetLogicalIOImpl);
 
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                S3URI.of("bucket", "key.java"), Optional.empty())
+        s3SeekableInputStreamFactory.createLogicalIO(S3URI.of("bucket", "key.java"))
             instanceof DefaultLogicalIOImpl);
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                S3URI.of("bucket", "key.txt"), Optional.empty())
+        s3SeekableInputStreamFactory.createLogicalIO(S3URI.of("bucket", "key.txt"))
             instanceof DefaultLogicalIOImpl);
   }
 

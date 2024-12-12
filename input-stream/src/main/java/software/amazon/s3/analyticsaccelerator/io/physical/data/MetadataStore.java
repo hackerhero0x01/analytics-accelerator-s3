@@ -109,6 +109,17 @@ public class MetadataStore implements Closeable {
   }
 
   /**
+   * Allows storing of objectMetadata to cache. Useful when content length is already known, so can
+   * skip the HEAD request.
+   *
+   * @param s3URI the object to store metadata for
+   * @param objectMetadata Object metadata
+   */
+  public synchronized void storeObjectMetadata(S3URI s3URI, ObjectMetadata objectMetadata) {
+    this.cache.put(s3URI, CompletableFuture.completedFuture(objectMetadata));
+  }
+
+  /**
    * Utility method that cancels a {@link CompletableFuture} ignoring any exceptions.
    *
    * @param future an instance of {@link CompletableFuture} to cancel

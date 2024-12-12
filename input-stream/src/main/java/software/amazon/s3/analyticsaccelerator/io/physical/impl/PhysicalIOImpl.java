@@ -16,7 +16,6 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 
 import java.io.IOException;
-import java.util.Optional;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
@@ -36,7 +35,6 @@ public class PhysicalIOImpl implements PhysicalIO {
   private final MetadataStore metadataStore;
   private final BlobStore blobStore;
   private final Telemetry telemetry;
-  private final Optional<ObjectMetadata> objectMetadata;
 
   private final long physicalIOBirth = System.nanoTime();
 
@@ -52,19 +50,16 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param metadataStore a metadata cache
    * @param blobStore a data cache
    * @param telemetry The {@link Telemetry} to use to report measurements.
-   * @param objectMetadata object metadata
    */
   public PhysicalIOImpl(
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
-      @NonNull Telemetry telemetry,
-      @NonNull Optional<ObjectMetadata> objectMetadata) {
+      @NonNull Telemetry telemetry) {
     this.s3URI = s3URI;
     this.metadataStore = metadataStore;
     this.blobStore = blobStore;
     this.telemetry = telemetry;
-    this.objectMetadata = objectMetadata;
   }
 
   /**
@@ -74,7 +69,7 @@ public class PhysicalIOImpl implements PhysicalIO {
    */
   @Override
   public ObjectMetadata metadata() {
-    return objectMetadata.orElseGet(() -> metadataStore.get(s3URI));
+    return metadataStore.get(s3URI);
   }
 
   /**

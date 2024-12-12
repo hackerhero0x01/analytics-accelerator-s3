@@ -16,7 +16,6 @@
 package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
-import java.util.Optional;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
@@ -88,7 +87,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @return An instance of the input stream.
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI) {
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, Optional.empty()), telemetry);
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
   /**
@@ -101,20 +100,18 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI, long contentLength) {
     Preconditions.checkArgument(contentLength >= 0, "`len` must be non-negative");
 
-    return new S3SeekableInputStream(
-        s3URI,
-        createLogicalIO(
-            s3URI, Optional.of(ObjectMetadata.builder().contentLength(contentLength).build())),
-        telemetry);
+    objectMetadataStore.storeObjectMetadata(
+        s3URI, ObjectMetadata.builder().contentLength(contentLength).build());
+
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
-  LogicalIO createLogicalIO(S3URI s3URI, Optional<ObjectMetadata> objectMetadata) {
+  LogicalIO createLogicalIO(S3URI s3URI) {
     switch (objectFormatSelector.getObjectFormat(s3URI)) {
       case PARQUET:
         return new ParquetLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(
-                s3URI, objectMetadataStore, objectBlobStore, telemetry, objectMetadata),
+            new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry),
             telemetry,
             configuration.getLogicalIOConfiguration(),
             parquetColumnPrefetchStore);
@@ -122,8 +119,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       default:
         return new DefaultLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(
-                s3URI, objectMetadataStore, objectBlobStore, telemetry, objectMetadata),
+            new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry),
             telemetry);
     }
   }
