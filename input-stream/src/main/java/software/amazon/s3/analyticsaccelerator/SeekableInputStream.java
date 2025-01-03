@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
 import java.io.InputStream;
+import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 
 /**
  * A SeekableInputStream is like a conventional InputStream but equipped with two additional
@@ -57,4 +58,38 @@ public abstract class SeekableInputStream extends InputStream {
    * @throws IOException if an error occurs while reading the file
    */
   public abstract int readTail(byte[] buf, int off, int n) throws IOException;
+
+  /**
+   * Validates the arguments for a read operation. This method is available to use in all subclasses
+   * to ensure consistency.
+   *
+   * @param position the position to read from
+   * @param buffer the buffer to read into
+   * @param offset the offset in the buffer to start writing at
+   * @param length the number of bytes to read
+   * @throws IllegalArgumentException if the position, offset or length is negative
+   * @throws NullPointerException if the buffer is null
+   * @throws IndexOutOfBoundsException if the offset or length are invalid for the given buffer
+   */
+  protected void validatePositionedReadArgs(long position, byte[] buffer, int offset, int length) {
+    Preconditions.checkArgument(offset >= 0, "Offset is negative");
+    Preconditions.checkArgument(length >= 0, "Length is negative");
+
+    // TODO: S3A throws an EOFException here, S3FileIO does IllegalArgumentException
+    // TODO: https://github.com/awslabs/analytics-accelerator-s3/issues/84
+    Preconditions.checkArgument(position >= 0, "Position is negative");
+
+    if (buffer == null) {
+      throw new NullPointerException("Null destination buffer");
+    } else if (length > buffer.length - offset) {
+      throw new IndexOutOfBoundsException(
+          "Too many bytes for destination buffer "
+              + ": request length="
+              + length
+              + ", with offset ="
+              + offset
+              + "; buffer capacity ="
+              + (buffer.length - offset));
+    }
+  }
 }

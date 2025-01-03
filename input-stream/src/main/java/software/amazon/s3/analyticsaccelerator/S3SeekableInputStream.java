@@ -134,8 +134,11 @@ public class S3SeekableInputStream extends SeekableInputStream {
   @Override
   public int read(byte @NonNull [] buffer, int offset, int length) throws IOException {
     throwIfClosed("cannot read from closed stream");
+    validatePositionedReadArgs(position, buffer, offset, length);
 
-    if (this.position >= getContentLength()) {
+    if (length == 0) {
+      return 0;
+    } else if (this.position >= getContentLength()) {
       return EOF;
     }
 
@@ -188,23 +191,30 @@ public class S3SeekableInputStream extends SeekableInputStream {
    * Reads the last n bytes from the stream into a byte buffer. Blocks until end of stream is
    * reached. Leaves the position of the stream unaltered.
    *
-   * @param buf buffer to read data into
-   * @param off start position in buffer at which data is written
-   * @param n the number of bytes to read; the n-th byte should be the last byte of the stream.
+   * @param buffer buffer to read data into
+   * @param offset start position in buffer at which data is written
+   * @param length the number of bytes to read; the n-th byte should be the last byte of the stream.
    * @return the total number of bytes read into the buffer
    */
   @Override
-  public int readTail(byte[] buf, int off, int n) throws IOException {
+  public int readTail(byte[] buffer, int offset, int length) throws IOException {
     throwIfClosed("cannot read from closed stream");
+    validatePositionedReadArgs(position, buffer, offset, length);
+
+    if (length == 0) {
+      return 0;
+    }
+
     return this.telemetry.measureVerbose(
         () ->
             Operation.builder()
                 .name(OPERATION_READ)
                 .attribute(StreamAttributes.variant(FLAVOR_TAIL))
                 .attribute(StreamAttributes.uri(this.s3URI))
-                .attribute(StreamAttributes.range(getContentLength() - n, getContentLength() - 1))
+                .attribute(
+                    StreamAttributes.range(getContentLength() - length, getContentLength() - 1))
                 .build(),
-        () -> logicalIO.readTail(buf, off, n));
+        () -> logicalIO.readTail(buffer, offset, length));
   }
 
   /**
@@ -221,7 +231,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
                 .attribute(
                     StreamAttributes.streamRelativeTimestamp(System.nanoTime() - streamBirth))
                 .build(),
-        () -> this.logicalIO.close());
+        this.logicalIO::close);
 
     // Flush telemetry after a stream closes to have full coverage of all operations of this stream
     this.telemetry.flush();

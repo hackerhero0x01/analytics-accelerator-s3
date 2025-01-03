@@ -140,7 +140,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   }
 
   @Test
-  void testSeekAfterEnd() throws IOException {
+  void testSeekAfterEnd() {
     S3SeekableInputStream stream = getTestStream();
     assertDoesNotThrow(() -> stream.seek(Long.MAX_VALUE));
     assertDoesNotThrow(() -> stream.seek(TEST_DATA.length()));
@@ -247,13 +247,15 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     try (S3SeekableInputStream stream = getTestStream()) {
 
       // Read beyond EOF, expect all bytes to be read and pos to be EOF.
-      assertEquals(TEST_DATA.length(), stream.read(new byte[20], 0, TEST_DATA.length() + 20));
+      assertEquals(
+          TEST_DATA.length(),
+          stream.read(new byte[TEST_DATA.length() + 20], 0, TEST_DATA.length() + 20));
       assertEquals(20, stream.getPos());
 
       // Read beyond EOF after a seek, expect only num bytes read to be equal to that left in the
       // stream, and pos to be EOF.
       stream.seek(18);
-      assertEquals(2, stream.read(new byte[20], 0, TEST_DATA.length() + 20));
+      assertEquals(2, stream.read(new byte[TEST_DATA.length() + 20], 0, TEST_DATA.length() + 20));
       assertEquals(20, stream.getPos());
     }
   }
@@ -268,7 +270,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
       // 100K is bigger than test data size
       assertThrows(IllegalArgumentException.class, () -> stream.readTail(new byte[103], 0, 100));
       // Requesting more data than byte buffer size
-      assertThrows(IllegalArgumentException.class, () -> stream.readTail(new byte[10], 0, 100));
+      assertThrows(IndexOutOfBoundsException.class, () -> stream.readTail(new byte[10], 0, 100));
     }
   }
 
@@ -419,6 +421,26 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     assertThrows(IOException.class, () -> seekableInputStream.seek(0));
   }
 
+  @Test
+  public void testZeroLengthRead() throws IOException {
+    S3SeekableInputStream seekableInputStream = getTestStream();
+    assertEquals(0, seekableInputStream.read(new byte[0], 0, 0));
+    assertEquals(0, seekableInputStream.readTail(new byte[0], 0, 0));
+  }
+
+  @Test
+  public void testInsufficientBuffer() throws IOException {
+    S3SeekableInputStream seekableInputStream = getTestStream();
+    SpotBugsLambdaWorkaround.assertReadResult(
+        IndexOutOfBoundsException.class, () -> seekableInputStream.read(new byte[8], 1, 8), -1);
+    SpotBugsLambdaWorkaround.assertReadResult(
+        IndexOutOfBoundsException.class, () -> seekableInputStream.read(new byte[0], 0, 8), -1);
+    SpotBugsLambdaWorkaround.assertReadResult(
+        IndexOutOfBoundsException.class, () -> seekableInputStream.readTail(new byte[0], 0, 8), -1);
+    SpotBugsLambdaWorkaround.assertReadResult(
+        IndexOutOfBoundsException.class, () -> seekableInputStream.readTail(new byte[0], 0, 8), -1);
+  }
+
   private S3SeekableInputStream getTestStream() {
     return new S3SeekableInputStream(TEST_URI, fakeLogicalIO, TestTelemetry.DEFAULT);
   }
@@ -435,10 +457,10 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             PhysicalIOConfiguration.DEFAULT);
 
     return new S3SeekableInputStream(
-        TEST_URI,
+        s3URI,
         new ParquetLogicalIOImpl(
-            TEST_OBJECT,
-            new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),
+            s3URI,
+            new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT),
             TestTelemetry.DEFAULT,
             LogicalIOConfiguration.DEFAULT,
             new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)),
