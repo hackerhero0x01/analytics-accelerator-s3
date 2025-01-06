@@ -21,7 +21,7 @@ public interface AuditHeaders {
    */
   public void setGetRange(String range);
   /**
-   * @return string
+   * @return the referrer header
    */
   public String buildReferrerHeader();
 }
