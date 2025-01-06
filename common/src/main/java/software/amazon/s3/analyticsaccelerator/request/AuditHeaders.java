@@ -16,12 +16,8 @@
 package software.amazon.s3.analyticsaccelerator.request;
 /** */
 public interface AuditHeaders {
-  /**
-   * @param range range of get request
-   */
+  /** @param range range of get request */
   public void setGetRange(String range);
-  /**
-   * @return the referrer header
-   */
+  /** @return the referrer header */
   public String buildReferrerHeader();
 }
