@@ -27,6 +27,7 @@ import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOI
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
+import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.ObjectFormatSelector;
@@ -90,6 +91,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
+
   /**
    * Create an instance of S3SeekableInputStream with provided metadata.
    *
@@ -101,9 +103,20 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     Preconditions.checkArgument(contentLength >= 0, "`len` must be non-negative");
 
     objectMetadataStore.storeObjectMetadata(
-        s3URI, ObjectMetadata.builder().contentLength(contentLength).build());
+            s3URI, ObjectMetadata.builder().contentLength(contentLength).build());
 
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
+  }
+
+  /**
+   * Create an instance of S3SeekableInputStream with auditHeaders.
+   *
+   * @param s3URI the object's S3 URI
+   * @param auditHeaders audit headers
+   * @return An instance of the input stream.
+   */
+  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, AuditHeaders auditHeaders) {
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry, auditHeaders);
   }
 
   LogicalIO createLogicalIO(S3URI s3URI) {

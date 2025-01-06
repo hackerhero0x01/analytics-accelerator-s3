@@ -23,12 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
-import software.amazon.s3.analyticsaccelerator.request.GetRequest;
-import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
-import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
-import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
-import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.Range;
+import software.amazon.s3.analyticsaccelerator.request.*;
 
 public class FakeObjectClient implements ObjectClient {
 
@@ -60,6 +55,12 @@ public class FakeObjectClient implements ObjectClient {
 
   @Override
   public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
+    return getObject(getRequest, null);
+  }
+
+  @Override
+  public CompletableFuture<ObjectContent> getObject(
+      GetRequest getRequest, AuditHeaders auditHeaders) {
     getRequestCount.incrementAndGet();
     requestedRanges.add(getRequest.getRange());
     return CompletableFuture.completedFuture(

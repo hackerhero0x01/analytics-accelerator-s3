@@ -27,6 +27,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import software.amazon.awssdk.core.ResponseInputStream;
@@ -37,12 +39,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
-import software.amazon.s3.analyticsaccelerator.request.GetRequest;
-import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
-import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.Range;
-import software.amazon.s3.analyticsaccelerator.request.ReadMode;
-import software.amazon.s3.analyticsaccelerator.request.Referrer;
+import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -50,14 +47,17 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     justification =
         "We mean to pass nulls to checks. Also, closures cannot be made static in this case")
 public class S3SdkObjectClientTest {
+
+  private static final String HEADER_REFERER = "Referer";
+
   @Test
   void testForNullsInConstructor() {
     try (S3AsyncClient client = mock(S3AsyncClient.class)) {
       SpotBugsLambdaWorkaround.assertThrowsClosableResult(
           NullPointerException.class,
-          () -> new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT, true));
+          () -> new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT, true, null));
       SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-          NullPointerException.class, () -> new S3SdkObjectClient(client, null, true));
+          NullPointerException.class, () -> new S3SdkObjectClient(client, null, true, null));
       SpotBugsLambdaWorkaround.assertThrowsClosableResult(
           NullPointerException.class,
           () -> new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT));
@@ -137,7 +137,8 @@ public class S3SdkObjectClientTest {
       assertThrows(
           NullPointerException.class,
           () -> {
-            new S3SdkObjectClient(s3AsyncClient, null);
+            ObjectClientConfiguration configuration = null;
+            new S3SdkObjectClient(s3AsyncClient, configuration);
           });
     }
   }
@@ -165,6 +166,73 @@ public class S3SdkObjectClientTest {
                   .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
                   .build()));
     }
+  }
+
+  @Test
+  void testGetObjectWithAuditHeaders() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
+    when(mockAuditHeaders.buildReferrerHeader()).thenReturn("audit-referrer-value");
+
+    GetRequest getRequest =
+        GetRequest.builder()
+            .s3Uri(S3URI.of("bucket", "key"))
+            .range(new Range(0, 20))
+            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
+            .build();
+
+    client.getObject(getRequest, mockAuditHeaders);
+
+    ArgumentCaptor<GetObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(GetObjectRequest.class);
+    verify(mockS3AsyncClient)
+        .getObject(
+            requestCaptor.capture(),
+            ArgumentMatchers
+                .<AsyncResponseTransformer<
+                        GetObjectResponse, ResponseInputStream<GetObjectResponse>>>
+                    any());
+
+    GetObjectRequest capturedRequest = requestCaptor.getValue();
+    assertEquals(
+        "audit-referrer-value",
+        capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
+
+    verify(mockAuditHeaders).setGetRange("bytes=0-20");
+  }
+
+  @Test
+  void testGetObjectWithoutAuditHeaders() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    GetRequest getRequest =
+        GetRequest.builder()
+            .s3Uri(S3URI.of("bucket", "key"))
+            .range(new Range(0, 20))
+            .referrer(new Referrer("original-referrer", ReadMode.SYNC))
+            .build();
+
+    client.getObject(getRequest, null);
+
+    ArgumentCaptor<GetObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(GetObjectRequest.class);
+    verify(mockS3AsyncClient)
+        .getObject(
+            requestCaptor.capture(),
+            ArgumentMatchers
+                .<AsyncResponseTransformer<
+                        GetObjectResponse, ResponseInputStream<GetObjectResponse>>>
+                    any());
+
+    GetObjectRequest capturedRequest = requestCaptor.getValue();
+    assertEquals(
+        "original-referrer,readMode=SYNC",
+        capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
   }
 
   @Test

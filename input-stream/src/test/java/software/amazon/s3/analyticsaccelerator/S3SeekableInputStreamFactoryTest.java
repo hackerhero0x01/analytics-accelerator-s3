@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOImpl;
+import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -68,6 +69,11 @@ public class S3SeekableInputStreamFactoryTest {
     S3SeekableInputStream inputStream =
         s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"));
     assertNotNull(inputStream);
+
+    inputStream =
+        s3SeekableInputStreamFactory.createStream(
+            S3URI.of("bucket", "key"), mock(AuditHeaders.class));
+    assertNotNull(inputStream);
   }
 
   @Test
@@ -96,6 +102,11 @@ public class S3SeekableInputStreamFactoryTest {
     S3SeekableInputStream inputStream =
         s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"));
     assertNotNull(inputStream);
+
+    inputStream =
+        s3SeekableInputStreamFactory.createStream(
+            S3URI.of("bucket", "key"), mock(AuditHeaders.class));
+    assertNotNull(inputStream);
   }
 
   @Test
@@ -107,6 +118,12 @@ public class S3SeekableInputStreamFactoryTest {
         NullPointerException.class,
         () -> {
           s3SeekableInputStreamFactory.createStream(null);
+        });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          s3SeekableInputStreamFactory.createStream(null, mock(AuditHeaders.class));
         });
   }
 

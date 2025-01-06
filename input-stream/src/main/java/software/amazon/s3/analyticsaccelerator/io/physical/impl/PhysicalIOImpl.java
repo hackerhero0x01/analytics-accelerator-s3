@@ -25,6 +25,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
+import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
@@ -76,10 +77,11 @@ public class PhysicalIOImpl implements PhysicalIO {
    * Reads a byte from the underlying object
    *
    * @param pos the position to read
+   * @param auditHeaders audit headers to be attached in the request header
    * @return an unsigned int representing the byte that was read
    */
   @Override
-  public int read(long pos) throws IOException {
+  public int read(long pos, AuditHeaders auditHeaders) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
 
@@ -94,7 +96,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(s3URI).read(pos));
+        () -> blobStore.get(s3URI, auditHeaders).read(pos));
   }
 
   /**
@@ -104,10 +106,12 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param off start position in buffer at which data is written
    * @param len length of data to be read
    * @param pos the position to begin reading from
+   * @param auditHeaders audit headers to be attached in the request header
    * @return the total number of bytes read into the buffer
    */
   @Override
-  public int read(byte[] buf, int off, int len, long pos) throws IOException {
+  public int read(byte[] buf, int off, int len, long pos, AuditHeaders auditHeaders)
+      throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
     Preconditions.checkArgument(0 <= off, "`off` must not be negative");
@@ -124,7 +128,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(s3URI).read(buf, off, len, pos));
+        () -> blobStore.get(s3URI, auditHeaders).read(buf, off, len, pos));
   }
 
   /**
@@ -134,10 +138,11 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param buf buffer to read data into
    * @param off start position in buffer at which data is written
    * @param len the number of bytes to read; the n-th byte should be the last byte of the stream.
+   * @param auditHeaders audit headers to be attached in the request header
    * @return the total number of bytes read into the buffer
    */
   @Override
-  public int readTail(byte[] buf, int off, int len) throws IOException {
+  public int readTail(byte[] buf, int off, int len, AuditHeaders auditHeaders) throws IOException {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     long contentLength = contentLength();
     return telemetry.measureVerbose(
@@ -151,7 +156,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(s3URI).read(buf, off, len, contentLength - len));
+        () -> blobStore.get(s3URI, auditHeaders).read(buf, off, len, contentLength - len));
   }
 
   /**
@@ -172,7 +177,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(s3URI).execute(ioPlan));
+        () -> blobStore.get(s3URI, null).execute(ioPlan));
   }
 
   private long contentLength() {

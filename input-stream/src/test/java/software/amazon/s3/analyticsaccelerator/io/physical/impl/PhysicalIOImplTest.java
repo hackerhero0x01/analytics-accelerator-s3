@@ -16,6 +16,7 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
+import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -46,11 +48,12 @@ public class PhysicalIOImplTest {
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
 
+    AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
     // When: we read
     // Then: returned data is correct
-    assertEquals(97, physicalIOImplV2.read(0)); // a
-    assertEquals(98, physicalIOImplV2.read(1)); // b
-    assertEquals(99, physicalIOImplV2.read(2)); // c
+    assertEquals(97, physicalIOImplV2.read(0, mockAuditHeaders)); // a
+    assertEquals(98, physicalIOImplV2.read(1, mockAuditHeaders)); // b
+    assertEquals(99, physicalIOImplV2.read(2, mockAuditHeaders)); // c
   }
 
   @Test
@@ -69,8 +72,9 @@ public class PhysicalIOImplTest {
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
 
+    AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
     // When: we read
     // Then: returned data is correct
-    assertEquals(120, physicalIOImplV2.read(0)); // a
+    assertEquals(120, physicalIOImplV2.read(0, mockAuditHeaders)); // a
   }
 }

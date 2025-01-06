@@ -36,4 +36,13 @@ public interface ObjectClient extends Closeable {
    * @return ResponseInputStream<GetObjectResponse>
    */
   CompletableFuture<ObjectContent> getObject(GetRequest getRequest);
+
+  /**
+   * Make a getObject request to the object store.
+   *
+   * @param getRequest The GET request to be sent
+   * @param auditHeaders audit headers to be attached in the request header
+   * @return ResponseInputStream<GetObjectResponse>
+   */
+  CompletableFuture<ObjectContent> getObject(GetRequest getRequest, AuditHeaders auditHeaders);
 }

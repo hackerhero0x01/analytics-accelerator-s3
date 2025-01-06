@@ -24,11 +24,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
 import software.amazon.s3.analyticsaccelerator.SeekableInputStream;
-import software.amazon.s3.analyticsaccelerator.request.GetRequest;
-import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
-import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
-import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
-import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 public class InMemoryS3SeekableInputStream extends SeekableInputStream {
@@ -73,6 +69,12 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
 
     @Override
     public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
+      return getObject(getRequest, null);
+    }
+
+    @Override
+    public CompletableFuture<ObjectContent> getObject(
+        GetRequest getRequest, AuditHeaders auditHeaders) {
       int start = 0;
       int end = size - 1;
 

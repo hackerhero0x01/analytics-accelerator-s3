@@ -78,7 +78,7 @@ public class ParquetReadTailTask {
             int tailLength = (int) tailRange.getLength();
             try {
               byte[] fileTail = new byte[tailLength];
-              physicalIO.readTail(fileTail, 0, tailLength);
+              physicalIO.readTail(fileTail, 0, tailLength, null);
               return new FileTail(ByteBuffer.wrap(fileTail), (int) tailRange.getLength());
             } catch (Exception e) {
               LOG.warn(

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
+import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
@@ -81,7 +82,7 @@ public class BlobStoreTest {
             metadataStore, objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
 
     // When: a Blob is asked for
-    Blob blob = blobStore.get(S3URI.of("test", "test"));
+    Blob blob = blobStore.get(S3URI.of("test", "test"), mock(AuditHeaders.class));
 
     // Then:
     byte[] b = new byte[TEST_DATA.length()];

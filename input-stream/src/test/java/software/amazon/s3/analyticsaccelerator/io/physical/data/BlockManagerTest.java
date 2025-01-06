@@ -32,11 +32,7 @@ import org.mockito.ArgumentCaptor;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
-import software.amazon.s3.analyticsaccelerator.request.GetRequest;
-import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
-import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
-import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.ReadMode;
+import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -128,7 +124,7 @@ public class BlockManagerTest {
 
     // Then
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient).getObject(requestCaptor.capture());
+    verify(objectClient).getObject(requestCaptor.capture(), any());
 
     assertEquals(0, requestCaptor.getValue().getRange().getStart());
     assertEquals(
@@ -148,7 +144,7 @@ public class BlockManagerTest {
 
     // Then
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient).getObject(requestCaptor.capture());
+    verify(objectClient).getObject(requestCaptor.capture(), any());
 
     assertEquals(0, requestCaptor.getValue().getRange().getStart());
     assertEquals(objectSize - 1, requestCaptor.getValue().getRange().getEnd());
@@ -165,7 +161,7 @@ public class BlockManagerTest {
     // When: requesting the byte at 64KB
     blockManager.makeRangeAvailable(64 * ONE_KB, 100, ReadMode.SYNC);
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, times(3)).getObject(requestCaptor.capture());
+    verify(objectClient, times(3)).getObject(requestCaptor.capture(), any());
 
     // Then: request size is a single byte as more is not needed
     GetRequest firstRequest = requestCaptor.getAllValues().get(0);
@@ -219,7 +215,7 @@ public class BlockManagerTest {
   private BlockManager getTestBlockManager(
       ObjectClient objectClient, int size, PhysicalIOConfiguration configuration) {
     S3URI testUri = S3URI.of("foo", "bar");
-    when(objectClient.getObject(any()))
+    when(objectClient.getObject(any(), any()))
         .thenReturn(
             CompletableFuture.completedFuture(
                 ObjectContent.builder().stream(new ByteArrayInputStream(new byte[size])).build()));

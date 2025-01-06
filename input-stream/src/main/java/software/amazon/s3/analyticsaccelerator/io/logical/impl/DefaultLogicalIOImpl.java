@@ -22,6 +22,7 @@ import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.TelemetryLevel;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
+import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
@@ -57,12 +58,13 @@ public class DefaultLogicalIOImpl implements LogicalIO {
    * Reads a byte from the given position.
    *
    * @param position the position to read
+   * @param auditHeaders audit headers to be attached in the request header
    * @return an unsigned int representing the byte that was read
    * @throws IOException IO error, if incurred.
    */
   @Override
-  public int read(long position) throws IOException {
-    return physicalIO.read(position);
+  public int read(long position, AuditHeaders auditHeaders) throws IOException {
+    return physicalIO.read(position, auditHeaders);
   }
 
   /**
@@ -72,11 +74,13 @@ public class DefaultLogicalIOImpl implements LogicalIO {
    * @param off start position in buffer at which data is written
    * @param len length of data to be read
    * @param position the position to begin reading from
+   * @param auditHeaders audit headers to be attached in the request header
    * @return an unsigned int representing the byte that was read
    * @throws IOException IO error, if incurred.
    */
   @Override
-  public int read(byte[] buf, int off, int len, long position) throws IOException {
+  public int read(byte[] buf, int off, int len, long position, AuditHeaders auditHeaders)
+      throws IOException {
     // Perform read
     return telemetry.measureConditionally(
         TelemetryLevel.VERBOSE,
@@ -89,12 +93,12 @@ public class DefaultLogicalIOImpl implements LogicalIO {
                 .attribute(
                     StreamAttributes.logicalIORelativeTimestamp(System.nanoTime() - birthTimestamp))
                 .build(),
-        () -> physicalIO.read(buf, off, len, position),
+        () -> physicalIO.read(buf, off, len, position, auditHeaders),
         bytesRead -> bytesRead > 1);
   }
 
   @Override
-  public int readTail(byte[] buf, int off, int len) throws IOException {
+  public int readTail(byte[] buf, int off, int len, AuditHeaders auditHeaders) throws IOException {
     long contentLength = metadata().getContentLength();
     long startOfRead = Math.max(0, contentLength - len);
 
@@ -107,7 +111,7 @@ public class DefaultLogicalIOImpl implements LogicalIO {
                 .attribute(
                     StreamAttributes.logicalIORelativeTimestamp(System.nanoTime() - birthTimestamp))
                 .build(),
-        () -> physicalIO.readTail(buf, off, len));
+        () -> physicalIO.readTail(buf, off, len, auditHeaders));
   }
 
   /**
