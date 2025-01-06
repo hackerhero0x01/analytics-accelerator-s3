@@ -72,24 +72,22 @@ public abstract class SeekableInputStream extends InputStream {
    * @throws IndexOutOfBoundsException if the offset or length are invalid for the given buffer
    */
   protected void validatePositionedReadArgs(long position, byte[] buffer, int offset, int length) {
-    Preconditions.checkArgument(offset >= 0, "Offset is negative");
+    Preconditions.checkNotNull(buffer, "Null destination buffer");
     Preconditions.checkArgument(length >= 0, "Length is negative");
+    Preconditions.checkArgument(offset >= 0, "Offset is negative");
 
     // TODO: S3A throws an EOFException here, S3FileIO does IllegalArgumentException
     // TODO: https://github.com/awslabs/analytics-accelerator-s3/issues/84
     Preconditions.checkArgument(position >= 0, "Position is negative");
-
-    if (buffer == null) {
-      throw new NullPointerException("Null destination buffer");
-    } else if (length > buffer.length - offset) {
-      throw new IndexOutOfBoundsException(
-          "Too many bytes for destination buffer "
-              + ": request length="
-              + length
-              + ", with offset ="
-              + offset
-              + "; buffer capacity ="
-              + (buffer.length - offset));
-    }
+    Preconditions.checkPositionIndex(
+        length,
+        buffer.length - offset,
+        "Too many bytes for destination buffer "
+            + ": request length="
+            + length
+            + ", with offset ="
+            + offset
+            + "; buffer capacity ="
+            + (buffer.length - offset));
   }
 }
