@@ -55,9 +55,9 @@ public class S3SdkObjectClientTest {
     try (S3AsyncClient client = mock(S3AsyncClient.class)) {
       SpotBugsLambdaWorkaround.assertThrowsClosableResult(
           NullPointerException.class,
-          () -> new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT, true, null));
+          () -> new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT, true));
       SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-          NullPointerException.class, () -> new S3SdkObjectClient(client, null, true, null));
+          NullPointerException.class, () -> new S3SdkObjectClient(client, null, true));
       SpotBugsLambdaWorkaround.assertThrowsClosableResult(
           NullPointerException.class,
           () -> new S3SdkObjectClient(null, ObjectClientConfiguration.DEFAULT));
@@ -137,8 +137,7 @@ public class S3SdkObjectClientTest {
       assertThrows(
           NullPointerException.class,
           () -> {
-            ObjectClientConfiguration configuration = null;
-            new S3SdkObjectClient(s3AsyncClient, configuration);
+            new S3SdkObjectClient(s3AsyncClient, null);
           });
     }
   }
