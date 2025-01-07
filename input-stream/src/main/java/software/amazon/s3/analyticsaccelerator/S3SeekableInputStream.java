@@ -48,7 +48,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
   private final long streamBirth = System.nanoTime();
 
   /**
-   * Creates a new instance of {@link S3SeekableInputStream}.
+   * Given a LogicalIO, creates a new instance of {@link S3SeekableInputStream}.
    *
    * @param s3URI the object this stream is using
    * @param logicalIO already initialised LogicalIO
