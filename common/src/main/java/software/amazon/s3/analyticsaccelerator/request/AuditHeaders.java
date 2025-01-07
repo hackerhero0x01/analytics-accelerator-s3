@@ -23,5 +23,5 @@ public interface AuditHeaders {
    * @param range range of get request
    * @return the referrer header
    */
-  public String modifyAndBuildReferrerHeader(String range);
+  public String modifyAndBuildReferrerHeader(GetRequest getRequestContext);
 }
