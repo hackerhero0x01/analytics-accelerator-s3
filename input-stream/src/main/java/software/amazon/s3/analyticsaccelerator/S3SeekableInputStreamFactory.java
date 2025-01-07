@@ -88,7 +88,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @return An instance of the input stream.
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI) {
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, null), telemetry);
   }
 
   /**
@@ -104,7 +104,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     objectMetadataStore.storeObjectMetadata(
         s3URI, ObjectMetadata.builder().contentLength(contentLength).build());
 
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, null), telemetry);
   }
 
   /**
@@ -115,15 +115,16 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @return An instance of the input stream.
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI, AuditHeaders auditHeaders) {
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry, auditHeaders);
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, auditHeaders), telemetry);
   }
 
-  LogicalIO createLogicalIO(S3URI s3URI) {
+  LogicalIO createLogicalIO(S3URI s3URI, AuditHeaders auditHeaders) {
     switch (objectFormatSelector.getObjectFormat(s3URI)) {
       case PARQUET:
         return new ParquetLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry),
+            new PhysicalIOImpl(
+                s3URI, objectMetadataStore, objectBlobStore, telemetry, auditHeaders),
             telemetry,
             configuration.getLogicalIOConfiguration(),
             parquetColumnPrefetchStore);
@@ -131,7 +132,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       default:
         return new DefaultLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(s3URI, objectMetadataStore, objectBlobStore, telemetry),
+            new PhysicalIOImpl(
+                s3URI, objectMetadataStore, objectBlobStore, telemetry, auditHeaders),
             telemetry);
     }
   }

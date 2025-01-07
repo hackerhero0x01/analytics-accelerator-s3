@@ -48,12 +48,11 @@ public class PhysicalIOImplTest {
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
 
-    AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
     // When: we read
     // Then: returned data is correct
-    assertEquals(97, physicalIOImplV2.read(0, mockAuditHeaders)); // a
-    assertEquals(98, physicalIOImplV2.read(1, mockAuditHeaders)); // b
-    assertEquals(99, physicalIOImplV2.read(2, mockAuditHeaders)); // c
+    assertEquals(97, physicalIOImplV2.read(0)); // a
+    assertEquals(98, physicalIOImplV2.read(1)); // b
+    assertEquals(99, physicalIOImplV2.read(2)); // c
   }
 
   @Test
@@ -75,6 +74,6 @@ public class PhysicalIOImplTest {
     AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
     // When: we read
     // Then: returned data is correct
-    assertEquals(120, physicalIOImplV2.read(0, mockAuditHeaders)); // a
+    assertEquals(120, physicalIOImplV2.read(0)); // a
   }
 }

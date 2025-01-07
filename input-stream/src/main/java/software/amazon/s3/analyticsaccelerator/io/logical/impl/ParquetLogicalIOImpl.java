@@ -20,7 +20,6 @@ import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
-import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /**
@@ -62,17 +61,15 @@ public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
    * @param off start position in buffer at which data is written
    * @param len length of data to be read
    * @param position the position to begin reading from
-   * @param auditHeaders audit headers to be attached in the request header
    * @return an unsigned int representing the byte that was read
    * @throws IOException IO error, if incurred.
    */
   @Override
-  public int read(byte[] buf, int off, int len, long position, AuditHeaders auditHeaders)
-      throws IOException {
+  public int read(byte[] buf, int off, int len, long position) throws IOException {
     // Perform async prefetching before doing the blocking read
     this.parquetPrefetcher.prefetchRemainingColumnChunk(position, len);
     this.parquetPrefetcher.addToRecentColumnList(position, len);
 
-    return super.read(buf, off, len, position, auditHeaders);
+    return super.read(buf, off, len, position);
   }
 }

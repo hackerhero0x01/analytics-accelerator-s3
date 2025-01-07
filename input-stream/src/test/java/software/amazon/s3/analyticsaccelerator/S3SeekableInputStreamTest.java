@@ -38,7 +38,6 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
-import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
@@ -54,11 +53,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     S3SeekableInputStream inputStream =
         new S3SeekableInputStream(TEST_URI, fakeLogicalIO, TestTelemetry.DEFAULT);
     assertNotNull(inputStream);
-
-    inputStream =
-        new S3SeekableInputStream(
-            TEST_URI, fakeLogicalIO, TestTelemetry.DEFAULT, mock(AuditHeaders.class));
-    assertNotNull(inputStream);
   }
 
   @Test
@@ -66,12 +60,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
         () -> new S3SeekableInputStream(null, mock(LogicalIO.class), TestTelemetry.DEFAULT));
-
-    SpotBugsLambdaWorkaround.assertThrowsClosableResult(
-        NullPointerException.class,
-        () ->
-            new S3SeekableInputStream(
-                null, mock(LogicalIO.class), TestTelemetry.DEFAULT, mock(AuditHeaders.class)));
 
     SpotBugsLambdaWorkaround.assertThrowsClosableResult(
         NullPointerException.class,
@@ -339,7 +327,7 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
       // When: logical IO returns with a -1 read
       final int INITIAL_POS = 123;
       stream.seek(INITIAL_POS);
-      when(mockLogicalIO.read(any(), anyInt(), anyInt(), anyLong(), any())).thenReturn(-1);
+      when(mockLogicalIO.read(any(), anyInt(), anyInt(), anyLong())).thenReturn(-1);
 
       // Then: stream returns -1 and position did not change
       final int LEN = 5;

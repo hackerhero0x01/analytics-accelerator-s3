@@ -27,7 +27,6 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
-import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -75,9 +74,8 @@ public class DefaultLogicalIOImplTest {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
     DefaultLogicalIOImpl logicalIO =
         new DefaultLogicalIOImpl(TEST_URI, physicalIO, mock(Telemetry.class));
-    AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
-    logicalIO.read(5, mockAuditHeaders);
-    verify(physicalIO).read(5, mockAuditHeaders);
+    logicalIO.read(5);
+    verify(physicalIO).read(5);
   }
 
   @Test
@@ -86,9 +84,8 @@ public class DefaultLogicalIOImplTest {
     DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(TEST_URI, physicalIO, Telemetry.NOOP);
 
     byte[] buffer = new byte[5];
-    AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
-    logicalIO.read(buffer, 0, 5, 5, mockAuditHeaders);
-    verify(physicalIO).read(buffer, 0, 5, 5L, mockAuditHeaders);
+    logicalIO.read(buffer, 0, 5, 5);
+    verify(physicalIO).read(buffer, 0, 5, 5L);
   }
 
   @Test
@@ -97,8 +94,7 @@ public class DefaultLogicalIOImplTest {
     when(physicalIO.metadata()).thenReturn(ObjectMetadata.builder().contentLength(123).build());
     DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(TEST_URI, physicalIO, Telemetry.NOOP);
     byte[] buffer = new byte[5];
-    AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
-    logicalIO.readTail(buffer, 0, 5, mockAuditHeaders);
-    verify(physicalIO).readTail(buffer, 0, 5, mockAuditHeaders);
+    logicalIO.readTail(buffer, 0, 5);
+    verify(physicalIO).readTail(buffer, 0, 5);
   }
 }

@@ -36,6 +36,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   private final MetadataStore metadataStore;
   private final BlobStore blobStore;
   private final Telemetry telemetry;
+  private final AuditHeaders auditHeaders;
 
   private final long physicalIOBirth = System.nanoTime();
 
@@ -57,10 +58,20 @@ public class PhysicalIOImpl implements PhysicalIO {
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
       @NonNull Telemetry telemetry) {
+    this(s3URI, metadataStore, blobStore, telemetry, null);
+  }
+
+  public PhysicalIOImpl(
+      @NonNull S3URI s3URI,
+      @NonNull MetadataStore metadataStore,
+      @NonNull BlobStore blobStore,
+      @NonNull Telemetry telemetry,
+      AuditHeaders auditHeaders) {
     this.s3URI = s3URI;
     this.metadataStore = metadataStore;
     this.blobStore = blobStore;
     this.telemetry = telemetry;
+    this.auditHeaders = auditHeaders;
   }
 
   /**
@@ -77,11 +88,10 @@ public class PhysicalIOImpl implements PhysicalIO {
    * Reads a byte from the underlying object
    *
    * @param pos the position to read
-   * @param auditHeaders audit headers to be attached in the request header
    * @return an unsigned int representing the byte that was read
    */
   @Override
-  public int read(long pos, AuditHeaders auditHeaders) throws IOException {
+  public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
 
@@ -106,12 +116,10 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param off start position in buffer at which data is written
    * @param len length of data to be read
    * @param pos the position to begin reading from
-   * @param auditHeaders audit headers to be attached in the request header
    * @return the total number of bytes read into the buffer
    */
   @Override
-  public int read(byte[] buf, int off, int len, long pos, AuditHeaders auditHeaders)
-      throws IOException {
+  public int read(byte[] buf, int off, int len, long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
     Preconditions.checkArgument(0 <= off, "`off` must not be negative");
@@ -138,11 +146,10 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param buf buffer to read data into
    * @param off start position in buffer at which data is written
    * @param len the number of bytes to read; the n-th byte should be the last byte of the stream.
-   * @param auditHeaders audit headers to be attached in the request header
    * @return the total number of bytes read into the buffer
    */
   @Override
-  public int readTail(byte[] buf, int off, int len, AuditHeaders auditHeaders) throws IOException {
+  public int readTail(byte[] buf, int off, int len) throws IOException {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     long contentLength = contentLength();
     return telemetry.measureVerbose(
@@ -177,7 +184,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(s3URI, null).execute(ioPlan));
+        () -> blobStore.get(s3URI, auditHeaders).execute(ioPlan));
   }
 
   private long contentLength() {

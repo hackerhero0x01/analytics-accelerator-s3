@@ -169,8 +169,7 @@ public class S3SdkObjectClient implements ObjectClient {
 
     final String referrerHeader;
     if (auditHeaders != null) {
-      auditHeaders.setGetRange(range);
-      referrerHeader = auditHeaders.buildReferrerHeader();
+      referrerHeader = auditHeaders.modifyAndBuildReferrerHeader(range);
     } else {
       referrerHeader = getRequest.getReferrer().toString();
     }

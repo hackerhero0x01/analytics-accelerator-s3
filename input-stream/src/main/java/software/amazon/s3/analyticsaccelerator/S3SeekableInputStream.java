@@ -21,7 +21,6 @@ import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
-import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
@@ -40,7 +39,6 @@ public class S3SeekableInputStream extends SeekableInputStream {
   private long position;
   private boolean closed;
   private static final int EOF = -1;
-  private AuditHeaders auditHeaders;
 
   private static final String OPERATION_READ = "stream.read";
   private static final String FLAVOR_TAIL = "tail";
@@ -50,7 +48,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
   private final long streamBirth = System.nanoTime();
 
   /**
-   * Given a LogicalIO, creates a new instance of {@link S3SeekableInputStream}.
+   * Creates a new instance of {@link S3SeekableInputStream}.
    *
    * @param s3URI the object this stream is using
    * @param logicalIO already initialised LogicalIO
@@ -58,28 +56,11 @@ public class S3SeekableInputStream extends SeekableInputStream {
    */
   S3SeekableInputStream(
       @NonNull S3URI s3URI, @NonNull LogicalIO logicalIO, @NonNull Telemetry telemetry) {
-    this(s3URI, logicalIO, telemetry, null);
-  }
-
-  /**
-   * Creates a new instance of {@link S3SeekableInputStream}.
-   *
-   * @param s3URI the object this stream is using
-   * @param logicalIO already initialised LogicalIO
-   * @param telemetry The {@link Telemetry} to use to report measurements.
-   * @param auditHeaders audit headers to be attached in the request header
-   */
-  S3SeekableInputStream(
-      @NonNull S3URI s3URI,
-      @NonNull LogicalIO logicalIO,
-      @NonNull Telemetry telemetry,
-      AuditHeaders auditHeaders) {
     this.s3URI = s3URI;
     this.logicalIO = logicalIO;
     this.telemetry = telemetry;
     this.position = 0;
     this.closed = false;
-    this.auditHeaders = auditHeaders;
   }
 
   /**
@@ -112,7 +93,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
                 .attribute(StreamAttributes.range(this.getPos(), this.getPos()))
                 .build(),
         () -> {
-          int byteRead = this.logicalIO.read(this.position, auditHeaders);
+          int byteRead = this.logicalIO.read(this.position);
           advancePosition(1);
           return byteRead;
         });
@@ -167,7 +148,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
                 .build(),
         () -> {
           // Delegate to the LogicalIO and advance the position accordingly
-          int bytesRead = this.logicalIO.read(buffer, offset, length, position, auditHeaders);
+          int bytesRead = this.logicalIO.read(buffer, offset, length, position);
           return advancePosition(bytesRead);
         });
   }
@@ -223,7 +204,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
                 .attribute(StreamAttributes.uri(this.s3URI))
                 .attribute(StreamAttributes.range(getContentLength() - n, getContentLength() - 1))
                 .build(),
-        () -> logicalIO.readTail(buf, off, n, auditHeaders));
+        () -> logicalIO.readTail(buf, off, n));
   }
 
   /**

@@ -85,7 +85,7 @@ public class ParquetReadTailTaskTest {
 
     // Then: file tail is fetched from the PhysicalIO
     assertEquals(fileTail.getFileTailLength(), 800);
-    verify(mockedPhysicalIO).readTail(any(byte[].class), anyInt(), anyInt(), any());
+    verify(mockedPhysicalIO).readTail(any(byte[].class), anyInt(), anyInt());
     verify(mockedPhysicalIO).metadata();
   }
 
@@ -96,7 +96,7 @@ public class ParquetReadTailTaskTest {
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     when(mockedPhysicalIO.metadata())
         .thenReturn(ObjectMetadata.builder().contentLength(800).build());
-    when(mockedPhysicalIO.readTail(any(), anyInt(), anyInt(), any()))
+    when(mockedPhysicalIO.readTail(any(), anyInt(), anyInt()))
         .thenThrow(new IOException("Something went horribly wrong."));
     ParquetReadTailTask parquetReadTailTask =
         new ParquetReadTailTask(
