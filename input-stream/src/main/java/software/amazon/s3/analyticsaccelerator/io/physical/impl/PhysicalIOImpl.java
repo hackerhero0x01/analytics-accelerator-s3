@@ -61,6 +61,15 @@ public class PhysicalIOImpl implements PhysicalIO {
     this(s3URI, metadataStore, blobStore, telemetry, null);
   }
 
+  /**
+   * Construct a new instance of PhysicalIOV2.
+   *
+   * @param s3URI the S3 URI of the object
+   * @param metadataStore a metadata cache
+   * @param blobStore a data cache
+   * @param telemetry The {@link Telemetry} to use to report measurements.
+   * @param auditHeaders audit headers to be attached in the request header
+   */
   public PhysicalIOImpl(
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
