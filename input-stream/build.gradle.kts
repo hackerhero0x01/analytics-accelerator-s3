@@ -213,6 +213,7 @@ tasks.named<SpotBugsTask>("spotbugsTestFixtures") {
 }
 
 tasks.build {dependsOn(shadowJar)}
+
 tasks.jar {dependsOn(shadowJar)}
 
 tasks.jar {
@@ -240,6 +241,23 @@ jmhReport {
 
 tasks.jmh {
     finalizedBy(tasks.jmhReport)
+}
+
+tasks.named("jmhRunBytecodeGenerator") {
+    dependsOn(tasks.named("copyAndRename"))
+}
+
+tasks.register<Copy>("copyAndRename") {
+    dependsOn(shadowJar)
+    inputs.file("${project.layout.buildDirectory.get().asFile}/libs/analyticsaccelerator-s3-$currentVersion.jar")
+    outputs.file("${project.layout.buildDirectory.get().asFile}/libs/input-stream.jar")
+
+    from("${project.layout.buildDirectory.get().asFile}/libs/analyticsaccelerator-s3-$currentVersion.jar")
+    into("${project.layout.buildDirectory.get().asFile}/libs/")
+
+    //Use include to overwrite existing file we made.
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    rename("analyticsaccelerator-s3-$currentVersion.jar", "input-stream.jar")
 }
 
 tasks.named<Test>("test") {
