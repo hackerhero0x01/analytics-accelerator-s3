@@ -30,10 +30,10 @@ public interface StreamContext {
    * <p>Example implementation:
    *
    * <pre>
-   * public class S3AAuditHeaders implements AuditHeaders {
+   * public class S3AStreamContext implements StreamContext {
    *     private final HttpReferrerAuditHeader referrer;
    *
-   *     public S3AAuditHeaders(HttpReferrerAuditHeader referrer) {
+   *     public S3AStreamContext(HttpReferrerAuditHeader referrer) {
    *         this.referrer = referrer;
    *     }
    *
