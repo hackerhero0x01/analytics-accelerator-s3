@@ -108,10 +108,10 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   }
 
   /**
-   * Create an instance of S3SeekableInputStream with auditHeaders.
+   * Create an instance of S3SeekableInputStream with streamContext.
    *
    * @param s3URI the object's S3 URI
-   * @param streamContext audit headers to be attached in request header
+   * @param streamContext contains audit headers to be attached in request header
    * @return An instance of the input stream.
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI, StreamContext streamContext) {

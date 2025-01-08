@@ -52,7 +52,7 @@ public class Block implements Closeable {
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
 
   /**
-   * Constructs a Block. data.
+   * Constructs a Block data.
    *
    * @param s3URI the S3 URI of the object
    * @param objectClient the object client to use to interact with the object store
@@ -75,7 +75,7 @@ public class Block implements Closeable {
   }
 
   /**
-   * Constructs a Block. data.
+   * Constructs a Block data.
    *
    * @param s3URI the S3 URI of the object
    * @param objectClient the object client to use to interact with the object store
