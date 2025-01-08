@@ -23,8 +23,8 @@ import java.util.Map;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
-import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
@@ -70,10 +70,10 @@ public class BlobStore implements Closeable {
    * Opens a new blob if one does not exist or returns the handle to one that exists already.
    *
    * @param s3URI the S3 URI of the object
-   * @param auditHeaders audit headers to be attached in the request header
+   * @param streamContext contains audit headers to be attached in the request header
    * @return the blob representing the object from the BlobStore
    */
-  public Blob get(S3URI s3URI, AuditHeaders auditHeaders) {
+  public Blob get(S3URI s3URI, StreamContext streamContext) {
     return blobMap.computeIfAbsent(
         s3URI,
         uri ->
@@ -81,7 +81,7 @@ public class BlobStore implements Closeable {
                 uri,
                 metadataStore,
                 new BlockManager(
-                    uri, objectClient, metadataStore, telemetry, configuration, auditHeaders),
+                    uri, objectClient, metadataStore, telemetry, configuration, streamContext),
                 telemetry));
   }
 

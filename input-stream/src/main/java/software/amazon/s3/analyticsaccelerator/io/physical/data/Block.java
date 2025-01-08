@@ -22,13 +22,13 @@ import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
-import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
+import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 import software.amazon.s3.analyticsaccelerator.util.StreamUtils;
@@ -84,7 +84,7 @@ public class Block implements Closeable {
    * @param end end of the block
    * @param generation generation of the block in a sequential read pattern (should be 0 by default)
    * @param readMode read mode describing whether this is a sync or async fetch
-   * @param auditHeaders audit headers to be attached in the request header
+   * @param streamContext contains audit headers to be attached in the request header
    */
   public Block(
       @NonNull S3URI s3URI,
@@ -94,7 +94,7 @@ public class Block implements Closeable {
       long end,
       long generation,
       @NonNull ReadMode readMode,
-      AuditHeaders auditHeaders) {
+      StreamContext streamContext) {
 
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
@@ -125,7 +125,7 @@ public class Block implements Closeable {
                     .range(this.range)
                     .referrer(new Referrer(range.toHttpString(), readMode))
                     .build(),
-                auditHeaders));
+                streamContext));
     this.data = this.source.thenApply(StreamUtils::toByteArray);
   }
 

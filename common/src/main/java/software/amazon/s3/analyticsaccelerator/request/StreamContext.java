@@ -15,13 +15,13 @@
  */
 package software.amazon.s3.analyticsaccelerator.request;
 /** */
-public interface AuditHeaders {
+public interface StreamContext {
 
   /**
-   * Attaches range to the referrer header and builds the referrer header string
+   * Modify and build the referrer header string
    *
-   * @param range range of get request
-   * @return the referrer header
+   * @param getRequestContext request context
+   * @return String the referrer header
    */
   public String modifyAndBuildReferrerHeader(GetRequest getRequestContext);
 }

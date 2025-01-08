@@ -60,7 +60,7 @@ public class FakeObjectClient implements ObjectClient {
 
   @Override
   public CompletableFuture<ObjectContent> getObject(
-      GetRequest getRequest, AuditHeaders auditHeaders) {
+      GetRequest getRequest, StreamContext streamContext) {
     getRequestCount.incrementAndGet();
     requestedRanges.add(getRequest.getRange());
     return CompletableFuture.completedFuture(

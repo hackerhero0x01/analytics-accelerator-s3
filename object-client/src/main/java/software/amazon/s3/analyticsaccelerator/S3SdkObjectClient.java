@@ -152,12 +152,12 @@ public class S3SdkObjectClient implements ObjectClient {
    * Make a getObject request to the object store.
    *
    * @param getRequest The GET request to be sent
-   * @param auditHeaders audit headers to be attached in the request header
+   * @param streamContext audit headers to be attached in the request header
    * @return ResponseInputStream<GetObjectResponse>
    */
   @Override
   public CompletableFuture<ObjectContent> getObject(
-      GetRequest getRequest, AuditHeaders auditHeaders) {
+      GetRequest getRequest, StreamContext streamContext) {
 
     GetObjectRequest.Builder builder =
         GetObjectRequest.builder()
@@ -168,8 +168,8 @@ public class S3SdkObjectClient implements ObjectClient {
     builder.range(range);
 
     final String referrerHeader;
-    if (auditHeaders != null) {
-      referrerHeader = auditHeaders.modifyAndBuildReferrerHeader(getRequest);
+    if (streamContext != null) {
+      referrerHeader = streamContext.modifyAndBuildReferrerHeader(getRequest);
     } else {
       referrerHeader = getRequest.getReferrer().toString();
     }

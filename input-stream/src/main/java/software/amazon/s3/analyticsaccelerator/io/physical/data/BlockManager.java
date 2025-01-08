@@ -26,10 +26,10 @@ import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialPatternDetector;
 import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialReadProgression;
-import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
+import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
@@ -45,7 +45,7 @@ public class BlockManager implements Closeable {
   private final IOPlanner ioPlanner;
   private final PhysicalIOConfiguration configuration;
   private final RangeOptimiser rangeOptimiser;
-  private AuditHeaders auditHeaders;
+  private StreamContext streamContext;
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
@@ -75,7 +75,7 @@ public class BlockManager implements Closeable {
    * @param telemetry an instance of {@link Telemetry} to use
    * @param metadataStore the metadata cache
    * @param configuration the physicalIO configuration
-   * @param auditHeaders audit headers to be attached in the request header
+   * @param streamContext contains audit headers to be attached in the request header
    */
   public BlockManager(
       @NonNull S3URI s3URI,
@@ -83,7 +83,7 @@ public class BlockManager implements Closeable {
       @NonNull MetadataStore metadataStore,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
-      AuditHeaders auditHeaders) {
+      StreamContext streamContext) {
     this.s3URI = s3URI;
     this.objectClient = objectClient;
     this.metadataStore = metadataStore;
@@ -94,7 +94,7 @@ public class BlockManager implements Closeable {
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
     this.rangeOptimiser = new RangeOptimiser(configuration);
-    this.auditHeaders = auditHeaders;
+    this.streamContext = streamContext;
   }
 
   /**
@@ -202,7 +202,7 @@ public class BlockManager implements Closeable {
                         r.getEnd(),
                         generation,
                         readMode,
-                        auditHeaders);
+                        streamContext);
                 blockStore.add(block);
               });
         });

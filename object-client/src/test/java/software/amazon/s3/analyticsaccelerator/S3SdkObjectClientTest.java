@@ -173,8 +173,8 @@ public class S3SdkObjectClientTest {
 
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
 
-    AuditHeaders mockAuditHeaders = mock(AuditHeaders.class);
-    when(mockAuditHeaders.modifyAndBuildReferrerHeader(any())).thenReturn("audit-referrer-value");
+    StreamContext mockStreamContext = mock(StreamContext.class);
+    when(mockStreamContext.modifyAndBuildReferrerHeader(any())).thenReturn("audit-referrer-value");
 
     GetRequest getRequest =
         GetRequest.builder()
@@ -183,7 +183,7 @@ public class S3SdkObjectClientTest {
             .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
             .build();
 
-    client.getObject(getRequest, mockAuditHeaders);
+    client.getObject(getRequest, mockStreamContext);
 
     ArgumentCaptor<GetObjectRequest> requestCaptor =
         ArgumentCaptor.forClass(GetObjectRequest.class);

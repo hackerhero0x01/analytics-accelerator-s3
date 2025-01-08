@@ -27,9 +27,9 @@ import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOI
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
-import software.amazon.s3.analyticsaccelerator.request.AuditHeaders;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.ObjectFormatSelector;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -88,7 +88,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @return An instance of the input stream.
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI) {
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, null), telemetry);
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
   /**
@@ -104,27 +104,31 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     objectMetadataStore.storeObjectMetadata(
         s3URI, ObjectMetadata.builder().contentLength(contentLength).build());
 
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, null), telemetry);
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
   /**
    * Create an instance of S3SeekableInputStream with auditHeaders.
    *
    * @param s3URI the object's S3 URI
-   * @param auditHeaders audit headers to be attached in request header
+   * @param streamContext audit headers to be attached in request header
    * @return An instance of the input stream.
    */
-  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, AuditHeaders auditHeaders) {
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, auditHeaders), telemetry);
+  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, StreamContext streamContext) {
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, streamContext), telemetry);
   }
 
-  LogicalIO createLogicalIO(S3URI s3URI, AuditHeaders auditHeaders) {
+  LogicalIO createLogicalIO(S3URI s3URI) {
+    return createLogicalIO(s3URI, null);
+  }
+
+  LogicalIO createLogicalIO(S3URI s3URI, StreamContext streamContext) {
     switch (objectFormatSelector.getObjectFormat(s3URI)) {
       case PARQUET:
         return new ParquetLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(
-                s3URI, objectMetadataStore, objectBlobStore, telemetry, auditHeaders),
+                s3URI, objectMetadataStore, objectBlobStore, telemetry, streamContext),
             telemetry,
             configuration.getLogicalIOConfiguration(),
             parquetColumnPrefetchStore);
@@ -133,7 +137,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         return new DefaultLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(
-                s3URI, objectMetadataStore, objectBlobStore, telemetry, auditHeaders),
+                s3URI, objectMetadataStore, objectBlobStore, telemetry, streamContext),
             telemetry);
     }
   }

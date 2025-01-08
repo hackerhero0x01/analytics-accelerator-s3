@@ -74,7 +74,7 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
 
     @Override
     public CompletableFuture<ObjectContent> getObject(
-        GetRequest getRequest, AuditHeaders auditHeaders) {
+        GetRequest getRequest, StreamContext streamContext) {
       int start = 0;
       int end = size - 1;
 
