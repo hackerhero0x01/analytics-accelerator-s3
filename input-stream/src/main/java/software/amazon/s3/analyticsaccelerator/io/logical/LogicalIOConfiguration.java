@@ -22,6 +22,7 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import software.amazon.s3.analyticsaccelerator.SerializableConfiguration;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 
@@ -29,7 +30,7 @@ import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 @Getter
 @Builder
 @EqualsAndHashCode
-public class LogicalIOConfiguration {
+public class LogicalIOConfiguration implements SerializableConfiguration {
   private static final boolean DEFAULT_PREFETCH_FOOTER_ENABLED = true;
   private static final boolean DEFAULT_PREFETCH_PAGE_INDEX_ENABLED = true;
   private static final long DEFAULT_PREFETCH_FILE_METADATA_SIZE = 32 * ONE_KB;
@@ -154,5 +155,27 @@ public class LogicalIOConfiguration {
             PrefetchMode.fromString(
                 configuration.getString(PREFETCHING_MODE_KEY, DEFAULT_PREFETCHING_MODE.toString())))
         .build();
+  }
+
+  @Override
+  public String dumpConfig() {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append("LogicalIO configuration:\n");
+    builder.append("\tprefetchFooterEnabled: " + prefetchFooterEnabled + "\n");
+    builder.append("\tprefetchPageIndexEnabled: " + prefetchPageIndexEnabled + "\n");
+    builder.append("\tprefetchFileMetadataSize: " + prefetchFileMetadataSize + "\n");
+    builder.append("\tprefetchLargeFileMetadataSize: " + prefetchLargeFileMetadataSize + "\n");
+    builder.append("\tprefetchFilePageIndexSize: " + prefetchFilePageIndexSize + "\n");
+    builder.append("\tprefetchLargeFilePageIndexSize: " + prefetchLargeFilePageIndexSize + "\n");
+    builder.append("\tlargeFileSize: " + largeFileSize + "\n");
+    builder.append("\tsmallObjectsPrefetchingEnabled: " + smallObjectsPrefetchingEnabled + "\n");
+    builder.append("\tsmallObjectSizeThreshold: " + smallObjectSizeThreshold + "\n");
+    builder.append("\tparquetMetadataStoreSize: " + parquetMetadataStoreSize + "\n");
+    builder.append("\tmaxColumnAccessCountStoreSize: " + maxColumnAccessCountStoreSize + "\n");
+    builder.append("\tparquetFormatSelectorRegex: " + parquetFormatSelectorRegex + "\n");
+    builder.append("\tprefetchingMode: " + prefetchingMode + "\n");
+
+    return builder.toString();
   }
 }

@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
+import software.amazon.s3.analyticsaccelerator.SerializableConfiguration;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 
 /**
@@ -31,7 +32,7 @@ import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
  */
 @Value
 @Builder
-public class TelemetryConfiguration {
+public class TelemetryConfiguration implements SerializableConfiguration {
   // Telemetry level is standard by default
   public static final String LEVEL_KEY = "level";
   public static final String DEFAULT_LEVEL = TelemetryLevel.STANDARD.toString();
@@ -109,5 +110,20 @@ public class TelemetryConfiguration {
         .loggingLevel(configuration.getString(LOGGING_LEVEL_KEY, DEFAULT_LOGGING_LEVEL))
         .telemetryFormat(configuration.getString(TELEMETRY_FORMAT_KEY, DEFAULT_TELEMETRY_FORMAT))
         .build();
+  }
+
+  @Override
+  public String dumpConfig() {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append("Telemetry configuration:\n");
+    builder.append("\tlevel: ").append(level).append("\n");
+    builder.append("\tstdOutEnabled: ").append(stdOutEnabled).append("\n");
+    builder.append("\tloggingEnabled: ").append(loggingEnabled).append("\n");
+    builder.append("\taggregationsEnabled: ").append(aggregationsEnabled).append("\n");
+    builder.append("\tloggingLevel: ").append(loggingLevel).append("\n");
+    builder.append("\ttelemetryFormat: ").append(telemetryFormat).append("\n");
+
+    return builder.toString();
   }
 }

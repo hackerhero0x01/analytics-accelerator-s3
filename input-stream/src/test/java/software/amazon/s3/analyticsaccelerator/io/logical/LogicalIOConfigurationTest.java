@@ -59,4 +59,30 @@ public class LogicalIOConfigurationTest {
         logicalIOConfiguration.getPrefetchingMode());
     assertEquals(logicalIOConfiguration.getPrefetchingMode(), PrefetchMode.ROW_GROUP);
   }
+
+  @Test
+  void testConfigurationDump() {
+    LogicalIOConfiguration configuration =
+        LogicalIOConfiguration.builder()
+            .prefetchFooterEnabled(true)
+            .prefetchFilePageIndexSize(10)
+            .build();
+
+    assertEquals(
+        configuration.dumpConfig(),
+        "LogicalIO configuration:\n"
+            + "\tprefetchFooterEnabled: true\n"
+            + "\tprefetchPageIndexEnabled: true\n"
+            + "\tprefetchFileMetadataSize: 32768\n"
+            + "\tprefetchLargeFileMetadataSize: 1048576\n"
+            + "\tprefetchFilePageIndexSize: 10\n"
+            + "\tprefetchLargeFilePageIndexSize: 8388608\n"
+            + "\tlargeFileSize: 1073741824\n"
+            + "\tsmallObjectsPrefetchingEnabled: true\n"
+            + "\tsmallObjectSizeThreshold: 3145728\n"
+            + "\tparquetMetadataStoreSize: 45\n"
+            + "\tmaxColumnAccessCountStoreSize: 15\n"
+            + "\tparquetFormatSelectorRegex: ^.*.(parquet|par)$\n"
+            + "\tprefetchingMode: ROW_GROUP\n");
+  }
 }

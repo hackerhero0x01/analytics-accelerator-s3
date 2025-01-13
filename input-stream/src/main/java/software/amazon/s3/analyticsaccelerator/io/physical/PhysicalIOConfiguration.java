@@ -21,6 +21,7 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import software.amazon.s3.analyticsaccelerator.SerializableConfiguration;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialReadProgression;
@@ -29,7 +30,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.Sequential
 @Getter
 @Builder
 @EqualsAndHashCode
-public class PhysicalIOConfiguration {
+public class PhysicalIOConfiguration implements SerializableConfiguration {
   private static final int DEFAULT_CAPACITY_BLOB_STORE = 50;
   private static final int DEFAULT_CAPACITY_METADATA_STORE = 50;
   private static final boolean DEFAULT_USE_SINGLE_CACHE = true;
@@ -164,5 +165,22 @@ public class PhysicalIOConfiguration {
     this.partSizeBytes = partSizeBytes;
     this.sequentialPrefetchBase = sequentialPrefetchBase;
     this.sequentialPrefetchSpeed = sequentialPrefetchSpeed;
+  }
+
+  @Override
+  public String dumpConfig() {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append("PhysicalIO configuration:\n");
+    builder.append("\tblobStoreCapacity: " + blobStoreCapacity + "\n");
+    builder.append("\tmetadataStoreCapacity: " + metadataStoreCapacity + "\n");
+    builder.append("\tblockSizeBytes: " + blockSizeBytes + "\n");
+    builder.append("\treadAheadBytes: " + readAheadBytes + "\n");
+    builder.append("\tmaxRangeSizeBytes: " + maxRangeSizeBytes + "\n");
+    builder.append("\tpartSizeBytes: " + partSizeBytes + "\n");
+    builder.append("\tsequentialPrefetchBase: " + sequentialPrefetchBase + "\n");
+    builder.append("\tsequentialPrefetchSpeed: " + sequentialPrefetchSpeed + "\n");
+
+    return builder.toString();
   }
 }
