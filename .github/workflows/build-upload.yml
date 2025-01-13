@@ -37,6 +37,7 @@ jobs:
       - name: Build with Gradle
         run: |
           ./gradlew -PsnapshotBuild=true build
+          ./gradlew jmhJar
 
       - uses: actions/upload-artifact@v4
         with:
