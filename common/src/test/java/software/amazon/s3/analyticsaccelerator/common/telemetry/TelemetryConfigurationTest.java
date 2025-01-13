@@ -90,12 +90,12 @@ public class TelemetryConfigurationTest {
   }
 
   @Test
-  void testConfigurationDump() {
+  void testToString() {
     TelemetryConfiguration configuration =
         TelemetryConfiguration.fromConfiguration(getConfiguration());
 
     assertEquals(
-        configuration.dumpConfig(),
+        configuration.toString(),
         "Telemetry configuration:\n"
             + "\tlevel: STANDARD\n"
             + "\tstdOutEnabled: false\n"

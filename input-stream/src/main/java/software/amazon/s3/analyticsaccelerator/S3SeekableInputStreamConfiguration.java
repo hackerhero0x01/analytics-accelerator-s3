@@ -28,7 +28,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 @Getter
 @Builder
 @EqualsAndHashCode
-public class S3SeekableInputStreamConfiguration implements SerializableConfiguration {
+public class S3SeekableInputStreamConfiguration {
   public static final String PHYSICAL_IO_PREFIX = "physicalio";
   public static final String LOGICAL_IO_PREFIX = "logicalio";
   public static final String TELEMETRY_PREFIX = "telemetry";
@@ -62,12 +62,12 @@ public class S3SeekableInputStreamConfiguration implements SerializableConfigura
   }
 
   @Override
-  public String dumpConfig() {
-    StringBuilder dump = new StringBuilder();
+  public String toString() {
+    final StringBuilder dump = new StringBuilder();
 
-    dump.append(physicalIOConfiguration.dumpConfig());
-    dump.append(logicalIOConfiguration.dumpConfig());
-    dump.append(telemetryConfiguration.dumpConfig());
+    dump.append(physicalIOConfiguration);
+    dump.append(logicalIOConfiguration);
+    dump.append(telemetryConfiguration);
 
     return dump.toString();
   }

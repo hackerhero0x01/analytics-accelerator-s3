@@ -61,7 +61,7 @@ public class LogicalIOConfigurationTest {
   }
 
   @Test
-  void testConfigurationDump() {
+  void testToString() {
     LogicalIOConfiguration configuration =
         LogicalIOConfiguration.builder()
             .prefetchFooterEnabled(true)
@@ -69,7 +69,7 @@ public class LogicalIOConfigurationTest {
             .build();
 
     assertEquals(
-        configuration.dumpConfig(),
+        configuration.toString(),
         "LogicalIO configuration:\n"
             + "\tprefetchFooterEnabled: true\n"
             + "\tprefetchPageIndexEnabled: true\n"

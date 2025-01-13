@@ -22,7 +22,6 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import software.amazon.s3.analyticsaccelerator.SerializableConfiguration;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 
@@ -30,7 +29,7 @@ import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 @Getter
 @Builder
 @EqualsAndHashCode
-public class LogicalIOConfiguration implements SerializableConfiguration {
+public class LogicalIOConfiguration {
   private static final boolean DEFAULT_PREFETCH_FOOTER_ENABLED = true;
   private static final boolean DEFAULT_PREFETCH_PAGE_INDEX_ENABLED = true;
   private static final long DEFAULT_PREFETCH_FILE_METADATA_SIZE = 32 * ONE_KB;
@@ -158,8 +157,8 @@ public class LogicalIOConfiguration implements SerializableConfiguration {
   }
 
   @Override
-  public String dumpConfig() {
-    StringBuilder builder = new StringBuilder();
+  public String toString() {
+    final StringBuilder builder = new StringBuilder();
 
     builder.append("LogicalIO configuration:\n");
     builder.append("\tprefetchFooterEnabled: " + prefetchFooterEnabled + "\n");

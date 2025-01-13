@@ -57,12 +57,12 @@ public class PhysicalIOConfigurationTest {
   }
 
   @Test
-  void testConfigurationDump() {
+  void testToString() {
     PhysicalIOConfiguration configuration =
         PhysicalIOConfiguration.builder().blobStoreCapacity(10).partSizeBytes(20).build();
 
     assertEquals(
-        configuration.dumpConfig(),
+        configuration.toString(),
         "PhysicalIO configuration:\n"
             + "\tblobStoreCapacity: 10\n"
             + "\tmetadataStoreCapacity: 50\n"
