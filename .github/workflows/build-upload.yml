@@ -112,7 +112,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ secrets.ICEBERG_STAGING_PATH }}
-          ref: dat-s3
+          ref: analytics-accelerator
           path: iceberg
           ssh-key: ${{ secrets.ICEBERG_STAGING_SSH_KEY }}
 
