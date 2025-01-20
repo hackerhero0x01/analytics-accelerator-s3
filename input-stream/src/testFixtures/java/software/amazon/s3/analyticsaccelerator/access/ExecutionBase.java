@@ -34,13 +34,6 @@ public abstract class ExecutionBase {
   protected abstract S3ExecutionContext getS3ExecutionContext();
 
   /**
-   * Returns current client kind
-   *
-   * @return {@link S3ClientKind}
-   */
-  protected abstract S3ClientKind getClientKind();
-
-  /**
    * Creates an instance of {@link S3AsyncClientStreamReader} that uses {@link
    * software.amazon.awssdk.services.s3.S3AsyncClient} to read from S3
    *
@@ -75,16 +68,20 @@ public abstract class ExecutionBase {
   /**
    * Executes a pattern directly on an S3 Client.
    *
+   * @param s3ClientKind S3 client kind to use
    * @param s3Object {@link } S3 Object to run the pattern on
    * @param streamReadPattern the read pattern
    * @param checksum checksum to update, if specified
    * @throws IOException IO error, if thrown
    */
   protected void executeReadPatternDirectly(
-      S3Object s3Object, StreamReadPattern streamReadPattern, Optional<Crc32CChecksum> checksum)
+      S3ClientKind s3ClientKind,
+      S3Object s3Object,
+      StreamReadPattern streamReadPattern,
+      Optional<Crc32CChecksum> checksum)
       throws IOException {
     try (S3AsyncClientStreamReader s3AsyncClientStreamReader =
-        this.createS3AsyncClientStreamReader(getClientKind())) {
+        this.createS3AsyncClientStreamReader(s3ClientKind)) {
       s3AsyncClientStreamReader.readPattern(s3Object, streamReadPattern, checksum);
     }
   }
@@ -92,6 +89,7 @@ public abstract class ExecutionBase {
   /**
    * Executes a pattern on DAT
    *
+   * @param s3ClientKind S3 client kind to use
    * @param s3Object {@link S3Object} S3 Object to run the pattern on
    * @param DATInputStreamConfigurationKind DAT configuration
    * @param streamReadPattern the read pattern
@@ -99,13 +97,14 @@ public abstract class ExecutionBase {
    * @throws IOException IO error, if thrown
    */
   protected void executeReadPatternOnDAT(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPattern streamReadPattern,
       DATInputStreamConfigurationKind DATInputStreamConfigurationKind,
       Optional<Crc32CChecksum> checksum)
       throws IOException {
     try (S3DATClientStreamReader s3DATClientStreamReader =
-        this.createS3DATClientStreamReader(getClientKind(), DATInputStreamConfigurationKind)) {
+        this.createS3DATClientStreamReader(s3ClientKind, DATInputStreamConfigurationKind)) {
       executeReadPatternOnDAT(s3Object, s3DATClientStreamReader, streamReadPattern, checksum);
     }
   }

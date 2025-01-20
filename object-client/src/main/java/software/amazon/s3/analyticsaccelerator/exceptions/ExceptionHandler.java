@@ -75,6 +75,21 @@ public enum ExceptionHandler {
         .orElseGet(() -> createIOException("Error accessing %s", uri, cause));
   }
 
+  /**
+   * Provides sample exceptions for all the exception types handled
+   *
+   * @return An array of exceptions
+   */
+  public static Exception[] getSampleExceptions() {
+    return new Exception[] {
+      NoSuchKeyException.builder().build(),
+      InvalidObjectStateException.builder().build(),
+      SdkClientException.builder().build(),
+      S3Exception.builder().build(),
+      SdkException.builder().build()
+    };
+  }
+
   private static IOException createIOException(String message, S3URI uri, Throwable cause) {
     return new IOException(String.format(message, uri), cause);
   }

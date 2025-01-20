@@ -77,7 +77,7 @@ public class ExceptionCorrectnessTest extends IntegrationTestBase {
   }
 
   private static Stream<Arguments> provideTestParameters() {
-    return Stream.of(S3ClientKind.SDK_V2_CRT_ASYNC, S3ClientKind.SDK_V2_JAVA_ASYNC)
+    return getS3ClientKinds().stream()
         .flatMap(
             clientKind ->
                 Stream.of(ReadMethod.values())

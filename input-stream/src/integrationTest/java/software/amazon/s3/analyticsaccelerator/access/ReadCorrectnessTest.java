@@ -26,35 +26,39 @@ public class ReadCorrectnessTest extends IntegrationTestBase {
   @ParameterizedTest
   @MethodSource("sequentialReads")
   void testSequentialReads(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException {
-    testAndCompareStreamReadPattern(s3Object, streamReadPattern, configuration);
+    testAndCompareStreamReadPattern(s3ClientKind, s3Object, streamReadPattern, configuration);
   }
 
   @ParameterizedTest
   @MethodSource("skippingReads")
   void testSkippingReads(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException {
-    testAndCompareStreamReadPattern(s3Object, streamReadPattern, configuration);
+    testAndCompareStreamReadPattern(s3ClientKind, s3Object, streamReadPattern, configuration);
   }
 
   @ParameterizedTest
   @MethodSource("parquetReads")
   void testQuasiParquetReads(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException {
-    testAndCompareStreamReadPattern(s3Object, streamReadPattern, configuration);
+    testAndCompareStreamReadPattern(s3ClientKind, s3Object, streamReadPattern, configuration);
   }
 
   static Stream<Arguments> sequentialReads() {
     return argumentsFor(
+        getS3ClientKinds(),
         S3Object.smallAndMediumObjects(),
         sequentialPatterns(),
         getS3SeekableInputStreamConfigurations());
@@ -62,6 +66,7 @@ public class ReadCorrectnessTest extends IntegrationTestBase {
 
   static Stream<Arguments> skippingReads() {
     return argumentsFor(
+        getS3ClientKinds(),
         S3Object.smallAndMediumObjects(),
         skippingPatterns(),
         getS3SeekableInputStreamConfigurations());
@@ -69,6 +74,7 @@ public class ReadCorrectnessTest extends IntegrationTestBase {
 
   static Stream<Arguments> parquetReads() {
     return argumentsFor(
+        getS3ClientKinds(),
         S3Object.smallAndMediumObjects(),
         parquetPatterns(),
         getS3SeekableInputStreamConfigurations());

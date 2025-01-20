@@ -46,15 +46,6 @@ public abstract class IntegrationTestBase extends ExecutionBase {
   }
 
   /**
-   * Client kind to use by tests. In most cases this should be CRT
-   *
-   * @return {@link S3ClientKind}
-   */
-  protected S3ClientKind getClientKind() {
-    return S3ClientKind.SDK_V2_CRT_ASYNC;
-  }
-
-  /**
    * Returns the currently active execution context
    *
    * @return currently active execution context
@@ -68,11 +59,13 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * CRC32-C checksum on all bytes read and compares them at the end to verify the results are the
    * same
    *
+   * @param s3ClientKind S3 client kind to use
    * @param s3Object S3 object to read
    * @param streamReadPatternKind stream read pattern to apply
    * @param DATInputStreamConfigurationKind configuration kind
    */
   protected void testAndCompareStreamReadPattern(
+      @NonNull S3ClientKind s3ClientKind,
       @NonNull S3Object s3Object,
       @NonNull StreamReadPatternKind streamReadPatternKind,
       @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind)
@@ -81,12 +74,17 @@ public abstract class IntegrationTestBase extends ExecutionBase {
 
     // Read using the standard S3 async client
     Crc32CChecksum directChecksum = new Crc32CChecksum();
-    executeReadPatternDirectly(s3Object, streamReadPattern, Optional.of(directChecksum));
+    executeReadPatternDirectly(
+        s3ClientKind, s3Object, streamReadPattern, Optional.of(directChecksum));
 
     // Read using the DAT S3
     Crc32CChecksum datChecksum = new Crc32CChecksum();
     executeReadPatternOnDAT(
-        s3Object, streamReadPattern, DATInputStreamConfigurationKind, Optional.of(datChecksum));
+        s3ClientKind,
+        s3Object,
+        streamReadPattern,
+        DATInputStreamConfigurationKind,
+        Optional.of(datChecksum));
 
     // Assert checksums
     assertChecksums(directChecksum, datChecksum);
@@ -96,6 +94,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * Tests concurrent access to DAT. This runs the specified pattern on multiple threads
    * concurrently
    *
+   * @param s3ClientKind S3 client kind to use
    * @param s3Object S3 object to read
    * @param streamReadPatternKind stream read pattern to apply
    * @param DATInputStreamConfigurationKind configuration kind
@@ -103,6 +102,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * @param iterations how many iterations each thread does
    */
   protected void testDATReadConcurrency(
+      @NonNull S3ClientKind s3ClientKind,
       @NonNull S3Object s3Object,
       @NonNull StreamReadPatternKind streamReadPatternKind,
       @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind,
@@ -112,11 +112,12 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     StreamReadPattern streamReadPattern = streamReadPatternKind.getStreamReadPattern(s3Object);
     // Read using the standard S3 async client. We do this once, to calculate the checksums
     Crc32CChecksum directChecksum = new Crc32CChecksum();
-    executeReadPatternDirectly(s3Object, streamReadPattern, Optional.of(directChecksum));
+    executeReadPatternDirectly(
+        s3ClientKind, s3Object, streamReadPattern, Optional.of(directChecksum));
 
     // Create the s3DATClientStreamReader - that creates the shared state
     try (S3DATClientStreamReader s3DATClientStreamReader =
-        this.createS3DATClientStreamReader(getClientKind(), DATInputStreamConfigurationKind)) {
+        this.createS3DATClientStreamReader(s3ClientKind, DATInputStreamConfigurationKind)) {
       // Create the thread pool
       ExecutorService executorService = Executors.newFixedThreadPool(concurrencyLevel);
       Future<?>[] resultFutures = new Future<?>[concurrencyLevel];
@@ -205,22 +206,35 @@ public abstract class IntegrationTestBase extends ExecutionBase {
   }
 
   /**
+   * S3 Client kinds
+   *
+   * @return list of S3ClientKind to use for testing.
+   */
+  static List<S3ClientKind> getS3ClientKinds() {
+    return Arrays.asList(S3ClientKind.values());
+  }
+
+  /**
    * Generates the cartesian set of the supplies argument lists
    *
+   * @param clients clients
    * @param objects objects
    * @param readPatterns read patterns
    * @param configurations configurations
    * @return A {@link Stream} of {@link Arguments} with the cartesian set
    */
   static Stream<Arguments> argumentsFor(
+      List<S3ClientKind> clients,
       List<S3Object> objects,
       List<StreamReadPatternKind> readPatterns,
       List<DATInputStreamConfigurationKind> configurations) {
     ArrayList<Arguments> results = new ArrayList<>();
-    for (S3Object object : objects) {
-      for (StreamReadPatternKind readPattern : readPatterns) {
-        for (DATInputStreamConfigurationKind configuration : configurations) {
-          results.add(Arguments.of(object, readPattern, configuration));
+    for (S3ClientKind client : clients) {
+      for (S3Object object : objects) {
+        for (StreamReadPatternKind readPattern : readPatterns) {
+          for (DATInputStreamConfigurationKind configuration : configurations) {
+            results.add(Arguments.of(client, object, readPattern, configuration));
+          }
         }
       }
     }
