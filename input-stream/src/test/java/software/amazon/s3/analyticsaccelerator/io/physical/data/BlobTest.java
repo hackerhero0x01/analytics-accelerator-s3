@@ -30,9 +30,11 @@ import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
+import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -40,25 +42,30 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     justification = "We mean to pass nulls to checks")
 public class BlobTest {
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
+  private static final String ETAG = "random";
+  private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
   private static final String TEST_DATA = "test-data-0123456789";
+  private static final int OBJECT_SIZE = 100;
+  ObjectMetadata mockMetadataStore =
+      ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
 
   @Test
   void testCreateBoundaries() {
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
     assertThrows(
         NullPointerException.class,
-        () ->
-            new Blob(
-                null, mock(MetadataStore.class), mock(BlockManager.class), TestTelemetry.DEFAULT));
+        () -> new Blob(null, mockMetadataStore, mock(BlockManager.class), TestTelemetry.DEFAULT));
     assertThrows(
         NullPointerException.class,
-        () -> new Blob(TEST_URI, null, mock(BlockManager.class), TestTelemetry.DEFAULT));
+        () -> new Blob(objectKey, null, mock(BlockManager.class), TestTelemetry.DEFAULT));
 
     assertThrows(
         NullPointerException.class,
-        () -> new Blob(TEST_URI, mock(MetadataStore.class), null, TestTelemetry.DEFAULT));
+        () -> new Blob(objectKey, mockMetadataStore, null, TestTelemetry.DEFAULT));
     assertThrows(
         NullPointerException.class,
-        () -> new Blob(TEST_URI, mock(MetadataStore.class), mock(BlockManager.class), null));
+        () -> new Blob(objectKey, mockMetadataStore, mock(BlockManager.class), null));
   }
 
   @Test
@@ -118,7 +125,6 @@ public class BlobTest {
 
     // When & Then: read is called with illegal arguments, IllegalArgumentException is thrown
     byte[] b = new byte[4];
-
     assertThrows(IllegalArgumentException.class, () -> blob.read(-100));
     assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, b.length, -100));
     assertThrows(IllegalArgumentException.class, () -> blob.read(b, 0, b.length, b.length + 1));
@@ -130,9 +136,8 @@ public class BlobTest {
   @Test
   public void testExecuteSubmitsCorrectRanges() {
     // Given: test blob and an IOPlan
-    MetadataStore metadataStore = mock(MetadataStore.class);
     BlockManager blockManager = mock(BlockManager.class);
-    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, TestTelemetry.DEFAULT);
+    Blob blob = new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
     List<Range> ranges = new LinkedList<>();
     ranges.add(new Range(0, 100));
     ranges.add(new Range(999, 1000));
@@ -150,9 +155,8 @@ public class BlobTest {
   @Test
   public void testCloseClosesBlockManager() {
     // Given: test blob
-    MetadataStore metadataStore = mock(MetadataStore.class);
     BlockManager blockManager = mock(BlockManager.class);
-    Blob blob = new Blob(TEST_URI, metadataStore, blockManager, TestTelemetry.DEFAULT);
+    Blob blob = new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
 
     // When: blob is closed
     blob.close();
@@ -162,17 +166,17 @@ public class BlobTest {
   }
 
   private Blob getTestBlob(String data) {
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(data.length()).etag(ETAG).build();
     FakeObjectClient fakeObjectClient = new FakeObjectClient(data);
-    MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlockManager blockManager =
         new BlockManager(
-            TEST_URI,
+            objectKey,
             fakeObjectClient,
-            metadataStore,
+            mockMetadataStore,
             TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT);
 
-    return new Blob(TEST_URI, metadataStore, blockManager, TestTelemetry.DEFAULT);
+    return new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
   }
 }

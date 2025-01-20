@@ -22,31 +22,35 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
+import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 public class BlockStoreTest {
 
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
   private static final String ETAG = "RandomString";
+  private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
+  private static final int OBJECT_SIZE = 100;
 
   @Test
   public void test__blockStore__getBlockAfterAddBlock() {
     // Given: empty BlockStore
     FakeObjectClient fakeObjectClient = new FakeObjectClient("test-data");
-    MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
 
     // When: a new block is added
     blockStore.add(
-        new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 3, 5, 0, ReadMode.SYNC, ETAG));
+        new Block(objectKey, fakeObjectClient, TestTelemetry.DEFAULT, 3, 5, 0, ReadMode.SYNC));
 
     // Then: getBlock can retrieve the same block
     Optional<Block> b = blockStore.getBlock(4);
@@ -62,18 +66,17 @@ public class BlockStoreTest {
     // Given: BlockStore with blocks (2,3), (5,10), (12,15)
     final String X_TIMES_16 = "xxxxxxxxxxxxxxxx";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);
-    MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
+    int size = X_TIMES_16.getBytes(StandardCharsets.UTF_8).length;
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(size).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
 
     blockStore.add(
-        new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 2, 3, 0, ReadMode.SYNC, ETAG));
+        new Block(objectKey, fakeObjectClient, TestTelemetry.DEFAULT, 2, 3, 0, ReadMode.SYNC));
     blockStore.add(
-        new Block(
-            TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 5, 10, 0, ReadMode.SYNC, ETAG));
+        new Block(objectKey, fakeObjectClient, TestTelemetry.DEFAULT, 5, 10, 0, ReadMode.SYNC));
     blockStore.add(
-        new Block(
-            TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 12, 15, 0, ReadMode.SYNC, ETAG));
+        new Block(objectKey, fakeObjectClient, TestTelemetry.DEFAULT, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next missing byte, the result is correct
     assertEquals(OptionalLong.of(0), blockStore.findNextMissingByte(0));
@@ -91,18 +94,16 @@ public class BlockStoreTest {
     // Given: BlockStore with blocks (2,3), (5,10), (12,15)
     final String X_TIMES_16 = "xxxxxxxxxxxxxxxx";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);
-    MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
 
     blockStore.add(
-        new Block(TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 2, 3, 0, ReadMode.SYNC, ETAG));
+        new Block(objectKey, fakeObjectClient, TestTelemetry.DEFAULT, 2, 3, 0, ReadMode.SYNC));
     blockStore.add(
-        new Block(
-            TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 5, 10, 0, ReadMode.SYNC, ETAG));
+        new Block(objectKey, fakeObjectClient, TestTelemetry.DEFAULT, 5, 10, 0, ReadMode.SYNC));
     blockStore.add(
-        new Block(
-            TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 12, 15, 0, ReadMode.SYNC, ETAG));
+        new Block(objectKey, fakeObjectClient, TestTelemetry.DEFAULT, 12, 15, 0, ReadMode.SYNC));
 
     // When & Then: we query for the next available byte, the result is correct
     assertEquals(OptionalLong.of(2), blockStore.findNextLoadedByte(0));
@@ -118,7 +119,9 @@ public class BlockStoreTest {
   @Test
   public void test__blockStore__closesBlocks() {
     // Given: BlockStore with a block
-    BlockStore blockStore = new BlockStore(TEST_URI, mock(MetadataStore.class));
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
     Block block = mock(Block.class);
     blockStore.add(block);
 
@@ -132,7 +135,9 @@ public class BlockStoreTest {
   @Test
   public void test__blockStore__closeWorksWithExceptions() {
     // Given: BlockStore with two blocks
-    BlockStore blockStore = new BlockStore(TEST_URI, mock(MetadataStore.class));
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
     Block b1 = mock(Block.class);
     Block b2 = mock(Block.class);
     blockStore.add(b1);

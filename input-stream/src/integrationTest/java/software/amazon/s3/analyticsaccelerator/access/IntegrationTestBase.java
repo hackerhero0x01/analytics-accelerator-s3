@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.analyticsaccelerator.access;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -105,13 +106,16 @@ public abstract class IntegrationTestBase extends ExecutionBase {
 
   /**
    * Checks to make sure we throw an error and fail the stream while reading a stream and the etag
-   * changes during the read.
+   * changes during the read. We then do another complete read to ensure that previous failed states
+   * don't affect future streams.
    *
    * @param s3Object S3 object to read
+   * @param streamReadPatternKind stream read pattern to apply
    * @param DATInputStreamConfigurationKind configuration kind
    */
   protected void testChangingEtagMidStream(
       @NonNull S3Object s3Object,
+      @NonNull StreamReadPatternKind streamReadPatternKind,
       @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind)
       throws IOException {
     int bufferSize = (int) s3Object.getSize();
@@ -146,11 +150,22 @@ public abstract class IntegrationTestBase extends ExecutionBase {
           .join();
 
       // read the next bytes and fail.
-      Exception ex =
-          assertThrows(Exception.class, () -> readAndAssert(stream, buffer, 200, readAheadBytes));
+      CompletionException ex =
+          assertThrows(
+              CompletionException.class, () -> readAndAssert(stream, buffer, 200, readAheadBytes));
       S3Exception s3Exception =
           assertInstanceOf(S3Exception.class, ex.getCause(), "Cause should be S3Exception");
       assertEquals(412, s3Exception.statusCode(), "Expected Precondition Failed (412) status code");
+      System.out.println("Failed because of etag changing, starting a new read");
+
+      // Now reading the object till close should be successful
+      StreamReadPattern streamReadPattern = streamReadPatternKind.getStreamReadPattern(s3Object);
+      Crc32CChecksum datChecksum = new Crc32CChecksum();
+      assertDoesNotThrow(
+          () ->
+              executeReadPatternOnDAT(
+                  s3Object, s3DATClientStreamReader, streamReadPattern, Optional.of(datChecksum)));
+      assert (datChecksum.getChecksumBytes().length > 0);
     }
   }
 
@@ -163,7 +178,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * @param len how much to read
    * @throws IOException
    */
-  private void readAndAssert(InputStream stream, byte[] buffer, int offset, int len)
+  private void readAndAssert(S3SeekableInputStream stream, byte[] buffer, int offset, int len)
       throws IOException {
     int readBytes = stream.read(buffer, offset, len);
     assertEquals(readBytes, len);

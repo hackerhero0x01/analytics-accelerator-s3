@@ -16,9 +16,6 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +27,7 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -38,6 +36,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 public class IOPlannerTest {
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
   private static final String ETAG = "RandomString";
+  private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
 
   @Test
   void testCreateBoundaries() {
@@ -48,10 +47,9 @@ public class IOPlannerTest {
   void testPlanReadBoundaries() {
     // Given: an empty BlockStore
     final int OBJECT_SIZE = 10_000;
-    MetadataStore mockMetadataStore = mock(MetadataStore.class);
-    when(mockMetadataStore.get(any()))
-        .thenReturn(ObjectMetadata.builder().contentLength(OBJECT_SIZE).build());
-    BlockStore blockStore = new BlockStore(TEST_URI, mockMetadataStore);
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     assertThrows(IllegalArgumentException.class, () -> ioPlanner.planRead(-5, 10, 100));
@@ -63,10 +61,9 @@ public class IOPlannerTest {
   public void testPlanReadNoopWhenBlockStoreEmpty() {
     // Given: an empty BlockStore
     final int OBJECT_SIZE = 10_000;
-    MetadataStore mockMetadataStore = mock(MetadataStore.class);
-    when(mockMetadataStore.get(any()))
-        .thenReturn(ObjectMetadata.builder().contentLength(OBJECT_SIZE).build());
-    BlockStore blockStore = new BlockStore(TEST_URI, mockMetadataStore);
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range
@@ -84,13 +81,13 @@ public class IOPlannerTest {
     // Given: a BlockStore with a (100,200) block in it
     final int OBJECT_SIZE = 10_000;
     byte[] content = new byte[OBJECT_SIZE];
-    MetadataStore metadataStore = getTestMetadataStoreWithContentLength(OBJECT_SIZE);
-    BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
     FakeObjectClient fakeObjectClient =
         new FakeObjectClient(new String(content, StandardCharsets.UTF_8));
     blockStore.add(
-        new Block(
-            TEST_URI, fakeObjectClient, TestTelemetry.DEFAULT, 100, 200, 0, ReadMode.SYNC, ETAG));
+        new Block(objectKey, fakeObjectClient, TestTelemetry.DEFAULT, 100, 200, 0, ReadMode.SYNC));
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range (0, 400)
@@ -108,8 +105,9 @@ public class IOPlannerTest {
   public void testPlanReadRegressionSingleByteObject() {
     // Given: a single byte object and an empty block store
     final int OBJECT_SIZE = 1;
-    MetadataStore metadataStore = getTestMetadataStoreWithContentLength(OBJECT_SIZE);
-    BlockStore blockStore = new BlockStore(TEST_URI, metadataStore);
+    ObjectMetadata mockMetadataStore =
+        ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range (0, 400)
@@ -120,13 +118,5 @@ public class IOPlannerTest {
     expected.add(new Range(0, 0));
 
     assertEquals(expected, missingRanges);
-  }
-
-  private MetadataStore getTestMetadataStoreWithContentLength(long contentLength) {
-    MetadataStore mockMetadataStore = mock(MetadataStore.class);
-    when(mockMetadataStore.get(any()))
-        .thenReturn(ObjectMetadata.builder().contentLength(contentLength).build());
-
-    return mockMetadataStore;
   }
 }

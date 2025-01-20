@@ -27,16 +27,17 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialPatternDetector;
 import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialReadProgression;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
-import software.amazon.s3.analyticsaccelerator.util.S3URI;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
 /** Implements a Block Manager responsible for planning and scheduling reads on a key. */
 public class BlockManager implements Closeable {
-  private final S3URI s3URI;
-  private final MetadataStore metadataStore;
+  private final ObjectKey objectKey;
+  private final ObjectMetadata metadata;
   private final BlockStore blockStore;
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
@@ -52,44 +53,44 @@ public class BlockManager implements Closeable {
   /**
    * Constructs a new BlockManager.
    *
-   * @param s3URI the S3 URI of the object
+   * @param objectKey the etag and S3 URI of the object
    * @param objectClient object client capable of interacting with the underlying object store
    * @param telemetry an instance of {@link Telemetry} to use
-   * @param metadataStore the metadata cache
+   * @param metadata the metadata for the object we are reading
    * @param configuration the physicalIO configuration
    */
   public BlockManager(
-      @NonNull S3URI s3URI,
+      @NonNull ObjectKey objectKey,
       @NonNull ObjectClient objectClient,
-      @NonNull MetadataStore metadataStore,
+      @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration) {
-    this(s3URI, objectClient, metadataStore, telemetry, configuration, null);
+    this(objectKey, objectClient, metadata, telemetry, configuration, null);
   }
 
   /**
    * Constructs a new BlockManager.
    *
-   * @param s3URI the S3 URI of the object
+   * @param objectKey the etag and S3 URI of the object
    * @param objectClient object client capable of interacting with the underlying object store
    * @param telemetry an instance of {@link Telemetry} to use
-   * @param metadataStore the metadata cache
+   * @param metadata the metadata for the object
    * @param configuration the physicalIO configuration
    * @param streamContext contains audit headers to be attached in the request header
    */
   public BlockManager(
-      @NonNull S3URI s3URI,
+      @NonNull ObjectKey objectKey,
       @NonNull ObjectClient objectClient,
-      @NonNull MetadataStore metadataStore,
+      @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
       StreamContext streamContext) {
-    this.s3URI = s3URI;
+    this.objectKey = objectKey;
     this.objectClient = objectClient;
-    this.metadataStore = metadataStore;
+    this.metadata = metadata;
     this.telemetry = telemetry;
     this.configuration = configuration;
-    this.blockStore = new BlockStore(s3URI, metadataStore);
+    this.blockStore = new BlockStore(objectKey, metadata);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
@@ -177,14 +178,12 @@ public class BlockManager implements Closeable {
 
     // Fix "effectiveEnd", so we can pass it into the lambda
     final long effectiveEndFinal = effectiveEnd;
-
-    String etag = this.metadataStore.get(s3URI).getEtag();
-
     this.telemetry.measureStandard(
         () ->
             Operation.builder()
                 .name(OPERATION_MAKE_RANGE_AVAILABLE)
-                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
+                .attribute(StreamAttributes.etag(this.metadata.getEtag()))
                 .attribute(StreamAttributes.range(pos, pos + len - 1))
                 .attribute(StreamAttributes.effectiveRange(pos, effectiveEndFinal))
                 .attribute(StreamAttributes.generation(generation))
@@ -198,22 +197,21 @@ public class BlockManager implements Closeable {
               r -> {
                 Block block =
                     new Block(
-                        s3URI,
+                        objectKey,
                         objectClient,
                         telemetry,
                         r.getStart(),
                         r.getEnd(),
                         generation,
                         readMode,
-                        streamContext,
-                        etag);
+                        streamContext);
                 blockStore.add(block);
               });
         });
   }
 
   private long getLastObjectByte() {
-    return this.metadataStore.get(s3URI).getContentLength() - 1;
+    return this.metadata.getContentLength() - 1;
   }
 
   private long truncatePos(long pos) {

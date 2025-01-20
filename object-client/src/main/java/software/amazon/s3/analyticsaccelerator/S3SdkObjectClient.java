@@ -168,7 +168,6 @@ public class S3SdkObjectClient implements ObjectClient {
     if (getRequest.getEtag() != null) {
       builder.ifMatch(getRequest.getEtag());
     }
-
     final String range = getRequest.getRange().toHttpString();
     builder.range(range);
 

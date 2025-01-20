@@ -23,29 +23,30 @@ import java.util.OptionalLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
-import software.amazon.s3.analyticsaccelerator.util.S3URI;
+import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 
 /** A BlockStore, which is a collection of Blocks. */
 public class BlockStore implements Closeable {
 
   private static final Logger LOG = LoggerFactory.getLogger(BlockStore.class);
 
-  private final S3URI s3URI;
-  private final MetadataStore metadataStore;
+  private final ObjectKey s3URI;
+  private final ObjectMetadata metadata;
   private final List<Block> blocks;
 
   /**
    * Constructs a new instance of a BlockStore.
    *
-   * @param s3URI the object's S3 URI
-   * @param metadataStore the metadata cache
+   * @param objectKey the etag and S3 URI of the object
+   * @param metadata the metadata for the object
    */
-  public BlockStore(S3URI s3URI, MetadataStore metadataStore) {
-    Preconditions.checkNotNull(s3URI, "`s3URI` must not be null");
-    Preconditions.checkNotNull(metadataStore, "`metadataStore` must not be null");
+  public BlockStore(ObjectKey objectKey, ObjectMetadata metadata) {
+    Preconditions.checkNotNull(objectKey, "`objectKey` must not be null");
+    Preconditions.checkNotNull(metadata, "`metadataStore` must not be null");
 
-    this.s3URI = s3URI;
-    this.metadataStore = metadataStore;
+    this.s3URI = objectKey;
+    this.metadata = metadata;
     this.blocks = new LinkedList<>();
   }
 
@@ -114,7 +115,7 @@ public class BlockStore implements Closeable {
   }
 
   private long getLastObjectByte() {
-    return this.metadataStore.get(s3URI).getContentLength() - 1;
+    return this.metadata.getContentLength() - 1;
   }
 
   private void safeClose(Block block) {

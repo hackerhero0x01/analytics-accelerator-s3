@@ -26,6 +26,7 @@ import software.amazon.s3.analyticsaccelerator.request.Range;
 @AllArgsConstructor
 public enum StreamAttributes {
   URI("uri"),
+  ETAG("etag"),
   RANGE("range"),
   VARIANT("variant"),
   EFFECTIVE_RANGE("range.effective"),
@@ -48,6 +49,16 @@ public enum StreamAttributes {
    */
   public static Attribute uri(S3URI s3URI) {
     return Attribute.of(StreamAttributes.URI.getName(), s3URI.toString());
+  }
+
+  /**
+   * Creates an {@link Attribute} for a etag.
+   *
+   * @param etag the etag to create the attribute from.
+   * @return The new instance of the {@link Attribute}.
+   */
+  public static Attribute etag(String etag) {
+    return Attribute.of(StreamAttributes.ETAG.getName(), etag);
   }
 
   /**

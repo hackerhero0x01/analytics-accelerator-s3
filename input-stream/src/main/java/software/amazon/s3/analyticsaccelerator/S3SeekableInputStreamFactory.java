@@ -74,11 +74,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
     this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
     this.objectBlobStore =
-        new BlobStore(
-            objectMetadataStore,
-            objectClient,
-            telemetry,
-            configuration.getPhysicalIOConfiguration());
+        new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
   }
 
   /**
@@ -96,13 +92,14 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    *
    * @param s3URI the object's S3 URI
    * @param contentLength content length
+   * @param etag etag for content
    * @return An instance of the input stream.
    */
-  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, long contentLength) {
+  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, long contentLength, String etag) {
     Preconditions.checkArgument(contentLength >= 0, "`len` must be non-negative");
 
     objectMetadataStore.storeObjectMetadata(
-        s3URI, ObjectMetadata.builder().contentLength(contentLength).build());
+        s3URI, ObjectMetadata.builder().contentLength(contentLength).etag(etag).build());
 
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }

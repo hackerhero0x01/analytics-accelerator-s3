@@ -36,8 +36,7 @@ public class S3SeekableInputStreamTestBase {
   protected final MetadataStore metadataStore =
       new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
   protected final BlobStore blobStore =
-      new BlobStore(
-          metadataStore, fakeObjectClient, TestTelemetry.DEFAULT, physicalIOConfiguration);
+      new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, physicalIOConfiguration);
   protected final LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
 
   protected final LogicalIO fakeLogicalIO =

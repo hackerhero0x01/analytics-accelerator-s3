@@ -70,7 +70,7 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException {
-    testChangingEtagMidStream(s3Object, configuration);
+    testChangingEtagMidStream(s3Object, streamReadPattern, configuration);
   }
 
   @ParameterizedTest

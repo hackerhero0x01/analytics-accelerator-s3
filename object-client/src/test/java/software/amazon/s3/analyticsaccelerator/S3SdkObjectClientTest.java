@@ -163,22 +163,6 @@ public class S3SdkObjectClientTest {
   }
 
   @Test
-  void testGetObjectWithRange() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
-      S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
-      assertInstanceOf(
-          CompletableFuture.class,
-          client.getObject(
-              GetRequest.builder()
-                  .s3Uri(S3URI.of("bucket", "key"))
-                  .range(new Range(0, 20))
-                  .etag(ETAG)
-                  .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
-                  .build()));
-    }
-  }
-
-  @Test
   void testGetObjectWithDifferentEtagsThrowsError() {
     try (S3AsyncClient s3AsyncClient = createMockClient()) {
       S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
@@ -203,6 +187,22 @@ public class S3SdkObjectClientTest {
                           .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
                           .build())
                   .get());
+    }
+  }
+
+  @Test
+  void testGetObjectWithRange() {
+    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+      S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+      assertInstanceOf(
+          CompletableFuture.class,
+          client.getObject(
+              GetRequest.builder()
+                  .s3Uri(S3URI.of("bucket", "key"))
+                  .range(new Range(0, 20))
+                  .etag(ETAG)
+                  .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
+                  .build()));
     }
   }
 

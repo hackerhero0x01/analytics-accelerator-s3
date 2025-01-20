@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -30,63 +31,81 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
     value = "NP_NONNULL_PARAM_VIOLATION",
     justification = "We mean to pass nulls to checks")
 public class BlobStoreTest {
+  private static final String TEST_DATA = "test-data";
+  private static final String ETAG = "random";
+  private static final ObjectMetadata objectMetadata =
+      ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag(ETAG).build();
+
+  private static final ObjectKey objectKey =
+      ObjectKey.builder().s3URI(S3URI.of("test", "test")).etag(ETAG).build();
+
+  private BlobStore blobStore;
+
+  @BeforeEach
+  void setUp() {
+    ObjectClient objectClient = new FakeObjectClient("test-data");
+    MetadataStore metadataStore = mock(MetadataStore.class);
+    when(metadataStore.get(any()))
+        .thenReturn(
+            ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag("random").build());
+    blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+  }
+
   @Test
   void testCreateBoundaries() {
     assertThrows(
         NullPointerException.class,
-        () ->
-            new BlobStore(
-                null,
-                mock(ObjectClient.class),
-                mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class)));
+        () -> new BlobStore(null, mock(Telemetry.class), mock(PhysicalIOConfiguration.class)));
     assertThrows(
         NullPointerException.class,
-        () ->
-            new BlobStore(
-                mock(MetadataStore.class),
-                null,
-                mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class)));
+        () -> new BlobStore(null, mock(Telemetry.class), mock(PhysicalIOConfiguration.class)));
     assertThrows(
         NullPointerException.class,
-        () ->
-            new BlobStore(
-                mock(MetadataStore.class),
-                mock(ObjectClient.class),
-                null,
-                mock(PhysicalIOConfiguration.class)));
+        () -> new BlobStore(mock(ObjectClient.class), null, mock(PhysicalIOConfiguration.class)));
     assertThrows(
         NullPointerException.class,
-        () ->
-            new BlobStore(
-                mock(MetadataStore.class), mock(ObjectClient.class), mock(Telemetry.class), null));
+        () -> new BlobStore(mock(ObjectClient.class), mock(Telemetry.class), null));
   }
 
   @Test
   public void testGetReturnsReadableBlob() {
-    // Given: a BlobStore with an underlying metadata store and object client
-    final String TEST_DATA = "test-data";
-    ObjectClient objectClient = new FakeObjectClient("test-data");
-    MetadataStore metadataStore = mock(MetadataStore.class);
-    when(metadataStore.get(any()))
-        .thenReturn(ObjectMetadata.builder().contentLength(TEST_DATA.length()).build());
-    BlobStore blobStore =
-        new BlobStore(
-            metadataStore, objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-
     // When: a Blob is asked for
-    Blob blob = blobStore.get(S3URI.of("test", "test"), mock(StreamContext.class));
+    Blob blob = blobStore.get(objectKey, objectMetadata, mock(StreamContext.class));
 
     // Then:
     byte[] b = new byte[TEST_DATA.length()];
     blob.read(b, 0, b.length, 0);
     assertEquals(TEST_DATA, new String(b, StandardCharsets.UTF_8));
+    assertEquals(1, blobStore.blobCount());
+  }
+
+  @Test
+  void testEvictKey_ExistingKey() {
+    // Setup
+    blobStore.get(objectKey, objectMetadata, mock(StreamContext.class));
+
+    // Test
+    boolean result = blobStore.evictKey(objectKey);
+
+    // Verify
+    assertTrue(result, "Evicting existing key should return true");
+    assertEquals(0, blobStore.blobCount(), "Cache should be empty after eviction");
+  }
+
+  @Test
+  void testEvictKey_NonExistingKey() {
+    // Test
+    boolean result = blobStore.evictKey(objectKey);
+
+    // Verify
+    assertFalse(result, "Evicting non-existing key should return false");
+    assertEquals(0, blobStore.blobCount(), "Cache should remain empty");
   }
 }

@@ -24,6 +24,7 @@ import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -31,6 +32,10 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     value = "NP_NONNULL_PARAM_VIOLATION",
     justification = "We mean to pass nulls to checks")
 public class S3SeekableInputStreamFactoryTest {
+  private static S3URI s3URI = S3URI.of("bucket", "key");
+  private static final ObjectMetadata objectMetadata =
+      ObjectMetadata.builder().contentLength(100).etag("ETAG").build();
+
   @Test
   void testConstructor() {
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -66,6 +71,10 @@ public class S3SeekableInputStreamFactoryTest {
                 .logicalIOConfiguration(
                     LogicalIOConfiguration.builder().prefetchFooterEnabled(false).build())
                 .build());
+
+    s3SeekableInputStreamFactory
+        .getObjectMetadataStore()
+        .storeObjectMetadata(s3URI, objectMetadata);
     S3SeekableInputStream inputStream =
         s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"));
     assertNotNull(inputStream);
@@ -86,7 +95,7 @@ public class S3SeekableInputStreamFactoryTest {
                     LogicalIOConfiguration.builder().prefetchFooterEnabled(false).build())
                 .build());
     S3SeekableInputStream inputStream =
-        s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"), 500);
+        s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"), 500, "1");
     assertNotNull(inputStream);
   }
 
@@ -99,13 +108,14 @@ public class S3SeekableInputStreamFactoryTest {
             .build();
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(mock(ObjectClient.class), configuration);
-    S3SeekableInputStream inputStream =
-        s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"));
+    s3SeekableInputStreamFactory
+        .getObjectMetadataStore()
+        .storeObjectMetadata(s3URI, objectMetadata);
+
+    S3SeekableInputStream inputStream = s3SeekableInputStreamFactory.createStream(s3URI);
     assertNotNull(inputStream);
 
-    inputStream =
-        s3SeekableInputStreamFactory.createStream(
-            S3URI.of("bucket", "key"), mock(StreamContext.class));
+    inputStream = s3SeekableInputStreamFactory.createStream(s3URI, mock(StreamContext.class));
     assertNotNull(inputStream);
   }
 
@@ -129,6 +139,10 @@ public class S3SeekableInputStreamFactoryTest {
 
   @Test
   void testCreateLogicalIO() {
+    S3URI testURIParquet = S3URI.of("bucket", "key.parquet");
+    S3URI testURIKEYPAR = S3URI.of("bucket", "key.par");
+    S3URI testURIJAVA = S3URI.of("bucket", "key.java");
+    S3URI testURITXT = S3URI.of("bucket", "key.txt");
     S3SeekableInputStreamConfiguration configuration =
         S3SeekableInputStreamConfiguration.builder()
             .logicalIOConfiguration(
@@ -136,23 +150,31 @@ public class S3SeekableInputStreamFactoryTest {
             .build();
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(mock(ObjectClient.class), configuration);
+    s3SeekableInputStreamFactory
+        .getObjectMetadataStore()
+        .storeObjectMetadata(testURIParquet, objectMetadata);
+    s3SeekableInputStreamFactory
+        .getObjectMetadataStore()
+        .storeObjectMetadata(testURIKEYPAR, objectMetadata);
+    s3SeekableInputStreamFactory
+        .getObjectMetadataStore()
+        .storeObjectMetadata(testURIJAVA, objectMetadata);
+    s3SeekableInputStreamFactory
+        .getObjectMetadataStore()
+        .storeObjectMetadata(testURITXT, objectMetadata);
 
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                S3URI.of("bucket", "key.parquet"), mock(StreamContext.class))
+        s3SeekableInputStreamFactory.createLogicalIO(testURIParquet, mock(StreamContext.class))
             instanceof ParquetLogicalIOImpl);
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                S3URI.of("bucket", "key.par"), mock(StreamContext.class))
+        s3SeekableInputStreamFactory.createLogicalIO(testURIKEYPAR, mock(StreamContext.class))
             instanceof ParquetLogicalIOImpl);
 
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                S3URI.of("bucket", "key.java"), mock(StreamContext.class))
+        s3SeekableInputStreamFactory.createLogicalIO(testURIJAVA, mock(StreamContext.class))
             instanceof DefaultLogicalIOImpl);
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                S3URI.of("bucket", "key.txt"), mock(StreamContext.class))
+        s3SeekableInputStreamFactory.createLogicalIO(testURITXT, mock(StreamContext.class))
             instanceof DefaultLogicalIOImpl);
   }
 

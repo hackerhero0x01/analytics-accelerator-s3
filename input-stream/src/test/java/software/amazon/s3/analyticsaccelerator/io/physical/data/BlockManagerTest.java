@@ -35,6 +35,7 @@ import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.*;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -42,8 +43,9 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     justification = "We mean to pass nulls to checks")
 public class BlockManagerTest {
   private static String ETAG = "random";
-  private MetadataStore metadataStore;
-  S3URI testUri = S3URI.of("foo", "bar");
+  private ObjectMetadata metadataStore;
+  static S3URI testUri = S3URI.of("foo", "bar");
+  private static final ObjectKey objectKey = ObjectKey.builder().s3URI(testUri).etag(ETAG).build();
 
   @Test
   void testCreateBoundaries() {
@@ -53,23 +55,23 @@ public class BlockManagerTest {
             new BlockManager(
                 null,
                 mock(ObjectClient.class),
-                mock(MetadataStore.class),
+                mock(ObjectMetadata.class),
                 mock(Telemetry.class),
                 mock(PhysicalIOConfiguration.class)));
     assertThrows(
         NullPointerException.class,
         () ->
             new BlockManager(
-                mock(S3URI.class),
+                mock(ObjectKey.class),
                 null,
-                mock(MetadataStore.class),
+                mock(ObjectMetadata.class),
                 mock(Telemetry.class),
                 mock(PhysicalIOConfiguration.class)));
     assertThrows(
         NullPointerException.class,
         () ->
             new BlockManager(
-                mock(S3URI.class),
+                mock(ObjectKey.class),
                 mock(ObjectClient.class),
                 null,
                 mock(Telemetry.class),
@@ -78,18 +80,18 @@ public class BlockManagerTest {
         NullPointerException.class,
         () ->
             new BlockManager(
-                mock(S3URI.class),
+                mock(ObjectKey.class),
                 mock(ObjectClient.class),
-                mock(MetadataStore.class),
+                mock(ObjectMetadata.class),
                 null,
                 mock(PhysicalIOConfiguration.class)));
     assertThrows(
         NullPointerException.class,
         () ->
             new BlockManager(
-                mock(S3URI.class),
+                mock(ObjectKey.class),
                 mock(ObjectClient.class),
-                mock(MetadataStore.class),
+                mock(ObjectMetadata.class),
                 mock(Telemetry.class),
                 null));
   }
@@ -186,10 +188,20 @@ public class BlockManagerTest {
     blockManager.makePositionAvailable(0, ReadMode.SYNC);
     int readAheadBytes = (int) PhysicalIOConfiguration.DEFAULT.getReadAheadBytes();
 
-    // Overwrite our metadata object to mock the etag changing, in reality this wouldn't happen, but
-    // it helps with testing.
-    metadataStore.storeObjectMetadata(
-        testUri, ObjectMetadata.builder().contentLength(128 * ONE_MB).etag("NEW_ETAG").build());
+    // Overwrite our client to now throw an error with our old etag. This simulates the scenario
+    // where the etag changes during a read.
+    when(objectClient.getObject(
+            argThat(
+                request -> {
+                  if (request == null) {
+                    return false;
+                  }
+                  // Check if the If-Match header matches expected ETag
+                  return request.getEtag() != null && request.getEtag().equals(ETAG);
+                }),
+            any()))
+        .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
+
     assertThrows(
         S3Exception.class,
         () -> blockManager.makePositionAvailable(readAheadBytes + 1, ReadMode.SYNC));
@@ -270,11 +282,9 @@ public class BlockManagerTest {
             any()))
         .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
 
-    metadataStore =
-        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    metadataStore.storeObjectMetadata(
-        testUri, ObjectMetadata.builder().contentLength(size).etag(ETAG).build());
+    metadataStore = ObjectMetadata.builder().contentLength(size).etag(ETAG).build();
+
     return new BlockManager(
-        testUri, objectClient, metadataStore, TestTelemetry.DEFAULT, configuration);
+        objectKey, objectClient, metadataStore, TestTelemetry.DEFAULT, configuration);
   }
 }

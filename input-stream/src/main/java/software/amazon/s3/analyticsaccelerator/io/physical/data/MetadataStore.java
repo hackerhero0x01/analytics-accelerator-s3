@@ -89,6 +89,16 @@ public class MetadataStore implements Closeable {
   }
 
   /**
+   * Evicts the specified key from the cache
+   *
+   * @param s3URI the s3 uri of the object to evict
+   * @return a boolean stating if the object existed or not
+   */
+  public boolean evictKey(S3URI s3URI) {
+    return this.cache.remove(s3URI) != null;
+  }
+
+  /**
    * Get the metadata for an object asynchronously (either from cache or the underlying object
    * store).
    *

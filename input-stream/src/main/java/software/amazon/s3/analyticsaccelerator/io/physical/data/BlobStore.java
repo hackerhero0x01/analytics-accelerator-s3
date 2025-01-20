@@ -24,8 +24,9 @@ import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
-import software.amazon.s3.analyticsaccelerator.util.S3URI;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
 @SuppressFBWarnings(
@@ -33,8 +34,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     justification =
         "Inner class is created very infrequently, and fluency justifies the extra pointer")
 public class BlobStore implements Closeable {
-  private final Map<S3URI, Blob> blobMap;
-  private final MetadataStore metadataStore;
+  private final Map<ObjectKey, Blob> blobMap;
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
   private final PhysicalIOConfiguration configuration;
@@ -42,24 +42,21 @@ public class BlobStore implements Closeable {
   /**
    * Construct an instance of BlobStore.
    *
-   * @param metadataStore the MetadataStore storing object metadata information
    * @param objectClient object client capable of interacting with the underlying object store
    * @param telemetry an instance of {@link Telemetry} to use
    * @param configuration the PhysicalIO configuration
    */
   public BlobStore(
-      @NonNull MetadataStore metadataStore,
       @NonNull ObjectClient objectClient,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration) {
-    this.metadataStore = metadataStore;
     this.objectClient = objectClient;
     this.telemetry = telemetry;
     this.blobMap =
         Collections.synchronizedMap(
-            new LinkedHashMap<S3URI, Blob>() {
+            new LinkedHashMap<ObjectKey, Blob>() {
               @Override
-              protected boolean removeEldestEntry(final Map.Entry<S3URI, Blob> eldest) {
+              protected boolean removeEldestEntry(final Map.Entry<ObjectKey, Blob> eldest) {
                 return this.size() > configuration.getBlobStoreCapacity();
               }
             });
@@ -69,20 +66,40 @@ public class BlobStore implements Closeable {
   /**
    * Opens a new blob if one does not exist or returns the handle to one that exists already.
    *
-   * @param s3URI the S3 URI of the object
+   * @param objectKey the etag and S3 URI of the object
+   * @param metadata the metadata for the object we are computing
    * @param streamContext contains audit headers to be attached in the request header
    * @return the blob representing the object from the BlobStore
    */
-  public Blob get(S3URI s3URI, StreamContext streamContext) {
+  public Blob get(ObjectKey objectKey, ObjectMetadata metadata, StreamContext streamContext) {
     return blobMap.computeIfAbsent(
-        s3URI,
+        objectKey,
         uri ->
             new Blob(
                 uri,
-                metadataStore,
+                metadata,
                 new BlockManager(
-                    uri, objectClient, metadataStore, telemetry, configuration, streamContext),
+                    uri, objectClient, metadata, telemetry, configuration, streamContext),
                 telemetry));
+  }
+
+  /**
+   * Evicts the specified key from the cache
+   *
+   * @param objectKey the etag and S3 URI of the object
+   * @return a boolean stating if the object existed or not
+   */
+  public boolean evictKey(ObjectKey objectKey) {
+    return this.blobMap.remove(objectKey) != null;
+  }
+
+  /**
+   * Returns the amount of objects currently cached in the blobstore.
+   *
+   * @return an int containing the total amount of cached blobs
+   */
+  public int blobCount() {
+    return this.blobMap.size();
   }
 
   /** Closes the {@link BlobStore} and frees up all resources it holds. */

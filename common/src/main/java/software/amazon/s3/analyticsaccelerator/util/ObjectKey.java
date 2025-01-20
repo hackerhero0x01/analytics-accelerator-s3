@@ -13,24 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package software.amazon.s3.analyticsaccelerator.request;
+package software.amazon.s3.analyticsaccelerator.util;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Objects;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
-import lombok.Value;
-import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
-/**
- * Object representing arguments to a GetObject call. This class helps us abstract away from S3 SDK
- * constructs.
- */
-@Value
+/** Container used to represent an S3 object for a specific version/etag */
+@Getter
+@AllArgsConstructor
 @Builder
-@SuppressFBWarnings(value = "NM_CONFUSING", justification = "Sharing Getter names is not confusing")
-public class GetRequest {
-  @NonNull S3URI s3Uri;
-  @NonNull Range range;
-  @NonNull Referrer referrer;
-  String etag;
+public class ObjectKey {
+  @NonNull S3URI s3URI;
+  @NonNull String etag;
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    ObjectKey objectKey = (ObjectKey) o;
+    return s3URI.equals(objectKey.s3URI) && etag.equals(objectKey.etag);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(s3URI, etag);
+  }
 }

@@ -25,8 +25,9 @@ import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanState;
+import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
-import software.amazon.s3.analyticsaccelerator.util.S3URI;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
 /** A Blob representing an object. */
@@ -34,27 +35,27 @@ public class Blob implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(Blob.class);
   private static final String OPERATION_EXECUTE = "blob.execute";
 
-  private final S3URI s3URI;
+  private final ObjectKey s3URI;
   private final BlockManager blockManager;
-  private final MetadataStore metadataStore;
+  private final ObjectMetadata metadata;
   private final Telemetry telemetry;
 
   /**
    * Construct a new Blob.
    *
-   * @param s3URI the S3 URI of the object
-   * @param metadataStore the MetadataStore in the stream
+   * @param objectKey the etag and S3 URI of the object
+   * @param metadata the metadata for the object
    * @param blockManager the BlockManager for this object
    * @param telemetry an instance of {@link Telemetry} to use
    */
   public Blob(
-      @NonNull S3URI s3URI,
-      @NonNull MetadataStore metadataStore,
+      @NonNull ObjectKey objectKey,
+      @NonNull ObjectMetadata metadata,
       @NonNull BlockManager blockManager,
       @NonNull Telemetry telemetry) {
 
-    this.s3URI = s3URI;
-    this.metadataStore = metadataStore;
+    this.s3URI = objectKey;
+    this.metadata = metadata;
     this.blockManager = blockManager;
     this.telemetry = telemetry;
   }
@@ -128,7 +129,8 @@ public class Blob implements Closeable {
         () ->
             Operation.builder()
                 .name(OPERATION_EXECUTE)
-                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.uri(this.s3URI.getS3URI()))
+                .attribute(StreamAttributes.etag(this.s3URI.getEtag()))
                 .attribute(StreamAttributes.ioPlan(plan))
                 .build(),
         () -> {
@@ -149,7 +151,7 @@ public class Blob implements Closeable {
   }
 
   private long contentLength() {
-    return metadataStore.get(s3URI).getContentLength();
+    return metadata.getContentLength();
   }
 
   @Override
