@@ -110,6 +110,17 @@ public class Block implements Closeable {
     this.objectKey = objectKey;
     this.range = new Range(start, end);
 
+    GetRequest.GetRequestBuilder getRequestBuilder =
+        GetRequest.builder()
+            .s3Uri(this.objectKey.getS3URI())
+            .range(this.range)
+            .referrer(new Referrer(range.toHttpString(), readMode));
+
+    if (this.objectKey.getEtag().isPresent()) {
+      getRequestBuilder.etag(this.objectKey.getEtag().get());
+    }
+    GetRequest getRequest = getRequestBuilder.build();
+
     this.source =
         this.telemetry.measureCritical(
             () ->
@@ -120,14 +131,8 @@ public class Block implements Closeable {
                     .attribute(StreamAttributes.range(this.range))
                     .attribute(StreamAttributes.generation(generation))
                     .build(),
-            objectClient.getObject(
-                GetRequest.builder()
-                    .s3Uri(this.objectKey.getS3URI())
-                    .range(this.range)
-                    .etag(this.objectKey.getEtag())
-                    .referrer(new Referrer(range.toHttpString(), readMode))
-                    .build(),
-                streamContext));
+            objectClient.getObject(getRequest, streamContext));
+
     this.data = this.source.thenApply(StreamUtils::toByteArray);
   }
 

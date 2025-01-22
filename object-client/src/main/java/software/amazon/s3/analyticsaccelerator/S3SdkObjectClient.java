@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.analyticsaccelerator;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
 import lombok.NonNull;
@@ -134,7 +135,7 @@ public class S3SdkObjectClient implements ObjectClient {
                 headObjectResponse ->
                     ObjectMetadata.builder()
                         .contentLength(headObjectResponse.contentLength())
-                        .etag(headObjectResponse.eTag())
+                        .etag(Optional.of(headObjectResponse.eTag()))
                         .build()));
   }
 

@@ -94,7 +94,7 @@ public class BlobStore implements Closeable {
   }
 
   /**
-   * Returns the amount of objects currently cached in the blobstore.
+   * Returns the number of objects currently cached in the blobstore.
    *
    * @return an int containing the total amount of cached blobs
    */

@@ -15,6 +15,8 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
@@ -82,5 +84,25 @@ public class MetadataStoreTest {
 
     // Then: nothing has thrown, all futures were cancelled
     verify(objectMetadataCompletableFuture, times(1)).cancel(false);
+  }
+
+  @Test
+  void testEvictKey_ExistingKey() {
+    // Setup
+    ObjectClient objectClient = mock(ObjectClient.class);
+    when(objectClient.headObject(any()))
+        .thenReturn(CompletableFuture.completedFuture(mock(ObjectMetadata.class)));
+    MetadataStore metadataStore =
+        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    S3URI key = S3URI.of("foo", "bar");
+    metadataStore.storeObjectMetadata(key, ObjectMetadata.builder().build());
+
+    // Test
+    boolean result = metadataStore.evictKey(key);
+
+    // Verify
+    assertTrue(result, "Evicting existing key should return true");
+    result = metadataStore.evictKey(key);
+    assertFalse(result, "Evicting existing key should return false");
   }
 }

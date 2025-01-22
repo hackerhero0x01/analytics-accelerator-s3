@@ -91,15 +91,13 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * Create an instance of S3SeekableInputStream with provided metadata.
    *
    * @param s3URI the object's S3 URI
-   * @param contentLength content length
-   * @param etag etag for content
+   * @param metadata the metadata for the object
    * @return An instance of the input stream.
    */
-  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, long contentLength, String etag) {
-    Preconditions.checkArgument(contentLength >= 0, "`len` must be non-negative");
+  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, ObjectMetadata metadata) {
+    Preconditions.checkArgument(metadata.getContentLength() >= 0, "`len` must be non-negative");
 
-    objectMetadataStore.storeObjectMetadata(
-        s3URI, ObjectMetadata.builder().contentLength(contentLength).etag(etag).build());
+    objectMetadataStore.storeObjectMetadata(s3URI, metadata);
 
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
@@ -125,7 +123,12 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         return new ParquetLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(
-                s3URI, objectMetadataStore, objectBlobStore, telemetry, streamContext),
+                s3URI,
+                objectMetadataStore,
+                objectBlobStore,
+                configuration.getPhysicalIOConfiguration(),
+                telemetry,
+                streamContext),
             telemetry,
             configuration.getLogicalIOConfiguration(),
             parquetColumnPrefetchStore);
@@ -134,7 +137,12 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         return new DefaultLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(
-                s3URI, objectMetadataStore, objectBlobStore, telemetry, streamContext),
+                s3URI,
+                objectMetadataStore,
+                objectBlobStore,
+                configuration.getPhysicalIOConfiguration(),
+                telemetry,
+                streamContext),
             telemetry);
     }
   }

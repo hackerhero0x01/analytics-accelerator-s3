@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.utils.IoUtils;
@@ -323,7 +324,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     // Given: seekable stream
     LogicalIO mockLogicalIO = mock(LogicalIO.class);
     when(mockLogicalIO.metadata())
-        .thenReturn(ObjectMetadata.builder().contentLength(200).etag("random").build());
+        .thenReturn(
+            ObjectMetadata.builder().contentLength(200).etag(Optional.of("RANDOM")).build());
     try (S3SeekableInputStream stream =
         new S3SeekableInputStream(TEST_URI, mockLogicalIO, TestTelemetry.DEFAULT)) {
 
@@ -363,7 +365,12 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
               () -> {
                 try {
                   PhysicalIO physicalIO =
-                      new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+                      new PhysicalIOImpl(
+                          s3URI,
+                          metadataStore,
+                          blobStore,
+                          PhysicalIOConfiguration.DEFAULT,
+                          TestTelemetry.DEFAULT);
                   LogicalIO logicalIO =
                       new ParquetLogicalIOImpl(
                           TEST_OBJECT,
@@ -453,7 +460,12 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
         s3URI,
         new ParquetLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT),
+            new PhysicalIOImpl(
+                s3URI,
+                metadataStore,
+                blobStore,
+                PhysicalIOConfiguration.DEFAULT,
+                TestTelemetry.DEFAULT),
             TestTelemetry.DEFAULT,
             LogicalIOConfiguration.DEFAULT,
             new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)),

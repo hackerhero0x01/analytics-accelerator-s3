@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.analyticsaccelerator.request;
 
+import java.util.Optional;
 import lombok.Builder;
 import lombok.Data;
 
@@ -23,5 +24,5 @@ import lombok.Data;
 @Builder
 public class ObjectMetadata {
   long contentLength;
-  String etag;
+  Optional<String> etag;
 }

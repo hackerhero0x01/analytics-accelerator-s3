@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -39,7 +40,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     justification = "We mean to pass nulls to checks")
 public class BlobStoreTest {
   private static final String TEST_DATA = "test-data";
-  private static final String ETAG = "random";
+  private static final Optional<String> ETAG = Optional.of("random");
   private static final ObjectMetadata objectMetadata =
       ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag(ETAG).build();
 
@@ -53,8 +54,7 @@ public class BlobStoreTest {
     ObjectClient objectClient = new FakeObjectClient("test-data");
     MetadataStore metadataStore = mock(MetadataStore.class);
     when(metadataStore.get(any()))
-        .thenReturn(
-            ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag("random").build());
+        .thenReturn(ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag(ETAG).build());
     blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
   }
 

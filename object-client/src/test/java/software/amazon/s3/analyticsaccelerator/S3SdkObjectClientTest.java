@@ -24,6 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,7 @@ public class S3SdkObjectClientTest {
 
   private static final String HEADER_REFERER = "Referer";
 
-  private static final String ETAG = "RandomString";
+  private static final Optional<String> ETAG = Optional.of("RandomString");
 
   @Test
   void testForNullsInConstructor() {
@@ -172,7 +173,7 @@ public class S3SdkObjectClientTest {
               GetRequest.builder()
                   .s3Uri(S3URI.of("bucket", "key"))
                   .range(new Range(0, 20))
-                  .etag(ETAG)
+                  .etag(ETAG.get())
                   .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
                   .build()));
       assertThrows(
@@ -200,7 +201,7 @@ public class S3SdkObjectClientTest {
               GetRequest.builder()
                   .s3Uri(S3URI.of("bucket", "key"))
                   .range(new Range(0, 20))
-                  .etag(ETAG)
+                  .etag(ETAG.get())
                   .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
                   .build()));
     }
@@ -288,7 +289,7 @@ public class S3SdkObjectClientTest {
     when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
         .thenReturn(
             CompletableFuture.completedFuture(
-                HeadObjectResponse.builder().contentLength(42L).eTag(ETAG).build()));
+                HeadObjectResponse.builder().contentLength(42L).eTag(ETAG.get()).build()));
 
     /*
      The argument matcher is used to check if our arguments match the values we want to mock a return for
@@ -304,7 +305,7 @@ public class S3SdkObjectClientTest {
                         return false;
                       }
                       // Check if the If-Match header matches expected ETag
-                      return request.ifMatch() == null || request.ifMatch().equals(ETAG);
+                      return request.ifMatch() == null || request.ifMatch().equals(ETAG.get());
                     }),
             (AsyncResponseTransformer<GetObjectResponse, Object>) any()))
         .thenReturn(
@@ -323,7 +324,7 @@ public class S3SdkObjectClientTest {
                       if (request == null) {
                         return false;
                       }
-                      return (request).ifMatch() != null && !(request).ifMatch().equals(ETAG);
+                      return (request).ifMatch() != null && !(request).ifMatch().equals(ETAG.get());
                     }),
             (AsyncResponseTransformer<GetObjectResponse, Object>) any()))
         .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());

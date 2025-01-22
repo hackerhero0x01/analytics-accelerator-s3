@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -39,7 +40,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 public class PhysicalIOImplTest {
 
   private static final S3URI s3URI = S3URI.of("foo", "bar");
-  private static final String etag = "random";
+  private static final Optional<String> etag = Optional.of("random");
 
   @Test
   void testConstructorThrowsOnNullArgument() {
@@ -47,7 +48,12 @@ public class PhysicalIOImplTest {
         NullPointerException.class,
         () -> {
           new PhysicalIOImpl(
-              s3URI, null, mock(BlobStore.class), TestTelemetry.DEFAULT, mock(StreamContext.class));
+              s3URI,
+              null,
+              mock(BlobStore.class),
+              mock(PhysicalIOConfiguration.class),
+              TestTelemetry.DEFAULT,
+              mock(StreamContext.class));
         });
 
     assertThrows(
@@ -57,6 +63,7 @@ public class PhysicalIOImplTest {
               s3URI,
               mock(MetadataStore.class),
               null,
+              mock(PhysicalIOConfiguration.class),
               TestTelemetry.DEFAULT,
               mock(StreamContext.class));
         });
@@ -65,36 +72,71 @@ public class PhysicalIOImplTest {
         NullPointerException.class,
         () -> {
           new PhysicalIOImpl(
-              null, mock(MetadataStore.class), mock(BlobStore.class), TestTelemetry.DEFAULT);
+              null,
+              mock(MetadataStore.class),
+              mock(BlobStore.class),
+              mock(PhysicalIOConfiguration.class),
+              TestTelemetry.DEFAULT);
         });
 
     assertThrows(
         NullPointerException.class,
         () -> {
-          new PhysicalIOImpl(s3URI, mock(MetadataStore.class), mock(BlobStore.class), null);
-        });
-    assertThrows(
-        NullPointerException.class,
-        () -> {
-          new PhysicalIOImpl(s3URI, null, mock(BlobStore.class), TestTelemetry.DEFAULT);
-        });
-
-    assertThrows(
-        NullPointerException.class,
-        () -> {
-          new PhysicalIOImpl(s3URI, mock(MetadataStore.class), null, TestTelemetry.DEFAULT);
+          new PhysicalIOImpl(
+              s3URI,
+              mock(MetadataStore.class),
+              mock(BlobStore.class),
+              mock(PhysicalIOConfiguration.class),
+              null);
         });
     assertThrows(
         NullPointerException.class,
         () -> {
           new PhysicalIOImpl(
-              null, mock(MetadataStore.class), mock(BlobStore.class), TestTelemetry.DEFAULT);
+              s3URI,
+              null,
+              mock(BlobStore.class),
+              mock(PhysicalIOConfiguration.class),
+              TestTelemetry.DEFAULT);
         });
 
     assertThrows(
         NullPointerException.class,
         () -> {
-          new PhysicalIOImpl(s3URI, mock(MetadataStore.class), mock(BlobStore.class), null);
+          new PhysicalIOImpl(
+              s3URI,
+              mock(MetadataStore.class),
+              null,
+              mock(PhysicalIOConfiguration.class),
+              TestTelemetry.DEFAULT);
+        });
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new PhysicalIOImpl(
+              null,
+              mock(MetadataStore.class),
+              mock(BlobStore.class),
+              mock(PhysicalIOConfiguration.class),
+              TestTelemetry.DEFAULT);
+        });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new PhysicalIOImpl(
+              s3URI,
+              mock(MetadataStore.class),
+              mock(BlobStore.class),
+              mock(PhysicalIOConfiguration.class),
+              null);
+        });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new PhysicalIOImpl(
+              s3URI, mock(MetadataStore.class), mock(BlobStore.class), null, TestTelemetry.DEFAULT);
         });
   }
 
@@ -108,7 +150,12 @@ public class PhysicalIOImplTest {
     BlobStore blobStore =
         new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 =
-        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI,
+            metadataStore,
+            blobStore,
+            PhysicalIOConfiguration.DEFAULT,
+            TestTelemetry.DEFAULT);
 
     // When: we read
     // Then: returned data is correct
@@ -127,7 +174,12 @@ public class PhysicalIOImplTest {
     BlobStore blobStore =
         new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 =
-        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI,
+            metadataStore,
+            blobStore,
+            PhysicalIOConfiguration.DEFAULT,
+            TestTelemetry.DEFAULT);
 
     // When: we read
     // Then: returned data is correct
@@ -143,7 +195,12 @@ public class PhysicalIOImplTest {
     BlobStore blobStore =
         new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 =
-        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI,
+            metadataStore,
+            blobStore,
+            PhysicalIOConfiguration.DEFAULT,
+            TestTelemetry.DEFAULT);
 
     byte[] buffer = new byte[5];
     assertEquals(5, physicalIOImplV2.read(buffer, 0, 5, 5));
@@ -158,7 +215,12 @@ public class PhysicalIOImplTest {
     BlobStore blobStore =
         new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 =
-        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI,
+            metadataStore,
+            blobStore,
+            PhysicalIOConfiguration.DEFAULT,
+            TestTelemetry.DEFAULT);
     byte[] buffer = new byte[5];
     assertEquals(5, physicalIOImplV2.readTail(buffer, 0, 5));
     assertEquals(1, blobStore.blobCount());
@@ -178,7 +240,12 @@ public class PhysicalIOImplTest {
     BlobStore blobStore =
         new BlobStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 =
-        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI,
+            metadataStore,
+            blobStore,
+            PhysicalIOConfiguration.DEFAULT,
+            TestTelemetry.DEFAULT);
 
     assertThrows(S3Exception.class, () -> physicalIOImplV2.read(0));
     assertThrows(Exception.class, () -> metadataStore.get(s3URI));

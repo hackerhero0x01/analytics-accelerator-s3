@@ -35,7 +35,7 @@ public class Blob implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(Blob.class);
   private static final String OPERATION_EXECUTE = "blob.execute";
 
-  private final ObjectKey s3URI;
+  private final ObjectKey objectKey;
   private final BlockManager blockManager;
   private final ObjectMetadata metadata;
   private final Telemetry telemetry;
@@ -54,7 +54,7 @@ public class Blob implements Closeable {
       @NonNull BlockManager blockManager,
       @NonNull Telemetry telemetry) {
 
-    this.s3URI = objectKey;
+    this.objectKey = objectKey;
     this.metadata = metadata;
     this.blockManager = blockManager;
     this.telemetry = telemetry;
@@ -129,8 +129,8 @@ public class Blob implements Closeable {
         () ->
             Operation.builder()
                 .name(OPERATION_EXECUTE)
-                .attribute(StreamAttributes.uri(this.s3URI.getS3URI()))
-                .attribute(StreamAttributes.etag(this.s3URI.getEtag()))
+                .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
+                .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
                 .attribute(StreamAttributes.ioPlan(plan))
                 .build(),
         () -> {

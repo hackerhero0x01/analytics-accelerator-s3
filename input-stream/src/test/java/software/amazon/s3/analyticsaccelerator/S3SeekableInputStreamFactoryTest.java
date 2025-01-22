@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
@@ -33,8 +34,9 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     justification = "We mean to pass nulls to checks")
 public class S3SeekableInputStreamFactoryTest {
   private static S3URI s3URI = S3URI.of("bucket", "key");
+  private static int CONTENT_LENGTH = 500;
   private static final ObjectMetadata objectMetadata =
-      ObjectMetadata.builder().contentLength(100).etag("ETAG").build();
+      ObjectMetadata.builder().contentLength(CONTENT_LENGTH).etag(Optional.of("ETAG")).build();
 
   @Test
   void testConstructor() {
@@ -86,7 +88,7 @@ public class S3SeekableInputStreamFactoryTest {
   }
 
   @Test
-  void testCreateStreamWithContentLength() {
+  void testCreateStreamWithContentLengthAndEtag() {
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(
             mock(ObjectClient.class),
@@ -95,8 +97,52 @@ public class S3SeekableInputStreamFactoryTest {
                     LogicalIOConfiguration.builder().prefetchFooterEnabled(false).build())
                 .build());
     S3SeekableInputStream inputStream =
-        s3SeekableInputStreamFactory.createStream(S3URI.of("bucket", "key"), 500, "1");
+        s3SeekableInputStreamFactory.createStream(s3URI, objectMetadata);
     assertNotNull(inputStream);
+    assertEquals(
+        CONTENT_LENGTH,
+        s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getContentLength());
+    assertEquals(
+        objectMetadata.getEtag().get(),
+        s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getEtag().get());
+  }
+
+  @Test
+  void testCreateStreamWithJustContentLength() {
+    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            mock(ObjectClient.class),
+            S3SeekableInputStreamConfiguration.builder()
+                .logicalIOConfiguration(
+                    LogicalIOConfiguration.builder().prefetchFooterEnabled(false).build())
+                .build());
+    S3SeekableInputStream inputStream =
+        s3SeekableInputStreamFactory.createStream(
+            s3URI,
+            ObjectMetadata.builder().contentLength(CONTENT_LENGTH).etag(Optional.empty()).build());
+    assertNotNull(inputStream);
+    assertEquals(
+        CONTENT_LENGTH,
+        s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getContentLength());
+    assertFalse(
+        s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getEtag().isPresent());
+  }
+
+  @Test
+  void testPreconditions() {
+    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            mock(ObjectClient.class),
+            S3SeekableInputStreamConfiguration.builder()
+                .logicalIOConfiguration(
+                    LogicalIOConfiguration.builder().prefetchFooterEnabled(false).build())
+                .build());
+
+    assertThrows(
+        Exception.class,
+        () ->
+            s3SeekableInputStreamFactory.createStream(
+                s3URI, ObjectMetadata.builder().contentLength(-1).build()));
   }
 
   @Test
