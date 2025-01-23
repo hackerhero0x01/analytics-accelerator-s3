@@ -158,6 +158,34 @@ public class ParquetLogicalIOImplTest {
   }
 
   @Test
+  void testMetadataWithMissingEtag() throws IOException {
+    ObjectClient mockClient = mock(ObjectClient.class);
+    when(mockClient.headObject(any(HeadRequest.class)))
+        .thenReturn(
+            CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(0).build()));
+    S3URI s3URI = S3URI.of("test", "test");
+    MetadataStore metadataStore =
+        new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    BlobStore blobStore =
+        new BlobStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    PhysicalIOImpl physicalIO =
+        new PhysicalIOImpl(
+            s3URI,
+            metadataStore,
+            blobStore,
+            PhysicalIOConfiguration.DEFAULT,
+            TestTelemetry.DEFAULT);
+    assertDoesNotThrow(
+        () ->
+            new ParquetLogicalIOImpl(
+                TEST_URI,
+                physicalIO,
+                TestTelemetry.DEFAULT,
+                LogicalIOConfiguration.DEFAULT,
+                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
+  }
+
+  @Test
   void testMetadataWithNegativeContentLength() throws IOException {
     ObjectClient mockClient = mock(ObjectClient.class);
     when(mockClient.headObject(any(HeadRequest.class)))

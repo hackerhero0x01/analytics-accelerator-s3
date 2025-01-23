@@ -247,7 +247,7 @@ public class PhysicalIOImpl implements PhysicalIO {
     }
   }
 
-  private long contentLength() throws IOException {
+  private long contentLength() {
     return metadata().getContentLength();
   }
 

@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
@@ -49,7 +50,7 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
   }
 
   private static class InMemoryObjectClient implements ObjectClient {
-
+    private static final String etag = "Random";
     private final int size;
     private byte[] content;
 
@@ -64,7 +65,7 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
     @Override
     public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
       return CompletableFuture.completedFuture(
-          ObjectMetadata.builder().contentLength(size).build());
+          ObjectMetadata.builder().contentLength(size).etag(Optional.of(etag)).build());
     }
 
     @Override

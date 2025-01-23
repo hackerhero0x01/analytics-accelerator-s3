@@ -24,5 +24,6 @@ import lombok.Data;
 @Builder
 public class ObjectMetadata {
   long contentLength;
-  Optional<String> etag;
+
+  @Builder.Default Optional<String> etag = Optional.empty();
 }
