@@ -24,10 +24,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.ArgumentMatchers;
@@ -42,6 +47,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.s3.analyticsaccelerator.exceptions.ExceptionHandler;
 import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
@@ -58,6 +64,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 public class S3SdkObjectClientTest {
 
   private static final String HEADER_REFERER = "Referer";
+  private static final S3URI TEST_URI = S3URI.of("test-bucket", "test-key");
 
   private static final Optional<String> ETAG = Optional.of("RandomString");
 
@@ -220,6 +227,7 @@ public class S3SdkObjectClientTest {
         GetRequest.builder()
             .s3Uri(S3URI.of("bucket", "key"))
             .range(new Range(0, 20))
+            .etag(ETAG.get())
             .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
             .build();
 
@@ -239,6 +247,38 @@ public class S3SdkObjectClientTest {
     assertEquals(
         "audit-referrer-value",
         capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
+    assertEquals(ETAG.get(), capturedRequest.ifMatch());
+  }
+
+  @Test
+  void testEtagMissingNotPresentInHeaders() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    StreamContext mockStreamContext = mock(StreamContext.class);
+
+    GetRequest getRequest =
+        GetRequest.builder()
+            .s3Uri(S3URI.of("bucket", "key"))
+            .range(new Range(0, 20))
+            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
+            .build();
+
+    client.getObject(getRequest, mockStreamContext);
+
+    ArgumentCaptor<GetObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(GetObjectRequest.class);
+    verify(mockS3AsyncClient)
+        .getObject(
+            requestCaptor.capture(),
+            ArgumentMatchers
+                .<AsyncResponseTransformer<
+                        GetObjectResponse, ResponseInputStream<GetObjectResponse>>>
+                    any());
+
+    GetObjectRequest capturedRequest = requestCaptor.getValue();
+    assertNull(capturedRequest.ifMatch());
   }
 
   @Test
@@ -251,6 +291,7 @@ public class S3SdkObjectClientTest {
         GetRequest.builder()
             .s3Uri(S3URI.of("bucket", "key"))
             .range(new Range(0, 20))
+            .etag(ETAG.get())
             .referrer(new Referrer("original-referrer", ReadMode.SYNC))
             .build();
 
@@ -270,6 +311,8 @@ public class S3SdkObjectClientTest {
     assertEquals(
         "original-referrer,readMode=SYNC",
         capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
+
+    assertEquals(ETAG.get(), capturedRequest.ifMatch());
   }
 
   @Test
@@ -280,6 +323,44 @@ public class S3SdkObjectClientTest {
       }
       verify(s3AsyncClient, times(1)).close();
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  @ParameterizedTest
+  @MethodSource("exceptions")
+  void testHeadObjectExceptions(Exception exception) {
+    S3AsyncClient mockS3AsyncClient = mock(S3AsyncClient.class);
+    CompletableFuture<HeadObjectResponse> failedFuture = new CompletableFuture<>();
+    failedFuture.completeExceptionally(exception);
+    when(mockS3AsyncClient.headObject(any(HeadObjectRequest.class))).thenReturn(failedFuture);
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    HeadRequest headRequest = HeadRequest.builder().s3Uri(TEST_URI).build();
+    CompletableFuture<ObjectMetadata> future = client.headObject(headRequest);
+    assertObjectClientExceptions(exception, future);
+  }
+
+  @SuppressWarnings("unchecked")
+  @ParameterizedTest
+  @MethodSource("exceptions")
+  void testGetObjectExceptions(Exception exception) {
+    S3AsyncClient mockS3AsyncClient = mock(S3AsyncClient.class);
+    CompletableFuture<ResponseInputStream<GetObjectResponse>> failedFuture =
+        new CompletableFuture<>();
+    failedFuture.completeExceptionally(exception);
+    when(mockS3AsyncClient.getObject(
+            any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+        .thenReturn(failedFuture);
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    GetRequest getRequest =
+        GetRequest.builder()
+            .s3Uri(TEST_URI)
+            .range(new Range(0, 20))
+            .referrer(new Referrer("original-referrer", ReadMode.SYNC))
+            .build();
+    CompletableFuture<ObjectContent> future = client.getObject(getRequest);
+    assertObjectClientExceptions(exception, future);
   }
 
   @SuppressWarnings("unchecked")
@@ -332,5 +413,21 @@ public class S3SdkObjectClientTest {
     doNothing().when(s3AsyncClient).close();
 
     return s3AsyncClient;
+  }
+
+  private static void assertObjectClientExceptions(
+      final Exception expectedException, final CompletableFuture<?> future) {
+    Throwable wrappedException = assertThrows(CompletionException.class, future::join).getCause();
+    assertInstanceOf(UncheckedIOException.class, wrappedException);
+    Throwable thrownException = wrappedException.getCause();
+    assertInstanceOf(IOException.class, thrownException);
+    Optional.ofNullable(thrownException.getCause())
+        .ifPresent(
+            underlyingException ->
+                assertInstanceOf(expectedException.getClass(), underlyingException));
+  }
+
+  private static Exception[] exceptions() {
+    return ExceptionHandler.getSampleExceptions();
   }
 }

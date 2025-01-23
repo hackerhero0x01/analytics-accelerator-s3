@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import static org.junit.jupiter.api.Assertions.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ public class BlockTest {
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
 
   @Test
-  public void testSingleByteReadReturnsCorrectByte() {
+  public void testSingleByteReadReturnsCorrectByte() throws IOException {
     // Given: a Block containing "test-data"
     final String TEST_DATA = "test-data";
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
@@ -63,7 +64,7 @@ public class BlockTest {
   }
 
   @Test
-  public void testBufferedReadReturnsCorrectBytes() {
+  public void testBufferedReadReturnsCorrectBytes() throws IOException {
     // Given: a Block containing "test-data"
     final String TEST_DATA = "test-data";
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);

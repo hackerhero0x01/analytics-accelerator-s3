@@ -16,9 +16,8 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 
 import java.io.IOException;
-import java.util.Optional;
-
 import lombok.NonNull;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -65,7 +64,8 @@ public class PhysicalIOImpl implements PhysicalIO {
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
       @NonNull PhysicalIOConfiguration physicalIOConfiguration,
-      @NonNull Telemetry telemetry) {
+      @NonNull Telemetry telemetry)
+      throws IOException {
     this(s3URI, metadataStore, blobStore, physicalIOConfiguration, telemetry, null);
   }
 
@@ -85,7 +85,8 @@ public class PhysicalIOImpl implements PhysicalIO {
       @NonNull BlobStore blobStore,
       @NonNull PhysicalIOConfiguration physicalIOConfiguration,
       @NonNull Telemetry telemetry,
-      StreamContext streamContext) {
+      StreamContext streamContext)
+      throws IOException {
     this.metadataStore = metadataStore;
     this.blobStore = blobStore;
     this.telemetry = telemetry;
@@ -93,7 +94,7 @@ public class PhysicalIOImpl implements PhysicalIO {
     this.configuration = physicalIOConfiguration;
     this.metadata = this.metadataStore.get(s3URI);
     ObjectKey.ObjectKeyBuilder objectKeyBuilder = ObjectKey.builder().s3URI(s3URI);
-    if (configuration.isDetectionModeOn()) {
+    if (configuration.isDetectionMode()) {
       objectKeyBuilder.etag(this.metadata.getEtag());
     }
     this.objectKey = objectKeyBuilder.build();
@@ -114,6 +115,7 @@ public class PhysicalIOImpl implements PhysicalIO {
    *
    * @param pos the position to read
    * @return an unsigned int representing the byte that was read
+   * @throws IOException if an I/O error occurs
    */
   @Override
   public int read(long pos) throws IOException {
@@ -147,6 +149,7 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param len length of data to be read
    * @param pos the position to begin reading from
    * @return the total number of bytes read into the buffer
+   * @throws IOException if an I/O error occurs
    */
   @Override
   public int read(byte[] buf, int off, int len, long pos) throws IOException {
@@ -183,6 +186,7 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param off start position in buffer at which data is written
    * @param len the number of bytes to read; the n-th byte should be the last byte of the stream.
    * @return the total number of bytes read into the buffer
+   * @throws IOException if an I/O error occurs
    */
   @Override
   public int readTail(byte[] buf, int off, int len) throws IOException {
@@ -219,32 +223,31 @@ public class PhysicalIOImpl implements PhysicalIO {
    */
   @Override
   public IOPlanExecution execute(IOPlan ioPlan) {
-    try {
-      return telemetry.measureVerbose(
-          () ->
-              Operation.builder()
-                  .name(OPERATION_EXECUTE)
-                  .attribute(StreamAttributes.uri(objectKey.getS3URI()))
-                  .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
-                  .attribute(StreamAttributes.ioPlan(ioPlan))
-                  .attribute(
-                      StreamAttributes.physicalIORelativeTimestamp(
-                          System.nanoTime() - physicalIOBirth))
-                  .build(),
-          () -> blobStore.get(objectKey, this.metadata, streamContext).execute(ioPlan));
-    } catch (Exception e) {
-      handleOperationExceptions(e);
-      throw e;
-    }
+    return telemetry.measureVerbose(
+        () ->
+            Operation.builder()
+                .name(OPERATION_EXECUTE)
+                .attribute(StreamAttributes.uri(objectKey.getS3URI()))
+                .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
+                .attribute(StreamAttributes.ioPlan(ioPlan))
+                .attribute(
+                    StreamAttributes.physicalIORelativeTimestamp(
+                        System.nanoTime() - physicalIOBirth))
+                .build(),
+        () -> blobStore.get(objectKey, this.metadata, streamContext).execute(ioPlan));
   }
 
   private void handleOperationExceptions(Exception e) {
-    System.out.println("Exception here: evicting bad key" + e);
-    metadataStore.evictKey(this.objectKey.getS3URI());
-    blobStore.evictKey(this.objectKey);
+    if (e.getCause() instanceof S3Exception) {
+      try {
+        metadataStore.evictKey(this.objectKey.getS3URI());
+      } finally {
+        blobStore.evictKey(this.objectKey);
+      }
+    }
   }
 
-  private long contentLength() {
+  private long contentLength() throws IOException {
     return metadata().getContentLength();
   }
 

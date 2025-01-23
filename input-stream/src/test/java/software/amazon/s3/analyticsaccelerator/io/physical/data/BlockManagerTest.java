@@ -27,6 +27,7 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
@@ -98,7 +99,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testGetBlockIsEmpty() {
+  void testGetBlockIsEmpty() throws IOException {
     // Given
     BlockManager blockManager = getTestBlockManager(42);
 
@@ -109,7 +110,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testGetBlockReturnsAvailableBlock() {
+  void testGetBlockReturnsAvailableBlock() throws IOException {
     // Given
     BlockManager blockManager = getTestBlockManager(65 * ONE_KB);
 
@@ -122,7 +123,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testMakePositionAvailableRespectsReadAhead() {
+  void testMakePositionAvailableRespectsReadAhead() throws IOException {
     // Given
     final int objectSize = (int) PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() + ONE_KB;
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -142,7 +143,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testMakePositionAvailableRespectsLastObjectByte() {
+  void testMakePositionAvailableRespectsLastObjectByte() throws IOException {
     // Given
     final int objectSize = 5 * ONE_KB;
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -160,7 +161,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testMakeRangeAvailableDoesNotOverread() {
+  void testMakeRangeAvailableDoesNotOverread() throws IOException {
     // Given: BM with 0-64KB and 64KB+1 to 128KB
     ObjectClient objectClient = mock(ObjectClient.class);
     BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_KB);
@@ -183,7 +184,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testMakeRangeAvailableThrowsExceptionWhenEtagChanges() {
+  void testMakeRangeAvailableThrowsExceptionWhenEtagChanges() throws IOException {
     ObjectClient objectClient = mock(ObjectClient.class);
     BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_MB);
     blockManager.makePositionAvailable(0, ReadMode.SYNC);
@@ -209,7 +210,7 @@ public class BlockManagerTest {
   }
 
   @Test
-  void regressionTestSequentialPrefetchShouldNotShrinkRanges() {
+  void regressionTestSequentialPrefetchShouldNotShrinkRanges() throws IOException {
     // Given: BlockManager with some blocks loaded
     ObjectClient objectClient = mock(ObjectClient.class);
     BlockManager blockManager =
@@ -239,11 +240,11 @@ public class BlockManagerTest {
                             "block should have been available because it was requested before")));
   }
 
-  private BlockManager getTestBlockManager(int size) {
+  private BlockManager getTestBlockManager(int size) throws IOException {
     return getTestBlockManager(mock(ObjectClient.class), size);
   }
 
-  private BlockManager getTestBlockManager(ObjectClient objectClient, int size) {
+  private BlockManager getTestBlockManager(ObjectClient objectClient, int size) throws IOException {
     return getTestBlockManager(objectClient, size, PhysicalIOConfiguration.DEFAULT);
   }
 

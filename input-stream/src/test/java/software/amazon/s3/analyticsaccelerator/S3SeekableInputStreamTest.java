@@ -449,7 +449,8 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
     return new S3SeekableInputStream(TEST_URI, fakeLogicalIO, TestTelemetry.DEFAULT);
   }
 
-  private S3SeekableInputStream getTestStreamWithContent(String content, S3URI s3URI) {
+  private S3SeekableInputStream getTestStreamWithContent(String content, S3URI s3URI)
+      throws IOException {
     FakeObjectClient fakeObjectClient = new FakeObjectClient(content);
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);

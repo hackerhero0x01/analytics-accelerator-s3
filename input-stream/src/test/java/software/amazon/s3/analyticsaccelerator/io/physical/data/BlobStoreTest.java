@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +51,7 @@ public class BlobStoreTest {
   private BlobStore blobStore;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws IOException {
     ObjectClient objectClient = new FakeObjectClient("test-data");
     MetadataStore metadataStore = mock(MetadataStore.class);
     when(metadataStore.get(any()))
@@ -75,7 +76,7 @@ public class BlobStoreTest {
   }
 
   @Test
-  public void testGetReturnsReadableBlob() {
+  public void testGetReturnsReadableBlob() throws IOException {
     // When: a Blob is asked for
     Blob blob = blobStore.get(objectKey, objectMetadata, mock(StreamContext.class));
 

@@ -57,7 +57,7 @@ public class S3DATClientStreamReader extends S3StreamReaderBase {
    * @param s3Object {@link S3Object} to create the stream for
    * @return read stream
    */
-  public S3SeekableInputStream createReadStream(@NonNull S3Object s3Object) {
+  public S3SeekableInputStream createReadStream(@NonNull S3Object s3Object) throws IOException {
     S3URI s3URI = s3Object.getObjectUri(this.getBaseUri());
     return this.getS3SeekableInputStreamFactory().createStream(s3URI);
   }

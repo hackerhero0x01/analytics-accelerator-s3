@@ -16,6 +16,7 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -113,8 +114,9 @@ public class BlockManager implements Closeable {
    *
    * @param pos the position of the byte
    * @param readMode whether this ask corresponds to a sync or async read
+   * @throws IOException if an I/O error occurs
    */
-  public synchronized void makePositionAvailable(long pos, ReadMode readMode) {
+  public synchronized void makePositionAvailable(long pos, ReadMode readMode) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
     // Position is already available --> return corresponding block
@@ -125,7 +127,7 @@ public class BlockManager implements Closeable {
     makeRangeAvailable(pos, 1, readMode);
   }
 
-  private boolean isRangeAvailable(long pos, long len) {
+  private boolean isRangeAvailable(long pos, long len) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
@@ -148,8 +150,10 @@ public class BlockManager implements Closeable {
    * @param pos start of a read
    * @param len length of the read
    * @param readMode whether this ask corresponds to a sync or async read
+   * @throws IOException if an I/O error occurs
    */
-  public synchronized void makeRangeAvailable(long pos, long len, ReadMode readMode) {
+  public synchronized void makeRangeAvailable(long pos, long len, ReadMode readMode)
+      throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 

@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -62,7 +63,7 @@ public class BlockStoreTest {
   }
 
   @Test
-  public void test__blockStore__findNextMissingByteCorrect() {
+  public void test__blockStore__findNextMissingByteCorrect() throws IOException {
     // Given: BlockStore with blocks (2,3), (5,10), (12,15)
     final String X_TIMES_16 = "xxxxxxxxxxxxxxxx";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(X_TIMES_16);

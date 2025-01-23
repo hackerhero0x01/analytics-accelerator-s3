@@ -83,7 +83,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @param s3URI the object's S3 URI
    * @return An instance of the input stream.
    */
-  public S3SeekableInputStream createStream(@NonNull S3URI s3URI) {
+  public S3SeekableInputStream createStream(@NonNull S3URI s3URI) throws IOException {
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
@@ -94,7 +94,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @param metadata the metadata for the object
    * @return An instance of the input stream.
    */
-  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, ObjectMetadata metadata) {
+  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, ObjectMetadata metadata)
+      throws IOException {
     Preconditions.checkArgument(metadata.getContentLength() >= 0, "`len` must be non-negative");
 
     objectMetadataStore.storeObjectMetadata(s3URI, metadata);
@@ -109,15 +110,16 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * @param streamContext contains audit headers to be attached in request header
    * @return An instance of the input stream.
    */
-  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, StreamContext streamContext) {
+  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, StreamContext streamContext)
+      throws IOException {
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, streamContext), telemetry);
   }
 
-  LogicalIO createLogicalIO(S3URI s3URI) {
+  LogicalIO createLogicalIO(S3URI s3URI) throws IOException {
     return createLogicalIO(s3URI, null);
   }
 
-  LogicalIO createLogicalIO(S3URI s3URI, StreamContext streamContext) {
+  LogicalIO createLogicalIO(S3URI s3URI, StreamContext streamContext) throws IOException {
     switch (objectFormatSelector.getObjectFormat(s3URI)) {
       case PARQUET:
         return new ParquetLogicalIOImpl(

@@ -22,13 +22,21 @@ import static org.mockito.Mockito.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
-import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
@@ -226,19 +234,36 @@ public class PhysicalIOImplTest {
     assertEquals(1, blobStore.blobCount());
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void test_FailureEvictsObjectsAsExpected() throws IOException {
-    ObjectClient objectClient = mock(ObjectClient.class);
+    AwsServiceException s3Exception =
+        S3Exception.builder()
+            .message("PreconditionFailed")
+            .statusCode(412)
+            .awsErrorDetails(
+                AwsErrorDetails.builder()
+                    .errorCode("PreconditionFailed")
+                    .errorMessage("At least one of the preconditions you specified did not hold")
+                    .serviceName("S3")
+                    .build())
+            .build();
 
-    when(objectClient.getObject(any(), any()))
-        .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
+    S3AsyncClient mockS3AsyncClient = mock(S3AsyncClient.class);
+    CompletableFuture<ResponseInputStream<GetObjectResponse>> failedFuture =
+        new CompletableFuture<>();
+    failedFuture.completeExceptionally(s3Exception);
+    when(mockS3AsyncClient.getObject(
+            any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+        .thenReturn(failedFuture);
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
 
     MetadataStore metadataStore =
-        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     ObjectMetadata objectMetadata = ObjectMetadata.builder().contentLength(100).etag(etag).build();
     metadataStore.storeObjectMetadata(s3URI, objectMetadata);
     BlobStore blobStore =
-        new BlobStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(
             s3URI,
@@ -247,8 +272,8 @@ public class PhysicalIOImplTest {
             PhysicalIOConfiguration.DEFAULT,
             TestTelemetry.DEFAULT);
 
-    assertThrows(S3Exception.class, () -> physicalIOImplV2.read(0));
-    assertThrows(Exception.class, () -> metadataStore.get(s3URI));
+    assertThrows(IOException.class, () -> physicalIOImplV2.read(0));
     assertEquals(0, blobStore.blobCount());
+    assertThrows(Exception.class, () -> metadataStore.get(s3URI));
   }
 }

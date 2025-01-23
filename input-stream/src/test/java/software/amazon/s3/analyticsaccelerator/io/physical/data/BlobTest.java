@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanState.SUBMITTED;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,7 +71,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testSingleByteReadReturnsCorrectByte() {
+  public void testSingleByteReadReturnsCorrectByte() throws IOException {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
 
@@ -88,7 +89,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testBufferedReadReturnsCorrectByte() {
+  public void testBufferedReadReturnsCorrectByte() throws IOException {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
 
@@ -104,7 +105,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testBufferedReadTestOverlappingRanges() {
+  public void testBufferedReadTestOverlappingRanges() throws IOException {
     // Given: test Blob
     Blob blob = getTestBlob(TEST_DATA);
 
@@ -135,7 +136,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testExecuteSubmitsCorrectRanges() {
+  public void testExecuteSubmitsCorrectRanges() throws IOException {
     // Given: test blob and an IOPlan
     BlockManager blockManager = mock(BlockManager.class);
     Blob blob = new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);

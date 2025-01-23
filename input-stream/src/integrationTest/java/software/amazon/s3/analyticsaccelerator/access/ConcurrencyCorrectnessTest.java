@@ -33,58 +33,86 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
   @ParameterizedTest
   @MethodSource("sequentialReads")
   void testSequentialReads(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException, InterruptedException, ExecutionException {
     testDATReadConcurrency(
-        s3Object, streamReadPattern, configuration, CONCURRENCY_LEVEL, CONCURRENCY_ITERATIONS);
+        s3ClientKind,
+        s3Object,
+        streamReadPattern,
+        configuration,
+        CONCURRENCY_LEVEL,
+        CONCURRENCY_ITERATIONS);
   }
 
   @ParameterizedTest
   @MethodSource("skippingReads")
   void testSkippingReads(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException, InterruptedException, ExecutionException {
     testDATReadConcurrency(
-        s3Object, streamReadPattern, configuration, CONCURRENCY_LEVEL, CONCURRENCY_ITERATIONS);
+        s3ClientKind,
+        s3Object,
+        streamReadPattern,
+        configuration,
+        CONCURRENCY_LEVEL,
+        CONCURRENCY_ITERATIONS);
   }
 
   @ParameterizedTest
   @MethodSource("parquetReads")
   void testQuasiParquetReads(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException, InterruptedException, ExecutionException {
     testDATReadConcurrency(
-        s3Object, streamReadPattern, configuration, CONCURRENCY_LEVEL, CONCURRENCY_ITERATIONS);
+        s3ClientKind,
+        s3Object,
+        streamReadPattern,
+        configuration,
+        CONCURRENCY_LEVEL,
+        CONCURRENCY_ITERATIONS);
   }
 
   @ParameterizedTest
   @MethodSource("etagTests")
   void testChangingEtagFailsStream(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException {
-    testChangingEtagMidStream(s3Object, streamReadPattern, configuration);
+    testChangingEtagMidStream(s3ClientKind, s3Object, streamReadPattern, configuration);
   }
 
   @ParameterizedTest
   @MethodSource("etagTests")
   void testChangingEtagReturnsCachedObject(
+      S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       DATInputStreamConfigurationKind configuration)
       throws IOException {
-    testChangingEtagAfterStreamPassesAndReturnsCachedObject(s3Object, configuration);
+    testChangingEtagAfterStreamPassesAndReturnsCachedObject(s3ClientKind, s3Object, configuration);
+  }
+
+  @ParameterizedTest
+  @MethodSource("etagTests")
+  void testTurningEtagCheckOffIsRespected(S3ClientKind s3ClientKind, S3Object s3Object)
+      throws IOException {
+    testTurningEtagCheckOffIsHandledCorrectly(s3ClientKind, s3Object);
   }
 
   static Stream<Arguments> sequentialReads() {
     return argumentsFor(
+        getS3ClientKinds(),
         S3Object.smallAndMediumObjects(),
         sequentialPatterns(),
         getS3SeekableInputStreamConfigurations());
@@ -92,6 +120,7 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
 
   static Stream<Arguments> skippingReads() {
     return argumentsFor(
+        getS3ClientKinds(),
         S3Object.smallAndMediumObjects(),
         skippingPatterns(),
         getS3SeekableInputStreamConfigurations());
@@ -99,6 +128,7 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
 
   static Stream<Arguments> parquetReads() {
     return argumentsFor(
+        getS3ClientKinds(),
         S3Object.smallAndMediumObjects(),
         parquetPatterns(),
         getS3SeekableInputStreamConfigurations());
@@ -106,6 +136,9 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
 
   static Stream<Arguments> etagTests() {
     return argumentsFor(
-        S3Object.smallObjects(), parquetPatterns(), getS3SeekableInputStreamConfigurations());
+        getS3ClientKinds(),
+        S3Object.smallObjects(),
+        parquetPatterns(),
+        getS3SeekableInputStreamConfigurations());
   }
 }

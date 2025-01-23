@@ -24,6 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -36,7 +37,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 public class MetadataStoreTest {
 
   @Test
-  public void test__get__cacheWorks() {
+  public void test__get__cacheWorks() throws IOException {
     // Given: a MetadataStore with caching turned on
     ObjectClient objectClient = mock(ObjectClient.class);
     when(objectClient.headObject(any()))
@@ -56,7 +57,7 @@ public class MetadataStoreTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void test__close__closesAllElements() {
+  public void test__close__closesAllElements() throws IOException {
     // Given:
     // - a MetadataStore with caching turned on
     // - an Object Client returning a hanging future that throws when closed

@@ -67,6 +67,7 @@ dependencies {
     api(project(":object-client"))
 
     implementation(project(":common"))
+    implementation(libs.s3);
     implementation(libs.parquet.format)
     implementation(libs.slf4j.api)
 

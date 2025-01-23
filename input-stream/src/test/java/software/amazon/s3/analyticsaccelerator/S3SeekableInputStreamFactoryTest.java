@@ -16,14 +16,29 @@
 package software.amazon.s3.analyticsaccelerator;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.s3.analyticsaccelerator.exceptions.ExceptionHandler;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOImpl;
+import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
@@ -37,6 +52,8 @@ public class S3SeekableInputStreamFactoryTest {
   private static int CONTENT_LENGTH = 500;
   private static final ObjectMetadata objectMetadata =
       ObjectMetadata.builder().contentLength(CONTENT_LENGTH).etag(Optional.of("ETAG")).build();
+
+  private static final S3URI TEST_URI = S3URI.of("test-bucket", "test-key");
 
   @Test
   void testConstructor() {
@@ -65,7 +82,7 @@ public class S3SeekableInputStreamFactoryTest {
   }
 
   @Test
-  void testCreateDefaultStream() {
+  void testCreateDefaultStream() throws IOException {
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(
             mock(ObjectClient.class),
@@ -88,7 +105,7 @@ public class S3SeekableInputStreamFactoryTest {
   }
 
   @Test
-  void testCreateStreamWithContentLengthAndEtag() {
+  void testCreateStreamWithContentLengthAndEtag() throws IOException {
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(
             mock(ObjectClient.class),
@@ -108,7 +125,7 @@ public class S3SeekableInputStreamFactoryTest {
   }
 
   @Test
-  void testCreateStreamWithJustContentLength() {
+  void testCreateStreamWithJustContentLength() throws IOException {
     S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
         new S3SeekableInputStreamFactory(
             mock(ObjectClient.class),
@@ -146,7 +163,7 @@ public class S3SeekableInputStreamFactoryTest {
   }
 
   @Test
-  void testCreateIndependentStream() {
+  void testCreateIndependentStream() throws IOException {
     S3SeekableInputStreamConfiguration configuration =
         S3SeekableInputStreamConfiguration.builder()
             .logicalIOConfiguration(
@@ -184,7 +201,7 @@ public class S3SeekableInputStreamFactoryTest {
   }
 
   @Test
-  void testCreateLogicalIO() {
+  void testCreateLogicalIO() throws IOException {
     S3URI testURIParquet = S3URI.of("bucket", "key.parquet");
     S3URI testURIKEYPAR = S3URI.of("bucket", "key.par");
     S3URI testURIJAVA = S3URI.of("bucket", "key.java");
@@ -230,5 +247,71 @@ public class S3SeekableInputStreamFactoryTest {
         new S3SeekableInputStreamFactory(
             mock(ObjectClient.class), S3SeekableInputStreamConfiguration.DEFAULT);
     assertDoesNotThrow(() -> s3SeekableInputStreamFactory.close());
+  }
+
+  @SuppressWarnings("unchecked")
+  @ParameterizedTest
+  @MethodSource("exceptions")
+  void testHeadObjectExceptions(Exception exception) throws IOException {
+    S3AsyncClient mockS3AsyncClient = mock(S3AsyncClient.class);
+    CompletableFuture<HeadObjectResponse> failedFuture = new CompletableFuture<>();
+    failedFuture.completeExceptionally(exception);
+    when(mockS3AsyncClient.headObject(any(HeadObjectRequest.class))).thenReturn(failedFuture);
+
+    assertInputStreamHeadException(exception, mockS3AsyncClient);
+  }
+
+  @SuppressWarnings("unchecked")
+  @ParameterizedTest
+  @MethodSource("exceptions")
+  void testGetObjectExceptions(Exception exception) throws IOException {
+    S3AsyncClient mockS3AsyncClient = mock(S3AsyncClient.class);
+    // As headObject call happens first, we make a successful headObject mocking so that failure
+    // gets triggered only at the getObject
+    CompletableFuture<HeadObjectResponse> successfulFuture = new CompletableFuture<>();
+    successfulFuture.complete(HeadObjectResponse.builder().contentLength(1L).eTag("fish").build());
+    when(mockS3AsyncClient.headObject(any(HeadObjectRequest.class))).thenReturn(successfulFuture);
+
+    CompletableFuture<ResponseInputStream<GetObjectResponse>> failedFuture =
+        new CompletableFuture<>();
+    failedFuture.completeExceptionally(exception);
+    when(mockS3AsyncClient.getObject(
+            any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+        .thenReturn(failedFuture);
+
+    assertInputStreamReadExceptions(exception, mockS3AsyncClient);
+  }
+
+  private static void assertInputStreamReadExceptions(
+      final Exception expectedException, final S3AsyncClient mockS3AsyncClient) throws IOException {
+    S3SeekableInputStreamFactory factory =
+        new S3SeekableInputStreamFactory(
+            new S3SdkObjectClient(mockS3AsyncClient), S3SeekableInputStreamConfiguration.DEFAULT);
+    S3SeekableInputStream inputStream = factory.createStream(TEST_URI, mock(StreamContext.class));
+    Exception thrownException = assertThrows(Exception.class, inputStream::read);
+    assertInstanceOf(IOException.class, thrownException);
+    Optional.ofNullable(thrownException.getCause())
+        .ifPresent(
+            underlyingException ->
+                assertInstanceOf(expectedException.getClass(), underlyingException));
+  }
+
+  private static void assertInputStreamHeadException(
+      final Exception expectedException, final S3AsyncClient mockS3AsyncClient) throws IOException {
+    S3SeekableInputStreamFactory factory =
+        new S3SeekableInputStreamFactory(
+            new S3SdkObjectClient(mockS3AsyncClient), S3SeekableInputStreamConfiguration.DEFAULT);
+    Exception thrownException =
+        assertThrows(
+            Exception.class, () -> factory.createStream(TEST_URI, mock(StreamContext.class)));
+    assertInstanceOf(IOException.class, thrownException);
+    Optional.ofNullable(thrownException.getCause())
+        .ifPresent(
+            underlyingException ->
+                assertInstanceOf(expectedException.getClass(), underlyingException));
+  }
+
+  private static Exception[] exceptions() {
+    return ExceptionHandler.getSampleExceptions();
   }
 }

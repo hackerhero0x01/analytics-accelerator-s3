@@ -39,7 +39,7 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
    * @param key the key
    * @param len the length of the data
    */
-  public InMemoryS3SeekableInputStream(String bucket, String key, int len) {
+  public InMemoryS3SeekableInputStream(String bucket, String key, int len) throws IOException {
     S3URI s3URI = S3URI.of(bucket, key);
     ObjectClient objectClient = new InMemoryObjectClient(len);
 

@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import static org.junit.jupiter.api.Assertions.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,7 +46,7 @@ public class IOPlannerTest {
   }
 
   @Test
-  void testPlanReadBoundaries() {
+  void testPlanReadBoundaries() throws IOException {
     // Given: an empty BlockStore
     final int OBJECT_SIZE = 10_000;
     ObjectMetadata mockMetadataStore =
@@ -59,7 +60,7 @@ public class IOPlannerTest {
   }
 
   @Test
-  public void testPlanReadNoopWhenBlockStoreEmpty() {
+  public void testPlanReadNoopWhenBlockStoreEmpty() throws IOException {
     // Given: an empty BlockStore
     final int OBJECT_SIZE = 10_000;
     ObjectMetadata mockMetadataStore =
@@ -78,7 +79,7 @@ public class IOPlannerTest {
   }
 
   @Test
-  public void testPlanReadDoesNotDoubleRead() {
+  public void testPlanReadDoesNotDoubleRead() throws IOException {
     // Given: a BlockStore with a (100,200) block in it
     final int OBJECT_SIZE = 10_000;
     byte[] content = new byte[OBJECT_SIZE];
@@ -103,7 +104,7 @@ public class IOPlannerTest {
   }
 
   @Test
-  public void testPlanReadRegressionSingleByteObject() {
+  public void testPlanReadRegressionSingleByteObject() throws IOException {
     // Given: a single byte object and an empty block store
     final int OBJECT_SIZE = 1;
     ObjectMetadata mockMetadataStore =

@@ -28,7 +28,7 @@ import lombok.NonNull;
 public class ObjectKey {
   @NonNull S3URI s3URI;
 
-  Optional<String> etag;
+  @Builder.Default Optional<String> etag = Optional.empty();
 
   @Override
   public boolean equals(Object o) {

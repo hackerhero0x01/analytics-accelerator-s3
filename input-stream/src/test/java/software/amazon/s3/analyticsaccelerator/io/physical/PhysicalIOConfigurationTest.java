@@ -72,6 +72,6 @@ public class PhysicalIOConfigurationTest {
             + "\tpartSizeBytes: 20\n"
             + "\tsequentialPrefetchBase: 2.0\n"
             + "\tsequentialPrefetchSpeed: 1.0\n"
-            + "\tdetectionModeOn: true\n");
+            + "\tdetectionMode: true\n");
   }
 }
