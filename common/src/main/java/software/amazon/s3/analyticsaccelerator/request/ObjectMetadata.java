@@ -15,9 +15,9 @@
  */
 package software.amazon.s3.analyticsaccelerator.request;
 
-import java.util.Optional;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NonNull;
 
 /** Wrapper class around HeadObjectResponse abstracting away from S3-specific details */
 @Data
@@ -25,5 +25,5 @@ import lombok.Data;
 public class ObjectMetadata {
   long contentLength;
 
-  @Builder.Default Optional<String> etag = Optional.empty();
+  @NonNull String etag;
 }

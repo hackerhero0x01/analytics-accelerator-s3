@@ -15,7 +15,6 @@
  */
 package software.amazon.s3.analyticsaccelerator.util;
 
-import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Attribute;
@@ -58,12 +57,8 @@ public enum StreamAttributes {
    * @param etag the etag to create the attribute from.
    * @return The new instance of the {@link Attribute}.
    */
-  public static Attribute etag(Optional<String> etag) {
-    if (etag.isPresent()) {
-      return Attribute.of(StreamAttributes.ETAG.getName(), etag);
-    } else {
-      return Attribute.of(StreamAttributes.ETAG.getName(), "NO_ETAG");
-    }
+  public static Attribute etag(String etag) {
+    return Attribute.of(StreamAttributes.ETAG.getName(), etag);
   }
 
   /**

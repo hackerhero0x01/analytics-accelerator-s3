@@ -44,7 +44,7 @@ public class BlockStore implements Closeable {
    */
   public BlockStore(ObjectKey objectKey, ObjectMetadata metadata) {
     Preconditions.checkNotNull(objectKey, "`objectKey` must not be null");
-    Preconditions.checkNotNull(metadata, "`metadataStore` must not be null");
+    Preconditions.checkNotNull(metadata, "`metadata` must not be null");
 
     this.s3URI = objectKey;
     this.metadata = metadata;

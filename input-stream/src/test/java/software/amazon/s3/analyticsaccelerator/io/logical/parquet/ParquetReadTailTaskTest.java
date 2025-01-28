@@ -75,7 +75,7 @@ public class ParquetReadTailTaskTest {
     // Given: read tail task
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     when(mockedPhysicalIO.metadata())
-        .thenReturn(ObjectMetadata.builder().contentLength(800).build());
+        .thenReturn(ObjectMetadata.builder().etag("random").contentLength(800).build());
     ParquetReadTailTask parquetReadTailTask =
         new ParquetReadTailTask(
             TEST_URI, Telemetry.NOOP, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
@@ -95,7 +95,7 @@ public class ParquetReadTailTaskTest {
     // Given: read tail task with a throwing physicalIO under the hood
     PhysicalIO mockedPhysicalIO = mock(PhysicalIO.class);
     when(mockedPhysicalIO.metadata())
-        .thenReturn(ObjectMetadata.builder().contentLength(800).build());
+        .thenReturn(ObjectMetadata.builder().contentLength(800).etag("random").build());
     when(mockedPhysicalIO.readTail(any(), anyInt(), anyInt()))
         .thenThrow(new IOException("Something went horribly wrong."));
     ParquetReadTailTask parquetReadTailTask =

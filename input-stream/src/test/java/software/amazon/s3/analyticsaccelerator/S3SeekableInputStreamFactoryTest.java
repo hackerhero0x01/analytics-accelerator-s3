@@ -38,7 +38,6 @@ import software.amazon.s3.analyticsaccelerator.exceptions.ExceptionHandler;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOImpl;
-import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
@@ -51,7 +50,7 @@ public class S3SeekableInputStreamFactoryTest {
   private static S3URI s3URI = S3URI.of("bucket", "key");
   private static int CONTENT_LENGTH = 500;
   private static final ObjectMetadata objectMetadata =
-      ObjectMetadata.builder().contentLength(CONTENT_LENGTH).etag(Optional.of("ETAG")).build();
+      ObjectMetadata.builder().contentLength(CONTENT_LENGTH).etag("ETAG").build();
 
   private static final S3URI TEST_URI = S3URI.of("test-bucket", "test-key");
 
@@ -120,29 +119,8 @@ public class S3SeekableInputStreamFactoryTest {
         CONTENT_LENGTH,
         s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getContentLength());
     assertEquals(
-        objectMetadata.getEtag().get(),
-        s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getEtag().get());
-  }
-
-  @Test
-  void testCreateStreamWithJustContentLength() throws IOException {
-    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
-        new S3SeekableInputStreamFactory(
-            mock(ObjectClient.class),
-            S3SeekableInputStreamConfiguration.builder()
-                .logicalIOConfiguration(
-                    LogicalIOConfiguration.builder().prefetchFooterEnabled(false).build())
-                .build());
-    S3SeekableInputStream inputStream =
-        s3SeekableInputStreamFactory.createStream(
-            s3URI,
-            ObjectMetadata.builder().contentLength(CONTENT_LENGTH).etag(Optional.empty()).build());
-    assertNotNull(inputStream);
-    assertEquals(
-        CONTENT_LENGTH,
-        s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getContentLength());
-    assertFalse(
-        s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getEtag().isPresent());
+        objectMetadata.getEtag(),
+        s3SeekableInputStreamFactory.getObjectMetadataStore().get(s3URI).getEtag());
   }
 
   @Test

@@ -37,7 +37,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 public class BlockStoreTest {
 
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
-  private static final Optional<String> ETAG = Optional.of("RandomString");
+  private static final String ETAG = "RandomString";
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
   private static final int OBJECT_SIZE = 100;
 

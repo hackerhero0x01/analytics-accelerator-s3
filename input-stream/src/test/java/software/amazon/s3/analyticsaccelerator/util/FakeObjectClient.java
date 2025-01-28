@@ -19,7 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,7 +40,7 @@ public class FakeObjectClient implements ObjectClient {
   @Getter private AtomicInteger getRequestCount = new AtomicInteger();
   @Getter private ConcurrentLinkedDeque<Range> requestedRanges = new ConcurrentLinkedDeque<>();
   private byte[] contentBytes;
-  @Getter private Optional<String> etag = Optional.of("RANDOM");
+  @Getter private String etag = "RANDOM";
 
   /**
    * Instantiate a fake Object Client backed by some string as data.
@@ -64,7 +63,7 @@ public class FakeObjectClient implements ObjectClient {
 
   @Override
   public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
-    if (!getRequest.getEtag().equals(this.etag.get())) {
+    if (!getRequest.getEtag().equals(this.etag)) {
       throw S3Exception.builder()
           .message("At least one of the pre-conditions you specified did not hold")
           .statusCode(412)

@@ -115,11 +115,9 @@ public class Block implements Closeable {
         GetRequest.builder()
             .s3Uri(this.objectKey.getS3URI())
             .range(this.range)
+            .etag(this.objectKey.getEtag())
             .referrer(new Referrer(range.toHttpString(), readMode));
 
-    if (this.objectKey.getEtag().isPresent()) {
-      getRequestBuilder.etag(this.objectKey.getEtag().get());
-    }
     GetRequest getRequest = getRequestBuilder.build();
 
     this.source =

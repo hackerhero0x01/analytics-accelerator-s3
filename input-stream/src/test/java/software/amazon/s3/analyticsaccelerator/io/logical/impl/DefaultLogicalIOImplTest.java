@@ -91,7 +91,8 @@ public class DefaultLogicalIOImplTest {
   @Test
   void testReadTail() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    when(physicalIO.metadata()).thenReturn(ObjectMetadata.builder().contentLength(123).build());
+    when(physicalIO.metadata())
+        .thenReturn(ObjectMetadata.builder().contentLength(123).etag("random").build());
     DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(TEST_URI, physicalIO, Telemetry.NOOP);
     byte[] buffer = new byte[5];
     logicalIO.readTail(buffer, 0, 5);

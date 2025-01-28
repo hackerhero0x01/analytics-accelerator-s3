@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
@@ -34,7 +33,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     justification = "We mean to pass nulls to checks")
 public class BlockTest {
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
-  private static final Optional<String> ETAG = Optional.of("RandomString");
+  private static final String ETAG = "RandomString";
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
 
   @Test

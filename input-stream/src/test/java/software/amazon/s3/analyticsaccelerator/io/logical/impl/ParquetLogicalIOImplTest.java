@@ -20,7 +20,6 @@ import static org.mockito.Mockito.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -134,47 +133,14 @@ public class ParquetLogicalIOImplTest {
     when(mockClient.headObject(any(HeadRequest.class)))
         .thenReturn(
             CompletableFuture.completedFuture(
-                ObjectMetadata.builder().contentLength(0).etag(Optional.of("random")).build()));
+                ObjectMetadata.builder().contentLength(0).etag("random").build()));
     S3URI s3URI = S3URI.of("test", "test");
     MetadataStore metadataStore =
         new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
         new BlobStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO =
-        new PhysicalIOImpl(
-            s3URI,
-            metadataStore,
-            blobStore,
-            PhysicalIOConfiguration.DEFAULT,
-            TestTelemetry.DEFAULT);
-    assertDoesNotThrow(
-        () ->
-            new ParquetLogicalIOImpl(
-                TEST_URI,
-                physicalIO,
-                TestTelemetry.DEFAULT,
-                LogicalIOConfiguration.DEFAULT,
-                new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)));
-  }
-
-  @Test
-  void testMetadataWithMissingEtag() throws IOException {
-    ObjectClient mockClient = mock(ObjectClient.class);
-    when(mockClient.headObject(any(HeadRequest.class)))
-        .thenReturn(
-            CompletableFuture.completedFuture(ObjectMetadata.builder().contentLength(0).build()));
-    S3URI s3URI = S3URI.of("test", "test");
-    MetadataStore metadataStore =
-        new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlobStore blobStore =
-        new BlobStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    PhysicalIOImpl physicalIO =
-        new PhysicalIOImpl(
-            s3URI,
-            metadataStore,
-            blobStore,
-            PhysicalIOConfiguration.DEFAULT,
-            TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
     assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(
@@ -191,19 +157,14 @@ public class ParquetLogicalIOImplTest {
     when(mockClient.headObject(any(HeadRequest.class)))
         .thenReturn(
             CompletableFuture.completedFuture(
-                ObjectMetadata.builder().contentLength(-1).etag(Optional.of("random")).build()));
+                ObjectMetadata.builder().contentLength(-1).etag("random").build()));
     S3URI s3URI = S3URI.of("test", "test");
     MetadataStore metadataStore =
         new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
         new BlobStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     PhysicalIOImpl physicalIO =
-        new PhysicalIOImpl(
-            s3URI,
-            metadataStore,
-            blobStore,
-            PhysicalIOConfiguration.DEFAULT,
-            TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
     assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(

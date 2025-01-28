@@ -38,8 +38,6 @@ import software.amazon.awssdk.core.checksums.Crc32CChecksum;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
-import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Base class for the integration tests */
@@ -222,48 +220,6 @@ public abstract class IntegrationTestBase extends ExecutionBase {
 
       // Assert checksums
       assertChecksums(datChecksum, cachedChecksum);
-    }
-  }
-
-  /**
-   * Tests to make sure the change detection mode is respected in various parts of the stream.
-   *
-   * @param s3ClientKind S3 client kind to use
-   * @param s3Object S3 object to read
-   * @throws IOException
-   */
-  protected void testTurningEtagCheckOffIsHandledCorrectly(
-      @NonNull S3ClientKind s3ClientKind, @NonNull S3Object s3Object) throws IOException {
-    int bufferSize = (int) s3Object.getSize();
-    S3SeekableInputStreamConfiguration configuration =
-        S3SeekableInputStreamConfiguration.builder()
-            .physicalIOConfiguration(PhysicalIOConfiguration.builder().detectionMode(false).build())
-            .build();
-    try (S3DATClientStreamReader s3DATClientStreamReader =
-        this.createS3DATClientStreamReader(s3ClientKind, configuration)) {
-      byte[] buffer = new byte[bufferSize];
-      S3URI s3URI =
-          s3Object.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());
-      S3AsyncClient s3Client = this.getS3ExecutionContext().getS3Client();
-      S3SeekableInputStream stream = s3DATClientStreamReader.createReadStream(s3Object);
-
-      int readAheadBytes = (int) configuration.getPhysicalIOConfiguration().getReadAheadBytes();
-
-      // Read first 100 bytes
-      readAndAssert(stream, buffer, 0, 100);
-
-      // Read next 100 bytes
-      readAndAssert(stream, buffer, 100, 100);
-
-      // Change the file
-      s3Client
-          .putObject(
-              x -> x.bucket(s3URI.getBucket()).key(s3URI.getKey()),
-              AsyncRequestBody.fromBytes(generateRandomBytes(bufferSize)))
-          .join();
-
-      // read the next bytes and fail.
-      assertDoesNotThrow(() -> readAndAssert(stream, buffer, 200, readAheadBytes));
     }
   }
 

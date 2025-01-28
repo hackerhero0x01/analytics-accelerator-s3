@@ -66,7 +66,7 @@ public class S3SdkObjectClientTest {
   private static final String HEADER_REFERER = "Referer";
   private static final S3URI TEST_URI = S3URI.of("test-bucket", "test-key");
 
-  private static final Optional<String> ETAG = Optional.of("RandomString");
+  private static final String ETAG = "RandomString";
 
   @Test
   void testForNullsInConstructor() {
@@ -164,9 +164,9 @@ public class S3SdkObjectClientTest {
   void testHeadObject() {
     try (S3AsyncClient s3AsyncClient = createMockClient()) {
       S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
-      assertEquals(
-          client.headObject(HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build()).join(),
-          ObjectMetadata.builder().contentLength(42).etag(ETAG).build());
+      ObjectMetadata metadata =
+          client.headObject(HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build()).join();
+      assertEquals(metadata, ObjectMetadata.builder().contentLength(42).etag(ETAG).build());
     }
   }
 
@@ -180,7 +180,7 @@ public class S3SdkObjectClientTest {
               GetRequest.builder()
                   .s3Uri(S3URI.of("bucket", "key"))
                   .range(new Range(0, 20))
-                  .etag(ETAG.get())
+                  .etag(ETAG)
                   .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
                   .build()));
       assertThrows(
@@ -208,7 +208,7 @@ public class S3SdkObjectClientTest {
               GetRequest.builder()
                   .s3Uri(S3URI.of("bucket", "key"))
                   .range(new Range(0, 20))
-                  .etag(ETAG.get())
+                  .etag(ETAG)
                   .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
                   .build()));
     }
@@ -227,7 +227,7 @@ public class S3SdkObjectClientTest {
         GetRequest.builder()
             .s3Uri(S3URI.of("bucket", "key"))
             .range(new Range(0, 20))
-            .etag(ETAG.get())
+            .etag(ETAG)
             .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
             .build();
 
@@ -247,38 +247,7 @@ public class S3SdkObjectClientTest {
     assertEquals(
         "audit-referrer-value",
         capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
-    assertEquals(ETAG.get(), capturedRequest.ifMatch());
-  }
-
-  @Test
-  void testEtagMissingNotPresentInHeaders() {
-    S3AsyncClient mockS3AsyncClient = createMockClient();
-
-    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
-
-    StreamContext mockStreamContext = mock(StreamContext.class);
-
-    GetRequest getRequest =
-        GetRequest.builder()
-            .s3Uri(S3URI.of("bucket", "key"))
-            .range(new Range(0, 20))
-            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
-            .build();
-
-    client.getObject(getRequest, mockStreamContext);
-
-    ArgumentCaptor<GetObjectRequest> requestCaptor =
-        ArgumentCaptor.forClass(GetObjectRequest.class);
-    verify(mockS3AsyncClient)
-        .getObject(
-            requestCaptor.capture(),
-            ArgumentMatchers
-                .<AsyncResponseTransformer<
-                        GetObjectResponse, ResponseInputStream<GetObjectResponse>>>
-                    any());
-
-    GetObjectRequest capturedRequest = requestCaptor.getValue();
-    assertNull(capturedRequest.ifMatch());
+    assertEquals(ETAG, capturedRequest.ifMatch());
   }
 
   @Test
@@ -291,7 +260,7 @@ public class S3SdkObjectClientTest {
         GetRequest.builder()
             .s3Uri(S3URI.of("bucket", "key"))
             .range(new Range(0, 20))
-            .etag(ETAG.get())
+            .etag(ETAG)
             .referrer(new Referrer("original-referrer", ReadMode.SYNC))
             .build();
 
@@ -312,7 +281,7 @@ public class S3SdkObjectClientTest {
         "original-referrer,readMode=SYNC",
         capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
 
-    assertEquals(ETAG.get(), capturedRequest.ifMatch());
+    assertEquals(ETAG, capturedRequest.ifMatch());
   }
 
   @Test
@@ -356,6 +325,7 @@ public class S3SdkObjectClientTest {
     GetRequest getRequest =
         GetRequest.builder()
             .s3Uri(TEST_URI)
+            .etag("RANDOM")
             .range(new Range(0, 20))
             .referrer(new Referrer("original-referrer", ReadMode.SYNC))
             .build();
@@ -370,7 +340,7 @@ public class S3SdkObjectClientTest {
     when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
         .thenReturn(
             CompletableFuture.completedFuture(
-                HeadObjectResponse.builder().contentLength(42L).eTag(ETAG.get()).build()));
+                HeadObjectResponse.builder().contentLength(42L).eTag(ETAG).build()));
 
     /*
      The argument matcher is used to check if our arguments match the values we want to mock a return for
@@ -386,7 +356,7 @@ public class S3SdkObjectClientTest {
                         return false;
                       }
                       // Check if the If-Match header matches expected ETag
-                      return request.ifMatch() == null || request.ifMatch().equals(ETAG.get());
+                      return request.ifMatch() == null || request.ifMatch().equals(ETAG);
                     }),
             (AsyncResponseTransformer<GetObjectResponse, Object>) any()))
         .thenReturn(
@@ -405,7 +375,7 @@ public class S3SdkObjectClientTest {
                       if (request == null) {
                         return false;
                       }
-                      return (request).ifMatch() != null && !(request).ifMatch().equals(ETAG.get());
+                      return (request).ifMatch() != null && !(request).ifMatch().equals(ETAG);
                     }),
             (AsyncResponseTransformer<GetObjectResponse, Object>) any()))
         .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());

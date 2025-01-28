@@ -19,7 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
@@ -65,7 +64,7 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
     @Override
     public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
       return CompletableFuture.completedFuture(
-          ObjectMetadata.builder().contentLength(size).etag(Optional.of(etag)).build());
+          ObjectMetadata.builder().contentLength(size).etag(etag).build());
     }
 
     @Override

@@ -15,7 +15,6 @@
  */
 package software.amazon.s3.analyticsaccelerator.util;
 
-import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -27,8 +26,7 @@ import lombok.NonNull;
 @Builder
 public class ObjectKey {
   @NonNull S3URI s3URI;
-
-  @Builder.Default Optional<String> etag = Optional.empty();
+  @NonNull String etag;
 
   @Override
   public boolean equals(Object o) {
@@ -41,13 +39,6 @@ public class ObjectKey {
 
   @Override
   public int hashCode() {
-    int result = s3URI.hashCode();
-
-    // Include etag in hash only if present
-    if (etag.isPresent()) {
-      result = result + etag.hashCode();
-    }
-
-    return result;
+    return s3URI.hashCode() + etag.hashCode();
   }
 }

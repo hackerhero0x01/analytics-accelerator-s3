@@ -17,12 +17,10 @@ package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 
 import java.io.IOException;
 import lombok.NonNull;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
@@ -40,7 +38,6 @@ public class PhysicalIOImpl implements PhysicalIO {
   private final Telemetry telemetry;
   private final StreamContext streamContext;
   private ObjectKey objectKey;
-  private final PhysicalIOConfiguration configuration;
   private final ObjectMetadata metadata;
 
   private final long physicalIOBirth = System.nanoTime();
@@ -56,17 +53,15 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param s3URI the S3 URI of the object
    * @param metadataStore a metadata cache
    * @param blobStore a data cache
-   * @param physicalIOConfiguration the config for physical io
    * @param telemetry The {@link Telemetry} to use to report measurements.
    */
   public PhysicalIOImpl(
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
-      @NonNull PhysicalIOConfiguration physicalIOConfiguration,
       @NonNull Telemetry telemetry)
       throws IOException {
-    this(s3URI, metadataStore, blobStore, physicalIOConfiguration, telemetry, null);
+    this(s3URI, metadataStore, blobStore, telemetry, null);
   }
 
   /**
@@ -75,7 +70,6 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param s3URI the S3 URI of the object
    * @param metadataStore a metadata cache
    * @param blobStore a data cache
-   * @param physicalIOConfiguration the config for physical io
    * @param telemetry The {@link Telemetry} to use to report measurements.
    * @param streamContext contains audit headers to be attached in the request header
    */
@@ -83,7 +77,6 @@ public class PhysicalIOImpl implements PhysicalIO {
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
-      @NonNull PhysicalIOConfiguration physicalIOConfiguration,
       @NonNull Telemetry telemetry,
       StreamContext streamContext)
       throws IOException {
@@ -91,13 +84,8 @@ public class PhysicalIOImpl implements PhysicalIO {
     this.blobStore = blobStore;
     this.telemetry = telemetry;
     this.streamContext = streamContext;
-    this.configuration = physicalIOConfiguration;
     this.metadata = this.metadataStore.get(s3URI);
-    ObjectKey.ObjectKeyBuilder objectKeyBuilder = ObjectKey.builder().s3URI(s3URI);
-    if (configuration.isDetectionMode()) {
-      objectKeyBuilder.etag(this.metadata.getEtag());
-    }
-    this.objectKey = objectKeyBuilder.build();
+    this.objectKey = ObjectKey.builder().s3URI(s3URI).etag(metadata.getEtag()).build();
   }
 
   /**
@@ -238,7 +226,9 @@ public class PhysicalIOImpl implements PhysicalIO {
   }
 
   private void handleOperationExceptions(Exception e) {
-    if (e.getCause() instanceof S3Exception) {
+    if (e.getCause() != null
+        && e.getCause().getMessage() != null
+        && e.getCause().getMessage().contains("Status Code: 412")) {
       try {
         metadataStore.evictKey(this.objectKey.getS3URI());
       } finally {

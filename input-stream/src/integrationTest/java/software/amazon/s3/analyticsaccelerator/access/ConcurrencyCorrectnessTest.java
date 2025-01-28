@@ -103,13 +103,6 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
     testChangingEtagAfterStreamPassesAndReturnsCachedObject(s3ClientKind, s3Object, configuration);
   }
 
-  @ParameterizedTest
-  @MethodSource("etagTests")
-  void testTurningEtagCheckOffIsRespected(S3ClientKind s3ClientKind, S3Object s3Object)
-      throws IOException {
-    testTurningEtagCheckOffIsHandledCorrectly(s3ClientKind, s3Object);
-  }
-
   static Stream<Arguments> sequentialReads() {
     return argumentsFor(
         getS3ClientKinds(),

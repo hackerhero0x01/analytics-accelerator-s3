@@ -33,7 +33,6 @@ public class PhysicalIOConfiguration {
   private static final int DEFAULT_CAPACITY_BLOB_STORE = 50;
   private static final int DEFAULT_CAPACITY_METADATA_STORE = 50;
   private static final boolean DEFAULT_USE_SINGLE_CACHE = true;
-  private static final boolean DEFAULT_CHANGE_DETECTION_MODE = true;
   private static final long DEFAULT_BLOCK_SIZE_BYTES = 8 * ONE_MB;
   private static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
   private static final long DEFAULT_MAX_RANGE_SIZE = 8 * ONE_MB;
@@ -94,14 +93,6 @@ public class PhysicalIOConfiguration {
 
   private static final String SEQUENTIAL_PREFETCH_SPEED_KEY = "sequentialprefetch.speed";
 
-  /**
-   * Whether to check etags for object. {@link
-   * PhysicalIOConfiguration#DEFAULT_CHANGE_DETECTION_MODE} by default.
-   */
-  @Builder.Default private boolean detectionMode = DEFAULT_CHANGE_DETECTION_MODE;
-
-  private static final String DETECTION_MODE_KEY = "change.detection";
-
   /** Default set of settings for {@link PhysicalIO} */
   public static final PhysicalIOConfiguration DEFAULT = PhysicalIOConfiguration.builder().build();
 
@@ -120,7 +111,6 @@ public class PhysicalIOConfiguration {
         .blockSizeBytes(configuration.getLong(BLOCK_SIZE_BYTES_KEY, DEFAULT_BLOCK_SIZE_BYTES))
         .readAheadBytes(configuration.getLong(READ_AHEAD_BYTES_KEY, DEFAULT_READ_AHEAD_BYTES))
         .maxRangeSizeBytes(configuration.getLong(MAX_RANGE_SIZE_BYTES_KEY, DEFAULT_MAX_RANGE_SIZE))
-        .detectionMode(configuration.getBoolean(DETECTION_MODE_KEY, DEFAULT_CHANGE_DETECTION_MODE))
         .partSizeBytes(configuration.getLong(PART_SIZE_BYTES_KEY, DEFAULT_PART_SIZE))
         .sequentialPrefetchBase(
             configuration.getDouble(SEQUENTIAL_PREFETCH_BASE_KEY, DEFAULT_SEQUENTIAL_PREFETCH_BASE))
@@ -143,7 +133,6 @@ public class PhysicalIOConfiguration {
    *     physical blocks. Example: A constant of 2.0 means doubling the block sizes.
    * @param sequentialPrefetchSpeed Constant controlling the rate of growth of sequentially
    *     prefetched physical blocks.
-   * @param detectionMode used to determine if the stream should check for changing object versions
    */
   @Builder
   private PhysicalIOConfiguration(
@@ -154,8 +143,7 @@ public class PhysicalIOConfiguration {
       long maxRangeSizeBytes,
       long partSizeBytes,
       double sequentialPrefetchBase,
-      double sequentialPrefetchSpeed,
-      boolean detectionMode) {
+      double sequentialPrefetchSpeed) {
     Preconditions.checkArgument(blobStoreCapacity > 0, "`blobStoreCapacity` must be positive");
     Preconditions.checkArgument(
         metadataStoreCapacity > 0, "`metadataStoreCapacity` must be positive");
@@ -176,7 +164,6 @@ public class PhysicalIOConfiguration {
     this.partSizeBytes = partSizeBytes;
     this.sequentialPrefetchBase = sequentialPrefetchBase;
     this.sequentialPrefetchSpeed = sequentialPrefetchSpeed;
-    this.detectionMode = detectionMode;
   }
 
   @Override
@@ -192,7 +179,6 @@ public class PhysicalIOConfiguration {
     builder.append("\tpartSizeBytes: " + partSizeBytes + "\n");
     builder.append("\tsequentialPrefetchBase: " + sequentialPrefetchBase + "\n");
     builder.append("\tsequentialPrefetchSpeed: " + sequentialPrefetchSpeed + "\n");
-    builder.append("\tdetectionMode: " + detectionMode + "\n");
 
     return builder.toString();
   }

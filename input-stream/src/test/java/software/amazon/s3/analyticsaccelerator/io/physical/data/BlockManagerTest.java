@@ -28,7 +28,6 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -44,7 +43,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
     value = "NP_NONNULL_PARAM_VIOLATION",
     justification = "We mean to pass nulls to checks")
 public class BlockManagerTest {
-  private static final Optional<String> ETAG = Optional.of("RandomString");
+  private static final String ETAG = "RandomString";
   private ObjectMetadata metadataStore;
   static S3URI testUri = S3URI.of("foo", "bar");
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(testUri).etag(ETAG).build();
@@ -199,7 +198,7 @@ public class BlockManagerTest {
                     return false;
                   }
                   // Check if the If-Match header matches expected ETag
-                  return request.getEtag() != null && request.getEtag().equals(ETAG.get());
+                  return request.getEtag() != null && request.getEtag().equals(ETAG);
                 }),
             any()))
         .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
@@ -262,7 +261,7 @@ public class BlockManagerTest {
                     return false;
                   }
                   // Check if the If-Match header matches expected ETag
-                  return request.getEtag() == null || request.getEtag().equals(ETAG.get());
+                  return request.getEtag() == null || request.getEtag().equals(ETAG);
                 }),
             any()))
         .thenReturn(
@@ -279,7 +278,7 @@ public class BlockManagerTest {
                     return false;
                   }
                   // Check if the If-Match header matches expected ETag
-                  return request.getEtag() != null && !request.getEtag().equals(ETAG.get());
+                  return request.getEtag() != null && !request.getEtag().equals(ETAG);
                 }),
             any()))
         .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());

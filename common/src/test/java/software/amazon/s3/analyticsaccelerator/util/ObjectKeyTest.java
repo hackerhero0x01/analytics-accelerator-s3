@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 @SuppressFBWarnings(
@@ -35,10 +34,10 @@ public class ObjectKeyTest {
     S3URI s3uri2 = S3URI.of("bucket", "key");
     S3URI s3uri3 = S3URI.of("bucket", "key2");
 
-    ObjectKey key1 = ObjectKey.builder().s3URI(s3uri1).etag(Optional.of("etag1")).build();
-    ObjectKey key2 = ObjectKey.builder().s3URI(s3uri2).etag(Optional.of("etag1")).build();
-    ObjectKey key3 = ObjectKey.builder().s3URI(s3uri1).etag(Optional.of("etag2")).build();
-    ObjectKey key4 = ObjectKey.builder().s3URI(s3uri3).etag(Optional.of("etag1")).build();
+    ObjectKey key1 = ObjectKey.builder().s3URI(s3uri1).etag("etag1").build();
+    ObjectKey key2 = ObjectKey.builder().s3URI(s3uri2).etag("etag1").build();
+    ObjectKey key3 = ObjectKey.builder().s3URI(s3uri1).etag("etag2").build();
+    ObjectKey key4 = ObjectKey.builder().s3URI(s3uri3).etag("etag1").build();
 
     Map<ObjectKey, String> map = new HashMap<>();
 
@@ -68,10 +67,10 @@ public class ObjectKeyTest {
     S3URI s3uri2 = S3URI.of("bucket", "key");
     S3URI s3uri3 = S3URI.of("bucket", "key2");
 
-    ObjectKey key1 = ObjectKey.builder().s3URI(s3uri1).etag(Optional.of("etag1")).build();
-    ObjectKey key2 = ObjectKey.builder().s3URI(s3uri2).etag(Optional.of("etag1")).build();
-    ObjectKey key3 = ObjectKey.builder().s3URI(s3uri1).etag(Optional.of("etag2")).build();
-    ObjectKey key4 = ObjectKey.builder().s3URI(s3uri3).etag(Optional.of("etag1")).build();
+    ObjectKey key1 = ObjectKey.builder().s3URI(s3uri1).etag("etag1").build();
+    ObjectKey key2 = ObjectKey.builder().s3URI(s3uri2).etag("etag1").build();
+    ObjectKey key3 = ObjectKey.builder().s3URI(s3uri1).etag("etag2").build();
+    ObjectKey key4 = ObjectKey.builder().s3URI(s3uri3).etag("etag1").build();
 
     // Test equals
     assertEquals(key1, key1); // Same object
@@ -95,20 +94,21 @@ public class ObjectKeyTest {
     assertThrows(
         NullPointerException.class,
         () -> {
-          ObjectKey.builder().s3URI(null).etag(Optional.of("etag1")).build();
+          ObjectKey.builder().s3URI(null).etag("etag1").build();
         });
 
     // Test null etag
-    assertDoesNotThrow(
+    assertThrows(
+        NullPointerException.class,
         () -> {
-          ObjectKey.builder().s3URI(s3uri).etag(Optional.empty()).build();
+          ObjectKey.builder().s3URI(s3uri).etag(null).build();
         });
 
     // Test constructor with null values
     assertThrows(
         NullPointerException.class,
         () -> {
-          new ObjectKey(null, Optional.of("etag1"));
+          new ObjectKey(null, null);
         });
   }
 }

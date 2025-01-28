@@ -125,12 +125,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         return new ParquetLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(
-                s3URI,
-                objectMetadataStore,
-                objectBlobStore,
-                configuration.getPhysicalIOConfiguration(),
-                telemetry,
-                streamContext),
+                s3URI, objectMetadataStore, objectBlobStore, telemetry, streamContext),
             telemetry,
             configuration.getLogicalIOConfiguration(),
             parquetColumnPrefetchStore);
@@ -139,12 +134,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         return new DefaultLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(
-                s3URI,
-                objectMetadataStore,
-                objectBlobStore,
-                configuration.getPhysicalIOConfiguration(),
-                telemetry,
-                streamContext),
+                s3URI, objectMetadataStore, objectBlobStore, telemetry, streamContext),
             telemetry);
     }
   }

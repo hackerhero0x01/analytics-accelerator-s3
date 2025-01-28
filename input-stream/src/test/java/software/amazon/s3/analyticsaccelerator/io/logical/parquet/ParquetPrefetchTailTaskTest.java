@@ -93,7 +93,10 @@ public class ParquetPrefetchTailTaskTest {
     for (Map.Entry<Long, List<Range>> contentLengthToRangeList : contentSizeToRanges.entrySet()) {
       PhysicalIOImpl mockedPhysicalIO = mock(PhysicalIOImpl.class);
       ObjectMetadata metadata =
-          ObjectMetadata.builder().contentLength(contentLengthToRangeList.getKey()).build();
+          ObjectMetadata.builder()
+              .contentLength(contentLengthToRangeList.getKey())
+              .etag("random")
+              .build();
       when(mockedPhysicalIO.metadata()).thenReturn(metadata);
 
       ParquetPrefetchTailTask parquetPrefetchTailTask =
@@ -117,7 +120,7 @@ public class ParquetPrefetchTailTaskTest {
             TEST_URI, Telemetry.NOOP, LogicalIOConfiguration.DEFAULT, mockedPhysicalIO);
 
     // When: task executes but PhysicalIO throws
-    ObjectMetadata metadata = ObjectMetadata.builder().contentLength(600).build();
+    ObjectMetadata metadata = ObjectMetadata.builder().contentLength(600).etag("random").build();
     when(mockedPhysicalIO.metadata()).thenReturn(metadata);
     doThrow(new IOException("Error in prefetch")).when(mockedPhysicalIO).execute(any(IOPlan.class));
 
