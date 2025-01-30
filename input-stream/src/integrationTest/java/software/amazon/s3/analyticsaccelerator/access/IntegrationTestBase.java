@@ -74,13 +74,13 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * @param s3ClientKind S3 client kind to use
    * @param s3Object S3 object to read
    * @param streamReadPatternKind stream read pattern to apply
-   * @param DATInputStreamConfigurationKind configuration kind
+   * @param AALInputStreamConfigurationKind configuration kind
    */
   protected void testAndCompareStreamReadPattern(
       @NonNull S3ClientKind s3ClientKind,
       @NonNull S3Object s3Object,
       @NonNull StreamReadPatternKind streamReadPatternKind,
-      @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind)
+      @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind)
       throws IOException {
     StreamReadPattern streamReadPattern = streamReadPatternKind.getStreamReadPattern(s3Object);
 
@@ -89,17 +89,17 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     executeReadPatternDirectly(
         s3ClientKind, s3Object, streamReadPattern, Optional.of(directChecksum));
 
-    // Read using the DAT S3
-    Crc32CChecksum datChecksum = new Crc32CChecksum();
-    executeReadPatternOnDAT(
+    // Read using the AAL S3
+    Crc32CChecksum aalChecksum = new Crc32CChecksum();
+    executeReadPatternOnAAL(
         s3ClientKind,
         s3Object,
         streamReadPattern,
-        DATInputStreamConfigurationKind,
-        Optional.of(datChecksum));
+        AALInputStreamConfigurationKind,
+        Optional.of(aalChecksum));
 
     // Assert checksums
-    assertChecksums(directChecksum, datChecksum);
+    assertChecksums(directChecksum, aalChecksum);
   }
 
   /**
@@ -110,29 +110,29 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * @param s3ClientKind S3 client kind to use
    * @param s3Object S3 object to read
    * @param streamReadPatternKind stream read pattern to apply
-   * @param DATInputStreamConfigurationKind configuration kind
+   * @param AALInputStreamConfigurationKind configuration kind
    */
   protected void testChangingEtagMidStream(
       @NonNull S3ClientKind s3ClientKind,
       @NonNull S3Object s3Object,
       @NonNull StreamReadPatternKind streamReadPatternKind,
-      @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind)
+      @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind)
       throws IOException {
     int bufferSize = (int) s3Object.getSize();
     byte[] buffer = new byte[bufferSize];
 
     // Create the s3DATClientStreamReader - that creates the shared state
-    try (S3DATClientStreamReader s3DATClientStreamReader =
-        this.createS3DATClientStreamReader(s3ClientKind, DATInputStreamConfigurationKind)) {
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       S3URI s3URI =
           s3Object.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());
       S3AsyncClient s3Client = this.getS3ExecutionContext().getS3Client();
-      S3SeekableInputStream stream = s3DATClientStreamReader.createReadStream(s3Object);
+      S3SeekableInputStream stream = s3AALClientStreamReader.createReadStream(s3Object);
 
       int readAheadBytes =
           (int)
-              DATInputStreamConfigurationKind.getValue()
+              AALInputStreamConfigurationKind.getValue()
                   .getPhysicalIOConfiguration()
                   .getReadAheadBytes();
 
@@ -162,8 +162,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
       Crc32CChecksum datChecksum = new Crc32CChecksum();
       assertDoesNotThrow(
           () ->
-              executeReadPatternOnDAT(
-                  s3Object, s3DATClientStreamReader, streamReadPattern, Optional.of(datChecksum)));
+              executeReadPatternOnAAL(
+                  s3Object, s3AALClientStreamReader, streamReadPattern, Optional.of(datChecksum)));
       assert (datChecksum.getChecksumBytes().length > 0);
     }
   }
@@ -189,19 +189,19 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    *
    * @param s3ClientKind S3 client kind to use
    * @param s3Object S3 object to read
-   * @param DATInputStreamConfigurationKind configuration kind
+   * @param AALInputStreamConfigurationKind configuration kind
    * @throws IOException
    */
   protected void testChangingEtagAfterStreamPassesAndReturnsCachedObject(
       @NonNull S3ClientKind s3ClientKind,
       @NonNull S3Object s3Object,
-      @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind)
+      @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind)
       throws IOException {
     int bufferSize = (int) s3Object.getSize();
     // Create the s3DATClientStreamReader - that creates the shared state
-    try (S3DATClientStreamReader s3DATClientStreamReader =
-        this.createS3DATClientStreamReader(s3ClientKind, DATInputStreamConfigurationKind)) {
-      S3SeekableInputStream stream = s3DATClientStreamReader.createReadStream(s3Object);
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+      S3SeekableInputStream stream = s3AALClientStreamReader.createReadStream(s3Object);
       Crc32CChecksum datChecksum = calculateCRC32C(stream, bufferSize);
 
       S3URI s3URI =
@@ -215,7 +215,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
               AsyncRequestBody.fromBytes(generateRandomBytes(bufferSize)))
           .join();
 
-      S3SeekableInputStream cacheStream = s3DATClientStreamReader.createReadStream(s3Object);
+      S3SeekableInputStream cacheStream = s3AALClientStreamReader.createReadStream(s3Object);
       Crc32CChecksum cachedChecksum = calculateCRC32C(cacheStream, bufferSize);
 
       // Assert checksums
@@ -257,21 +257,21 @@ public abstract class IntegrationTestBase extends ExecutionBase {
   }
 
   /**
-   * Tests concurrent access to DAT. This runs the specified pattern on multiple threads
+   * Tests concurrent access to AAL. This runs the specified pattern on multiple threads
    * concurrently
    *
    * @param s3ClientKind S3 client kind to use
    * @param s3Object S3 object to read
    * @param streamReadPatternKind stream read pattern to apply
-   * @param DATInputStreamConfigurationKind configuration kind
+   * @param AALInputStreamConfigurationKind configuration kind
    * @param concurrencyLevel concurrency level - how many threads are running at once
    * @param iterations how many iterations each thread does
    */
-  protected void testDATReadConcurrency(
+  protected void testAALReadConcurrency(
       @NonNull S3ClientKind s3ClientKind,
       @NonNull S3Object s3Object,
       @NonNull StreamReadPatternKind streamReadPatternKind,
-      @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind,
+      @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind,
       int concurrencyLevel,
       int iterations)
       throws IOException, InterruptedException, ExecutionException {
@@ -282,8 +282,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
         s3ClientKind, s3Object, streamReadPattern, Optional.of(directChecksum));
 
     // Create the s3DATClientStreamReader - that creates the shared state
-    try (S3DATClientStreamReader s3DATClientStreamReader =
-        this.createS3DATClientStreamReader(s3ClientKind, DATInputStreamConfigurationKind)) {
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
       // Create the thread pool
       ExecutorService executorService = Executors.newFixedThreadPool(concurrencyLevel);
       Future<?>[] resultFutures = new Future<?>[concurrencyLevel];
@@ -298,9 +298,9 @@ public abstract class IntegrationTestBase extends ExecutionBase {
                       // Run DAT on the thread
                       // This will create a new stream every time, but all streams will share state
                       Crc32CChecksum datChecksum = new Crc32CChecksum();
-                      executeReadPatternOnDAT(
+                      executeReadPatternOnAAL(
                           s3Object,
-                          s3DATClientStreamReader,
+                          s3AALClientStreamReader,
                           streamReadPattern,
                           Optional.of(datChecksum));
 
@@ -367,8 +367,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    *
    * @return configuration kind
    */
-  static List<DATInputStreamConfigurationKind> getS3SeekableInputStreamConfigurations() {
-    return Arrays.asList(DATInputStreamConfigurationKind.values());
+  static List<AALInputStreamConfigurationKind> getS3SeekableInputStreamConfigurations() {
+    return Arrays.asList(AALInputStreamConfigurationKind.values());
   }
 
   /**
@@ -377,7 +377,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * @return list of S3ClientKind to use for testing.
    */
   static List<S3ClientKind> getS3ClientKinds() {
-    return Arrays.asList(S3ClientKind.values());
+    return S3ClientKind.trustedClients();
   }
 
   /**
@@ -393,12 +393,12 @@ public abstract class IntegrationTestBase extends ExecutionBase {
       List<S3ClientKind> clients,
       List<S3Object> objects,
       List<StreamReadPatternKind> readPatterns,
-      List<DATInputStreamConfigurationKind> configurations) {
+      List<AALInputStreamConfigurationKind> configurations) {
     ArrayList<Arguments> results = new ArrayList<>();
     for (S3ClientKind client : clients) {
       for (S3Object object : objects) {
         for (StreamReadPatternKind readPattern : readPatterns) {
-          for (DATInputStreamConfigurationKind configuration : configurations) {
+          for (AALInputStreamConfigurationKind configuration : configurations) {
             results.add(Arguments.of(client, object, readPattern, configuration));
           }
         }

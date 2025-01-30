@@ -48,4 +48,16 @@ public class S3AsyncClientFactory {
         .targetThroughputInGbps((double) configuration.getCrtTargetThroughputGbps())
         .build();
   }
+
+  /**
+   * Builds a faulty async Java client
+   *
+   * @param configuration configuration
+   * @return an instance of {@link S3AsyncClient}
+   */
+  public static S3AsyncClient createFaultyS3Client(
+      @NonNull S3AsyncClientFactoryConfiguration configuration) {
+    S3AsyncClient delegate = createS3AsyncClient(configuration);
+    return new FaultyS3AsyncClient(delegate);
+  }
 }

@@ -49,33 +49,33 @@ public abstract class ExecutionBase {
   }
 
   /**
-   * Creates an instance of {@link S3DATClientStreamReader} that uses DAT to read from S3
+   * Creates an instance of {@link S3AALClientStreamReader} that uses AAL to read from S3
    *
    * @param s3ClientKind S3 Client kind
-   * @param DATInputStreamConfigurationKind {@link S3SeekableInputStreamConfiguration} kind
-   * @return an instance of {@link S3DATClientStreamReader}
+   * @param AALInputStreamConfigurationKind {@link S3SeekableInputStreamConfiguration} kind
+   * @return an instance of {@link S3AALClientStreamReader}
    */
-  protected S3DATClientStreamReader createS3DATClientStreamReader(
+  protected S3AALClientStreamReader createS3AALClientStreamReader(
       @NonNull S3ClientKind s3ClientKind,
-      @NonNull DATInputStreamConfigurationKind DATInputStreamConfigurationKind) {
-    return new S3DATClientStreamReader(
+      @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind) {
+    return new S3AALClientStreamReader(
         s3ClientKind.getS3Client(this.getS3ExecutionContext()),
-        DATInputStreamConfigurationKind.getValue(),
+        AALInputStreamConfigurationKind.getValue(),
         this.getS3ExecutionContext().getConfiguration().getBaseUri(),
         this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
   }
 
   /**
-   * Creates an instance of {@link S3DATClientStreamReader} that uses DAT to read from S3
+   * Creates an instance of {@link S3AALClientStreamReader} that uses AAL to read from S3
    *
    * @param s3ClientKind S3 Client kind
    * @param s3SeekableInputStreamConfiguration {@link S3SeekableInputStreamConfiguration}
-   * @return an instance of {@link S3DATClientStreamReader}
+   * @return an instance of {@link S3AALClientStreamReader}
    */
-  protected S3DATClientStreamReader createS3DATClientStreamReader(
+  protected S3AALClientStreamReader createS3AALClientStreamReader(
       @NonNull S3ClientKind s3ClientKind,
       @NonNull S3SeekableInputStreamConfiguration s3SeekableInputStreamConfiguration) {
-    return new S3DATClientStreamReader(
+    return new S3AALClientStreamReader(
         s3ClientKind.getS3Client(this.getS3ExecutionContext()),
         s3SeekableInputStreamConfiguration,
         this.getS3ExecutionContext().getConfiguration().getBaseUri(),
@@ -97,6 +97,12 @@ public abstract class ExecutionBase {
       StreamReadPattern streamReadPattern,
       Optional<Crc32CChecksum> checksum)
       throws IOException {
+    // Direct Read Pattern execution shouldn't read using the faulty client but it should use a
+    // trusted client.
+    s3ClientKind =
+        s3ClientKind == S3ClientKind.FAULTY_S3_CLIENT
+            ? S3ClientKind.SDK_V2_JAVA_ASYNC
+            : s3ClientKind;
     try (S3AsyncClientStreamReader s3AsyncClientStreamReader =
         this.createS3AsyncClientStreamReader(s3ClientKind)) {
       s3AsyncClientStreamReader.readPattern(s3Object, streamReadPattern, checksum);
@@ -104,43 +110,43 @@ public abstract class ExecutionBase {
   }
 
   /**
-   * Executes a pattern on DAT
+   * Executes a pattern on AAL
    *
    * @param s3ClientKind S3 client kind to use
    * @param s3Object {@link S3Object} S3 Object to run the pattern on
-   * @param DATInputStreamConfigurationKind DAT configuration
+   * @param AALInputStreamConfigurationKind DAT configuration
    * @param streamReadPattern the read pattern
    * @param checksum checksum to update, if specified
    * @throws IOException IO error, if thrown
    */
-  protected void executeReadPatternOnDAT(
+  protected void executeReadPatternOnAAL(
       S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPattern streamReadPattern,
-      DATInputStreamConfigurationKind DATInputStreamConfigurationKind,
+      AALInputStreamConfigurationKind AALInputStreamConfigurationKind,
       Optional<Crc32CChecksum> checksum)
       throws IOException {
-    try (S3DATClientStreamReader s3DATClientStreamReader =
-        this.createS3DATClientStreamReader(s3ClientKind, DATInputStreamConfigurationKind)) {
-      executeReadPatternOnDAT(s3Object, s3DATClientStreamReader, streamReadPattern, checksum);
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+      executeReadPatternOnAAL(s3Object, s3AALClientStreamReader, streamReadPattern, checksum);
     }
   }
 
   /**
-   * Executes a pattern on DAT
+   * Executes a pattern on AAL
    *
    * @param s3Object {@link S3Object} S3 Object to run the pattern on
-   * @param s3DATClientStreamReader DAT stream reader
+   * @param s3AALClientStreamReader DAT stream reader
    * @param streamReadPattern the read pattern
    * @param checksum checksum to update, if specified
    * @throws IOException IO error, if thrown
    */
-  protected void executeReadPatternOnDAT(
+  protected void executeReadPatternOnAAL(
       S3Object s3Object,
-      S3DATClientStreamReader s3DATClientStreamReader,
+      S3AALClientStreamReader s3AALClientStreamReader,
       StreamReadPattern streamReadPattern,
       Optional<Crc32CChecksum> checksum)
       throws IOException {
-    s3DATClientStreamReader.readPattern(s3Object, streamReadPattern, checksum);
+    s3AALClientStreamReader.readPattern(s3Object, streamReadPattern, checksum);
   }
 }

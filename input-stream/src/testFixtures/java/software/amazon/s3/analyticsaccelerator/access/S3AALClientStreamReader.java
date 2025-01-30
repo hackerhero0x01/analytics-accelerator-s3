@@ -28,19 +28,19 @@ import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Client stream reader based on DAT */
-public class S3DATClientStreamReader extends S3StreamReaderBase {
+public class S3AALClientStreamReader extends S3StreamReaderBase {
   @NonNull @Getter private final S3SdkObjectClient sdkObjectClient;
   @NonNull @Getter private final S3SeekableInputStreamFactory s3SeekableInputStreamFactory;
 
   /**
-   * Creates an instance of {@link S3DATClientStreamReader}
+   * Creates an instance of {@link S3AALClientStreamReader}
    *
    * @param s3AsyncClient an instance of {@link S3AsyncClient}
    * @param configuration {@link S3SeekableInputStreamConfiguration}
    * @param baseUri base URI for all objects
    * @param bufferSize buffer size
    */
-  public S3DATClientStreamReader(
+  public S3AALClientStreamReader(
       @NonNull S3AsyncClient s3AsyncClient,
       @NonNull S3SeekableInputStreamConfiguration configuration,
       @NonNull S3URI baseUri,

@@ -36,9 +36,9 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
       S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
-      DATInputStreamConfigurationKind configuration)
+      AALInputStreamConfigurationKind configuration)
       throws IOException, InterruptedException, ExecutionException {
-    testDATReadConcurrency(
+    testAALReadConcurrency(
         s3ClientKind,
         s3Object,
         streamReadPattern,
@@ -53,9 +53,9 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
       S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
-      DATInputStreamConfigurationKind configuration)
+      AALInputStreamConfigurationKind configuration)
       throws IOException, InterruptedException, ExecutionException {
-    testDATReadConcurrency(
+    testAALReadConcurrency(
         s3ClientKind,
         s3Object,
         streamReadPattern,
@@ -70,9 +70,9 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
       S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
-      DATInputStreamConfigurationKind configuration)
+      AALInputStreamConfigurationKind configuration)
       throws IOException, InterruptedException, ExecutionException {
-    testDATReadConcurrency(
+    testAALReadConcurrency(
         s3ClientKind,
         s3Object,
         streamReadPattern,
@@ -87,7 +87,7 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
       S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
-      DATInputStreamConfigurationKind configuration)
+      AALInputStreamConfigurationKind configuration)
       throws IOException {
     testChangingEtagMidStream(s3ClientKind, s3Object, streamReadPattern, configuration);
   }
@@ -98,7 +98,7 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
       S3ClientKind s3ClientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
-      DATInputStreamConfigurationKind configuration)
+      AALInputStreamConfigurationKind configuration)
       throws IOException {
     testChangingEtagAfterStreamPassesAndReturnsCachedObject(s3ClientKind, s3Object, configuration);
   }

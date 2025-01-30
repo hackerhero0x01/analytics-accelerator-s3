@@ -22,7 +22,7 @@ import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguratio
 /** Enum representing meaningful configuration samples for {@link S3ExecutionConfiguration} */
 @AllArgsConstructor
 @Getter
-public enum DATInputStreamConfigurationKind {
+public enum AALInputStreamConfigurationKind {
   DEFAULT("DEFAULT", S3SeekableInputStreamConfiguration.DEFAULT);
 
   private final String name;

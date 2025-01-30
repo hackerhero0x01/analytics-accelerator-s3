@@ -25,7 +25,7 @@ import software.amazon.s3.analyticsaccelerator.access.StreamReadPatternKind;
  * Benchmarks that measure performance of DAT via CRT by replaying all patterns against multiple
  * object sizes
  */
-public class DATBenchmark extends BenchmarkBase {
+public class AALBenchmark extends BenchmarkBase {
   // NOTE: all params here must come after "object", so they should start with any letter after "o".
   @Param public StreamReadPatternKind pattern;
 

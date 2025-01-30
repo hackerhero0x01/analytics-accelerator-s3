@@ -17,65 +17,67 @@ package software.amazon.s3.analyticsaccelerator.access;
 
 import java.io.IOException;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/** Tests read correctness on multiple sizes and read patterns */
-public class ReadCorrectnessTest extends IntegrationTestBase {
+/** Tests read stream behaviour with untrusted S3ClientKinds on multiple sizes and read patterns */
+@Disabled("Disabled as AAL is not resilient to Faulty S3 Clients yet.")
+public class GrayFailureTest extends IntegrationTestBase {
   @ParameterizedTest
   @MethodSource("sequentialReads")
   void testSequentialReads(
-      S3ClientKind s3ClientKind,
+      S3ClientKind clientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       AALInputStreamConfigurationKind configuration)
       throws IOException {
-    testAndCompareStreamReadPattern(s3ClientKind, s3Object, streamReadPattern, configuration);
+    testAndCompareStreamReadPattern(clientKind, s3Object, streamReadPattern, configuration);
   }
 
   @ParameterizedTest
   @MethodSource("skippingReads")
   void testSkippingReads(
-      S3ClientKind s3ClientKind,
+      S3ClientKind clientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       AALInputStreamConfigurationKind configuration)
       throws IOException {
-    testAndCompareStreamReadPattern(s3ClientKind, s3Object, streamReadPattern, configuration);
+    testAndCompareStreamReadPattern(clientKind, s3Object, streamReadPattern, configuration);
   }
 
   @ParameterizedTest
   @MethodSource("parquetReads")
   void testQuasiParquetReads(
-      S3ClientKind s3ClientKind,
+      S3ClientKind clientKind,
       S3Object s3Object,
       StreamReadPatternKind streamReadPattern,
       AALInputStreamConfigurationKind configuration)
       throws IOException {
-    testAndCompareStreamReadPattern(s3ClientKind, s3Object, streamReadPattern, configuration);
+    testAndCompareStreamReadPattern(clientKind, s3Object, streamReadPattern, configuration);
   }
 
   static Stream<Arguments> sequentialReads() {
     return argumentsFor(
-        getS3ClientKinds(),
-        S3Object.smallAndMediumObjects(),
+        S3ClientKind.faultyClients(),
+        S3Object.smallObjects(),
         sequentialPatterns(),
         getS3SeekableInputStreamConfigurations());
   }
 
   static Stream<Arguments> skippingReads() {
     return argumentsFor(
-        getS3ClientKinds(),
-        S3Object.smallAndMediumObjects(),
+        S3ClientKind.faultyClients(),
+        S3Object.smallObjects(),
         skippingPatterns(),
         getS3SeekableInputStreamConfigurations());
   }
 
   static Stream<Arguments> parquetReads() {
     return argumentsFor(
-        getS3ClientKinds(),
-        S3Object.smallAndMediumObjects(),
+        S3ClientKind.faultyClients(),
+        S3Object.smallObjects(),
         parquetPatterns(),
         getS3SeekableInputStreamConfigurations());
   }

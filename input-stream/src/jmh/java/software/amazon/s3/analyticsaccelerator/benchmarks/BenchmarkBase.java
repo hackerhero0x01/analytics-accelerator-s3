@@ -95,12 +95,12 @@ public abstract class BenchmarkBase extends ExecutionBase {
   protected abstract S3ClientKind getClientKind();
 
   /**
-   * Benchmarks can override this to return the {@link DATInputStreamConfigurationKind}
+   * Benchmarks can override this to return the {@link AALInputStreamConfigurationKind}
    *
-   * @return {@link DATInputStreamConfigurationKind}
+   * @return {@link AALInputStreamConfigurationKind}
    */
-  protected DATInputStreamConfigurationKind getDATInputStreamConfigurationKind() {
-    return DATInputStreamConfigurationKind.DEFAULT;
+  protected AALInputStreamConfigurationKind getDATInputStreamConfigurationKind() {
+    return AALInputStreamConfigurationKind.DEFAULT;
   }
 
   @Benchmark
@@ -122,7 +122,7 @@ public abstract class BenchmarkBase extends ExecutionBase {
    */
   protected void executeReadPatternOnDAT() throws IOException {
     S3Object s3Object = this.getObject();
-    executeReadPatternOnDAT(
+    executeReadPatternOnAAL(
         this.getClientKind(),
         s3Object,
         this.getReadPatternKind().getStreamReadPattern(s3Object),

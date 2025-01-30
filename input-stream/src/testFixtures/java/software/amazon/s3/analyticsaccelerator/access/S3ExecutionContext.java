@@ -28,6 +28,7 @@ public class S3ExecutionContext implements Closeable {
   @NonNull private final S3ExecutionConfiguration configuration;
   @NonNull private final S3AsyncClient s3Client;
   @NonNull private final S3AsyncClient s3CrtClient;
+  @NonNull private final S3AsyncClient faultyS3Client;
 
   /**
    * Creates an instance of {@link S3ExecutionContext}
@@ -40,6 +41,8 @@ public class S3ExecutionContext implements Closeable {
         S3AsyncClientFactory.createS3AsyncClient(configuration.getClientFactoryConfiguration());
     this.s3CrtClient =
         S3AsyncClientFactory.createS3CrtAsyncClient(configuration.getClientFactoryConfiguration());
+    this.faultyS3Client =
+        S3AsyncClientFactory.createFaultyS3Client(configuration.getClientFactoryConfiguration());
 
     // test connections
     testConnection(this.s3Client, configuration);

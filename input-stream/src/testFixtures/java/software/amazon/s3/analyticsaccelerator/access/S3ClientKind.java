@@ -15,6 +15,8 @@
  */
 package software.amazon.s3.analyticsaccelerator.access;
 
+import java.util.Arrays;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
@@ -25,7 +27,8 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 @Getter
 public enum S3ClientKind {
   SDK_V2_JAVA_ASYNC("ASYNC_JAVA"),
-  SDK_V2_CRT_ASYNC("ASYNC_CRT");
+  SDK_V2_CRT_ASYNC("ASYNC_CRT"),
+  FAULTY_S3_CLIENT("FAULTY_S3");
 
   private final String value;
   /**
@@ -41,8 +44,28 @@ public enum S3ClientKind {
         return s3ExecutionContext.getS3Client();
       case SDK_V2_CRT_ASYNC:
         return s3ExecutionContext.getS3CrtClient();
+      case FAULTY_S3_CLIENT:
+        return s3ExecutionContext.getFaultyS3Client();
       default:
         throw new IllegalArgumentException("Unsupported client kind: " + this);
     }
+  }
+
+  /**
+   * Trusted S3 Clients
+   *
+   * @return small objects
+   */
+  public static List<S3ClientKind> trustedClients() {
+    return Arrays.asList(SDK_V2_JAVA_ASYNC, SDK_V2_CRT_ASYNC);
+  }
+
+  /**
+   * Faulty S3 Clients
+   *
+   * @return small objects
+   */
+  public static List<S3ClientKind> faultyClients() {
+    return Arrays.asList(FAULTY_S3_CLIENT);
   }
 }
