@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import lombok.Getter;
 import lombok.NonNull;
@@ -42,6 +43,7 @@ public class S3SdkObjectClient implements ObjectClient {
   private static final String HEADER_USER_AGENT = "User-Agent";
   private static final String HEADER_REFERER = "Referer";
   private static final Logger LOG = LoggerFactory.getLogger(S3SdkObjectClient.class);
+  private static final long DEFAULT_TIMEOUT_MILLIS = 180_000;
 
   @Getter @NonNull private final S3AsyncClient s3AsyncClient;
   @NonNull private final Telemetry telemetry;
@@ -193,6 +195,27 @@ public class S3SdkObjectClient implements ObjectClient {
             .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
             .build());
 
+    LOG.info("Creating timeout future");
+    CompletableFuture<ObjectContent> timeoutFuture = new CompletableFuture<>();
+    CompletableFuture.runAsync(
+        () -> {
+          try {
+            Thread.sleep(DEFAULT_TIMEOUT_MILLIS);
+          } catch (InterruptedException e) {
+            LOG.info(
+                "SDK client timed out while reading data. Timeout is: {}", DEFAULT_TIMEOUT_MILLIS);
+            timeoutFuture.completeExceptionally(e);
+          }
+          timeoutFuture.completeExceptionally(new TimeoutException("Timed out"));
+        });
+
+    CompletableFuture<ObjectContent> future =
+        s3AsyncClient
+            .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
+            .thenApply(
+                responseInputStream -> ObjectContent.builder().stream(responseInputStream).build())
+            .exceptionally(handleException(getRequest.getS3Uri()));
+
     return this.telemetry.measureCritical(
         () ->
             Operation.builder()
@@ -201,11 +224,16 @@ public class S3SdkObjectClient implements ObjectClient {
                 .attribute(ObjectClientTelemetry.rangeLength(getRequest.getRange()))
                 .attribute(ObjectClientTelemetry.range(getRequest.getRange()))
                 .build(),
-        s3AsyncClient
-            .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
-            .thenApply(
-                responseInputStream -> ObjectContent.builder().stream(responseInputStream).build())
-            .exceptionally(handleException(getRequest.getS3Uri())));
+        CompletableFuture.anyOf(future, timeoutFuture)
+            .thenCompose(
+                result -> {
+                  if (future.isDone()) {
+                    return future;
+                  } else {
+                    future.completeExceptionally(new TimeoutException("Future has timed out."));
+                    throw new RuntimeException("Future has timed out.");
+                  }
+                }));
   }
 
   private <T> Function<Throwable, T> handleException(S3URI s3Uri) {
