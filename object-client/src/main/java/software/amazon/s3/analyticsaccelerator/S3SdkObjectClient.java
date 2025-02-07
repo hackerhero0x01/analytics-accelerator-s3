@@ -49,6 +49,7 @@ public class S3SdkObjectClient implements ObjectClient {
   @NonNull private final Telemetry telemetry;
   @NonNull private final UserAgent userAgent;
   private final boolean closeAsyncClient;
+  private final long timeoutMillis;
 
   /**
    * Create an instance of a S3 client, with default configuration, for interaction with Amazon S3
@@ -102,6 +103,29 @@ public class S3SdkObjectClient implements ObjectClient {
         new ConfigurableTelemetry(objectClientConfiguration.getTelemetryConfiguration());
     this.userAgent = new UserAgent();
     this.userAgent.prepend(objectClientConfiguration.getUserAgentPrefix());
+    this.timeoutMillis = DEFAULT_TIMEOUT_MILLIS;
+  }
+
+  /**
+   * Create an instance of a S3 client, for interaction with Amazon S3 compatible object stores.
+   *
+   * @param s3AsyncClient Underlying client to be used for making requests to S3.
+   * @param objectClientConfiguration Configuration for object client.
+   * @param closeAsyncClient if true, close the passed client on close.
+   * @param timeoutMillis Timeout period in milliseconds of getObject requests
+   */
+  public S3SdkObjectClient(
+      @NonNull S3AsyncClient s3AsyncClient,
+      @NonNull ObjectClientConfiguration objectClientConfiguration,
+      boolean closeAsyncClient,
+      long timeoutMillis) {
+    this.s3AsyncClient = s3AsyncClient;
+    this.closeAsyncClient = closeAsyncClient;
+    this.telemetry =
+        new ConfigurableTelemetry(objectClientConfiguration.getTelemetryConfiguration());
+    this.userAgent = new UserAgent();
+    this.userAgent.prepend(objectClientConfiguration.getUserAgentPrefix());
+    this.timeoutMillis = timeoutMillis;
   }
 
   /** Closes the underlying client if instructed by the constructor. */
@@ -200,12 +224,12 @@ public class S3SdkObjectClient implements ObjectClient {
     CompletableFuture.runAsync(
         () -> {
           try {
-            Thread.sleep(DEFAULT_TIMEOUT_MILLIS);
+            Thread.sleep(timeoutMillis);
           } catch (InterruptedException e) {
-            LOG.info(
-                "SDK client timed out while reading data. Timeout is: {}", DEFAULT_TIMEOUT_MILLIS);
             timeoutFuture.completeExceptionally(e);
+            return;
           }
+          LOG.info("SDK client timed out while reading data. Timeout is: {}", timeoutMillis);
           timeoutFuture.completeExceptionally(new TimeoutException("Timed out"));
         });
 
