@@ -178,7 +178,6 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-
     byte[] content = this.getDataWithRetries();
     int contentOffset = posToOffset(pos);
     int available = content.length - contentOffset;

@@ -311,7 +311,7 @@ public class DefaultTelemetry implements Telemetry {
         throw ((UncheckedIOException) cause).getCause();
       }
 
-      throw new IOException("Error while getting file");
+      throw new IOException("Error while getting data");
     }
   }
 
