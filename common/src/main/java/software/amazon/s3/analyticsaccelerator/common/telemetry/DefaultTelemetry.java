@@ -18,8 +18,7 @@ package software.amazon.s3.analyticsaccelerator.common.telemetry;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.*;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.*;
@@ -305,13 +304,14 @@ public class DefaultTelemetry implements Telemetry {
    */
   private <T> T handleCompletableFutureJoin(CompletableFuture<T> future) throws IOException {
     try {
-      return future.join();
-    } catch (CompletionException e) {
+      return future.get(30_000, TimeUnit.MILLISECONDS);
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
       Throwable cause = e.getCause();
       if (cause instanceof UncheckedIOException) {
         throw ((UncheckedIOException) cause).getCause();
       }
-      throw e;
+
+      throw new IOException("Error while getting file");
     }
   }
 

@@ -18,7 +18,6 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
@@ -225,12 +224,15 @@ public class Block implements Closeable {
     for (int i = 0; i < MAX_RETRIES; i++) {
       try {
         return this.getData();
-      } catch (CompletionException ex) {
-        if (i < MAX_RETRIES - 1) {
-          generateSourceAndData();
+      } catch (IOException ex) {
+        if (ex.getClass() == IOException.class) {
+          if (i < MAX_RETRIES - 1) {
+            generateSourceAndData();
+          } else {
+            throw new IOException("Cannot read block file", ex.getCause());
+          }
         } else {
-          throw new IOException(
-              "Cannot read block file", new IOException("Error while getting block"));
+          throw ex;
         }
       }
     }

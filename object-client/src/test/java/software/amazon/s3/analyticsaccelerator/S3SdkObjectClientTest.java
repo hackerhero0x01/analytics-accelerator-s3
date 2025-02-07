@@ -29,7 +29,6 @@ import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -283,31 +282,6 @@ public class S3SdkObjectClientTest {
         capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
 
     assertEquals(ETAG, capturedRequest.ifMatch());
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  void testTimeout() {
-    S3AsyncClient s3AsyncClient = mock(S3AsyncClient.class);
-    when(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
-        .then(
-            x -> {
-              Thread.sleep(10000);
-              CompletableFuture<ObjectContent> failedFuture = new CompletableFuture<>();
-              failedFuture.completeExceptionally(new TimeoutException("Request timed out."));
-              return failedFuture;
-            });
-    S3SdkObjectClient client =
-        new S3SdkObjectClient(s3AsyncClient, ObjectClientConfiguration.DEFAULT, true, 3000);
-    CompletableFuture<ObjectContent> result =
-        client.getObject(
-            GetRequest.builder()
-                .s3Uri(S3URI.of("bucket", "key"))
-                .range(new Range(0, 20))
-                .etag(ETAG)
-                .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
-                .build());
-    assertTrue(result.isCompletedExceptionally());
   }
 
   @Test

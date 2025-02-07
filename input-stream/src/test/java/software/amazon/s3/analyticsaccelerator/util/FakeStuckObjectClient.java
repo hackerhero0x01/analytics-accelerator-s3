@@ -23,7 +23,6 @@ import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 
 public class FakeStuckObjectClient extends FakeObjectClient {
 
-  private static final String STUCK_CLIENT_S3_BUCKET = "stuck-client";
   /**
    * Instantiate a fake Object Client backed by some string as data.
    *
