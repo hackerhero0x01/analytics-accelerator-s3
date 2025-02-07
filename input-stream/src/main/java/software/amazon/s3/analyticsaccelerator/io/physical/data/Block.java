@@ -166,11 +166,12 @@ public class Block implements Closeable {
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
     byte[] content = this.getData();
-    int available = content.length - posToOffset(pos);
+    int contentOffset = posToOffset(pos);
+    int available = content.length - contentOffset;
     int bytesToCopy = Math.min(len, available);
 
     for (int i = 0; i < bytesToCopy; ++i) {
-      buf[off + i] = content[posToOffset(pos) + i];
+      buf[off + i] = content[contentOffset + i];
     }
 
     return bytesToCopy;
