@@ -304,7 +304,7 @@ public class DefaultTelemetry implements Telemetry {
    */
   private <T> T handleCompletableFutureJoin(CompletableFuture<T> future) throws IOException {
     try {
-      return future.get(30_000, TimeUnit.MILLISECONDS);
+      return future.get(120_000, TimeUnit.MILLISECONDS);
     } catch (ExecutionException | InterruptedException | TimeoutException e) {
       Throwable cause = e.getCause();
       if (cause instanceof UncheckedIOException) {
