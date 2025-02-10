@@ -15,16 +15,16 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
-import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
-import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
-
-/**
- * BlobStore memory manager
- */
+/** BlobStore memory manager */
 public class MemoryManager {
 
   private final BlobStore blobStore;
 
+  /**
+   * Constructs an instance of memory manager
+   *
+   * @param blobStore blobstore
+   */
   public MemoryManager(final BlobStore blobStore) {
     this.blobStore = blobStore;
   }

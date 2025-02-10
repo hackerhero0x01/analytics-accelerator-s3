@@ -75,27 +75,20 @@ public class Blob implements Closeable {
     return activeReaders.addAndGet(readers);
   }
 
-  /**
-   * @return the current active readers of this blob
-   */
+  /** @return the current active readers of this blob */
   public int getActiveReaders() {
     return activeReaders.get();
   }
 
-  /**
-   * @return the object key of this blob
-   */
+  /** @return the object key of this blob */
   public ObjectKey getObjectKey() {
     return objectKey;
   }
 
-  /**
-   * @return the blockManager of this blob
-   */
+  /** @return the blockManager of this blob */
   public BlockManager getBlockManager() {
     return blockManager;
   }
-
 
   /**
    * Reads a byte from the underlying object

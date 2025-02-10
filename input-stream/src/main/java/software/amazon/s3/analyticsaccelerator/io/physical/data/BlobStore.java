@@ -15,23 +15,22 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
+import static software.amazon.s3.analyticsaccelerator.util.Constants.*;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-import lombok.NonNull;
 import java.util.logging.Logger;
-
+import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
-
-import static software.amazon.s3.analyticsaccelerator.util.Constants.*;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
 @SuppressFBWarnings(
@@ -50,7 +49,6 @@ public class BlobStore implements Closeable {
   private static final double TARGET_USAGE_AFTER_EVICTION = 0.70;
   private static final Logger LOG = Logger.getLogger(BlobStore.class.getName());
 
-
   /**
    * Construct an instance of BlobStore.
    *
@@ -65,8 +63,9 @@ public class BlobStore implements Closeable {
     this.objectClient = objectClient;
     this.telemetry = telemetry;
     this.blobMap = Collections.synchronizedMap(new LinkedHashMap<ObjectKey, Blob>(16, 0.75f, true));
-    if(configuration.getMaxMemoryLimitAAL() != Long.MAX_VALUE) {
-      long reserveMemory = Math.min((long) Math.ceil(0.10 * configuration.getMaxMemoryLimitAAL()), RESERVE_MEMORY);
+    if (configuration.getMaxMemoryLimitAAL() != Long.MAX_VALUE) {
+      long reserveMemory =
+          Math.min((long) Math.ceil(0.10 * configuration.getMaxMemoryLimitAAL()), RESERVE_MEMORY);
       this.blobStoreMaxMemoryLimit = configuration.getMaxMemoryLimitAAL() - reserveMemory;
     } else {
       this.blobStoreMaxMemoryLimit = calculateDefaultMemoryLimit();
@@ -78,6 +77,7 @@ public class BlobStore implements Closeable {
 
   /**
    * Calculates the max memory limit of the BlobStore in case not configured
+   *
    * @return the max memory limit of the BlobStore
    */
   private long calculateDefaultMemoryLimit() {
@@ -86,11 +86,14 @@ public class BlobStore implements Closeable {
     return maxHeapMemory / 2;
   }
 
-  /**
-   * @return the max memory limit of the BlobStore
-   */
+  /** @return the max memory limit of the BlobStore */
   public long getBlobStoreMaxMemoryLimit() {
     return blobStoreMaxMemoryLimit;
+  }
+
+  /** @return the blob map */
+  public Map<ObjectKey, Blob> getBlobMap() {
+    return blobMap;
   }
 
   /**
@@ -103,27 +106,23 @@ public class BlobStore implements Closeable {
     checkBlobStoreMemoryUsageAndEvictIfRequired();
   }
 
-  /**
-   * Checks memory usage of the BlobStore and performs eviction if required
-   */
+  /** Checks memory usage of the BlobStore and performs eviction if required */
   private void checkBlobStoreMemoryUsageAndEvictIfRequired() {
     if (shouldEvict()) {
-      LOG.info("Needs eviction because blobstore memory usage exceeded and currently is " + memoryUsage.get());
+      LOG.info(
+          "Needs eviction because blobstore memory usage exceeded and currently is "
+              + memoryUsage.get());
       evictBlobs();
       LOG.info("After eviction blobstore memory usage memory usage is " + memoryUsage.get());
     }
   }
 
-  /**
-   * @return the current memory usage of BlobStore
-   */
+  /** @return the current memory usage of BlobStore */
   public long getMemoryUsage() {
     return memoryUsage.get();
   }
 
-  /**
-   * @return if eviction ois required for the BlobStore
-   */
+  /** @return if eviction ois required for the BlobStore */
   private boolean shouldEvict() {
     return memoryUsage.get() >= EVICTION_THRESHOLD * blobStoreMaxMemoryLimit;
   }
@@ -135,17 +134,17 @@ public class BlobStore implements Closeable {
    * @return the size of the blob
    */
   public long getBlobSize(Blob blob) {
-    return blob.getBlockManager().getBlockStore().getBlocks().stream().mapToLong(Block::getLength).sum();
+    return blob.getBlockManager().getBlockStore().getBlocks().stream()
+        .mapToLong(Block::getLength)
+        .sum();
   }
 
-  /**
-   * Evicts blobs from the BlobStore.
-   */
+  /** Evicts blobs from the BlobStore. */
   private void evictBlobs() {
     synchronized (blobMap) {
-      StringBuilder sb = new StringBuilder("Blob Map Contents before eviction:\n");
+      StringBuilder sb = new StringBuilder(String.format("Blob Map Contents before eviction:%n"));
       for (Map.Entry<ObjectKey, Blob> entry : blobMap.entrySet()) {
-        sb.append(String.format("  %s \n", entry.getKey().getS3URI()));
+        sb.append(String.format("  %s %n", entry.getKey().getS3URI()));
       }
       LOG.info(String.valueOf(sb));
 
@@ -165,17 +164,15 @@ public class BlobStore implements Closeable {
         }
       }
 
-      sb = new StringBuilder("Blob Map Contents after eviction:\n");
+      sb = new StringBuilder(String.format("Blob Map Contents after eviction:%n"));
       for (Map.Entry<ObjectKey, Blob> entry : blobMap.entrySet()) {
-        sb.append(String.format("  %s \n", entry.getKey().getS3URI()));
+        sb.append(String.format("  %s %n", entry.getKey().getS3URI()));
       }
       LOG.info(String.valueOf(sb));
     }
   }
 
-  /**
-   * @return the keys in order of access
-   */
+  /** @return the keys in order of access */
   public List<ObjectKey> getKeyOrder() {
     return new ArrayList<>(blobMap.keySet());
   }
@@ -186,6 +183,7 @@ public class BlobStore implements Closeable {
    * @param objectKey the etag and S3 URI of the object
    * @param metadata the metadata for the object we are computing
    * @param streamContext contains audit headers to be attached in the request header
+   * @param memoryManager manages memory usage of the blobstore
    * @return the blob representing the object from the BlobStore
    */
   public Blob get(
@@ -213,16 +211,6 @@ public class BlobStore implements Closeable {
     blob.updateActiveReaders(1);
     checkBlobStoreMemoryUsageAndEvictIfRequired();
     return blob;
-  }
-
-  /**
-   * Returns a blob that exists already.
-   *
-   * @param objectKey the etag and S3 URI of the object
-   * @return the blob representing the object from the BlobStore
-   */
-  public Blob get(ObjectKey objectKey) {
-    return blobMap.get(objectKey);
   }
 
   /**

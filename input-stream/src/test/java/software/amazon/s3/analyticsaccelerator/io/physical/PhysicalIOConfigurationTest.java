@@ -61,6 +61,7 @@ public class PhysicalIOConfigurationTest {
     assertEquals(
         configuration.toString(),
         "PhysicalIO configuration:\n"
+            + "\tmaxMemoryLimitAAL: 9223372036854775807\n"
             + "\tmetadataStoreCapacity: 50\n"
             + "\tblockSizeBytes: 8388608\n"
             + "\treadAheadBytes: 65536\n"

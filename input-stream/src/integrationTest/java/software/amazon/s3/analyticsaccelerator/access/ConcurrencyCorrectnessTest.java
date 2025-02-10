@@ -51,15 +51,12 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
   @ParameterizedTest
   @MethodSource("evictionTests")
   void testReadsWithEviction(
-          S3ClientKind s3ClientKind,
-          StreamReadPatternKind streamReadPattern,
-          AALInputStreamConfigurationKind configuration)
-          throws IOException, InterruptedException, ExecutionException {
+      S3ClientKind s3ClientKind,
+      StreamReadPatternKind streamReadPattern,
+      AALInputStreamConfigurationKind configuration)
+      throws IOException, InterruptedException, ExecutionException {
 
-    testAALReadConcurrencyWithEviction(
-            s3ClientKind,
-            streamReadPattern,
-            configuration);
+    testAALReadConcurrencyWithEviction(s3ClientKind, streamReadPattern, configuration);
   }
 
   @ParameterizedTest
@@ -152,8 +149,6 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
 
   static Stream<Arguments> evictionTests() {
     return argumentsForEvictionTest(
-            getS3ClientKinds(),
-            parquetPatterns(),
-            getS3SeekableInputStreamConfigurations());
+        getS3ClientKinds(), parquetPatterns(), getS3SeekableInputStreamConfigurations());
   }
 }

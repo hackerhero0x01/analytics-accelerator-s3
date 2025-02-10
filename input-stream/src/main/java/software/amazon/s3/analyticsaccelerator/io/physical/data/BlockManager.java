@@ -59,14 +59,16 @@ public class BlockManager implements Closeable {
    * @param telemetry an instance of {@link Telemetry} to use
    * @param metadata the metadata for the object we are reading
    * @param configuration the physicalIO configuration
+   * @param memoryManager memory manager for the blobstore
    */
   public BlockManager(
       @NonNull ObjectKey objectKey,
       @NonNull ObjectClient objectClient,
       @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
-      @NonNull PhysicalIOConfiguration configuration) {
-    this(objectKey, objectClient, metadata, telemetry, configuration, null, null);
+      @NonNull PhysicalIOConfiguration configuration,
+      @NonNull MemoryManager memoryManager) {
+    this(objectKey, objectClient, metadata, telemetry, configuration, null, memoryManager);
   }
 
   /**
@@ -78,6 +80,7 @@ public class BlockManager implements Closeable {
    * @param metadata the metadata for the object
    * @param configuration the physicalIO configuration
    * @param streamContext contains audit headers to be attached in the request header
+   * @param memoryManager memory manager for the blobstore
    */
   public BlockManager(
       @NonNull ObjectKey objectKey,
@@ -100,9 +103,7 @@ public class BlockManager implements Closeable {
     this.streamContext = streamContext;
   }
 
-  /**
-   * @return the BlockStore
-   */
+  /** @return the BlockStore */
   public BlockStore getBlockStore() {
     return blockStore;
   }

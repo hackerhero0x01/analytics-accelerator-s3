@@ -91,7 +91,6 @@ public class S3SeekableInputStreamConfigurationTest {
     assertEquals(10, streamConfiguration.getPhysicalIOConfiguration().getMetadataStoreCapacity());
     assertEquals(20, streamConfiguration.getPhysicalIOConfiguration().getBlockSizeBytes());
 
-
     assertFalse(streamConfiguration.getTelemetryConfiguration().isStdOutEnabled());
     assertFalse(streamConfiguration.getTelemetryConfiguration().isLoggingEnabled());
     assertEquals("foo", streamConfiguration.getTelemetryConfiguration().getLoggingName());

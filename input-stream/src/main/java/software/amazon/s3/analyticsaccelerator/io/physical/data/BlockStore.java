@@ -42,6 +42,7 @@ public class BlockStore implements Closeable {
    *
    * @param objectKey the etag and S3 URI of the object
    * @param metadata the metadata for the object
+   * @param memoryManager memory manager for the blobstore
    */
   public BlockStore(ObjectKey objectKey, ObjectMetadata metadata, MemoryManager memoryManager) {
     Preconditions.checkNotNull(objectKey, "`objectKey` must not be null");
@@ -53,9 +54,7 @@ public class BlockStore implements Closeable {
     this.memoryManager = memoryManager;
   }
 
-  /**
-   * @return the list of blocks in the blockstore.
-   */
+  /** @return the list of blocks in the blockstore. */
   public List<Block> getBlocks() {
     return blocks;
   }

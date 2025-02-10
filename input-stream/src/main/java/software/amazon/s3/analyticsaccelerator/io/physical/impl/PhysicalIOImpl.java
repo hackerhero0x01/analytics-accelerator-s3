@@ -56,14 +56,16 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param metadataStore a metadata cache
    * @param blobStore a data cache
    * @param telemetry The {@link Telemetry} to use to report measurements.
+   * @param memoryManager memory manager for blobstore
    */
   public PhysicalIOImpl(
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
-      @NonNull Telemetry telemetry)
+      @NonNull Telemetry telemetry,
+      @NonNull MemoryManager memoryManager)
       throws IOException {
-    this(s3URI, metadataStore, blobStore, telemetry, null, null);
+    this(s3URI, metadataStore, blobStore, telemetry, null, memoryManager);
   }
 
   /**
@@ -74,6 +76,7 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param blobStore a data cache
    * @param telemetry The {@link Telemetry} to use to report measurements.
    * @param streamContext contains audit headers to be attached in the request header
+   * @param memoryManager memory manager for blobstore
    */
   public PhysicalIOImpl(
       @NonNull S3URI s3URI,
@@ -81,7 +84,7 @@ public class PhysicalIOImpl implements PhysicalIO {
       @NonNull BlobStore blobStore,
       @NonNull Telemetry telemetry,
       StreamContext streamContext,
-      MemoryManager memoryManager)
+      @NonNull MemoryManager memoryManager)
       throws IOException {
     this.metadataStore = metadataStore;
     this.blobStore = blobStore;

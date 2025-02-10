@@ -77,7 +77,9 @@ public class BlobStoreTest {
   @Test
   public void testGetReturnsReadableBlob() throws IOException {
     // When: a Blob is asked for
-    Blob blob = blobStore.get(objectKey, objectMetadata, mock(StreamContext.class), mock(MemoryManager.class));
+    Blob blob =
+        blobStore.get(
+            objectKey, objectMetadata, mock(StreamContext.class), mock(MemoryManager.class));
 
     // Then:
     byte[] b = new byte[TEST_DATA.length()];

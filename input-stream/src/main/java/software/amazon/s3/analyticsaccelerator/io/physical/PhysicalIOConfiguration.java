@@ -40,7 +40,10 @@ public class PhysicalIOConfiguration {
   private static final double DEFAULT_SEQUENTIAL_PREFETCH_BASE = 2.0;
   private static final double DEFAULT_SEQUENTIAL_PREFETCH_SPEED = 1.0;
 
-  /** Max memory to be used by library. {@link PhysicalIOConfiguration#DEFAULT_MAX_MEMORY_LIMIT_AAL} by default. */
+  /**
+   * Max memory to be used by library. {@link PhysicalIOConfiguration#DEFAULT_MAX_MEMORY_LIMIT_AAL}
+   * by default.
+   */
   @Builder.Default private long maxMemoryLimitAAL = DEFAULT_MAX_MEMORY_LIMIT_AAL;
 
   private static final String MAX_MEMORY_LIMIT_AAL_KEY = "aal.maxmemory";

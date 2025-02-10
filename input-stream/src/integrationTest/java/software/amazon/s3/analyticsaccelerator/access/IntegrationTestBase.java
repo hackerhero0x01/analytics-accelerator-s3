@@ -268,49 +268,49 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * @param iterations how many iterations each thread does
    */
   protected void testAALReadConcurrency(
-          @NonNull S3ClientKind s3ClientKind,
-          @NonNull S3Object s3Object,
-          @NonNull StreamReadPatternKind streamReadPatternKind,
-          @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind,
-          int concurrencyLevel,
-          int iterations)
-          throws IOException, InterruptedException, ExecutionException {
+      @NonNull S3ClientKind s3ClientKind,
+      @NonNull S3Object s3Object,
+      @NonNull StreamReadPatternKind streamReadPatternKind,
+      @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind,
+      int concurrencyLevel,
+      int iterations)
+      throws IOException, InterruptedException, ExecutionException {
     StreamReadPattern streamReadPattern = streamReadPatternKind.getStreamReadPattern(s3Object);
     // Read using the standard S3 async client. We do this once, to calculate the checksums
     Crc32CChecksum directChecksum = new Crc32CChecksum();
     executeReadPatternDirectly(
-            s3ClientKind, s3Object, streamReadPattern, Optional.of(directChecksum));
+        s3ClientKind, s3Object, streamReadPattern, Optional.of(directChecksum));
 
     // Create the s3DATClientStreamReader - that creates the shared state
     try (S3AALClientStreamReader s3AALClientStreamReader =
-                 this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
       // Create the thread pool
       ExecutorService executorService = Executors.newFixedThreadPool(concurrencyLevel);
       Future<?>[] resultFutures = new Future<?>[concurrencyLevel];
 
       for (int i = 0; i < concurrencyLevel; i++) {
         resultFutures[i] =
-                executorService.submit(
-                        () -> {
-                          try {
-                            // Run multiple iterations
-                            for (int j = 0; j < iterations; j++) {
-                              // Run DAT on the thread
-                              // This will create a new stream every time, but all streams will share state
-                              Crc32CChecksum datChecksum = new Crc32CChecksum();
-                              executeReadPatternOnAAL(
-                                      s3Object,
-                                      s3AALClientStreamReader,
-                                      streamReadPattern,
-                                      Optional.of(datChecksum));
+            executorService.submit(
+                () -> {
+                  try {
+                    // Run multiple iterations
+                    for (int j = 0; j < iterations; j++) {
+                      // Run DAT on the thread
+                      // This will create a new stream every time, but all streams will share state
+                      Crc32CChecksum datChecksum = new Crc32CChecksum();
+                      executeReadPatternOnAAL(
+                          s3Object,
+                          s3AALClientStreamReader,
+                          streamReadPattern,
+                          Optional.of(datChecksum));
 
-                              // Assert checksums
-                              assertChecksums(directChecksum, datChecksum);
-                            }
-                          } catch (Throwable t) {
-                            throw new RuntimeException(t);
-                          }
-                        });
+                      // Assert checksums
+                      assertChecksums(directChecksum, datChecksum);
+                    }
+                  } catch (Throwable t) {
+                    throw new RuntimeException(t);
+                  }
+                });
       }
       // wait for each future to propagate errors
       for (int i = 0; i < concurrencyLevel; i++) {
@@ -324,19 +324,18 @@ public abstract class IntegrationTestBase extends ExecutionBase {
   }
 
   protected void testAALReadConcurrencyWithEviction(
-          @NonNull S3ClientKind s3ClientKind,
-          @NonNull StreamReadPatternKind streamReadPatternKind,
-          @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind)
-          throws IOException, InterruptedException, ExecutionException {
+      @NonNull S3ClientKind s3ClientKind,
+      @NonNull StreamReadPatternKind streamReadPatternKind,
+      @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind)
+      throws IOException, InterruptedException, ExecutionException {
 
     final Map<S3Object, Crc32CChecksum> s3ObjectCrc32CChecksumMap = new HashMap<>();
     // Read using the standard S3 async client. We do this once, to calculate the checksums
-    for(S3Object obj: S3Object.smallAndMediumObjects()) {
+    for (S3Object obj : S3Object.smallAndMediumObjects()) {
       System.out.println("Getting checksum for " + obj);
       StreamReadPattern streamReadPattern = streamReadPatternKind.getStreamReadPattern(obj);
       Crc32CChecksum directChecksum = new Crc32CChecksum();
-      executeReadPatternDirectly(
-              s3ClientKind, obj, streamReadPattern, Optional.of(directChecksum));
+      executeReadPatternDirectly(s3ClientKind, obj, streamReadPattern, Optional.of(directChecksum));
       s3ObjectCrc32CChecksumMap.put(obj, directChecksum);
     }
 
@@ -347,22 +346,24 @@ public abstract class IntegrationTestBase extends ExecutionBase {
 
     // Create the s3DATClientStreamReader - that creates the shared state
     try (S3AALClientStreamReader s3AALClientStreamReader =
-                 this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
       // Create the thread pool
       ExecutorService executorService = Executors.newFixedThreadPool(10);
 
       List<Future<?>> resultFutures = new ArrayList<>();
 
-      for (S3Object obj : s3Objects ) {
-        Future<?> future = executorService.submit(
+      for (S3Object obj : s3Objects) {
+        Future<?> future =
+            executorService.submit(
                 () -> {
                   try {
                     // This will create a new stream every time, but all streams will share state
                     Crc32CChecksum datChecksum = new Crc32CChecksum();
-                    executeReadPatternOnAAL(obj,
-                            s3AALClientStreamReader,
-                            streamReadPatternKind.getStreamReadPattern(obj),
-                            Optional.of(datChecksum));
+                    executeReadPatternOnAAL(
+                        obj,
+                        s3AALClientStreamReader,
+                        streamReadPatternKind.getStreamReadPattern(obj),
+                        Optional.of(datChecksum));
 
                     // Assert checksums
                     assertChecksums(s3ObjectCrc32CChecksumMap.get(obj), datChecksum);
@@ -467,10 +468,11 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     }
     return results.stream();
   }
+
   static Stream<Arguments> argumentsForEvictionTest(
-          List<S3ClientKind> clients,
-          List<StreamReadPatternKind> readPatterns,
-          List<AALInputStreamConfigurationKind> configurations) {
+      List<S3ClientKind> clients,
+      List<StreamReadPatternKind> readPatterns,
+      List<AALInputStreamConfigurationKind> configurations) {
     ArrayList<Arguments> results = new ArrayList<>();
     for (S3ClientKind client : clients) {
       for (StreamReadPatternKind readPattern : readPatterns) {
@@ -483,5 +485,3 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     return results.stream();
   }
 }
-
-
