@@ -26,9 +26,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 @Getter
 public enum AALInputStreamConfigurationKind {
   DEFAULT("DEFAULT", S3SeekableInputStreamConfiguration.DEFAULT),
-  SMALL_MEMORY_LIMIT("SMALL_MEMORY_LIMIT", createConfigWithMemoryLimit(100 * 1024 * 1024)), // 100 MB
-
-  MEDIUM_MEMORY_LIMIT("MEDIUM_MEMORY_LIMIT", createConfigWithMemoryLimit(500 * 1024 * 1024)); // 500 MB
+  SMALL_MEMORY_LIMIT("SMALL_MEMORY_LIMIT", createConfigWithMemoryLimit(100 * 1024 * 1024)); // 100 MB
 
 
   private final String name;

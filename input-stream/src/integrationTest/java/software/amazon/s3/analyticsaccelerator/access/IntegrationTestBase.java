@@ -326,7 +326,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
   protected void testAALReadConcurrencyWithEviction(
           @NonNull S3ClientKind s3ClientKind,
           @NonNull StreamReadPatternKind streamReadPatternKind,
-          @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind,)
+          @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind)
           throws IOException, InterruptedException, ExecutionException {
 
     final Map<S3Object, Crc32CChecksum> s3ObjectCrc32CChecksumMap = new HashMap<>();

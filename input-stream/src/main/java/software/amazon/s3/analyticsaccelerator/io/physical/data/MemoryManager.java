@@ -15,6 +15,12 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
+import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
+import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
+
+/**
+ * BlobStore memory manager
+ */
 public class MemoryManager {
 
   private final BlobStore blobStore;
@@ -23,6 +29,11 @@ public class MemoryManager {
     this.blobStore = blobStore;
   }
 
+  /**
+   * Updates memory usage of BlobStore.
+   *
+   * @param bytes bytes to be added to the blobstore memory usage
+   */
   public void incrementBlobStoreMemoryUsage(long bytes) {
     blobStore.updateMemoryUsage(bytes);
   }

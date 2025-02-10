@@ -45,7 +45,6 @@ public class BlobStore implements Closeable {
   private final PhysicalIOConfiguration configuration;
   private AtomicLong memoryUsage;
   private long blobStoreMaxMemoryLimit;
-  public static final long BLOB_STORE_MAX_MEMORY_LIMIT_DEFAULT = 3 * ONE_GB;
   public static final long RESERVE_MEMORY = 200 * ONE_MB;
   private static final double EVICTION_THRESHOLD = 0.90;
   private static final double TARGET_USAGE_AFTER_EVICTION = 0.70;
@@ -84,7 +83,7 @@ public class BlobStore implements Closeable {
   private long calculateDefaultMemoryLimit() {
     MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
     long maxHeapMemory = memoryBean.getHeapMemoryUsage().getMax();
-    return Math.max(BLOB_STORE_MAX_MEMORY_LIMIT_DEFAULT, maxHeapMemory / 2);
+    return maxHeapMemory / 2;
   }
 
   /**
