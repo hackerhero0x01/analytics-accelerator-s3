@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import lombok.Getter;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
@@ -48,6 +50,7 @@ public class Block implements Closeable {
   private final ObjectClient objectClient;
   private final StreamContext streamContext;
   private final ReadMode readMode;
+  private final Referrer referrer;
 
   @Getter private final long start;
   @Getter private final long end;
@@ -57,6 +60,8 @@ public class Block implements Closeable {
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
 
   private static final int MAX_RETRIES = 20;
+
+  private static final Logger LOG = LoggerFactory.getLogger(Block.class);
 
   /**
    * Constructs a Block data.
@@ -119,6 +124,7 @@ public class Block implements Closeable {
     this.objectClient = objectClient;
     this.streamContext = streamContext;
     this.readMode = readMode;
+    this.referrer = new Referrer(range.toHttpString(), readMode);
 
     generateSourceAndData();
   }
@@ -130,7 +136,7 @@ public class Block implements Closeable {
             .s3Uri(this.objectKey.getS3URI())
             .range(this.range)
             .etag(this.objectKey.getEtag())
-            .referrer(new Referrer(range.toHttpString(), readMode));
+            .referrer(referrer);
 
     GetRequest getRequest = getRequestBuilder.build();
     this.source =
@@ -226,8 +232,10 @@ public class Block implements Closeable {
       } catch (IOException ex) {
         if (ex.getClass() == IOException.class) {
           if (i < MAX_RETRIES - 1) {
+            LOG.info("Get data failed. Retrying. Retry Count {}", i);
             generateSourceAndData();
           } else {
+            LOG.error("Cannot read block file. Retry reached the limit");
             throw new IOException("Cannot read block file", ex.getCause());
           }
         } else {
