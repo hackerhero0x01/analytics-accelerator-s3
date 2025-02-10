@@ -89,7 +89,7 @@ public class BlockManager implements Closeable {
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
       StreamContext streamContext,
-      MemoryManager memoryManager) {
+      @NonNull MemoryManager memoryManager) {
     this.objectKey = objectKey;
     this.objectClient = objectClient;
     this.metadata = metadata;
