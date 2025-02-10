@@ -147,7 +147,7 @@ public class PhysicalIOConfiguration {
       long partSizeBytes,
       double sequentialPrefetchBase,
       double sequentialPrefetchSpeed) {
-    Preconditions.checkArgument(maxMemoryLimitAAL > 0, "`blobStoreCapacity` must be positive");
+    Preconditions.checkArgument(maxMemoryLimitAAL > 0, "`maxMemoryLimitAAL` must be positive");
     Preconditions.checkArgument(
         metadataStoreCapacity > 0, "`metadataStoreCapacity` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");
