@@ -43,6 +43,7 @@ public class StreamUtils {
       while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
         outStream.write(buffer, 0, numBytesRead);
       }
+      inStream.close();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
