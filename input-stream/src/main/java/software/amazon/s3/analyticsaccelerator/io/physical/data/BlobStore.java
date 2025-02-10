@@ -83,7 +83,7 @@ public class BlobStore implements Closeable {
   private long calculateDefaultMemoryLimit() {
     MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
     long maxHeapMemory = memoryBean.getHeapMemoryUsage().getMax();
-    return maxHeapMemory / 2;
+    return (long) Math.ceil(0.20 * maxHeapMemory);
   }
 
   /** @return the max memory limit of the BlobStore */

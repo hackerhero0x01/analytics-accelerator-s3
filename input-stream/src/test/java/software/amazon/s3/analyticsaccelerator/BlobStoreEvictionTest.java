@@ -83,7 +83,7 @@ public class BlobStoreEvictionTest {
 
     MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
     long maxHeapMemory = memoryBean.getHeapMemoryUsage().getMax();
-    long expectedLimit = maxHeapMemory / 2;
+    long expectedLimit = (long) Math.ceil(0.20 * maxHeapMemory);
 
     // Then
     assertEquals(expectedLimit, blobStore.getBlobStoreMaxMemoryLimit());

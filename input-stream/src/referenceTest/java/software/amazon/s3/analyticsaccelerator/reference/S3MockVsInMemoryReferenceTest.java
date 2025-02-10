@@ -70,22 +70,12 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
 
   @BeforeContainer
   static void setup() {
-    System.out.println("rajdchak");
-    try {
-      System.out.println("rajdchak");
-      s3Client = createS3ClientV2(S3_MOCK.getHttpsEndpoint());
-      System.out.println("S3 client created successfully");
-
-      // Initialise streams
-      s3SeekableInputStreamFactory =
-          new S3SeekableInputStreamFactory(
-              new S3SdkObjectClient(s3Client), S3SeekableInputStreamConfiguration.DEFAULT);
-      System.out.println(
-          "rajdchak s3SeekableInputStreamFactory is " + s3SeekableInputStreamFactory);
-    } catch (Exception e) {
-      System.err.println("Exception in setup: " + e.getMessage());
-      e.printStackTrace();
-    }
+    s3Client = createS3ClientV2(S3_MOCK.getHttpsEndpoint());
+    System.out.println("S3 client created successfully");
+    // Initialise streams
+    s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(
+            new S3SdkObjectClient(s3Client), S3SeekableInputStreamConfiguration.DEFAULT);
   }
 
   @AfterContainer
@@ -107,7 +97,6 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
         .join();
 
     s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(uri);
-    System.out.println("rajdchak s3SeekableInputStream is  " + s3SeekableInputStreamFactory);
 
     inMemorySeekableStream = new InMemorySeekableStream(data);
   }
