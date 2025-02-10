@@ -18,7 +18,10 @@ package software.amazon.s3.analyticsaccelerator.common.telemetry;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.*;
@@ -311,7 +314,7 @@ public class DefaultTelemetry implements Telemetry {
         throw ((UncheckedIOException) cause).getCause();
       }
 
-      throw new IOException("Error while getting data");
+      throw new IOException("Error while getting data", e);
     }
   }
 
