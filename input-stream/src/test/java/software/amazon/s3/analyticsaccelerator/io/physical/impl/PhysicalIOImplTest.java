@@ -35,6 +35,7 @@ import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
+import software.amazon.s3.analyticsaccelerator.io.physical.data.MemoryManager;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
@@ -55,7 +56,12 @@ public class PhysicalIOImplTest {
         NullPointerException.class,
         () -> {
           new PhysicalIOImpl(
-              s3URI, null, mock(BlobStore.class), TestTelemetry.DEFAULT, mock(StreamContext.class));
+              s3URI,
+              null,
+              mock(BlobStore.class),
+              TestTelemetry.DEFAULT,
+              mock(StreamContext.class),
+              mock(MemoryManager.class));
         });
 
     assertThrows(
@@ -66,7 +72,8 @@ public class PhysicalIOImplTest {
               mock(MetadataStore.class),
               null,
               TestTelemetry.DEFAULT,
-              mock(StreamContext.class));
+              mock(StreamContext.class),
+              mock(MemoryManager.class));
         });
 
     assertThrows(
@@ -109,7 +116,12 @@ public class PhysicalIOImplTest {
         NullPointerException.class,
         () -> {
           new PhysicalIOImpl(
-              s3URI, mock(MetadataStore.class), mock(BlobStore.class), TestTelemetry.DEFAULT, null);
+              s3URI,
+              mock(MetadataStore.class),
+              mock(BlobStore.class),
+              TestTelemetry.DEFAULT,
+              null,
+              mock(MemoryManager.class));
         });
   }
 

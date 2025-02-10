@@ -22,6 +22,7 @@ import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
+import software.amazon.s3.analyticsaccelerator.io.physical.data.MemoryManager;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
@@ -39,6 +40,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   private final StreamContext streamContext;
   private ObjectKey objectKey;
   private final ObjectMetadata metadata;
+  private final MemoryManager memoryManager;
 
   private final long physicalIOBirth = System.nanoTime();
 
@@ -61,7 +63,7 @@ public class PhysicalIOImpl implements PhysicalIO {
       @NonNull BlobStore blobStore,
       @NonNull Telemetry telemetry)
       throws IOException {
-    this(s3URI, metadataStore, blobStore, telemetry, null);
+    this(s3URI, metadataStore, blobStore, telemetry, null, null);
   }
 
   /**
@@ -78,7 +80,8 @@ public class PhysicalIOImpl implements PhysicalIO {
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
       @NonNull Telemetry telemetry,
-      StreamContext streamContext)
+      StreamContext streamContext,
+      MemoryManager memoryManager)
       throws IOException {
     this.metadataStore = metadataStore;
     this.blobStore = blobStore;
@@ -86,6 +89,7 @@ public class PhysicalIOImpl implements PhysicalIO {
     this.streamContext = streamContext;
     this.metadata = this.metadataStore.get(s3URI);
     this.objectKey = ObjectKey.builder().s3URI(s3URI).etag(metadata.getEtag()).build();
+    this.memoryManager = memoryManager;
   }
 
   /**
@@ -122,7 +126,8 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () -> blobStore.get(this.objectKey, this.metadata, streamContext).read(pos));
+          () ->
+              blobStore.get(this.objectKey, this.metadata, streamContext, memoryManager).read(pos));
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -159,7 +164,10 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () -> blobStore.get(objectKey, this.metadata, streamContext).read(buf, off, len, pos));
+          () ->
+              blobStore
+                  .get(objectKey, this.metadata, streamContext, memoryManager)
+                  .read(buf, off, len, pos));
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -195,7 +203,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                   .build(),
           () ->
               blobStore
-                  .get(objectKey, this.metadata, streamContext)
+                  .get(objectKey, this.metadata, streamContext, memoryManager)
                   .read(buf, off, len, contentLength - len));
     } catch (Exception e) {
       handleOperationExceptions(e);
@@ -222,7 +230,8 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(objectKey, this.metadata, streamContext).execute(ioPlan));
+        () ->
+            blobStore.get(objectKey, this.metadata, streamContext, memoryManager).execute(ioPlan));
   }
 
   private void handleOperationExceptions(Exception e) {
