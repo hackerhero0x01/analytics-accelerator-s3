@@ -184,6 +184,8 @@ public class Blob implements Closeable {
           } catch (Exception e) {
             LOG.error("Failed to submit IOPlan to PhysicalIO", e);
             return IOPlanExecution.builder().state(IOPlanState.FAILED).build();
+          } finally {
+            updateActiveReaders(-1);
           }
         });
   }
