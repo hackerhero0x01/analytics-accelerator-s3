@@ -29,8 +29,8 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.ObjectFormatSelector;
+import software.amazon.s3.analyticsaccelerator.util.OpenFileInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /**
@@ -96,36 +96,40 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI, ObjectMetadata metadata)
       throws IOException {
-    Preconditions.checkArgument(metadata.getContentLength() >= 0, "`len` must be non-negative");
-
-    objectMetadataStore.storeObjectMetadata(s3URI, metadata);
-
+    storeObjectMetadata(s3URI, metadata);
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
   /**
-   * Create an instance of S3SeekableInputStream with streamContext.
+   * Creates and instance of SeekableStream with file information
    *
    * @param s3URI the object's S3 URI
-   * @param streamContext contains audit headers to be attached in request header
+   * @param openFileInformation known file information this key
    * @return An instance of the input stream.
+   * @throws IOException IoException
    */
-  public S3SeekableInputStream createStream(@NonNull S3URI s3URI, StreamContext streamContext)
-      throws IOException {
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, streamContext), telemetry);
+  public S3SeekableInputStream createStream(
+      @NonNull S3URI s3URI, @NonNull OpenFileInformation openFileInformation) throws IOException {
+    storeObjectMetadata(s3URI, openFileInformation.getObjectMetadata());
+    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, openFileInformation), telemetry);
   }
 
   LogicalIO createLogicalIO(S3URI s3URI) throws IOException {
-    return createLogicalIO(s3URI, null);
+    return createLogicalIO(s3URI, OpenFileInformation.DEFAULT);
   }
 
-  LogicalIO createLogicalIO(S3URI s3URI, StreamContext streamContext) throws IOException {
-    switch (objectFormatSelector.getObjectFormat(s3URI)) {
+  LogicalIO createLogicalIO(S3URI s3URI, OpenFileInformation openFileInformation)
+      throws IOException {
+    switch (objectFormatSelector.getObjectFormat(s3URI, openFileInformation)) {
       case PARQUET:
         return new ParquetLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(
-                s3URI, objectMetadataStore, objectBlobStore, telemetry, streamContext),
+                s3URI,
+                objectMetadataStore,
+                objectBlobStore,
+                telemetry,
+                openFileInformation.getStreamContext()),
             telemetry,
             configuration.getLogicalIOConfiguration(),
             parquetColumnPrefetchStore);
@@ -134,8 +138,19 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         return new DefaultLogicalIOImpl(
             s3URI,
             new PhysicalIOImpl(
-                s3URI, objectMetadataStore, objectBlobStore, telemetry, streamContext),
+                s3URI,
+                objectMetadataStore,
+                objectBlobStore,
+                telemetry,
+                openFileInformation.getStreamContext()),
             telemetry);
+    }
+  }
+
+  void storeObjectMetadata(S3URI s3URI, ObjectMetadata metadata) {
+    if (metadata != null) {
+      Preconditions.checkArgument(metadata.getContentLength() >= 0, "`len` must be non-negative");
+      objectMetadataStore.storeObjectMetadata(s3URI, metadata);
     }
   }
 

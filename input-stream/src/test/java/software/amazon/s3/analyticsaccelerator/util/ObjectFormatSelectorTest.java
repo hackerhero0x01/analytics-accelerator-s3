@@ -30,7 +30,8 @@ public class ObjectFormatSelectorTest {
         new ObjectFormatSelector(LogicalIOConfiguration.DEFAULT);
 
     assertEquals(
-        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key)), ObjectFormat.PARQUET);
+        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key), OpenFileInformation.DEFAULT),
+        ObjectFormat.PARQUET);
   }
 
   @ParameterizedTest
@@ -42,7 +43,8 @@ public class ObjectFormatSelectorTest {
             LogicalIOConfiguration.builder().parquetFormatSelectorRegex("^.*.(pr3|par3)$").build());
 
     assertEquals(
-        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key)), ObjectFormat.PARQUET);
+        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key), OpenFileInformation.DEFAULT),
+        ObjectFormat.PARQUET);
   }
 
   @ParameterizedTest
@@ -52,6 +54,20 @@ public class ObjectFormatSelectorTest {
         new ObjectFormatSelector(LogicalIOConfiguration.DEFAULT);
 
     assertEquals(
-        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key)), ObjectFormat.DEFAULT);
+        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key), OpenFileInformation.DEFAULT),
+        ObjectFormat.DEFAULT);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"key.parquet", "key.par"})
+  public void testDefaultLogicalIOSelectionWithSequentialInputPolicy(String key) {
+    ObjectFormatSelector objectFormatSelector =
+        new ObjectFormatSelector(LogicalIOConfiguration.DEFAULT);
+
+    assertEquals(
+        objectFormatSelector.getObjectFormat(
+            S3URI.of("bucket", key),
+            OpenFileInformation.builder().inputPolicy(InputPolicy.Sequential).build()),
+        ObjectFormat.DEFAULT);
   }
 }

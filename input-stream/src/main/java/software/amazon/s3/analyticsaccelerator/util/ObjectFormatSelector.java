@@ -38,9 +38,22 @@ public class ObjectFormatSelector {
    * Uses a regex matcher to select the file format based on the file extension of the key.
    *
    * @param s3URI the object's S3 URI
+   * @param openFileInformation known file information for the fil e
    * @return the file format of the object
    */
-  public ObjectFormat getObjectFormat(S3URI s3URI) {
+  public ObjectFormat getObjectFormat(S3URI s3URI, OpenFileInformation openFileInformation) {
+
+    // If the supplied policy in open file information is Sequential, then use the default input
+    // stream, regardless of the file format (even if it's parquet!). This is important for
+    // applications like DISTCP, which use a "whole_file" read policy with S3A, where they will
+    // read parquet file sequentially (as they simply need to copy over the file),
+    // instead of the regular parquet pattern of footer first, then specific columns etc., so our
+    // parquet specific optimisations are of no use there :(
+    if (openFileInformation.getInputPolicy() != null
+        && openFileInformation.getInputPolicy().equals(InputPolicy.Sequential)) {
+      return ObjectFormat.DEFAULT;
+    }
+
     if (parquetPattern.matcher(s3URI.getKey()).find()) {
       return ObjectFormat.PARQUET;
     }
