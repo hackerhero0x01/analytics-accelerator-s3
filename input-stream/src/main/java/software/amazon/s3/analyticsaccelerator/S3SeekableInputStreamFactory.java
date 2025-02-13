@@ -95,7 +95,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI, ObjectMetadata metadata)
       throws IOException {
-    objectMetadataStore.storeObjectMetadata(s3URI, metadata);
+    storeObjectMetadata(s3URI, metadata);
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
@@ -109,7 +109,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   public S3SeekableInputStream createStream(
       @NonNull S3URI s3URI, @NonNull OpenFileInformation openFileInformation) throws IOException {
-    objectMetadataStore.storeObjectMetadata(s3URI, openFileInformation.getObjectMetadata());
+    storeObjectMetadata(s3URI, openFileInformation.getObjectMetadata());
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, openFileInformation), telemetry);
   }
 
@@ -144,6 +144,10 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
                 openFileInformation.getStreamContext()),
             telemetry);
     }
+  }
+
+  void storeObjectMetadata(S3URI s3URI, ObjectMetadata metadata) {
+    objectMetadataStore.storeObjectMetadata(s3URI, metadata);
   }
 
   /**
