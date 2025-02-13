@@ -147,7 +147,9 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   }
 
   void storeObjectMetadata(S3URI s3URI, ObjectMetadata metadata) {
-    objectMetadataStore.storeObjectMetadata(s3URI, metadata);
+    if (metadata != null) {
+      objectMetadataStore.storeObjectMetadata(s3URI, metadata);
+    }
   }
 
   /**
