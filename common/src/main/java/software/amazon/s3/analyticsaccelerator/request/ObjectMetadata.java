@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.request;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
+import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 
 /** Wrapper class around HeadObjectResponse abstracting away from S3-specific details */
 @Data
@@ -26,4 +27,12 @@ public class ObjectMetadata {
   long contentLength;
 
   @NonNull String etag;
+
+  @Builder
+  private ObjectMetadata(long contentLength, @NonNull String etag) {
+    Preconditions.checkArgument(contentLength >= 0, "content length` must be non-negative");
+
+    this.contentLength = contentLength;
+    this.etag = etag;
+  }
 }

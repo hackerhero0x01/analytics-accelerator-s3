@@ -128,7 +128,9 @@ public class MetadataStore implements Closeable {
    * @param objectMetadata Object metadata
    */
   public synchronized void storeObjectMetadata(S3URI s3URI, ObjectMetadata objectMetadata) {
-    this.cache.put(s3URI, CompletableFuture.completedFuture(objectMetadata));
+    if (objectMetadata != null) {
+      this.cache.put(s3URI, CompletableFuture.completedFuture(objectMetadata));
+    }
   }
 
   /**

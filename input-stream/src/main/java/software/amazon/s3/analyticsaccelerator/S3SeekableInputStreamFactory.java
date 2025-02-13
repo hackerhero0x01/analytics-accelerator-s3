@@ -18,7 +18,6 @@ package software.amazon.s3.analyticsaccelerator;
 import java.io.IOException;
 import lombok.Getter;
 import lombok.NonNull;
-import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
@@ -96,12 +95,12 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   public S3SeekableInputStream createStream(@NonNull S3URI s3URI, ObjectMetadata metadata)
       throws IOException {
-    storeObjectMetadata(s3URI, metadata);
+    objectMetadataStore.storeObjectMetadata(s3URI, metadata);
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI), telemetry);
   }
 
   /**
-   * Creates and instance of SeekableStream with file information
+   * Creates an instance of SeekableStream with file information
    *
    * @param s3URI the object's S3 URI
    * @param openFileInformation known file information this key
@@ -110,7 +109,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   public S3SeekableInputStream createStream(
       @NonNull S3URI s3URI, @NonNull OpenFileInformation openFileInformation) throws IOException {
-    storeObjectMetadata(s3URI, openFileInformation.getObjectMetadata());
+    objectMetadataStore.storeObjectMetadata(s3URI, openFileInformation.getObjectMetadata());
     return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, openFileInformation), telemetry);
   }
 
@@ -144,13 +143,6 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
                 telemetry,
                 openFileInformation.getStreamContext()),
             telemetry);
-    }
-  }
-
-  void storeObjectMetadata(S3URI s3URI, ObjectMetadata metadata) {
-    if (metadata != null) {
-      Preconditions.checkArgument(metadata.getContentLength() >= 0, "`len` must be non-negative");
-      objectMetadataStore.storeObjectMetadata(s3URI, metadata);
     }
   }
 
