@@ -30,7 +30,7 @@ public class ObjectMetadata {
 
   @Builder
   private ObjectMetadata(long contentLength, @NonNull String etag) {
-    Preconditions.checkArgument(contentLength >= 0, "content length` must be non-negative");
+    Preconditions.checkArgument(contentLength >= 0, "content length must be non-negative");
 
     this.contentLength = contentLength;
     this.etag = etag;
