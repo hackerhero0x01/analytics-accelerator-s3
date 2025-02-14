@@ -15,14 +15,22 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
-import static software.amazon.s3.analyticsaccelerator.util.Constants.*;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_GB;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Closeable;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -48,6 +56,8 @@ public class BlobStore implements Closeable {
   private static final double EVICTION_THRESHOLD = 0.90;
   private static final double TARGET_USAGE_AFTER_EVICTION = 0.70;
   private static final Logger LOG = Logger.getLogger(BlobStore.class.getName());
+  private final AtomicBoolean isEvictionInProgress = new AtomicBoolean(false);
+  private final ExecutorService evictionExecutor = Executors.newSingleThreadExecutor();
 
   /**
    * Construct an instance of BlobStore.
@@ -81,9 +91,7 @@ public class BlobStore implements Closeable {
    * @return the max memory limit of the BlobStore
    */
   private long calculateDefaultMemoryLimit() {
-    MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
-    long maxHeapMemory = memoryBean.getHeapMemoryUsage().getMax();
-    return (long) Math.ceil(0.20 * maxHeapMemory);
+    return 3 * ONE_GB;
   }
 
   /** @return the max memory limit of the BlobStore */
@@ -106,14 +114,22 @@ public class BlobStore implements Closeable {
     checkBlobStoreMemoryUsageAndEvictIfRequired();
   }
 
-  /** Checks memory usage of the BlobStore and performs eviction if required */
+  /** Checks memory usage of the BlobStore and schedules eviction if required */
   private void checkBlobStoreMemoryUsageAndEvictIfRequired() {
-    if (shouldEvict()) {
+    if (shouldEvict() && isEvictionInProgress.compareAndSet(false, true)) {
       LOG.info(
-          "Needs eviction because blobstore memory usage exceeded and currently is "
+          "Scheduling eviction because blobstore memory usage exceeded and currently is "
               + memoryUsage.get());
-      evictBlobs();
-      LOG.info("After eviction blobstore memory usage memory usage is " + memoryUsage.get());
+      evictionExecutor.execute(
+          () -> {
+            try {
+              evictBlobs();
+            } catch (Exception e) {
+              LOG.log(Level.SEVERE, "Error during asynchronous blob eviction", e);
+            } finally {
+              isEvictionInProgress.set(false);
+            }
+          });
     }
   }
 
@@ -140,11 +156,12 @@ public class BlobStore implements Closeable {
   }
 
   /** Evicts blobs from the BlobStore. */
-  private void evictBlobs() {
+  public void evictBlobs() {
     synchronized (blobMap) {
+      LOG.info("Blob map size is currently " + blobMap.size());
       StringBuilder sb = new StringBuilder(String.format("Blob Map Contents before eviction:%n"));
       for (Map.Entry<ObjectKey, Blob> entry : blobMap.entrySet()) {
-        sb.append(String.format("  %s %n", entry.getKey().getS3URI()));
+        sb.append(String.format("%s %n", entry.getKey().getS3URI()));
       }
       LOG.info(String.valueOf(sb));
 
@@ -153,7 +170,7 @@ public class BlobStore implements Closeable {
           && iterator.hasNext()) {
         Map.Entry<ObjectKey, Blob> entry = iterator.next();
         Blob blob = entry.getValue();
-        if (blob.getActiveReaders() == 0) {
+        if (blob.getActiveReaders().get() == 0) {
           long blobSize = getBlobSize(blob);
           if (blobSize > 0) {
             iterator.remove();
@@ -166,7 +183,7 @@ public class BlobStore implements Closeable {
 
       sb = new StringBuilder(String.format("Blob Map Contents after eviction:%n"));
       for (Map.Entry<ObjectKey, Blob> entry : blobMap.entrySet()) {
-        sb.append(String.format("  %s %n", entry.getKey().getS3URI()));
+        sb.append(String.format("%s %n", entry.getKey().getS3URI()));
       }
       LOG.info(String.valueOf(sb));
     }
@@ -236,5 +253,6 @@ public class BlobStore implements Closeable {
   @Override
   public void close() {
     blobMap.forEach((k, v) -> v.close());
+    evictionExecutor.shutdownNow();
   }
 }

@@ -374,12 +374,9 @@ public abstract class IntegrationTestBase extends ExecutionBase {
         resultFutures.add(future);
       }
 
-      // wait for each future to propagate errors
       for (Future<?> future : resultFutures) {
-        // This should throw an exception, if a thread threw one, including assertions
         future.get();
       }
-      // Shutdown. Wait for termination indefinitely - we expect it to always complete
       executorService.shutdown();
       assertTrue(executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS));
     }

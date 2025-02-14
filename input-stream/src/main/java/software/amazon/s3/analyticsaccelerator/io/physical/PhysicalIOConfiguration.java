@@ -46,7 +46,7 @@ public class PhysicalIOConfiguration {
    */
   @Builder.Default private long maxMemoryLimitAAL = DEFAULT_MAX_MEMORY_LIMIT_AAL;
 
-  private static final String MAX_MEMORY_LIMIT_AAL_KEY = "aal.maxmemory";
+  private static final String MAX_MEMORY_LIMIT_AAL_KEY = "max.memory";
 
   /**
    * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_METADATA_STORE} by default.

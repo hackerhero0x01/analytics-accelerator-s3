@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
 /** A Blob representing an object. */
+@Getter
 public class Blob implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(Blob.class);
   private static final String OPERATION_EXECUTE = "blob.execute";
@@ -75,21 +77,6 @@ public class Blob implements Closeable {
     return activeReaders.addAndGet(readers);
   }
 
-  /** @return the current active readers of this blob */
-  public int getActiveReaders() {
-    return activeReaders.get();
-  }
-
-  /** @return the object key of this blob */
-  public ObjectKey getObjectKey() {
-    return objectKey;
-  }
-
-  /** @return the blockManager of this blob */
-  public BlockManager getBlockManager() {
-    return blockManager;
-  }
-
   /**
    * Reads a byte from the underlying object
    *
@@ -101,8 +88,7 @@ public class Blob implements Closeable {
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
     try {
       blockManager.makePositionAvailable(pos, ReadMode.SYNC);
-      int bytesRead = blockManager.getBlock(pos).get().read(pos);
-      return bytesRead;
+      return blockManager.getBlock(pos).get().read(pos);
     } finally {
       updateActiveReaders(-1);
     }
