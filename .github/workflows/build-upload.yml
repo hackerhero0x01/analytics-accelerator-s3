@@ -172,9 +172,3 @@ jobs:
 
       - name: Upload Hadoop JAR to S3A treatment bucket
         run: aws s3 cp hadoop-aws-3.5.0-SNAPSHOT.jar s3://${{ env.S3_BUCKET }}/s3a/hadoop-aws-3.5.0-SNAPSHOT.jar
-
-      - name: Trigger S3A Benchmarks
-        run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT_S3A }}
-
-      - name: Trigger S3FileIO Benchmarks
-        run:  aws stepfunctions start-execution --state-machine-arn ${{ env.STATE_MACHINE_ARN }} --input ${{ env.STATE_MACHINE_INPUT_S3FILEIO }}
