@@ -26,11 +26,11 @@ import software.amazon.s3.analyticsaccelerator.request.StreamContext;
  */
 @Value
 @Builder
-public class OpenFileInformation {
+public class OpenStreamInformation {
   StreamContext streamContext;
   ObjectMetadata objectMetadata;
   InputPolicy inputPolicy;
 
-  /** Default set of settings for {@link OpenFileInformation} */
-  public static final OpenFileInformation DEFAULT = OpenFileInformation.builder().build();
+  /** Default set of settings for {@link OpenStreamInformation} */
+  public static final OpenStreamInformation DEFAULT = OpenStreamInformation.builder().build();
 }

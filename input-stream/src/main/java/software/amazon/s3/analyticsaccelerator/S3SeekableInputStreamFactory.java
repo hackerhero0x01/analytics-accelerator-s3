@@ -29,7 +29,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.ObjectFormatSelector;
-import software.amazon.s3.analyticsaccelerator.util.OpenFileInformation;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /**
@@ -103,23 +103,25 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * Creates an instance of SeekableStream with file information
    *
    * @param s3URI the object's S3 URI
-   * @param openFileInformation known file information this key
+   * @param openStreamInformation known file information this key
    * @return An instance of the input stream.
    * @throws IOException IoException
    */
   public S3SeekableInputStream createStream(
-      @NonNull S3URI s3URI, @NonNull OpenFileInformation openFileInformation) throws IOException {
-    storeObjectMetadata(s3URI, openFileInformation.getObjectMetadata());
-    return new S3SeekableInputStream(s3URI, createLogicalIO(s3URI, openFileInformation), telemetry);
+      @NonNull S3URI s3URI, @NonNull OpenStreamInformation openStreamInformation)
+      throws IOException {
+    storeObjectMetadata(s3URI, openStreamInformation.getObjectMetadata());
+    return new S3SeekableInputStream(
+        s3URI, createLogicalIO(s3URI, openStreamInformation), telemetry);
   }
 
   LogicalIO createLogicalIO(S3URI s3URI) throws IOException {
-    return createLogicalIO(s3URI, OpenFileInformation.DEFAULT);
+    return createLogicalIO(s3URI, OpenStreamInformation.DEFAULT);
   }
 
-  LogicalIO createLogicalIO(S3URI s3URI, OpenFileInformation openFileInformation)
+  LogicalIO createLogicalIO(S3URI s3URI, OpenStreamInformation openStreamInformation)
       throws IOException {
-    switch (objectFormatSelector.getObjectFormat(s3URI, openFileInformation)) {
+    switch (objectFormatSelector.getObjectFormat(s3URI, openStreamInformation)) {
       case PARQUET:
         return new ParquetLogicalIOImpl(
             s3URI,
@@ -128,7 +130,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
                 objectMetadataStore,
                 objectBlobStore,
                 telemetry,
-                openFileInformation.getStreamContext()),
+                openStreamInformation.getStreamContext()),
             telemetry,
             configuration.getLogicalIOConfiguration(),
             parquetColumnPrefetchStore);
@@ -141,7 +143,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
                 objectMetadataStore,
                 objectBlobStore,
                 telemetry,
-                openFileInformation.getStreamContext()),
+                openStreamInformation.getStreamContext()),
             telemetry);
     }
   }

@@ -30,7 +30,8 @@ public class ObjectFormatSelectorTest {
         new ObjectFormatSelector(LogicalIOConfiguration.DEFAULT);
 
     assertEquals(
-        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key), OpenFileInformation.DEFAULT),
+        objectFormatSelector.getObjectFormat(
+            S3URI.of("bucket", key), OpenStreamInformation.DEFAULT),
         ObjectFormat.PARQUET);
   }
 
@@ -43,7 +44,8 @@ public class ObjectFormatSelectorTest {
             LogicalIOConfiguration.builder().parquetFormatSelectorRegex("^.*.(pr3|par3)$").build());
 
     assertEquals(
-        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key), OpenFileInformation.DEFAULT),
+        objectFormatSelector.getObjectFormat(
+            S3URI.of("bucket", key), OpenStreamInformation.DEFAULT),
         ObjectFormat.PARQUET);
   }
 
@@ -54,7 +56,8 @@ public class ObjectFormatSelectorTest {
         new ObjectFormatSelector(LogicalIOConfiguration.DEFAULT);
 
     assertEquals(
-        objectFormatSelector.getObjectFormat(S3URI.of("bucket", key), OpenFileInformation.DEFAULT),
+        objectFormatSelector.getObjectFormat(
+            S3URI.of("bucket", key), OpenStreamInformation.DEFAULT),
         ObjectFormat.DEFAULT);
   }
 
@@ -67,7 +70,7 @@ public class ObjectFormatSelectorTest {
     assertEquals(
         objectFormatSelector.getObjectFormat(
             S3URI.of("bucket", key),
-            OpenFileInformation.builder().inputPolicy(InputPolicy.Sequential).build()),
+            OpenStreamInformation.builder().inputPolicy(InputPolicy.Sequential).build()),
         ObjectFormat.DEFAULT);
   }
 }

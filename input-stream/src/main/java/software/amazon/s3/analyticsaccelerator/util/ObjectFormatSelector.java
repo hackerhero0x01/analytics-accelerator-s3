@@ -38,10 +38,10 @@ public class ObjectFormatSelector {
    * Uses a regex matcher to select the file format based on the file extension of the key.
    *
    * @param s3URI the object's S3 URI
-   * @param openFileInformation known file information for the file
+   * @param openStreamInformation known file information for the file
    * @return the file format of the object
    */
-  public ObjectFormat getObjectFormat(S3URI s3URI, OpenFileInformation openFileInformation) {
+  public ObjectFormat getObjectFormat(S3URI s3URI, OpenStreamInformation openStreamInformation) {
 
     // If the supplied policy in open file information is Sequential, then use the default input
     // stream, regardless of the file format (even if it's parquet!). This is important for
@@ -49,8 +49,8 @@ public class ObjectFormatSelector {
     // read parquet file sequentially (as they simply need to copy over the file),
     // instead of the regular parquet pattern of footer first, then specific columns etc., so our
     // parquet specific optimisations are of no use there :(
-    if (openFileInformation.getInputPolicy() != null
-        && openFileInformation.getInputPolicy().equals(InputPolicy.Sequential)) {
+    if (openStreamInformation.getInputPolicy() != null
+        && openStreamInformation.getInputPolicy().equals(InputPolicy.Sequential)) {
       return ObjectFormat.DEFAULT;
     }
 

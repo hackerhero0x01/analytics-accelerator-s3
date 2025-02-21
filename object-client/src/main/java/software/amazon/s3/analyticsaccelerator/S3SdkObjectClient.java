@@ -185,8 +185,6 @@ public class S3SdkObjectClient implements ObjectClient {
       referrerHeader = getRequest.getReferrer().toString();
     }
 
-    LOG.info("auditHeaders {}", referrerHeader);
-
     builder.overrideConfiguration(
         AwsRequestOverrideConfiguration.builder()
             .putHeader(HEADER_REFERER, referrerHeader)
