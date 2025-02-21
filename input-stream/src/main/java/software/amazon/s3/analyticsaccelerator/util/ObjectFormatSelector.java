@@ -43,7 +43,7 @@ public class ObjectFormatSelector {
    */
   public ObjectFormat getObjectFormat(S3URI s3URI, OpenStreamInformation openStreamInformation) {
 
-    // If the supplied policy in open file information is Sequential, then use the default input
+    // If the supplied policy in open stream information is Sequential, then use the default input
     // stream, regardless of the file format (even if it's parquet!). This is important for
     // applications like DISTCP, which use a "whole_file" read policy with S3A, where they will
     // read parquet file sequentially (as they simply need to copy over the file),
