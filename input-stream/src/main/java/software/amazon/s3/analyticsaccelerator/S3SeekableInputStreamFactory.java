@@ -103,7 +103,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    * Creates an instance of SeekableStream with file information
    *
    * @param s3URI the object's S3 URI
-   * @param openStreamInformation known file information this key
+   * @param openStreamInformation known information for this key
    * @return An instance of the input stream.
    * @throws IOException IoException
    */

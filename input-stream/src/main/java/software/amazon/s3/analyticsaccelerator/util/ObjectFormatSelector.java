@@ -38,7 +38,7 @@ public class ObjectFormatSelector {
    * Uses a regex matcher to select the file format based on the file extension of the key.
    *
    * @param s3URI the object's S3 URI
-   * @param openStreamInformation known file information for the file
+   * @param openStreamInformation known information for this key
    * @return the file format of the object
    */
   public ObjectFormat getObjectFormat(S3URI s3URI, OpenStreamInformation openStreamInformation) {
