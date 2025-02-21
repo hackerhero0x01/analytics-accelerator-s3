@@ -23,8 +23,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import lombok.Getter;
 import lombok.NonNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -41,7 +39,6 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 public class S3SdkObjectClient implements ObjectClient {
   private static final String HEADER_USER_AGENT = "User-Agent";
   private static final String HEADER_REFERER = "Referer";
-  private static final Logger LOG = LoggerFactory.getLogger(S3SdkObjectClient.class);
 
   @Getter @NonNull private final S3AsyncClient s3AsyncClient;
   @NonNull private final Telemetry telemetry;
