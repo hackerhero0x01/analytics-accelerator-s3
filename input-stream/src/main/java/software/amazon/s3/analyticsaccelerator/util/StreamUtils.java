@@ -82,11 +82,11 @@ public class StreamUtils {
     } catch (TimeoutException e) {
       future.cancel(true);
       LOG.warn(
-              "Reading from InputStream has timed out for Block s3URI={}, etag={}, start={}, end={}",
-              objectKey.s3URI,
-              objectKey.etag,
-              range.getStart(),
-              range.getEnd());
+          "Reading from InputStream has timed out for Block s3URI={}, etag={}, start={}, end={}",
+          objectKey.s3URI,
+          objectKey.etag,
+          range.getStart(),
+          range.getEnd());
       throw new TimeoutException("Read operation timed out");
     } catch (Exception e) {
       throw new IOException("Error reading stream", e);
