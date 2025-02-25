@@ -21,12 +21,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import software.amazon.s3.analyticsaccelerator.io.physical.data.Block;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 
 /** Utility class for stream operations. */
 public class StreamUtils {
 
   private static final int BUFFER_SIZE = 8 * ONE_KB;
+  private static final Logger LOG = LoggerFactory.getLogger(StreamUtils.class);
 
   /**
    * Convert an InputStream from the underlying object to a byte array.
@@ -47,9 +52,11 @@ public class StreamUtils {
             () -> {
               try {
                 int numBytesRead;
+                LOG.info("Starting to read from InputStream");
                 while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
                   outStream.write(buffer, 0, numBytesRead);
                 }
+                LOG.info("Successfully read from InputStream");
                 return null;
               } finally {
                 inStream.close();
@@ -58,8 +65,10 @@ public class StreamUtils {
 
     try {
       future.get(timeoutMs, TimeUnit.MILLISECONDS);
+
     } catch (TimeoutException e) {
       future.cancel(true);
+      LOG.warn("Reading from InputStream has timed out.");
       throw new TimeoutException("Read operation timed out");
     } catch (Exception e) {
       throw new IOException("Error reading stream", e);
