@@ -16,13 +16,20 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
+
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
+import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.FakeStuckObjectClient;
@@ -182,6 +189,7 @@ public class BlockTest {
                 null));
   }
 
+  @SneakyThrows
   @Test
   void testReadBoundaries() {
     final String TEST_DATA = "test-data";
@@ -203,6 +211,7 @@ public class BlockTest {
     assertThrows(IllegalArgumentException.class, () -> block.read(b, 10, 3, 1));
   }
 
+  @SneakyThrows
   @Test
   void testContains() {
     final String TEST_DATA = "test-data";
@@ -220,6 +229,7 @@ public class BlockTest {
     assertFalse(block.contains(TEST_DATA.length() + 1));
   }
 
+  @SneakyThrows
   @Test
   void testContainsBoundaries() {
     final String TEST_DATA = "test-data";
@@ -255,6 +265,7 @@ public class BlockTest {
     assertThrows(IOException.class, () -> block.read(4));
   }
 
+  @SneakyThrows
   @Test
   void testClose() {
     final String TEST_DATA = "test-data";

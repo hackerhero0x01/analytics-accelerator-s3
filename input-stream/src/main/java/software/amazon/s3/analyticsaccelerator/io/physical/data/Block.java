@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -60,6 +61,7 @@ public class Block implements Closeable {
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
 
   private static final int MAX_RETRIES = 20;
+  private static final long TIMEOUT_MILLIS = 120_000;
 
   private static final Logger LOG = LoggerFactory.getLogger(Block.class);
 
@@ -81,7 +83,8 @@ public class Block implements Closeable {
       long start,
       long end,
       long generation,
-      @NonNull ReadMode readMode) {
+      @NonNull ReadMode readMode)
+      throws IOException {
 
     this(objectKey, objectClient, telemetry, start, end, generation, readMode, null);
   }
@@ -106,7 +109,8 @@ public class Block implements Closeable {
       long end,
       long generation,
       @NonNull ReadMode readMode,
-      StreamContext streamContext) {
+      StreamContext streamContext)
+      throws IOException {
 
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
@@ -130,28 +134,57 @@ public class Block implements Closeable {
   }
 
   /** Method to help construct source and data */
-  private void generateSourceAndData() {
-    GetRequest.GetRequestBuilder getRequestBuilder =
-        GetRequest.builder()
-            .s3Uri(this.objectKey.getS3URI())
-            .range(this.range)
-            .etag(this.objectKey.getEtag())
-            .referrer(referrer);
+  private void generateSourceAndData() throws IOException {
+    int retries = 0;
+    while (retries < MAX_RETRIES) {
+      try {
+        GetRequest getRequest =
+            GetRequest.builder()
+                .s3Uri(this.objectKey.getS3URI())
+                .range(this.range)
+                .etag(this.objectKey.getEtag())
+                .referrer(referrer)
+                .build();
 
-    GetRequest getRequest = getRequestBuilder.build();
-    this.source =
-        this.telemetry.measureCritical(
-            () ->
-                Operation.builder()
-                    .name(OPERATION_BLOCK_GET_ASYNC)
-                    .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
-                    .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
-                    .attribute(StreamAttributes.range(this.range))
-                    .attribute(StreamAttributes.generation(generation))
-                    .build(),
-            objectClient.getObject(getRequest, streamContext));
+        this.source =
+            this.telemetry.measureCritical(
+                () ->
+                    Operation.builder()
+                        .name(OPERATION_BLOCK_GET_ASYNC)
+                        .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
+                        .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
+                        .attribute(StreamAttributes.range(this.range))
+                        .attribute(StreamAttributes.generation(generation))
+                        .build(),
+                objectClient.getObject(getRequest, streamContext));
 
-    this.data = this.source.thenApply(StreamUtils::toByteArray);
+        // Handle IOExceptions when converting stream to byte array
+        this.data =
+            this.source.thenApply(
+                objectContent -> {
+                  try {
+                    return StreamUtils.toByteArray(objectContent, TIMEOUT_MILLIS);
+                  } catch (IOException | TimeoutException e) {
+                    throw new RuntimeException(
+                        "Error while converting InputStream to byte array", e);
+                  }
+                });
+
+        return; // Successfully generated source and data, exit loop
+      } catch (RuntimeException e) {
+        retries++;
+        LOG.warn(
+            "Retry {}/{} - Failed to fetch block data due to: {}",
+            retries,
+            MAX_RETRIES,
+            e.getMessage());
+
+        if (retries >= MAX_RETRIES) {
+          LOG.error("Max retries reached. Unable to fetch block data.");
+          throw new IOException("Failed to fetch block data after retries", e);
+        }
+      }
+    }
   }
 
   /**

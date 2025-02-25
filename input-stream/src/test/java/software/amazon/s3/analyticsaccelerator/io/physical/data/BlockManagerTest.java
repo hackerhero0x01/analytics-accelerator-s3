@@ -204,7 +204,7 @@ public class BlockManagerTest {
         .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
 
     assertThrows(
-        S3Exception.class,
+        IOException.class,
         () -> blockManager.makePositionAvailable(readAheadBytes + 1, ReadMode.SYNC));
   }
 

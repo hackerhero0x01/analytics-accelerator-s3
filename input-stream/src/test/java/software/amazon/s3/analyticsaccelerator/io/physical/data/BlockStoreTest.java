@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.OptionalLong;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
@@ -41,6 +42,7 @@ public class BlockStoreTest {
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
   private static final int OBJECT_SIZE = 100;
 
+  @SneakyThrows
   @Test
   public void test__blockStore__getBlockAfterAddBlock() {
     // Given: empty BlockStore
@@ -90,6 +92,7 @@ public class BlockStoreTest {
     assertEquals(OptionalLong.empty(), blockStore.findNextMissingByte(14));
   }
 
+  @SneakyThrows
   @Test
   public void test__blockStore__findNextAvailableByteCorrect() {
     // Given: BlockStore with blocks (2,3), (5,10), (12,15)

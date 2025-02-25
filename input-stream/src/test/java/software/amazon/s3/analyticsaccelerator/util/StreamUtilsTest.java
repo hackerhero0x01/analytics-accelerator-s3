@@ -16,15 +16,24 @@
 package software.amazon.s3.analyticsaccelerator.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeoutException;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 
 public class StreamUtilsTest {
 
+  private static final long TIMEOUT_MILLIS = 1_000;
+
+  @SneakyThrows
   @Test
   public void testToByteArrayWorksWithEmptyStream() {
     // Given: objectContent with an empty stream
@@ -32,7 +41,7 @@ public class StreamUtilsTest {
         ObjectContent.builder().stream(new ByteArrayInputStream(new byte[0])).build();
 
     // When: toByteArray is called
-    byte[] buf = StreamUtils.toByteArray(objectContent);
+    byte[] buf = StreamUtils.toByteArray(objectContent, TIMEOUT_MILLIS);
 
     // Then: returned byte array is empty
     String content = new String(buf, StandardCharsets.UTF_8);
@@ -40,6 +49,7 @@ public class StreamUtilsTest {
     assertEquals("", content);
   }
 
+  @SneakyThrows
   @Test
   public void testToByteArrayConvertsCorrectly() {
     // Given: objectContent with "Hello World" in it
@@ -48,9 +58,33 @@ public class StreamUtilsTest {
     ObjectContent objectContent = ObjectContent.builder().stream(inputStream).build();
 
     // When: toByteArray is called
-    byte[] buf = StreamUtils.toByteArray(objectContent);
+    byte[] buf = StreamUtils.toByteArray(objectContent, TIMEOUT_MILLIS);
 
     // Then: 'Hello World' is returned
     assertEquals("Hello World", new String(buf, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  void toByteArrayShouldThrowTimeoutExceptionWhenStreamReadTakesTooLong() throws Exception {
+    // Mock ObjectContent
+    ObjectContent mockContent = mock(ObjectContent.class);
+
+    // Create a slow InputStream that simulates a delay in reading
+    InputStream slowInputStream = mock(InputStream.class);
+    when(slowInputStream.read(any(byte[].class), anyInt(), anyInt()))
+        .thenAnswer(
+            invocation -> {
+              Thread.sleep(TIMEOUT_MILLIS + 100); // Delay beyond timeout
+              return -1; // Simulate end of stream
+            });
+
+    when(mockContent.getStream()).thenReturn(slowInputStream);
+
+    // Test the timeout behavior
+    assertThrows(
+        TimeoutException.class, () -> StreamUtils.toByteArray(mockContent, TIMEOUT_MILLIS));
+
+    // Verify the stream was accessed
+    verify(mockContent).getStream();
   }
 }

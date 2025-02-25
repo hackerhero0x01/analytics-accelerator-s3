@@ -197,20 +197,19 @@ public class BlockManager implements Closeable {
           List<Range> missingRanges =
               ioPlanner.planRead(pos, effectiveEndFinal, getLastObjectByte());
           List<Range> splits = rangeOptimiser.splitRanges(missingRanges);
-          splits.forEach(
-              r -> {
-                Block block =
-                    new Block(
-                        objectKey,
-                        objectClient,
-                        telemetry,
-                        r.getStart(),
-                        r.getEnd(),
-                        generation,
-                        readMode,
-                        streamContext);
-                blockStore.add(block);
-              });
+          for (Range r : splits) {
+            Block block =
+                new Block(
+                    objectKey,
+                    objectClient,
+                    telemetry,
+                    r.getStart(),
+                    r.getEnd(),
+                    generation,
+                    readMode,
+                    streamContext);
+            blockStore.add(block);
+          }
         });
   }
 

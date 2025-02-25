@@ -20,6 +20,7 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.*;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 
 /** Utility class for stream operations. */
@@ -31,21 +32,39 @@ public class StreamUtils {
    * Convert an InputStream from the underlying object to a byte array.
    *
    * @param objectContent the part of the object
+   * @param timeoutMs read timeout in milliseconds
    * @return a byte array
    */
-  public static byte[] toByteArray(ObjectContent objectContent) {
+  public static byte[] toByteArray(ObjectContent objectContent, long timeoutMs)
+      throws IOException, TimeoutException {
     InputStream inStream = objectContent.getStream();
     ByteArrayOutputStream outStream = new ByteArrayOutputStream();
     byte[] buffer = new byte[BUFFER_SIZE];
 
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    Future<Void> future =
+        executorService.submit(
+            () -> {
+              try {
+                int numBytesRead;
+                while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
+                  outStream.write(buffer, 0, numBytesRead);
+                }
+                return null;
+              } finally {
+                inStream.close();
+              }
+            });
+
     try {
-      int numBytesRead;
-      while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
-        outStream.write(buffer, 0, numBytesRead);
-      }
-      inStream.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      future.get(timeoutMs, TimeUnit.MILLISECONDS);
+    } catch (TimeoutException e) {
+      future.cancel(true);
+      throw new TimeoutException("Read operation timed out");
+    } catch (Exception e) {
+      throw new IOException("Error reading stream", e);
+    } finally {
+      executorService.shutdown();
     }
 
     return outStream.toByteArray();
