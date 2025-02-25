@@ -16,20 +16,15 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
-
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
-import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
-import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.FakeStuckObjectClient;
