@@ -24,6 +24,7 @@ import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
+import software.amazon.s3.analyticsaccelerator.request.Range;
 
 /** Utility class for stream operations. */
 public class StreamUtils {
@@ -35,10 +36,13 @@ public class StreamUtils {
    * Convert an InputStream from the underlying object to a byte array.
    *
    * @param objectContent the part of the object
+   * @param objectKey container for S3 object to read
+   * @param range range of the S3 object to read
    * @param timeoutMs read timeout in milliseconds
    * @return a byte array
    */
-  public static byte[] toByteArray(ObjectContent objectContent, long timeoutMs)
+  public static byte[] toByteArray(
+      ObjectContent objectContent, ObjectKey objectKey, Range range, long timeoutMs)
       throws IOException, TimeoutException {
     InputStream inStream = objectContent.getStream();
     ByteArrayOutputStream outStream = new ByteArrayOutputStream();
@@ -50,11 +54,22 @@ public class StreamUtils {
             () -> {
               try {
                 int numBytesRead;
-                LOG.info("Starting to read from InputStream");
+                LOG.info(
+                    "Starting to read from InputStream for Block s3URI={}, etag={}, start={}, end={}",
+                    objectKey.s3URI,
+                    objectKey.etag,
+                    range.getStart(),
+                    range.getEnd());
                 while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
                   outStream.write(buffer, 0, numBytesRead);
                 }
-                LOG.info("Successfully read from InputStream");
+                LOG.info(
+                    "Successfully read from InputStream for Block numBytesRead={}, s3URI={}, etag={}, start={}, end={}",
+                    numBytesRead,
+                    objectKey.s3URI,
+                    objectKey.etag,
+                    range.getStart(),
+                    range.getEnd());
                 return null;
               } finally {
                 inStream.close();

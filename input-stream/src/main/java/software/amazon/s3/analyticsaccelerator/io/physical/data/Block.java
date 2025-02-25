@@ -163,7 +163,8 @@ public class Block implements Closeable {
             this.source.thenApply(
                 objectContent -> {
                   try {
-                    return StreamUtils.toByteArray(objectContent, TIMEOUT_MILLIS);
+                    return StreamUtils.toByteArray(
+                        objectContent, this.objectKey, this.range, TIMEOUT_MILLIS);
                   } catch (IOException | TimeoutException e) {
                     throw new RuntimeException(
                         "Error while converting InputStream to byte array", e);

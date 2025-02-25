@@ -28,10 +28,16 @@ import java.util.concurrent.TimeoutException;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
+import software.amazon.s3.analyticsaccelerator.request.Range;
 
 public class StreamUtilsTest {
 
   private static final long TIMEOUT_MILLIS = 1_000;
+  private static final S3URI TEST_S3URI = S3URI.of("test-bucket", "test-key");
+  private static final String TEST_ETAG = "test-etag";
+  private static final Range TEST_RANGE = new Range(0, 20);
+  private static final ObjectKey TEST_OBJECT_KEY =
+      ObjectKey.builder().s3URI(TEST_S3URI).etag(TEST_ETAG).build();
 
   @SneakyThrows
   @Test
@@ -41,7 +47,8 @@ public class StreamUtilsTest {
         ObjectContent.builder().stream(new ByteArrayInputStream(new byte[0])).build();
 
     // When: toByteArray is called
-    byte[] buf = StreamUtils.toByteArray(objectContent, TIMEOUT_MILLIS);
+    byte[] buf =
+        StreamUtils.toByteArray(objectContent, TEST_OBJECT_KEY, TEST_RANGE, TIMEOUT_MILLIS);
 
     // Then: returned byte array is empty
     String content = new String(buf, StandardCharsets.UTF_8);
@@ -58,7 +65,8 @@ public class StreamUtilsTest {
     ObjectContent objectContent = ObjectContent.builder().stream(inputStream).build();
 
     // When: toByteArray is called
-    byte[] buf = StreamUtils.toByteArray(objectContent, TIMEOUT_MILLIS);
+    byte[] buf =
+        StreamUtils.toByteArray(objectContent, TEST_OBJECT_KEY, TEST_RANGE, TIMEOUT_MILLIS);
 
     // Then: 'Hello World' is returned
     assertEquals("Hello World", new String(buf, StandardCharsets.UTF_8));
@@ -82,7 +90,8 @@ public class StreamUtilsTest {
 
     // Test the timeout behavior
     assertThrows(
-        TimeoutException.class, () -> StreamUtils.toByteArray(mockContent, TIMEOUT_MILLIS));
+        TimeoutException.class,
+        () -> StreamUtils.toByteArray(mockContent, TEST_OBJECT_KEY, TEST_RANGE, TIMEOUT_MILLIS));
 
     // Verify the stream was accessed
     verify(mockContent).getStream();
