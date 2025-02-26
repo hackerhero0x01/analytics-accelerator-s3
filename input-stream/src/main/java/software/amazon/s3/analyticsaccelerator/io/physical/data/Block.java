@@ -320,7 +320,8 @@ public class Block implements Closeable {
                 .attribute(StreamAttributes.range(this.range))
                 .attribute(StreamAttributes.rangeLength(this.range.getLength()))
                 .build(),
-        this.data);
+        this.data,
+        this.readTimeout);
   }
 
   /** Closes the {@link Block} and frees up all resources it holds */
