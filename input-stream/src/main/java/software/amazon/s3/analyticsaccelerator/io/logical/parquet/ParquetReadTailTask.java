@@ -81,7 +81,7 @@ public class ParquetReadTailTask {
               physicalIO.readTail(fileTail, 0, tailLength);
               return new FileTail(ByteBuffer.wrap(fileTail), (int) tailRange.getLength());
             } catch (Exception e) {
-              LOG.warn(
+              LOG.debug(
                   "Unable to read file tail for {}, parquet prefetch optimisations will be disabled for this key.",
                   s3URI.getKey(),
                   e);

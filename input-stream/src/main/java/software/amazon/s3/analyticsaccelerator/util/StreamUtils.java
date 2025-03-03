@@ -54,7 +54,7 @@ public class StreamUtils {
             () -> {
               try {
                 int numBytesRead;
-                LOG.info(
+                LOG.debug(
                     "Starting to read from InputStream for Block s3URI={}, etag={}, start={}, end={}",
                     objectKey.s3URI,
                     objectKey.etag,
@@ -63,7 +63,7 @@ public class StreamUtils {
                 while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
                   outStream.write(buffer, 0, numBytesRead);
                 }
-                LOG.info(
+                LOG.debug(
                     "Successfully read from InputStream for Block numBytesRead={}, s3URI={}, etag={}, start={}, end={}",
                     numBytesRead,
                     objectKey.s3URI,
@@ -81,7 +81,7 @@ public class StreamUtils {
 
     } catch (TimeoutException e) {
       future.cancel(true);
-      LOG.warn(
+      LOG.debug(
           "Reading from InputStream has timed out for Block s3URI={}, etag={}, start={}, end={}",
           objectKey.s3URI,
           objectKey.etag,

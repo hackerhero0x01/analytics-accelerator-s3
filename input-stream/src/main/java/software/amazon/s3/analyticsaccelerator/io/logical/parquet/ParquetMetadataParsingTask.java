@@ -83,7 +83,7 @@ public class ParquetMetadataParsingTask {
       parquetColumnPrefetchStore.putColumnMappers(this.s3URI, columnMappers);
       return columnMappers;
     } catch (Exception e) {
-      LOG.warn(
+      LOG.debug(
           "Unable to parse parquet footer for {}, parquet prefetch optimisations will be disabled for this key.",
           this.s3URI.getKey(),
           e);

@@ -51,7 +51,7 @@ public class ConfigurableTelemetryTest {
       LoggingTelemetryReporter loggingTelemetryReporter =
           (LoggingTelemetryReporter) telemetryReporters[1];
       assertSame(loggingTelemetryReporter.getEpochFormatter(), EpochFormatter.DEFAULT);
-      assertEquals(loggingTelemetryReporter.getLoggerLevel(), Level.INFO);
+      assertEquals(loggingTelemetryReporter.getLoggerLevel(), Level.DEBUG);
       assertEquals(
           loggingTelemetryReporter.getLoggerName(), LoggingTelemetryReporter.DEFAULT_LOGGING_NAME);
     }
@@ -89,7 +89,7 @@ public class ConfigurableTelemetryTest {
       LoggingTelemetryReporter loggingTelemetryReporter =
           (LoggingTelemetryReporter) telemetryReporters[1];
       assertSame(loggingTelemetryReporter.getEpochFormatter(), EpochFormatter.DEFAULT);
-      assertEquals(loggingTelemetryReporter.getLoggerLevel(), Level.INFO);
+      assertEquals(loggingTelemetryReporter.getLoggerLevel(), Level.DEBUG);
       assertEquals(
           loggingTelemetryReporter.getLoggerName(), LoggingTelemetryReporter.DEFAULT_LOGGING_NAME);
 
