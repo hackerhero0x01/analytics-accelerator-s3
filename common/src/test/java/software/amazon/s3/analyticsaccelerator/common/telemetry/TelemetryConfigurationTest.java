@@ -44,7 +44,7 @@ public class TelemetryConfigurationTest {
     TelemetryConfiguration configuration = TelemetryConfiguration.DEFAULT;
     assertFalse(configuration.isStdOutEnabled());
     assertTrue(configuration.isLoggingEnabled());
-    assertEquals(Level.INFO.toString(), configuration.getLoggingLevel());
+    assertEquals(Level.DEBUG.toString(), configuration.getLoggingLevel());
     assertEquals(TelemetryConfiguration.DEFAULT_LOGGING_NAME, configuration.getLoggingName());
     assertEquals(Optional.empty(), configuration.getAggregationsFlushInterval());
   }

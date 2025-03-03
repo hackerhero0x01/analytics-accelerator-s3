@@ -263,7 +263,7 @@ public class ParquetPredictivePrefetchingTask {
                     : new IOPlan(ParquetUtils.mergeRanges(columnRanges));
             return physicalIO.execute(columnIoPlan);
           } catch (Throwable t) {
-            LOG.warn("Unable to prefetch columns for {}.", this.s3Uri.getKey(), t);
+            LOG.debug("Unable to prefetch columns for {}.", this.s3Uri.getKey(), t);
             return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
           }
         });

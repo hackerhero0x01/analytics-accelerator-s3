@@ -18,10 +18,10 @@ package software.amazon.s3.analyticsaccelerator.common.telemetry;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
-import java.util.logging.Level;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Value;
+import org.slf4j.event.Level;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 
 /**
@@ -53,7 +53,7 @@ public class TelemetryConfiguration {
       "aggregations.flush.interval.seconds";
 
   public static final String LOGGING_LEVEL_KEY = "logging.level";
-  public static final String DEFAULT_LOGGING_LEVEL = Level.INFO.toString();
+  public static final String DEFAULT_LOGGING_LEVEL = Level.DEBUG.toString();
 
   public static final String LOGGING_NAME_KEY = "logging.name";
   public static final String DEFAULT_LOGGING_NAME = LoggingTelemetryReporter.DEFAULT_LOGGING_NAME;

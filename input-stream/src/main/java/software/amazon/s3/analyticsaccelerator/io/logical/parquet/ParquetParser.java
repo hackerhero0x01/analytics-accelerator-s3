@@ -66,7 +66,7 @@ class ParquetParser {
     int fileMetadataIndex = fileMetadataLengthIndex - fileMetadataLength;
 
     if (fileMetadataIndex < 0) {
-      LOG.warn(
+      LOG.debug(
           "Insufficient data in cached footer for {}. Required length  is {}, provided length of data is {}. Parquet optimisations will be turned off for this file. To prevent this, increase cached length using footer.caching.size",
           s3URI.getKey(),
           fileMetadataLength,

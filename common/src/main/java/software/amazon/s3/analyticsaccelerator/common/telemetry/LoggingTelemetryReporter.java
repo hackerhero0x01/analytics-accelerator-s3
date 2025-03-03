@@ -36,7 +36,7 @@ class LoggingTelemetryReporter implements TelemetryReporter {
   @NonNull private final TelemetryFormat telemetryFormat;
 
   /** Default logging loggerLevel */
-  public static Level DEFAULT_LOGGING_LEVEL = Level.INFO;
+  public static Level DEFAULT_LOGGING_LEVEL = Level.DEBUG;
 
   /** Default logger name */
   public static String DEFAULT_LOGGING_NAME = "com.amazon.connector.s3.telemetry";
