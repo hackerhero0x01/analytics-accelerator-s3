@@ -16,9 +16,9 @@
 package software.amazon.s3.analyticsaccelerator.io.logical;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfigurationTest.LOGICAL_IO_PREFIX;
 
 import org.junit.jupiter.api.Test;
-import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfigurationTest;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
@@ -46,8 +46,7 @@ public class LogicalIOConfigurationTest {
   void testFromConfiguration() {
     ConnectorConfiguration configuration =
         S3SeekableInputStreamConfigurationTest.getConfiguration();
-    ConnectorConfiguration mappedConfiguration =
-        configuration.map(S3SeekableInputStreamConfiguration.LOGICAL_IO_PREFIX);
+    ConnectorConfiguration mappedConfiguration = configuration.map(LOGICAL_IO_PREFIX);
     LogicalIOConfiguration logicalIOConfiguration =
         LogicalIOConfiguration.fromConfiguration(mappedConfiguration);
 

@@ -32,7 +32,10 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
     value = "NP_NONNULL_PARAM_VIOLATION",
     justification = "We mean to pass nulls to checks")
 public class S3SeekableInputStreamConfigurationTest {
-  private static final String TEST_PREFIX = "s3.connector";
+  public static final String TEST_PREFIX = "s3.connector";
+  public static final String LOGICAL_IO_PREFIX = "logicalio";
+  public static final String PHYSICAL_IO_PREFIX = "physicalio";
+  public static final String TELEMETRY_PREFIX = "telemetry";
 
   @Test
   void testDefaultBuilder() {

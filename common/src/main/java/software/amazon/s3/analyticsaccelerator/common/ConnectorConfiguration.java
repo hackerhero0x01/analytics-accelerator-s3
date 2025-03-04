@@ -24,9 +24,9 @@ import lombok.Getter;
 import lombok.NonNull;
 
 /**
- * A map based Connector Framework Configuration to modify LogicalIO, PhysicalIO, and ObjectClient
- * settings. Each configuration item is a Key-Value pair, where keys start with a common prefix.
- * Constructors lets to pass this common prefix as well.
+ * A map based Connector Framework Configuration to modify LogicalIO, PhysicalIO, Telemetry, and
+ * ObjectClient settings. Each configuration item is a Key-Value pair, where keys start with a
+ * common prefix. Constructors lets to pass this common prefix as well.
  *
  * <p>Example: Assume we have the following map fs.s3a.connector.logicalio.a = 10
  * fs.s3a.connector.logicalio.b = "foo" fs.s3a.connector.physicalio.a = 42
@@ -49,18 +49,19 @@ public final class ConnectorConfiguration {
   private final Map<String, String> configuration;
 
   /**
-   * Constructs {@link ConnectorConfiguration} from Map<String, String>. All keys are included in
-   * the configuration
+   * Constructs {@link ConnectorConfiguration} from {@code Map<String, String>}. All keys are
+   * included in the configuration
    *
-   * @param configurationMap key/value set of {@link Map} representing the configuration
+   * @param configurationMap key/value set of {@code Map<String, String>} representing the
+   *     configuration
    */
   public ConnectorConfiguration(@NonNull Map<String, String> configurationMap) {
     this(configurationMap, "");
   }
 
   /**
-   * Constructs {@link ConnectorConfiguration} from Map<String, String> and prependPrefix. Keys not
-   * starting with prefix will be omitted from the configuration.
+   * Constructs {@link ConnectorConfiguration} from {@code Map<String, String>} and prependPrefix.
+   * Keys not starting with prefix will be omitted from the configuration.
    *
    * @param configurationMap key/value set of {@link Map} representing the configuration
    * @param prefix prefix for properties related to Connector Framework for S3
@@ -71,8 +72,8 @@ public final class ConnectorConfiguration {
   }
 
   /**
-   * Constructs {@link ConnectorConfiguration} from Iterable of Map.Entry<String, String> and
-   * prependPrefix. Keys not starting with prefix will be omitted from the configuration.
+   * Constructs {@link ConnectorConfiguration} from Iterable of Map.Entry and prependPrefix. Keys
+   * not starting with prefix will be omitted from the configuration.
    *
    * @param iterableConfiguration key/value iterable of {@link Map} entries representing the
    *     configuration

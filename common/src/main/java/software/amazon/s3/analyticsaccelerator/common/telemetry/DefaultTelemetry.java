@@ -83,13 +83,13 @@ public class DefaultTelemetry implements Telemetry {
   }
 
   /**
-   * Executes a given {@link Supplier<T>} and records the telemetry as {@link Operation}.
+   * Executes a given {@link Supplier} and records the telemetry as {@link Operation}.
    *
-   * @param <T> return type of the {@link Supplier<T>}.
+   * @param <T> return type of the {@link Supplier}.
    * @param level telemetry level.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode code to execute.
-   * @return the value that {@link Supplier<T>} returns.
+   * @return the value that {@link Supplier} returns.
    */
   @SneakyThrows
   public <T> T measure(
@@ -109,7 +109,7 @@ public class DefaultTelemetry implements Telemetry {
    * continuations, so any {@link Operation}s that are created in that context need to carry the
    * parenting chain.
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param level telemetry level.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
@@ -166,13 +166,13 @@ public class DefaultTelemetry implements Telemetry {
   }
 
   /**
-   * Executes a given {@link Supplier<T>} and records the telemetry as {@link Operation}.
+   * Executes a given {@link Supplier} and records the telemetry as {@link Operation}.
    *
    * @param level level of the operation to record this execution as.
    * @param operation operation to record this execution as.
    * @param operationCode code to execute.
-   * @param <T> return type of the {@link Supplier<T>}.
-   * @return the value that {@link Supplier<T>} returns.
+   * @param <T> return type of the {@link Supplier}.
+   * @return the value that {@link Supplier} returns.
    */
   @SneakyThrows
   private <T> T measureImpl(
@@ -192,7 +192,7 @@ public class DefaultTelemetry implements Telemetry {
   }
 
   /**
-   * Executes a given {@link Supplier<T>} and records the telemetry conditionally when the predicate
+   * Executes a given {@link Supplier} and records the telemetry conditionally when the predicate
    * evaluates to true.
    *
    * @param <T> the return type of the enclosed computation
@@ -201,7 +201,7 @@ public class DefaultTelemetry implements Telemetry {
    * @param operationCode code to execute.
    * @param shouldMeasure predicate to test with and decide whether the operation should be
    *     recorded.
-   * @return the value that {@link Supplier<T>} returns.
+   * @return the value that {@link Supplier} returns.
    */
   @SneakyThrows
   private <T> T measureConditionallyImpl(
@@ -237,7 +237,7 @@ public class DefaultTelemetry implements Telemetry {
    * @param level level of the operation to record this execution as.
    * @param operation operation to record this execution as.
    * @param operationCode the future to measure the execution of.
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @return an instance of {@link CompletableFuture} that returns the same result as the one passed
    *     in.
    */
@@ -276,7 +276,7 @@ public class DefaultTelemetry implements Telemetry {
    * recorded if the future was not completed, which is checked via {@link
    * CompletableFuture#isDone()}
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param level telemetry level.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.

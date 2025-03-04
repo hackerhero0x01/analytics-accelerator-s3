@@ -285,10 +285,46 @@ tasks.register<Jar>("customJavadocJar") {
 
 
 tasks.javadoc {
+
+    // Include sources from subprojects
+    val includedProjects = listOf(":common", ":object-client")
+    includedProjects.forEach {projectPath ->
+        val subproject = project(projectPath)
+        source(subproject.sourceSets.main.get().allJava)
+        classpath += subproject.sourceSets.main.get().compileClasspath
+        classpath += subproject.sourceSets.main.get().output
+    }
+
+    // Include only specific classes from common module
+    include("**/ObjectMetadata.java")
+    include("**/ObjectContent.java")
+
+    include("**/ConnectorConfiguration.java")
+    include("**/S3URI.java")
+    include("**/OpenStreamInformation*")
+    include("**/InputPolicy.java")
+    include("**/StreamContext.java")
+
+
+
+    // Include only specific classes from object-client module
+    include("**/S3SdkObjectClient.java")
+
+
+    // Include only specific classes from input-stream module
+    include("**/S3SeekableInputStreamFactory.java")
+    include("**/S3SeekableInputStream.java")
+    include("**/S3SeekableInputStreamConfiguration.java")
+    include("**/S3SeekableInputStreamFactory.java")
+    include("**/PrefetchMode.java")
+
     options {
         (this as StandardJavadocDocletOptions).apply {
-            addStringOption("Xdoclint:none", "-quiet")}
+            addStringOption("Xdoclint:none", "-quiet")
+            addStringOption("encoding", "UTF-8")
+        }
     }
+
 }
 
 val signingEnabled = project.hasProperty("signingEnabled") && project.property("signingEnabled") == "true"

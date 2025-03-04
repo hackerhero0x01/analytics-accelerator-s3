@@ -38,13 +38,13 @@ public interface Telemetry extends Closeable {
       @NonNull TelemetryAction operationCode);
 
   /**
-   * Measures a given {@link Supplier <T>} and record the telemetry as {@link Operation}.
+   * Measures a given {@link Supplier} and record the telemetry as {@link Operation}.
    *
-   * @param <T> return type of the {@link Supplier<T>}.
+   * @param <T> return type of the {@link Supplier}.
    * @param level telemetry level.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode code to execute.
-   * @return the value that {@link Supplier<T>} returns.
+   * @return the value that {@link Supplier} returns.
    */
   <T> T measure(
       @NonNull TelemetryLevel level,
@@ -57,7 +57,7 @@ public interface Telemetry extends Closeable {
    * continuations, so any {@link Operation}s that are created in that context need to carry the
    * parenting chain.
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param level telemetry level.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
@@ -77,7 +77,7 @@ public interface Telemetry extends Closeable {
    * recorded if the future was not completed, which is checked via {@link
    * CompletableFuture#isDone()}
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param level telemetry level.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
@@ -110,13 +110,13 @@ public interface Telemetry extends Closeable {
   }
 
   /**
-   * Measures a given {@link Supplier <T>} and record the telemetry as {@link Operation}. This is
-   * done at {@link TelemetryLevel#CRITICAL}.
+   * Measures a given {@link Supplier} and record the telemetry as {@link Operation}. This is done
+   * at {@link TelemetryLevel#CRITICAL}.
    *
-   * @param <T> return type of the {@link Supplier<T>}.
+   * @param <T> return type of the {@link Supplier}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode code to execute.
-   * @return the value that {@link Supplier<T>} returns.
+   * @return the value that {@link Supplier} returns.
    */
   default <T> T measureCritical(
       OperationSupplier operationSupplier, TelemetrySupplier<T> operationCode) {
@@ -129,7 +129,7 @@ public interface Telemetry extends Closeable {
    * continuations, so any {@link Operation}s that are created in that context need to carry the
    * parenting chain. This is done at {@link TelemetryLevel#CRITICAL}.
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @return an instance of {@link CompletableFuture} that returns the same result as the one passed
@@ -148,7 +148,7 @@ public interface Telemetry extends Closeable {
    * recorded if the future was not completed, which is checked via {@link
    * CompletableFuture#isDone()}. This is done at {@link TelemetryLevel#CRITICAL}.
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @param operationTimeout Timeout duration (in milliseconds) for operation
@@ -175,13 +175,13 @@ public interface Telemetry extends Closeable {
   }
 
   /**
-   * Measures a given {@link Supplier <T>} and record the telemetry as {@link Operation}. This is
-   * done at {@link TelemetryLevel#STANDARD}.
+   * Measures a given {@link Supplier} and record the telemetry as {@link Operation}. This is done
+   * at {@link TelemetryLevel#STANDARD}.
    *
-   * @param <T> return type of the {@link Supplier<T>}.
+   * @param <T> return type of the {@link Supplier}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode code to execute.
-   * @return the value that {@link Supplier<T>} returns.
+   * @return the value that {@link Supplier} returns.
    */
   default <T> T measureStandard(
       OperationSupplier operationSupplier, TelemetrySupplier<T> operationCode) {
@@ -194,7 +194,7 @@ public interface Telemetry extends Closeable {
    * continuations, so any {@link Operation}s that are created in that context need to carry the
    * parenting chain. This is done at {@link TelemetryLevel#STANDARD}.
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @return an instance of {@link CompletableFuture} that returns the same result as the one passed
@@ -213,7 +213,7 @@ public interface Telemetry extends Closeable {
    * recorded if the future was not completed, which is checked via {@link
    * CompletableFuture#isDone()}. This is done at {@link TelemetryLevel#STANDARD}.
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @param operationTimeout Timeout duration (in milliseconds) for operation
@@ -240,13 +240,13 @@ public interface Telemetry extends Closeable {
   }
 
   /**
-   * Measures a given {@link Supplier <T>} and record the telemetry as {@link Operation}. This is
-   * done at {@link TelemetryLevel#VERBOSE}.
+   * Measures a given {@link Supplier} and record the telemetry as {@link Operation}. This is done
+   * at {@link TelemetryLevel#VERBOSE}.
    *
-   * @param <T> return type of the {@link Supplier<T>}.
+   * @param <T> return type of the {@link Supplier}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode code to execute.
-   * @return the value that {@link Supplier<T>} returns.
+   * @return the value that {@link Supplier} returns.
    */
   default <T> T measureVerbose(
       OperationSupplier operationSupplier, TelemetrySupplier<T> operationCode) {
@@ -259,7 +259,7 @@ public interface Telemetry extends Closeable {
    * continuations, so any {@link Operation}s that are created in that context need to carry the
    * parenting chain. This is done at {@link TelemetryLevel#VERBOSE}.
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @return an instance of {@link CompletableFuture} that returns the same result as the one passed
@@ -278,7 +278,7 @@ public interface Telemetry extends Closeable {
    * recorded if the future was not completed, which is checked via {@link
    * CompletableFuture#isDone()}. This is done at {@link TelemetryLevel#VERBOSE}.
    *
-   * @param <T> - return type of the {@link CompletableFuture<T>}.
+   * @param <T> - return type of the {@link CompletableFuture}.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @param operationTimeout Timeout duration (in milliseconds) for operation

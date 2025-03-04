@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.analyticsaccelerator;
 
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -25,13 +26,13 @@ import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 
 /** Configuration for {@link S3SeekableInputStream} */
-@Getter
-@Builder
+@Getter(AccessLevel.PACKAGE)
+@Builder(access = AccessLevel.PACKAGE)
 @EqualsAndHashCode
 public class S3SeekableInputStreamConfiguration {
-  public static final String PHYSICAL_IO_PREFIX = "physicalio";
-  public static final String LOGICAL_IO_PREFIX = "logicalio";
-  public static final String TELEMETRY_PREFIX = "telemetry";
+  private static final String PHYSICAL_IO_PREFIX = "physicalio";
+  private static final String LOGICAL_IO_PREFIX = "logicalio";
+  private static final String TELEMETRY_PREFIX = "telemetry";
 
   @Builder.Default @NonNull private PhysicalIOConfiguration physicalIOConfiguration = PhysicalIOConfiguration.DEFAULT;
 

@@ -62,7 +62,6 @@ public class S3SeekableInputStreamFactoryTest {
     assertEquals(
         S3SeekableInputStreamConfiguration.DEFAULT,
         s3SeekableInputStreamFactory.getConfiguration());
-    assertEquals(objectClient, s3SeekableInputStreamFactory.getObjectClient());
   }
 
   @Test

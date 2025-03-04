@@ -130,17 +130,13 @@ public abstract class IntegrationTestBase extends ExecutionBase {
       S3AsyncClient s3Client = this.getS3ExecutionContext().getS3Client();
       S3SeekableInputStream stream = s3AALClientStreamReader.createReadStream(s3Object);
 
-      int readAheadBytes =
-          (int)
-              AALInputStreamConfigurationKind.getValue()
-                  .getPhysicalIOConfiguration()
-                  .getReadAheadBytes();
+      int readAheadBytes = 100;
 
       // Read first 100 bytes
-      readAndAssert(stream, buffer, 0, 100);
+      readAndAssert(stream, buffer, 0, readAheadBytes);
 
       // Read next 100 bytes
-      readAndAssert(stream, buffer, 100, 100);
+      readAndAssert(stream, buffer, 100, readAheadBytes);
 
       // Change the file
       s3Client

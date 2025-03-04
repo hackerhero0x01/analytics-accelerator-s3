@@ -856,7 +856,6 @@ public final class Preconditions {
    * @param reference an object reference
    * @return the non-null reference that was validated
    * @throws NullPointerException if {@code reference} is null
-   * @see Verify#verifyNotNull Verify.verifyNotNull()
    */
   public static <T> T checkNotNull(T reference) {
     if (reference == null) {
@@ -873,7 +872,6 @@ public final class Preconditions {
    *     string using {@link String#valueOf(Object)}
    * @return the non-null reference that was validated
    * @throws NullPointerException if {@code reference} is null
-   * @see Verify#verifyNotNull Verify.verifyNotNull()
    */
   public static <T> T checkNotNull(T reference, Object errorMessage) {
     if (reference == null) {
@@ -895,7 +893,6 @@ public final class Preconditions {
    *     are converted to strings using {@link String#valueOf(Object)}.
    * @return the non-null reference that was validated
    * @throws NullPointerException if {@code reference} is null
-   * @see Verify#verifyNotNull Verify.verifyNotNull()
    */
   public static <T> T checkNotNull(
       T reference, String errorMessageTemplate, Object... errorMessageArgs) {

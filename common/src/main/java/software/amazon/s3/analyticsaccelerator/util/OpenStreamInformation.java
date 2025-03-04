@@ -15,21 +15,32 @@
  */
 package software.amazon.s3.analyticsaccelerator.util;
 
+import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Getter;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 
 /**
- * Open file information, useful for allowing the stream opening application to pass down known
- * information and callbacks when opening the file.
+ * Open stream information, useful for allowing the stream opening application to pass down known
+ * information and callbacks when opening the stream. @Value annotation makes this class immutable
+ * and automatically generates: - All-args constructor - Getters for all fields -
+ * equals/hashCode/toString methods
+ *
+ * <p>Available getters: - getStreamContext(): Returns the stream context - getObjectMetadata():
+ * Returns the object metadata - getInputPolicy(): Returns the input policy
+ *
+ * <p>Builder usage: OpenStreamInformation info = OpenStreamInformation.builder()
+ * .streamContext(context) .objectMetadata(metadata) .inputPolicy(policy) .build();
+ *
+ * <p>Or use the default instance: {@code OpenStreamInformation.DEFAULT}
  */
-@Value
-@Builder
+@Builder(access = AccessLevel.PUBLIC)
+@Getter
 public class OpenStreamInformation {
-  StreamContext streamContext;
-  ObjectMetadata objectMetadata;
-  InputPolicy inputPolicy;
+  private final StreamContext streamContext;
+  private final ObjectMetadata objectMetadata;
+  private final InputPolicy inputPolicy;
 
   /** Default set of settings for {@link OpenStreamInformation} */
   public static final OpenStreamInformation DEFAULT = OpenStreamInformation.builder().build();

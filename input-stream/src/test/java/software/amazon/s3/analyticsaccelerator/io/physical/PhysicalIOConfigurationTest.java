@@ -16,9 +16,9 @@
 package software.amazon.s3.analyticsaccelerator.io.physical;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfigurationTest.PHYSICAL_IO_PREFIX;
 
 import org.junit.jupiter.api.Test;
-import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfigurationTest;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 
@@ -42,8 +42,7 @@ public class PhysicalIOConfigurationTest {
   void testFromConfiguration() {
     ConnectorConfiguration configuration =
         S3SeekableInputStreamConfigurationTest.getConfiguration();
-    ConnectorConfiguration mappedConfiguration =
-        configuration.map(S3SeekableInputStreamConfiguration.PHYSICAL_IO_PREFIX);
+    ConnectorConfiguration mappedConfiguration = configuration.map(PHYSICAL_IO_PREFIX);
 
     PhysicalIOConfiguration physicalIOConfiguration =
         PhysicalIOConfiguration.fromConfiguration(mappedConfiguration);

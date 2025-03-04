@@ -24,8 +24,22 @@ import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 @Data
 @Builder
 public class ObjectMetadata {
+  /**
+   * The length of the object content in bytes. This value must be non-negative.
+   *
+   * @param contentLength the content length to set
+   * @return the builder instance
+   * @throws IllegalArgumentException if contentLength is negative
+   */
   long contentLength;
 
+  /**
+   * The entity tag of the object.
+   *
+   * @param etag the etag to set
+   * @return the builder instance
+   * @throws NullPointerException if etag is null
+   */
   @NonNull String etag;
 
   @Builder

@@ -16,15 +16,15 @@
 package software.amazon.s3.analyticsaccelerator.util;
 
 /**
- * Input policy to be used when reading a file. Useful for integrating applications to pass down a
- * policy they would like AAL to use, rather than us guessing based on file format.
+ * Input policy to be used when reading an object. Useful for integrating applications to pass down
+ * a policy they would like AAL to use, rather than us guessing based on object key extension.
  *
- * <p>A sequential policy means that the file will be read sequentially, regardless of the file
- * format. Useful for sequential data types such as CSV, or for applications that read columnar
- * formats sequentially.
+ * <p>A sequential policy means that the object will be read sequentially, regardless of the format.
+ * Useful for sequential data types such as CSV, or for applications that read columnar formats
+ * sequentially.
  *
- * <p>When no input policy is supplied, AAL will infer what optimisations to use based on the file
- * extension.
+ * <p>When no input policy is supplied, AAL will infer what optimisations to use based on the object
+ * key extension.
  */
 public enum InputPolicy {
   None,

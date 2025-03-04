@@ -52,7 +52,7 @@ public class S3SdkObjectClient implements ObjectClient {
    *
    * @param s3AsyncClient Underlying client to be used for making requests to S3.
    */
-  public S3SdkObjectClient(S3AsyncClient s3AsyncClient) {
+  public S3SdkObjectClient(@NonNull S3AsyncClient s3AsyncClient) {
     this(s3AsyncClient, ObjectClientConfiguration.DEFAULT);
   }
 
@@ -64,7 +64,7 @@ public class S3SdkObjectClient implements ObjectClient {
    * @param s3AsyncClient Underlying client to be used for making requests to S3.
    * @param closeAsyncClient if true, close the passed client on close.
    */
-  public S3SdkObjectClient(S3AsyncClient s3AsyncClient, boolean closeAsyncClient) {
+  public S3SdkObjectClient(@NonNull S3AsyncClient s3AsyncClient, boolean closeAsyncClient) {
     this(s3AsyncClient, ObjectClientConfiguration.DEFAULT, closeAsyncClient);
   }
 
@@ -76,7 +76,8 @@ public class S3SdkObjectClient implements ObjectClient {
    * @param objectClientConfiguration Configuration for object client.
    */
   public S3SdkObjectClient(
-      S3AsyncClient s3AsyncClient, ObjectClientConfiguration objectClientConfiguration) {
+      @NonNull S3AsyncClient s3AsyncClient,
+      @NonNull ObjectClientConfiguration objectClientConfiguration) {
     this(s3AsyncClient, objectClientConfiguration, true);
   }
 
@@ -107,12 +108,6 @@ public class S3SdkObjectClient implements ObjectClient {
     }
   }
 
-  /**
-   * Make a headObject request to the object store.
-   *
-   * @param headRequest The HEAD request to be sent
-   * @return HeadObjectResponse
-   */
   @Override
   public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
     HeadObjectRequest.Builder builder =
@@ -144,24 +139,11 @@ public class S3SdkObjectClient implements ObjectClient {
         .exceptionally(handleException(headRequest.getS3Uri()));
   }
 
-  /**
-   * Make a getObject request to the object store.
-   *
-   * @param getRequest The GET request to be sent
-   * @return ResponseInputStream<GetObjectResponse>
-   */
   @Override
   public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
     return getObject(getRequest, null);
   }
 
-  /**
-   * Make a getObject request to the object store.
-   *
-   * @param getRequest The GET request to be sent
-   * @param streamContext audit headers to be attached in the request header
-   * @return ResponseInputStream<GetObjectResponse>
-   */
   @Override
   public CompletableFuture<ObjectContent> getObject(
       GetRequest getRequest, StreamContext streamContext) {

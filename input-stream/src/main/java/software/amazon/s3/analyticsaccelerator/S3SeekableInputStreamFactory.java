@@ -16,6 +16,7 @@
 package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -42,12 +43,10 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
  * {@link S3SeekableInputStreamFactory#createStream(S3URI)} to vend correct {@link
  * SeekableInputStream}.
  */
-@Getter
+@Getter(AccessLevel.PACKAGE)
 public class S3SeekableInputStreamFactory implements AutoCloseable {
-  private final ObjectClient objectClient;
   private final S3SeekableInputStreamConfiguration configuration;
   private final ParquetColumnPrefetchStore parquetColumnPrefetchStore;
-
   private final MetadataStore objectMetadataStore;
   private final BlobStore objectBlobStore;
   private final Telemetry telemetry;
@@ -64,7 +63,6 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   public S3SeekableInputStreamFactory(
       @NonNull ObjectClient objectClient,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
-    this.objectClient = objectClient;
     this.configuration = configuration;
     this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
     this.parquetColumnPrefetchStore =
@@ -87,7 +85,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   }
 
   /**
-   * Create an instance of S3SeekableInputStream with provided metadata.
+   * This method is deprecated. Please use {@link #createStream(S3URI, OpenStreamInformation)}
    *
    * @param s3URI the object's S3 URI
    * @param metadata the metadata for the object
