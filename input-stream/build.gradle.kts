@@ -28,6 +28,9 @@ plugins {
     java
 }
 
+evaluationDependsOn(":common")
+evaluationDependsOn(":object-client")
+
 licenseReport {
     renderers = arrayOf<ReportRenderer>(InventoryHtmlReportRenderer("report.html", "Backend"), TextReportRenderer())
 }
@@ -288,7 +291,7 @@ tasks.javadoc {
 
     // Include sources from subprojects
     val includedProjects = listOf(":common", ":object-client")
-    includedProjects.forEach {projectPath ->
+    includedProjects.forEach { projectPath ->
         val subproject = project(projectPath)
         source(subproject.sourceSets.main.get().allJava)
         classpath += subproject.sourceSets.main.get().compileClasspath
