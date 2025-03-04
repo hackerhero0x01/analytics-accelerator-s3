@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static software.amazon.s3.analyticsaccelerator.access.ChecksumAssertions.assertChecksums;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,6 +44,8 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 /** Base class for the integration tests */
 public abstract class IntegrationTestBase extends ExecutionBase {
   @NonNull private final AtomicReference<S3ExecutionContext> s3ExecutionContext = new AtomicReference<>();
+
+  private static final int DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
 
   SecureRandom random = new SecureRandom();
 
@@ -130,13 +133,11 @@ public abstract class IntegrationTestBase extends ExecutionBase {
       S3AsyncClient s3Client = this.getS3ExecutionContext().getS3Client();
       S3SeekableInputStream stream = s3AALClientStreamReader.createReadStream(s3Object);
 
-      int readAheadBytes = 100;
-
       // Read first 100 bytes
-      readAndAssert(stream, buffer, 0, readAheadBytes);
+      readAndAssert(stream, buffer, 0, 100);
 
       // Read next 100 bytes
-      readAndAssert(stream, buffer, 100, readAheadBytes);
+      readAndAssert(stream, buffer, 100, 100);
 
       // Change the file
       s3Client
@@ -147,7 +148,9 @@ public abstract class IntegrationTestBase extends ExecutionBase {
 
       // read the next bytes and fail.
       IOException ex =
-          assertThrows(IOException.class, () -> readAndAssert(stream, buffer, 200, readAheadBytes));
+          assertThrows(
+              IOException.class,
+              () -> readAndAssert(stream, buffer, 200, DEFAULT_READ_AHEAD_BYTES));
       S3Exception s3Exception =
           assertInstanceOf(S3Exception.class, ex.getCause(), "Cause should be S3Exception");
       assertEquals(412, s3Exception.statusCode(), "Expected Precondition Failed (412) status code");
