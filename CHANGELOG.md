@@ -1,3 +1,9 @@
+## v0.0.5 (March 04, 2025)
+
+* Adds retrying of block reads https://github.com/awslabs/analytics-accelerator-s3/pull/229
+* Logs everything at debug https://github.com/awslabs/analytics-accelerator-s3/pull/236
+* Adds javadoc generation https://github.com/awslabs/analytics-accelerator-s3/pull/237
+
 ## v0.0.4 (February 21, 2025)
 
 * Close input stream explicitly https://github.com/awslabs/analytics-accelerator-s3/pull/222
