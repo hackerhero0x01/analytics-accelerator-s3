@@ -1,4 +1,4 @@
-## v0.0.5 (March 04, 2025)
+## v1.0.0 (March 04, 2025)
 
 * Adds retrying of block reads https://github.com/awslabs/analytics-accelerator-s3/pull/229
 * Logs everything at debug https://github.com/awslabs/analytics-accelerator-s3/pull/236
