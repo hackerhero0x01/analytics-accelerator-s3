@@ -1,6 +1,6 @@
 # Analytics Accelerator Library for Amazon S3
 
-Analytics Accelerator Library for Amazon S3 is an open source library that accelerates data access from client applications to Amazon S3. 
+The Analytics Accelerator Library for Amazon S3 helps you accelerate data access from your applications to Amazon S3. This open-source solution reduces processing times and compute costs for your data analytics workloads.
 
 With this library, you can: 
 * Lower processing times and compute costs for data analytics workloads.
@@ -8,13 +8,21 @@ With this library, you can:
 * Utilize optimizations specific to [Apache Parquet](https://parquet.apache.org/) files, such as pre-fetching metadata located in the footer of the object and predictive column pre-fetching.
 * Improve the price performance for your data analytics applications, such as workloads based on [Apache Spark](https://spark.apache.org/). 
 
-## Current status
+## Current Status
 
-Analytics Accelerator Library for Amazon S3 is **currently an alpha release and should not be used in production**. We're especially interested in early feedback on features, performance, and compatibility. Please send feedback by [opening a GitHub issue](https://github.com/awslabs/analytics-accelerator-s3/issues/new/choose).
+Analytics Accelerator Library for Amazon S3 is integrated and tested with the [Apache Hadoop S3A](https://github.com/apache/hadoop) client, currently being integrated into [Iceberg S3FileIO](https://github.com/apache/iceberg) client.
+It is also tested for datasets stored in [S3 Table Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets.html).
+
+We're constantly working on improving Analytics Accelerator Library for Amazon S3 and interested in feedback on features, performance, and compatibility. Please send feedback by [opening a GitHub issue](https://github.com/awslabs/analytics-accelerator-s3/issues/new/choose).
 
 ## Getting Started
 
-Alpha version of the library provides an interface for a seekable input stream. The library is currently being integrated and tested with the [Apache Hadoop S3A](https://hadoop.apache.org/docs/current/hadoop-aws/tools/hadoop-aws/index.html#Introducing_the_Hadoop_S3A_client.) client.
+You can use Analytics Accelerator Library for Amazon S3 either as a standalone library or with Hadoop library and Spark engine.
+For Spark engine it also supports [Iceberg](https://github.com/apache/iceberg)'s open table format as well as [S3 Table Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets.html).
+Integration to Hadoop and Iceberg are off by default. We describe how to enable Analytics Accelerator Library for Amazon S3 below.
+
+
+### Standalone Usage
 
 To get started, import the library dependency from Maven into your project:
 
@@ -22,7 +30,7 @@ To get started, import the library dependency from Maven into your project:
     <dependency>
       <groupId>software.amazon.s3.analyticsaccelerator</groupId>
       <artifactId>analyticsaccelerator-s3</artifactId>
-      <version>0.0.1</version>
+      <version>1.0.0</version>
       <scope>compile</scope>
     </dependency>
 ```
@@ -36,7 +44,10 @@ S3SeekableInputStreamFactory s3SeekableInputStreamFactory = new S3SeekableInputS
 ```
 
 
-**Note:** The `S3SeekableInputStreamFactory` can be initialized with either the [S3AsyncClient](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/S3AsyncClient.html) or the [S3 CRT client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html). We recommend that you use the S3 CRT client due to its enhanced connection pool management and [higher throughput on downloads](https://aws.amazon.com/blogs/developer/introducing-crt-based-s3-client-and-the-s3-transfer-manager-in-the-aws-sdk-for-java-2-x/). For either client, we recommend you initialize with a higher concurrency value to fully benefit from the library's optimizations. This is because the library makes multiple parallel requests to S3 to prefetch data asynchronously. For the Java S3AsyncClient, you can increase the maximum connections by doing the following:
+**Note:** The `S3SeekableInputStreamFactory` can be initialized with either the [S3AsyncClient](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/services/s3/S3AsyncClient.html) or the [S3 CRT client](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/crt-based-s3-client.html). 
+We recommend that you use the S3 CRT client due to its enhanced connection pool management and [higher throughput on downloads](https://aws.amazon.com/blogs/developer/introducing-crt-based-s3-client-and-the-s3-transfer-manager-in-the-aws-sdk-for-java-2-x/). 
+For either client, we recommend you initialize with a higher concurrency value to fully benefit from the library's optimizations. 
+This is because the library makes multiple parallel requests to S3 to prefetch data asynchronously. For the Java S3AsyncClient, you can increase the maximum connections by doing the following:
 
 ```
 NettyNioAsyncHttpClient.Builder httpClientBuilder =
@@ -52,7 +63,7 @@ To open a stream:
 S3SeekableInputStream s3SeekableInputStream = s3SeekableInputStreamFactory.createStream(S3URI.of(bucket, key));
 ```
 
-For more details on the usage of this stream, please refer to the [SeekableInputStream](https://github.com/awslabs/analytics-accelerator-s3/blob/main/input-stream/src/main/java/software/amazon/s3/analyticsaccelerator/SeekableInputStream.java) interface.
+For more details on the usage of this stream, refer to the [SeekableInputStream](https://github.com/awslabs/analytics-accelerator-s3/blob/main/input-stream/src/main/java/software/amazon/s3/analyticsaccelerator/SeekableInputStream.java) interface.
 
 When the `S3SeekableInputStreamFactory` is no longer required to create new streams, close it to free resources (eg: caches for prefetched data) held by the factory. 
 
@@ -60,9 +71,56 @@ When the `S3SeekableInputStreamFactory` is no longer required to create new stre
 s3SeekableInputStreamFactory.close();
 ```
 
+### Using with Hadoop
+
+If you are using Analytics Accelerator Library for Amazon S3 with Hadoop, you need to set the stream type to `analytics` in the Hadoop configuration. An example configuration is as follows:
+
+```
+<property>
+  <name>fs.s3a.input.stream.type</name>
+  <value>analytics</value>
+</property>
+```
+
+You can read more on [Hadoop's relevant documentation](https://github.com/apache/hadoop/blob/trunk/hadoop-tools/hadoop-aws/src/site/markdown/tools/hadoop-aws/reading.md#stream-type-analytics).
+
+### Using with Spark (without Iceberg)
+
+Using Analytics Accelerator Library for Amazon S3 with Spark is quite similar to aforementioned Hadoop usage. The only difference is to prepend the property names with `spark.hadoop`.
+For example, to enable Analytics Accelerator Library for Amazon S3 on Spark engine, you need to set following property in Spark configuration.
+
+```
+<property>
+  <name>spark.hadoop.fs.s3a.input.stream.type</name>
+  <value>analytics</value>
+</property>
+```
+
+### Using with Spark (with Iceberg)
+
+When your data in S3 is organised in Iceberg open table format, data will be retrieved using  [Iceberg S3FileIO](https://github.com/apache/iceberg) client instead of [Hadoop S3A](https://github.com/apache/hadoop) client.
+Analytics Accelerator Library for Amazon S3 is currently being integrated into [Iceberg S3FileIO](https://github.com/apache/iceberg) client. To enable it in the Spark engine set the following Spark property.
+
+```
+<property>
+  <name>spark.sql.catalog.<CATALOG_NAME>.s3.analytics-accelerator.enabled</name>
+  <value>true</value>
+</property>
+```
+
+For [S3 General Purpose Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html) and [S3 Directory Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/directory-buckets-overview.html) the `<CATALOG_NAME>` would be `spark_catalog` by default. 
+
+[S3 Table Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets.html) require you to set a custom catalog name, as outlined [here](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-integrating-open-source-spark.html).
+Once you set the catalog, you can replace `<CATALOG_NAME>` parameter with your chosen name.
+
+
+To learn more about how to set rest of the configurations, read our [configuration](doc/CONFIGURATION.md) documents.
+
+
 ## Summary of Optimizations
 
-Analytics Accelerator Library for Amazon S3 accelerates read performance of objects stored in Amazon S3 by integrating AWS Common Run Time (CRT) libraries and implementing optimizations specific to Apache Parquet files. The AWS CRT is a software library built for interacting with AWS services, that implements best practice performance design patterns, including timeouts, retries, and automatic request parallelization for high throughput. `S3SeekableInputStreamFactory` can be used to initialize streams for all file types to benefit from read optimizations on top of benefits coming from CRT. 
+Analytics Accelerator Library for Amazon S3 accelerates read performance of objects stored in Amazon S3 by integrating AWS Common Run Time (CRT) libraries and implementing optimizations specific to Apache Parquet files. The AWS CRT is a software library built for interacting with AWS services, that implements best practice performance design patterns, including timeouts, retries, and automatic request parallelization for high throughput. 
+You can use `S3SeekableInputStreamFactory` to initialize streams for all file types to benefit from read optimizations on top of benefits coming from CRT. 
 
 These optimizations are:
 
@@ -97,11 +155,11 @@ The remaining TPC-DS queries show no regressions within the specified margin of 
 
 ## Contributions
 
-We welcome contributions to Analytics Accelerator Library for Amazon S3! Please see the [contributing guidelines](doc/CONTRIBUTING.md) for more information on how to report bugs, build from source code, or submit pull requests.
+We welcome contributions to Analytics Accelerator Library for Amazon S3! See the [contributing guidelines](doc/CONTRIBUTING.md) for more information on how to report bugs, build from source code, or submit pull requests.
 
 ## Security
 
-If you discover a potential security issue in this project we ask that you notify Amazon Web Services (AWS) Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public GitHub issue.
+If you discover a potential security issue in this project we ask that you notify Amazon Web Services (AWS) Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Do **not** create a public GitHub issue.
 
 ## License
 
