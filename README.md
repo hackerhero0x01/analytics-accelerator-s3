@@ -1,6 +1,6 @@
 # Analytics Accelerator Library for Amazon S3
 
-The Analytics Accelerator Library for Amazon S3 helps you accelerate data access from your applications to Amazon S3. This open-source solution reduces processing times and compute costs for your data analytics workloads.
+The Analytics Accelerator Library for Amazon S3 helps you accelerate access to Amazon S3 data from your applications. This open-source solution reduces processing times and compute costs for your data analytics workloads.
 
 With this library, you can: 
 * Lower processing times and compute costs for data analytics workloads.
@@ -10,16 +10,16 @@ With this library, you can:
 
 ## Current Status
 
-Analytics Accelerator Library for Amazon S3 is integrated and tested with the [Apache Hadoop S3A](https://github.com/apache/hadoop) client, currently being integrated into [Iceberg S3FileIO](https://github.com/apache/iceberg) client.
+The Analytics Accelerator Library for Amazon S3 has been tested and integrated with the [Apache Hadoop S3A](https://github.com/apache/hadoop) client, and is currently in the process of being integrated into the [Iceberg S3FileIO](https://github.com/apache/iceberg) client.
 It is also tested for datasets stored in [S3 Table Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets.html).
 
-We're constantly working on improving Analytics Accelerator Library for Amazon S3 and interested in feedback on features, performance, and compatibility. Please send feedback by [opening a GitHub issue](https://github.com/awslabs/analytics-accelerator-s3/issues/new/choose).
+We're constantly working on improving Analytics Accelerator Library for Amazon S3 and are interested in hearing your feedback on features, performance, and compatibility. Please send feedback by [opening a GitHub issue](https://github.com/awslabs/analytics-accelerator-s3/issues/new/choose).
 
 ## Getting Started
 
 You can use Analytics Accelerator Library for Amazon S3 either as a standalone library or with Hadoop library and Spark engine.
-For Spark engine it also supports [Iceberg](https://github.com/apache/iceberg)'s open table format as well as [S3 Table Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets.html).
-Integration to Hadoop and Iceberg are off by default. We describe how to enable Analytics Accelerator Library for Amazon S3 below.
+For Spark engine, it also supports [Iceberg](https://github.com/apache/iceberg)'s open table format as well as [S3 Table Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets.html).
+Integrations with Hadoop and Iceberg are turned off by default. We describe how to enable Analytics Accelerator Library for Amazon S3 below.
 
 
 ### Standalone Usage
@@ -82,11 +82,11 @@ If you are using Analytics Accelerator Library for Amazon S3 with Hadoop, you ne
 </property>
 ```
 
-You can read more on [Hadoop's relevant documentation](https://github.com/apache/hadoop/blob/trunk/hadoop-tools/hadoop-aws/src/site/markdown/tools/hadoop-aws/reading.md#stream-type-analytics).
+For more information, see the Hadoop documentation on the [Analytics stream type](https://github.com/apache/hadoop/blob/trunk/hadoop-tools/hadoop-aws/src/site/markdown/tools/hadoop-aws/reading.md#stream-type-analytics).
 
 ### Using with Spark (without Iceberg)
 
-Using Analytics Accelerator Library for Amazon S3 with Spark is quite similar to aforementioned Hadoop usage. The only difference is to prepend the property names with `spark.hadoop`.
+Using the Analytics Accelerator Library for Amazon S3 with Spark is similar to the Hadoop usage. The only difference is to prepend the property names with `spark.hadoop`.
 For example, to enable Analytics Accelerator Library for Amazon S3 on Spark engine, you need to set following property in Spark configuration.
 
 ```
@@ -98,8 +98,8 @@ For example, to enable Analytics Accelerator Library for Amazon S3 on Spark engi
 
 ### Using with Spark (with Iceberg)
 
-When your data in S3 is organised in Iceberg open table format, data will be retrieved using  [Iceberg S3FileIO](https://github.com/apache/iceberg) client instead of [Hadoop S3A](https://github.com/apache/hadoop) client.
-Analytics Accelerator Library for Amazon S3 is currently being integrated into [Iceberg S3FileIO](https://github.com/apache/iceberg) client. To enable it in the Spark engine set the following Spark property.
+When your data in S3 is organised in Iceberg open table format, data will be retrieved using [Iceberg S3FileIO](https://github.com/apache/iceberg) client instead of [Hadoop S3A](https://github.com/apache/hadoop) client.
+Analytics Accelerator Library for Amazon S3 is currently being integrated into [Iceberg S3FileIO](https://github.com/apache/iceberg) client. To enable it in the Spark engine, set the following Spark property.
 
 ```
 <property>
@@ -108,10 +108,10 @@ Analytics Accelerator Library for Amazon S3 is currently being integrated into [
 </property>
 ```
 
-For [S3 General Purpose Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html) and [S3 Directory Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/directory-buckets-overview.html) the `<CATALOG_NAME>` would be `spark_catalog` by default. 
+For [S3 General Purpose Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html) and [S3 Directory Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/directory-buckets-overview.html) set the `<CATALOG_NAME>`to `spark_catalog`, the default catalog. 
 
 [S3 Table Buckets](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets.html) require you to set a custom catalog name, as outlined [here](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-integrating-open-source-spark.html).
-Once you set the catalog, you can replace `<CATALOG_NAME>` parameter with your chosen name.
+Once you set the catalog, you can replace the `<CATALOG_NAME>` parameter with your chosen name.
 
 
 To learn more about how to set rest of the configurations, read our [configuration](doc/CONFIGURATION.md) documents.
