@@ -149,8 +149,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
                 telemetry,
                 openStreamInformation.getStreamContext()),
             telemetry,
-            configuration.getLogicalIOConfiguration(),
-            objectBlobStore);
+            configuration.getLogicalIOConfiguration());
 
       default:
         return new DefaultLogicalIOImpl(
