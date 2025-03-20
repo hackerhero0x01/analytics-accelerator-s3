@@ -86,6 +86,6 @@ public class LogicalIOConfigurationTest {
             + "\tjsonFormatSelectorRegex: ^.*\\.(json|JSON)$\n"
             + "\ttxtFormatSelectorRegex: ^.*\\.(txt|TXT)$\n"
             + "\tprefetchingMode: ROW_GROUP\n"
-            + "\tsparkPartitionSize: 134217728\n");
+            + "\tpartitionSize: 134217728\n");
   }
 }

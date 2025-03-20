@@ -62,9 +62,7 @@ public class ObjectFormatSelector {
     String key = s3URI.getKey();
     if (openStreamInformation.getInputPolicy() != null
             && openStreamInformation.getInputPolicy().equals(InputPolicy.Sequential)
-        || csvPattern.matcher(key).find()
-        || jsonPattern.matcher(key).find()
-        || txtPattern.matcher(key).find()) {
+        || isKeyExtensionSequential(key)) {
       return ObjectFormat.SEQUENTIAL;
     }
 
@@ -73,5 +71,17 @@ public class ObjectFormatSelector {
     }
 
     return ObjectFormat.DEFAULT;
+  }
+
+  /**
+   * Checks if the key extension matches any of the sequential file patterns (CSV, JSON, TXT).
+   *
+   * @param key the object key to check
+   * @return true if the key matches any of the sequential file patterns, false otherwise
+   */
+  private boolean isKeyExtensionSequential(String key) {
+    return csvPattern.matcher(key).find()
+        || jsonPattern.matcher(key).find()
+        || txtPattern.matcher(key).find();
   }
 }

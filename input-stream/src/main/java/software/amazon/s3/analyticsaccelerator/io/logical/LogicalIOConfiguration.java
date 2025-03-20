@@ -47,7 +47,7 @@ public class LogicalIOConfiguration {
   private static final String DEFAULT_TXT_FORMAT_SELECTOR_REGEX = "^.*\\.(txt|TXT)$";
   private static final PrefetchMode DEFAULT_PREFETCHING_MODE = PrefetchMode.ROW_GROUP;
 
-  private static final long DEFAULT_SPARK_PARTITION_SIZE = 128 * ONE_MB;
+  private static final long DEFAULT_PARTITION_SIZE = 128 * ONE_MB;
 
   @Builder.Default private boolean prefetchFooterEnabled = DEFAULT_PREFETCH_FOOTER_ENABLED;
 
@@ -113,9 +113,9 @@ public class LogicalIOConfiguration {
 
   public static final LogicalIOConfiguration DEFAULT = LogicalIOConfiguration.builder().build();
 
-  @Builder.Default private long sparkPartitionSize = DEFAULT_SPARK_PARTITION_SIZE;
+  @Builder.Default private long partitionSize = DEFAULT_PARTITION_SIZE;
 
-  private static final String SPARK_PARTITION_SIZE_KEY = "spark.partition.size";
+  private static final String PARTITION_SIZE_KEY = "partition.size";
 
   @Builder.Default private String csvFormatSelectorRegex = DEFAULT_CSV_FORMAT_SELECTOR_REGEX;
   private static final String CSV_FORMAT_SELECTOR_REGEX = "csv.format.selector.regex";
@@ -169,8 +169,7 @@ public class LogicalIOConfiguration {
         .prefetchingMode(
             PrefetchMode.fromString(
                 configuration.getString(PREFETCHING_MODE_KEY, DEFAULT_PREFETCHING_MODE.toString())))
-        .sparkPartitionSize(
-            configuration.getLong(SPARK_PARTITION_SIZE_KEY, DEFAULT_SPARK_PARTITION_SIZE))
+        .partitionSize(configuration.getLong(PARTITION_SIZE_KEY, DEFAULT_PARTITION_SIZE))
         .csvFormatSelectorRegex(
             configuration.getString(CSV_FORMAT_SELECTOR_REGEX, DEFAULT_CSV_FORMAT_SELECTOR_REGEX))
         .jsonFormatSelectorRegex(
@@ -201,7 +200,7 @@ public class LogicalIOConfiguration {
     builder.append("\tjsonFormatSelectorRegex: " + jsonFormatSelectorRegex + "\n");
     builder.append("\ttxtFormatSelectorRegex: " + txtFormatSelectorRegex + "\n");
     builder.append("\tprefetchingMode: " + prefetchingMode + "\n");
-    builder.append("\tsparkPartitionSize: " + sparkPartitionSize + "\n");
+    builder.append("\tpartitionSize: " + partitionSize + "\n");
 
     return builder.toString();
   }

@@ -67,6 +67,6 @@ public class SequentialLogicalIOImpl extends DefaultLogicalIOImpl {
 
   @Override
   public void close() throws IOException {
-    closeWithEviction(true);
+    super.closeWithEviction(true);
   }
 }

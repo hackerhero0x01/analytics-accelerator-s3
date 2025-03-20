@@ -79,16 +79,10 @@ public class SequentialLogicalIOImplTest {
       SequentialLogicalIOImpl logicalIO =
           new SequentialLogicalIOImpl(TEST_URI, physicalIO, TestTelemetry.DEFAULT, configuration);
 
-      byte[] buf = new byte[10];
-      int off = 0;
-      int len = 10;
-      long position = 0;
-
-      logicalIO.read(buf, off, len, position);
-
+      logicalIO.read(new byte[10], 0, 10, 0);
       // Verify that the prefetcher's prefetch method was called with the correct position
       SequentialPrefetcher constructedPrefetcher = mockedPrefetcher.constructed().get(0);
-      verify(constructedPrefetcher).prefetch(position);
+      verify(constructedPrefetcher).prefetch(0);
     }
   }
 

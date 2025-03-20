@@ -15,8 +15,9 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.logical.impl;
 
-import java.io.IOException;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
@@ -38,6 +39,7 @@ public class SequentialPrefetcher {
   private boolean prefetchStarted = false;
   private final long prefetchSize;
 
+  private static final Logger LOG = LoggerFactory.getLogger(SequentialPrefetcher.class);
   private static final String OPERATION_SEQUENTIAL_PREFETCH = "sequential.prefetcher.prefetch";
   /**
    * Constructs an instance of SequentialLogicalIOImpl.
@@ -56,33 +58,38 @@ public class SequentialPrefetcher {
     this.s3URI = s3URI;
     this.physicalIO = physicalIO;
     this.telemetry = telemetry;
-    this.prefetchSize = logicalIOConfiguration.getSparkPartitionSize();
+    this.prefetchSize = logicalIOConfiguration.getPartitionSize();
   }
   /**
-   * Reads data into the provided buffer
+   * Attempts to initiate a one-time prefetch operation from the specified position. Subsequent
+   * calls or any errors are silently ignored. Prefetches up to prefetch size or file end.
    *
-   * @param position the position to begin reading from
-   * @throws IOException IO error, if incurred.
+   * @param position start position for prefetching
    */
-  public void prefetch(long position) throws IOException {
-    if (prefetchStarted) {
-      return;
+  public void prefetch(long position) {
+    try {
+      if (prefetchStarted) {
+        return;
+      }
+      prefetchStarted = true;
+
+      long contentLength = physicalIO.metadata().getContentLength();
+      long endPosition = Math.min(position + prefetchSize, contentLength);
+
+      telemetry.measureVerbose(
+          () ->
+              Operation.builder()
+                  .name(OPERATION_SEQUENTIAL_PREFETCH)
+                  .attribute(StreamAttributes.uri(this.s3URI))
+                  .attribute(StreamAttributes.range(position, endPosition - 1))
+                  .build(),
+          () -> {
+            IOPlan prefetchPlan = new IOPlan(new Range(position, endPosition - 1));
+            return physicalIO.execute(prefetchPlan);
+          });
+    } catch (Exception e) {
+      // Log the exception at debug level and swallow it
+      LOG.debug("Error during prefetch operation for {}", this.s3URI.getKey(), e);
     }
-    prefetchStarted = true;
-
-    long contentLength = physicalIO.metadata().getContentLength();
-    long endPosition = Math.min(position + prefetchSize, contentLength);
-
-    telemetry.measureVerbose(
-        () ->
-            Operation.builder()
-                .name(OPERATION_SEQUENTIAL_PREFETCH)
-                .attribute(StreamAttributes.uri(this.s3URI))
-                .attribute(StreamAttributes.range(position, endPosition - 1))
-                .build(),
-        () -> {
-          IOPlan prefetchPlan = new IOPlan(new Range(position, endPosition - 1));
-          return physicalIO.execute(prefetchPlan);
-        });
   }
 }

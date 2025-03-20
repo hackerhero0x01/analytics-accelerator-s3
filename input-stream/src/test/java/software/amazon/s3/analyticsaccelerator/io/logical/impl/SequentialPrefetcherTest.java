@@ -44,16 +44,14 @@ public class SequentialPrefetcherTest {
   @Test
   void testConstructor() {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    LogicalIOConfiguration config =
-        LogicalIOConfiguration.builder().sparkPartitionSize(4096L).build();
+    LogicalIOConfiguration config = LogicalIOConfiguration.builder().partitionSize(4096L).build();
     assertNotNull(new SequentialPrefetcher(TEST_URI, physicalIO, TestTelemetry.DEFAULT, config));
   }
 
   @Test
   void testConstructorThrowsOnNullArgument() {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    LogicalIOConfiguration config =
-        LogicalIOConfiguration.builder().sparkPartitionSize(4096L).build();
+    LogicalIOConfiguration config = LogicalIOConfiguration.builder().partitionSize(4096L).build();
     assertThrows(
         NullPointerException.class,
         () -> new SequentialPrefetcher(null, physicalIO, TestTelemetry.DEFAULT, config));
@@ -74,8 +72,7 @@ public class SequentialPrefetcherTest {
   @Test
   void testPrefetchFunctionality() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    LogicalIOConfiguration config =
-        LogicalIOConfiguration.builder().sparkPartitionSize(4096L).build();
+    LogicalIOConfiguration config = LogicalIOConfiguration.builder().partitionSize(4096L).build();
 
     ObjectMetadata metadata = mock(ObjectMetadata.class);
     when(metadata.getContentLength()).thenReturn(10000L);
@@ -102,8 +99,7 @@ public class SequentialPrefetcherTest {
   @Test
   void testPrefetchNearEndOfFile() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    LogicalIOConfiguration config =
-        LogicalIOConfiguration.builder().sparkPartitionSize(4096L).build();
+    LogicalIOConfiguration config = LogicalIOConfiguration.builder().partitionSize(4096L).build();
 
     ObjectMetadata metadata = mock(ObjectMetadata.class);
     when(metadata.getContentLength()).thenReturn(3000L);
@@ -130,8 +126,7 @@ public class SequentialPrefetcherTest {
   @Test
   void testPrefetchWithIOException() throws IOException {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
-    LogicalIOConfiguration config =
-        LogicalIOConfiguration.builder().sparkPartitionSize(4096L).build();
+    LogicalIOConfiguration config = LogicalIOConfiguration.builder().partitionSize(4096L).build();
     ObjectMetadata metadata = mock(ObjectMetadata.class);
     when(metadata.getContentLength()).thenReturn(10000L);
     when(physicalIO.metadata()).thenReturn(metadata);
@@ -141,6 +136,10 @@ public class SequentialPrefetcherTest {
     SequentialPrefetcher prefetcher =
         new SequentialPrefetcher(TEST_URI, physicalIO, TestTelemetry.DEFAULT, config);
 
-    assertThrows(IOException.class, () -> prefetcher.prefetch(0));
+    // The prefetch method should not throw an exception now
+    prefetcher.prefetch(0);
+
+    // Verify that execute was called despite the exception
+    verify(physicalIO).execute(any(IOPlan.class));
   }
 }

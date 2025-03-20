@@ -125,7 +125,6 @@ public class ParquetLogicalIOImplTest {
 
     // Then: close will close dependencies
     verify(physicalIO, times(1)).close(false);
-    ;
   }
 
   @Test
