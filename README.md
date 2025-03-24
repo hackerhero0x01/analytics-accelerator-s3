@@ -1,6 +1,6 @@
 # Analytics Accelerator Library for Amazon S3
 
-The Analytics Accelerator Library for Amazon S3 helps you accelerate access to Amazon S3 data from your applications. This open-source solution reduces processing times and compute costs for your data analytics workloads.
+The Analytics Accelerator Library for Amazon S3 helps you accelerate access to Amazon S3 data from your applications. This is an open-source solution reduces processing times and compute costs for your data analytics workloads.
 
 With this library, you can: 
 * Lower processing times and compute costs for data analytics workloads.
