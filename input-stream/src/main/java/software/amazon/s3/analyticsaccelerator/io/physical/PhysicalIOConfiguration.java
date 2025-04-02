@@ -39,7 +39,7 @@ public class PhysicalIOConfiguration {
   private static final long DEFAULT_PART_SIZE = 8 * ONE_MB;
   private static final double DEFAULT_SEQUENTIAL_PREFETCH_BASE = 2.0;
   private static final double DEFAULT_SEQUENTIAL_PREFETCH_SPEED = 1.0;
-  private static final long DEFAULT_BLOCK_READ_TIMEOUT = 120_000;
+  private static final long DEFAULT_BLOCK_READ_TIMEOUT = 30_000;
   private static final int DEFAULT_BLOCK_READ_RETRY_COUNT = 20;
 
   /** Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_BLOB_STORE} by default. */
