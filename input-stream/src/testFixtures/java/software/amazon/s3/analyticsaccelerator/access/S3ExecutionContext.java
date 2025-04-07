@@ -21,6 +21,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 
 /** This carries the state of the benchmark execution */
 @Getter
@@ -48,7 +49,14 @@ public class S3ExecutionContext implements Closeable {
     testConnection(this.s3Client, configuration);
     testConnection(this.s3CrtClient, configuration);
   }
-
+  /**
+   * Gets an ObjectClient using the standard S3AsyncClient
+   *
+   * @return ObjectClient instance
+   */
+  public S3SdkObjectClient getObjectClient() {
+    return new S3SdkObjectClient(this.s3Client, false);
+  }
   /**
    * Test connection by issuing a list against the bucket and prefix
    *

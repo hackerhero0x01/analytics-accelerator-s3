@@ -169,7 +169,7 @@ public class LogicalIOConfiguration {
         .prefetchingMode(
             PrefetchMode.fromString(
                 configuration.getString(PREFETCHING_MODE_KEY, DEFAULT_PREFETCHING_MODE.toString())))
-        .partitionSize(configuration.getLong(PARTITION_SIZE_KEY, DEFAULT_PARTITION_SIZE))
+        .partitionSize(configuration.getPositiveLong(PARTITION_SIZE_KEY, DEFAULT_PARTITION_SIZE))
         .csvFormatSelectorRegex(
             configuration.getString(CSV_FORMAT_SELECTOR_REGEX, DEFAULT_CSV_FORMAT_SELECTOR_REGEX))
         .jsonFormatSelectorRegex(

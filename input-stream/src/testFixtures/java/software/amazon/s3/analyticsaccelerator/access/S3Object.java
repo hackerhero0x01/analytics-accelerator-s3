@@ -45,7 +45,14 @@ public enum S3Object {
   RANDOM_1GB("random-1gb.bin", SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
   RANDOM_5GB("random-5gb.bin", 5L * SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
   RANDOM_10GB(
-      "random-10gb.bin", 10L * SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL);
+      "random-10gb.bin", 10L * SizeConstants.ONE_GB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
+  CSV_1MB("sequential-1mb.csv", 1 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
+  JSON_1MB(
+      "sequential-1mb.json", 1 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
+  CSV_20MB(
+      "sequential-20mb.csv", 20 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
+  TXT_16MB(
+      "sequential-16mb.txt", 16 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL);
 
   private final String name;
   private final long size;
@@ -134,5 +141,20 @@ public enum S3Object {
    */
   public static List<S3Object> allObjects() {
     return filter(o -> true);
+  }
+
+  /**
+   * Returns list of sequential objects (CSV, JSON, and TXT files).
+   *
+   * @return list of sequential objects
+   */
+  public static List<S3Object> getSequentialS3Objects() {
+    return S3Object.filter(
+        obj -> {
+          String lowerName = obj.getName().toLowerCase(Locale.getDefault());
+          return lowerName.endsWith(".csv")
+              || lowerName.endsWith(".json")
+              || lowerName.endsWith(".txt");
+        });
   }
 }

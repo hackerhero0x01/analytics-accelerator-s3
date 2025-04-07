@@ -264,4 +264,22 @@ public final class ConnectorConfiguration {
       return this.prefix + '.' + key;
     }
   }
+  /**
+   * Get Long value for a given key, ensuring the value is positive. If key is not found, return
+   * default value. Note that this method will throw an exception if the value is not positive.
+   *
+   * @param key suffix of the configuration to retrieve. Full search key will be this.getPrefix +
+   *     "." + key
+   * @param defaultValue default value if provided key does not exist
+   * @return long
+   * @throws IllegalArgumentException if the value is not positive
+   */
+  public long getPositiveLong(@NonNull String key, long defaultValue) {
+    long value = getLong(key, defaultValue);
+    if (value <= 0) {
+      throw new IllegalArgumentException(
+          String.format("Value for %s must be positive, got: %d", key, value));
+    }
+    return value;
+  }
 }
