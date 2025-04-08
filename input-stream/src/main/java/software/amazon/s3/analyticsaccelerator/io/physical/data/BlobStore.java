@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
@@ -35,6 +37,7 @@ import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
         "Inner class is created very infrequently, and fluency justifies the extra pointer")
 public class BlobStore implements Closeable {
   private final Map<ObjectKey, Blob> blobMap;
+  private static final Logger LOG = LoggerFactory.getLogger(BlobStore.class);
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
   private final PhysicalIOConfiguration configuration;
@@ -57,10 +60,21 @@ public class BlobStore implements Closeable {
             new LinkedHashMap<ObjectKey, Blob>() {
               @Override
               protected boolean removeEldestEntry(final Map.Entry<ObjectKey, Blob> eldest) {
-                return this.size() > configuration.getBlobStoreCapacity();
+                boolean shouldRemove = this.size() > configuration.getBlobStoreCapacity();
+                if (shouldRemove) {
+                  long memoryUsage = calculateTotalBlobMemoryUsage();
+                  LOG.info("Memory used by blobstore just before eviction: {}", memoryUsage);
+                }
+                return shouldRemove;
               }
             });
     this.configuration = configuration;
+  }
+
+  private long calculateTotalBlobMemoryUsage() {
+    return blobMap.values().stream()
+        .mapToLong(blob -> blob.getBlockManager().getMemoryUsage().get())
+        .sum();
   }
 
   /**
@@ -72,6 +86,7 @@ public class BlobStore implements Closeable {
    * @return the blob representing the object from the BlobStore
    */
   public Blob get(ObjectKey objectKey, ObjectMetadata metadata, StreamContext streamContext) {
+    LOG.info("memory used calculation enhanced");
     return blobMap.computeIfAbsent(
         objectKey,
         uri ->

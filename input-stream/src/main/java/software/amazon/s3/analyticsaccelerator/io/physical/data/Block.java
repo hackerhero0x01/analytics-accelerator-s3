@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -58,6 +59,7 @@ public class Block implements Closeable {
   @Getter private final long start;
   @Getter private final long end;
   @Getter private final long generation;
+  @Getter private AtomicLong memoryUsage;
 
   private static final String OPERATION_BLOCK_GET_ASYNC = "block.get.async";
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
@@ -129,6 +131,51 @@ public class Block implements Closeable {
       StreamContext streamContext)
       throws IOException {
 
+    this(
+        objectKey,
+        objectClient,
+        telemetry,
+        start,
+        end,
+        generation,
+        readMode,
+        readTimeout,
+        readRetryCount,
+        streamContext,
+        new AtomicLong(0));
+  }
+
+  /**
+   * Constructs a Block data.
+   *
+   * @param objectKey the etag and S3 URI of the object
+   * @param objectClient the object client to use to interact with the object store
+   * @param telemetry an instance of {@link Telemetry} to use
+   * @param start start of the block
+   * @param end end of the block
+   * @param generation generation of the block in a sequential read pattern (should be 0 by default)
+   * @param readMode read mode describing whether this is a sync or async fetch
+   * @param readTimeout Timeout duration (in milliseconds) for reading a block object from S3
+   * @param readRetryCount Number of retries for block read failure
+   * @param streamContext contains audit headers to be attached in the request header
+   * @param memoryUsage usage of memory per blob
+   */
+  public Block(
+      @NonNull ObjectKey objectKey,
+      @NonNull ObjectClient objectClient,
+      @NonNull Telemetry telemetry,
+      long start,
+      long end,
+      long generation,
+      @NonNull ReadMode readMode,
+      long readTimeout,
+      int readRetryCount,
+      StreamContext streamContext,
+      AtomicLong memoryUsage)
+      throws IOException {
+
+    LOG.info("My memory initial value is {}", memoryUsage);
+
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
     Preconditions.checkArgument(0 <= start, "`start` must be non-negative; was: %s", start);
@@ -152,6 +199,7 @@ public class Block implements Closeable {
     this.referrer = new Referrer(range.toHttpString(), readMode);
     this.readTimeout = readTimeout;
     this.readRetryCount = readRetryCount;
+    this.memoryUsage = memoryUsage;
 
     generateSourceAndData();
   }
@@ -186,6 +234,7 @@ public class Block implements Closeable {
             this.source.thenApply(
                 objectContent -> {
                   try {
+                    memoryUsage.addAndGet(range.getLength());
                     return StreamUtils.toByteArray(
                         objectContent, this.objectKey, this.range, this.readTimeout);
                   } catch (IOException | TimeoutException e) {
