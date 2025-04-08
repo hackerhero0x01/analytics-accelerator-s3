@@ -61,13 +61,7 @@ public class BlockStore implements Closeable {
   public Optional<Block> getBlock(long pos) {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
-    Optional<Block> block = blocks.stream().filter(b -> b.contains(pos)).findFirst();
-    if (block.isPresent()) {
-      LOG.info("CacheStatus: hit, ObjectKey: {}", s3URI);
-    } else {
-      LOG.info("CacheStatus: miss, ObjectKey: {}", s3URI);
-    }
-    return block;
+    return blocks.stream().filter(b -> b.contains(pos)).findFirst();
   }
 
   /**
