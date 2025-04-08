@@ -53,6 +53,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final BlobStore objectBlobStore;
   private final Telemetry telemetry;
   private final ObjectFormatSelector objectFormatSelector;
+  private final ObjectClient objectClient;
 
   private static final Logger LOG = LoggerFactory.getLogger(S3SeekableInputStreamFactory.class);
 
@@ -68,6 +69,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       @NonNull ObjectClient objectClient,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     LOG.info("Initializing S3SeekableInputStreamFactory with configuration: {}", configuration);
+    this.objectClient = objectClient;
     this.configuration = configuration;
     this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
     this.parquetColumnPrefetchStore =
@@ -77,6 +79,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
     this.objectBlobStore =
         new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
+
+    LOG.info("EVERY STREAM HAS IT'S OWN BLOBSTORE");
   }
 
   /**
@@ -131,7 +135,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
             new PhysicalIOImpl(
                 s3URI,
                 objectMetadataStore,
-                objectBlobStore,
+                new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration()),
                 telemetry,
                 openStreamInformation.getStreamContext()),
             telemetry,
