@@ -62,7 +62,7 @@ public class BlockStore implements Closeable {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
     Optional<Block> block = blocks.stream().filter(b -> b.contains(pos)).findFirst();
-    if(block.isPresent()) {
+    if (block.isPresent()) {
       CacheStats.recordHit();
     } else {
       CacheStats.recordMiss();
