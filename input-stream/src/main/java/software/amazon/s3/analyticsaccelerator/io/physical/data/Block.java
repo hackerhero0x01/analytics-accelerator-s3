@@ -27,6 +27,7 @@ import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
+import software.amazon.s3.analyticsaccelerator.io.physical.LoggingUtil;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
@@ -220,8 +221,18 @@ public class Block implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+    LoggingUtil.LogBuilder logger =
+        LoggingUtil.start(LOG, "read")
+            .withParam("start of block", start)
+            .withParam("end of block", end)
+            .withParam("S3URI", this.objectKey.getS3URI())
+            .withParam("pos", pos)
+            .withThreadInfo()
+            .withTiming();
+    logger.logStart();
 
     byte[] content = this.getDataWithRetries();
+    logger.logEnd();
     return Byte.toUnsignedInt(content[posToOffset(pos)]);
   }
 
@@ -241,7 +252,19 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
+    LoggingUtil.LogBuilder logger =
+        LoggingUtil.start(LOG, "read")
+            .withParam("start of block", start)
+            .withParam("end of block", end)
+            .withParam("S3URI", this.objectKey.getS3URI())
+            .withParam("off", off)
+            .withParam("len", len)
+            .withParam("pos", pos)
+            .withThreadInfo()
+            .withTiming();
+    logger.logStart();
     byte[] content = this.getDataWithRetries();
+    logger.logEnd();
     int contentOffset = posToOffset(pos);
     int available = content.length - contentOffset;
     int bytesToCopy = Math.min(len, available);

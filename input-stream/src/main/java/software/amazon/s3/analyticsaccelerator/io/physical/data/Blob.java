@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
+import software.amazon.s3.analyticsaccelerator.io.physical.LoggingUtil;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanState;
@@ -71,8 +72,17 @@ public class Blob implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
+    LoggingUtil.LogBuilder logger =
+        LoggingUtil.start(LOG, "read")
+            .withParam("S3URI", this.objectKey.getS3URI())
+            .withParam("pos", pos)
+            .withThreadInfo()
+            .withTiming();
+    logger.logStart();
     blockManager.makePositionAvailable(pos, ReadMode.SYNC);
-    return blockManager.getBlock(pos).get().read(pos);
+    int res = blockManager.getBlock(pos).get().read(pos);
+    logger.logEnd();
+    return res;
   }
 
   /**
@@ -92,6 +102,15 @@ public class Blob implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
+    LoggingUtil.LogBuilder logger =
+        LoggingUtil.start(LOG, "read")
+            .withParam("S3URI", this.objectKey.getS3URI())
+            .withParam("off", off)
+            .withParam("len", len)
+            .withParam("pos", pos)
+            .withThreadInfo()
+            .withTiming();
+    logger.logStart();
     blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
     long nextPosition = pos;
@@ -119,6 +138,7 @@ public class Blob implements Closeable {
       nextPosition += bytesRead;
     }
 
+    logger.logEnd();
     return numBytesRead;
   }
 
@@ -139,11 +159,19 @@ public class Blob implements Closeable {
                 .build(),
         () -> {
           try {
+            LoggingUtil.LogBuilder logger =
+                LoggingUtil.start(LOG, "execute")
+                    .withParam("S3URI", this.objectKey.getS3URI())
+                    .withParam("plan", plan)
+                    .withThreadInfo()
+                    .withTiming();
+            logger.logStart();
             for (Range range : plan.getPrefetchRanges()) {
               this.blockManager.makeRangeAvailable(
                   range.getStart(), range.getLength(), ReadMode.ASYNC);
             }
 
+            logger.logEnd();
             return IOPlanExecution.builder().state(IOPlanState.SUBMITTED).build();
           } catch (Exception e) {
             LOG.error("Failed to submit IOPlan to PhysicalIO", e);

@@ -17,9 +17,12 @@ package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 
 import java.io.IOException;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
+import software.amazon.s3.analyticsaccelerator.io.physical.LoggingUtil;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
@@ -46,6 +49,8 @@ public class PhysicalIOImpl implements PhysicalIO {
   private static final String OPERATION_EXECUTE = "physical.io.execute";
   private static final String FLAVOR_TAIL = "tail";
   private static final String FLAVOR_BYTE = "byte";
+
+  private static final Logger LOG = LoggerFactory.getLogger(PhysicalIOImpl.class);
 
   /**
    * Construct a new instance of PhysicalIOV2.
@@ -122,7 +127,19 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () -> blobStore.get(this.objectKey, this.metadata, streamContext).read(pos));
+          () -> {
+            LoggingUtil.LogBuilder logger =
+                LoggingUtil.start(LOG, "read")
+                    .withParam("s3Uri", this.objectKey.getS3URI())
+                    .withParam("etag", this.objectKey.getEtag())
+                    .withParam("pos", pos)
+                    .withThreadInfo()
+                    .withTiming();
+            logger.logStart();
+            int res = blobStore.get(this.objectKey, this.metadata, streamContext).read(pos);
+            logger.logEnd();
+            return res;
+          });
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -159,7 +176,22 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () -> blobStore.get(objectKey, this.metadata, streamContext).read(buf, off, len, pos));
+          () -> {
+            LoggingUtil.LogBuilder logger =
+                LoggingUtil.start(LOG, "read")
+                    .withParam("s3Uri", this.objectKey.getS3URI())
+                    .withParam("etag", this.objectKey.getEtag())
+                    .withParam("off", off)
+                    .withParam("len", len)
+                    .withParam("pos", pos)
+                    .withThreadInfo()
+                    .withTiming();
+            logger.logStart();
+            int res =
+                blobStore.get(objectKey, this.metadata, streamContext).read(buf, off, len, pos);
+            logger.logEnd();
+            return res;
+          });
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -193,10 +225,23 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () ->
-              blobStore
-                  .get(objectKey, this.metadata, streamContext)
-                  .read(buf, off, len, contentLength - len));
+          () -> {
+            LoggingUtil.LogBuilder logger =
+                LoggingUtil.start(LOG, "readTail")
+                    .withParam("s3Uri", this.objectKey.getS3URI())
+                    .withParam("etag", this.objectKey.getEtag())
+                    .withParam("off", off)
+                    .withParam("len", len)
+                    .withThreadInfo()
+                    .withTiming();
+            logger.logStart();
+            int res =
+                blobStore
+                    .get(objectKey, this.metadata, streamContext)
+                    .read(buf, off, len, contentLength - len);
+            logger.logEnd();
+            return res;
+          });
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -222,7 +267,20 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(objectKey, this.metadata, streamContext).execute(ioPlan));
+        () -> {
+          LoggingUtil.LogBuilder logger =
+              LoggingUtil.start(LOG, "execute")
+                  .withParam("s3Uri", this.objectKey.getS3URI())
+                  .withParam("etag", this.objectKey.getEtag())
+                  .withParam("ioPlan", ioPlan)
+                  .withThreadInfo()
+                  .withTiming();
+          logger.logStart();
+          IOPlanExecution execution =
+              blobStore.get(objectKey, this.metadata, streamContext).execute(ioPlan);
+          logger.logEnd();
+          return execution;
+        });
   }
 
   private void handleOperationExceptions(Exception e) {

@@ -21,9 +21,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
+import software.amazon.s3.analyticsaccelerator.io.physical.LoggingUtil;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialPatternDetector;
 import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialReadProgression;
@@ -50,6 +53,8 @@ public class BlockManager implements Closeable {
   private StreamContext streamContext;
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
+
+  private static final Logger LOG = LoggerFactory.getLogger(BlockManager.class);
 
   /**
    * Constructs a new BlockManager.
@@ -161,6 +166,16 @@ public class BlockManager implements Closeable {
       return;
     }
 
+    LoggingUtil.LogBuilder logger =
+        LoggingUtil.start(LOG, "makeRangeAvailable")
+            .withParam("S3URI", this.objectKey.getS3URI())
+            .withParam("pos", pos)
+            .withParam("len", len)
+            .withParam("readMode", readMode)
+            .withThreadInfo()
+            .withTiming();
+    logger.logStart();
+
     // In case of a sequential reading pattern, calculate the generation and adjust the requested
     // effectiveEnd of the requested range
     long effectiveEnd = pos + Math.max(len, configuration.getReadAheadBytes()) - 1;
@@ -213,6 +228,8 @@ public class BlockManager implements Closeable {
             blockStore.add(block);
           }
         });
+
+    logger.logEnd();
   }
 
   private long getLastObjectByte() {

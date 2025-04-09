@@ -29,6 +29,7 @@ import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
+import software.amazon.s3.analyticsaccelerator.io.physical.LoggingUtil;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
@@ -114,6 +115,14 @@ public class ParquetPredictivePrefetchingTask {
    * @return name of column added as recent column
    */
   public List<ColumnMetadata> addToRecentColumnList(long position, int len) {
+    LoggingUtil.LogBuilder logger =
+        LoggingUtil.start(LOG, "addToRecentColumnList")
+            .withParam("s3Uri", s3Uri)
+            .withParam("position", position)
+            .withParam("len", len)
+            .withThreadInfo()
+            .withTiming();
+    logger.logStart();
     if (parquetColumnPrefetchStore.getColumnMappers(s3Uri) != null) {
       ColumnMappers columnMappers = parquetColumnPrefetchStore.getColumnMappers(s3Uri);
       List<ColumnMetadata> addedColumns = new ArrayList<>();
@@ -151,6 +160,7 @@ public class ParquetPredictivePrefetchingTask {
       }
     }
 
+    logger.logEnd();
     return Collections.emptyList();
   }
 
@@ -170,10 +180,18 @@ public class ParquetPredictivePrefetchingTask {
     if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.ROW_GROUP
         && !parquetColumnPrefetchStore.isColumnRowGroupPrefetched(
             s3Uri, columnMetadata.getRowGroupIndex())) {
+      LoggingUtil.LogBuilder logger =
+          LoggingUtil.start(LOG, "prefetchColumnsForCurrentRowGroup")
+              .withParam("s3Uri", s3Uri)
+              .withParam("rowGroupIndex", columnMetadata.getRowGroupIndex())
+              .withThreadInfo()
+              .withTiming();
+      logger.logStart();
       prefetchRecentColumns(
           columnMappers, ParquetUtils.constructRowGroupsToPrefetch(columnMetadata), false);
       parquetColumnPrefetchStore.storeColumnPrefetchedRowGroupIndex(
           s3Uri, columnMetadata.getRowGroupIndex());
+      logger.logEnd();
     }
   }
 
@@ -182,6 +200,13 @@ public class ParquetPredictivePrefetchingTask {
     if (logicalIOConfiguration.getPrefetchingMode() == PrefetchMode.ROW_GROUP
         && !parquetColumnPrefetchStore.isDictionaryRowGroupPrefetched(
             s3Uri, columnMetadata.getRowGroupIndex())) {
+      LoggingUtil.LogBuilder logger =
+          LoggingUtil.start(LOG, "prefetchDictionariesForCurrentRowGroup")
+              .withParam("s3Uri", s3Uri)
+              .withParam("rowGroupIndex", columnMetadata.getRowGroupIndex())
+              .withThreadInfo()
+              .withTiming();
+      logger.logStart();
       prefetchRecentColumns(
           columnMappers, ParquetUtils.constructRowGroupsToPrefetch(columnMetadata), true);
       parquetColumnPrefetchStore.storeDictionaryPrefetchedRowGroupIndex(
@@ -235,6 +260,16 @@ public class ParquetPredictivePrefetchingTask {
                           recentColumn,
                           this.s3Uri.getKey(),
                           columnMetadata.getRowGroupIndex());
+                      LoggingUtil.LogBuilder logger =
+                          LoggingUtil.start(
+                                  LOG,
+                                  "prefetchRecentColumns: Column dictionary found in schema, adding to prefetch list")
+                              .withParam("s3Uri", s3Uri)
+                              .withParam("rowGroupIndex", columnMetadata.getRowGroupIndex())
+                              .withParam("recentColumn", recentColumn)
+                              .withThreadInfo()
+                              .withTiming();
+                      logger.logStart();
                     } else {
                       columnRanges.add(
                           new Range(
@@ -247,6 +282,16 @@ public class ParquetPredictivePrefetchingTask {
                           recentColumn,
                           this.s3Uri.getKey(),
                           columnMetadata.getRowGroupIndex());
+                      LoggingUtil.LogBuilder logger =
+                          LoggingUtil.start(
+                                  LOG,
+                                  "prefetchRecentColumns: Column found in schema, adding to prefetch list")
+                              .withParam("s3Uri", s3Uri)
+                              .withParam("rowGroupIndex", columnMetadata.getRowGroupIndex())
+                              .withParam("recentColumn", recentColumn)
+                              .withThreadInfo()
+                              .withTiming();
+                      logger.logStart();
                     }
                   }
                 }
