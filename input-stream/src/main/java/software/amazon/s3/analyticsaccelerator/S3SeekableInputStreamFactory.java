@@ -164,7 +164,10 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   @Override
   public void close() throws IOException {
-    LOG.info("Final cache statistics: {}", CacheStats.getStats());
+    LOG.info(
+        "factory Cache Hits: {}, Misses: {}, Hit Rate: {}%",
+        CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);
+
     this.objectMetadataStore.close();
     this.objectBlobStore.close();
     this.telemetry.close();
