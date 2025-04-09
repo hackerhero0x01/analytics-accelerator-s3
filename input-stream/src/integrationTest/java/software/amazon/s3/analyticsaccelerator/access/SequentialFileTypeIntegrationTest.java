@@ -109,43 +109,42 @@ class SequentialFileTypeIntegrationTest extends IntegrationTestBase {
       throws IOException, InterruptedException {
     S3URI s3URI = file.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());
 
-    try (S3SeekableInputStreamFactory factory =
+    S3SeekableInputStreamFactory factory =
         new S3SeekableInputStreamFactory(
             this.getS3ExecutionContext().getObjectClient(),
-            S3SeekableInputStreamConfiguration.fromConfiguration(connectorConfiguration))) {
+            S3SeekableInputStreamConfiguration.fromConfiguration(connectorConfiguration));
 
-      try (S3SeekableInputStream stream = factory.createStream(s3URI)) {
-        byte[] singleByte = new byte[1];
-        int firstByteRead = stream.read(singleByte);
-        assertTrue(firstByteRead > 0, "Should be able to read first byte");
+    try (S3SeekableInputStream stream = factory.createStream(s3URI)) {
+      byte[] singleByte = new byte[1];
+      int firstByteRead = stream.read(singleByte);
+      assertTrue(firstByteRead > 0, "Should be able to read first byte");
 
-        // Brief pause to allow prefetch to start
-        Thread.sleep(100);
+      // Brief pause to allow prefetch to start
+      Thread.sleep(100);
 
-        long expectedPrefetchSize = Math.min(file.getSize(), partitionSize);
+      long expectedPrefetchSize = Math.min(file.getSize(), partitionSize);
 
-        // Read up to the expected prefetch size
-        byte[] buffer = new byte[8192];
-        long bytesReadInPrefetch = 1; // Start with 1 for the first byte we already read
-        int bytesRead;
+      // Read up to the expected prefetch size
+      byte[] buffer = new byte[8192];
+      long bytesReadInPrefetch = 1; // Start with 1 for the first byte we already read
+      int bytesRead;
 
-        while (bytesReadInPrefetch < expectedPrefetchSize
-            && (bytesRead =
-                    stream.read(
-                        buffer,
-                        0,
-                        (int) Math.min(buffer.length, expectedPrefetchSize - bytesReadInPrefetch)))
-                != -1) {
-          bytesReadInPrefetch += bytesRead;
-        }
-
-        // Verify we could read the expected prefetch amount
-        assertEquals(
-            expectedPrefetchSize,
-            bytesReadInPrefetch,
-            String.format(
-                "Should read %d bytes from prefetch for %s", expectedPrefetchSize, file.getName()));
+      while (bytesReadInPrefetch < expectedPrefetchSize
+          && (bytesRead =
+                  stream.read(
+                      buffer,
+                      0,
+                      (int) Math.min(buffer.length, expectedPrefetchSize - bytesReadInPrefetch)))
+              != -1) {
+        bytesReadInPrefetch += bytesRead;
       }
+
+      // Verify we could read the expected prefetch amount
+      assertEquals(
+          expectedPrefetchSize,
+          bytesReadInPrefetch,
+          String.format(
+              "Should read %d bytes from prefetch for %s", expectedPrefetchSize, file.getName()));
     }
   }
 }

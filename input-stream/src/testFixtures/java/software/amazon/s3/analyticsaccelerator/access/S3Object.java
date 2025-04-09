@@ -149,12 +149,9 @@ public enum S3Object {
    * @return list of sequential objects
    */
   public static List<S3Object> getSequentialS3Objects() {
-    return S3Object.filter(
-        obj -> {
-          String lowerName = obj.getName().toLowerCase(Locale.getDefault());
-          return lowerName.endsWith(".csv")
-              || lowerName.endsWith(".json")
-              || lowerName.endsWith(".txt");
-        });
+    return filter(
+        obj ->
+            Arrays.asList("csv", "json", "txt")
+                .contains(obj.getName().substring(obj.getName().lastIndexOf('.') + 1)));
   }
 }
