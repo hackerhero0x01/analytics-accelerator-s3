@@ -72,17 +72,8 @@ public class Blob implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
-    LoggingUtil.LogBuilder logger =
-        LoggingUtil.start(LOG, "read")
-            .withParam("S3URI", this.objectKey.getS3URI())
-            .withParam("pos", pos)
-            .withThreadInfo()
-            .withTiming();
-    logger.logStart();
     blockManager.makePositionAvailable(pos, ReadMode.SYNC);
-    int res = blockManager.getBlock(pos).get().read(pos);
-    logger.logEnd();
-    return res;
+    return blockManager.getBlock(pos).get().read(pos);
   }
 
   /**
@@ -110,7 +101,7 @@ public class Blob implements Closeable {
             .withParam("pos", pos)
             .withThreadInfo()
             .withTiming();
-    logger.logStart();
+    if (len > 5) logger.logStart();
     blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
     long nextPosition = pos;
@@ -137,8 +128,7 @@ public class Blob implements Closeable {
       numBytesRead = numBytesRead + bytesRead;
       nextPosition += bytesRead;
     }
-
-    logger.logEnd();
+    if (len > 5) logger.logEnd();
     return numBytesRead;
   }
 
