@@ -108,7 +108,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
     } catch (Exception e) {
       // do not allow exceptions from shut leak out, as, regardless of the outcome, we will no
       // longer flush, which is the point
-      LOG.debug("Error shutting down flush task in TelemetryDatapointAggregator", e);
+      LOG.info("Error shutting down flush task in TelemetryDatapointAggregator", e);
     }
   }
 
@@ -142,7 +142,7 @@ public class TelemetryDatapointAggregator implements TelemetryReporter {
 
   @Override
   public void flush() {
-    LOG.debug("Flushing aggregates");
+    LOG.info("Flushing aggregates");
     // This is thread-safe, as `values` on ConcurrentHashMap is thread-safe
     // Flush all values for each aggregation into a reporter
     aggregations.values().forEach(aggregation -> aggregation.flush(this.telemetryReporter));

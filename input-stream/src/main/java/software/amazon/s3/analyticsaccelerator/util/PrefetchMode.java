@@ -46,7 +46,7 @@ public enum PrefetchMode {
         return value;
       }
     }
-    LOG.debug("Unknown prefetch mode {}, using default row_group mode.", prefetchMode);
+    LOG.info("Unknown prefetch mode {}, using default row_group mode.", prefetchMode);
 
     return ROW_GROUP;
   }

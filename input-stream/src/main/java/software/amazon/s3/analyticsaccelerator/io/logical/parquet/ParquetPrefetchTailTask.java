@@ -79,7 +79,7 @@ public class ParquetPrefetchTailTask {
             physicalIO.execute(ioPlan);
             return ioPlan.getPrefetchRanges();
           } catch (Exception e) {
-            LOG.debug(
+            LOG.info(
                 "Unable to prefetch file tail for {}, parquet prefetch optimisations will be disabled for this key.",
                 this.s3URI.getKey(),
                 e);

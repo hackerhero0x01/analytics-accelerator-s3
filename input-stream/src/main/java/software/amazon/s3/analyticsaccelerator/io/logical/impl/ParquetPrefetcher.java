@@ -199,7 +199,7 @@ public class ParquetPrefetcher {
         this.parquetPredictivePrefetchingTask.addToRecentColumnList(position, len);
       }
     } catch (Exception e) {
-      LOG.debug(
+      LOG.info(
           "Unable to add column to recently read columns tracked list for {}.", s3URI.getKey(), e);
     }
   }

@@ -86,7 +86,7 @@ public class ParquetPrefetchRemainingColumnTask {
         }
       }
     } catch (Exception e) {
-      LOG.debug("Unable to prefetch remaining column chunk for {}.", this.s3Uri.getKey(), e);
+      LOG.info("Unable to prefetch remaining column chunk for {}.", this.s3Uri.getKey(), e);
     }
     return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
   }

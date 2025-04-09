@@ -255,7 +255,7 @@ public class ParquetPredictivePrefetchingTask {
                                   + (columnMetadata.getDataPageOffset()
                                       - columnMetadata.getDictionaryOffset()
                                       - 1)));
-                      LOG.debug(
+                      LOG.info(
                           "Column dictionary {} found in schema for {}, and rowGroupIndex {}, adding to prefetch list",
                           recentColumn,
                           this.s3Uri.getKey(),
@@ -277,7 +277,7 @@ public class ParquetPredictivePrefetchingTask {
                               columnMetadata.getStartPos()
                                   + columnMetadata.getCompressedSize()
                                   - 1));
-                      LOG.debug(
+                      LOG.info(
                           "Column {} found in schema for {}, and rowGroupIndex {}, adding to prefetch list",
                           recentColumn,
                           this.s3Uri.getKey(),
@@ -308,7 +308,7 @@ public class ParquetPredictivePrefetchingTask {
                     : new IOPlan(ParquetUtils.mergeRanges(columnRanges));
             return physicalIO.execute(columnIoPlan);
           } catch (Throwable t) {
-            LOG.debug("Unable to prefetch columns for {}.", this.s3Uri.getKey(), t);
+            LOG.info("Unable to prefetch columns for {}.", this.s3Uri.getKey(), t);
             return IOPlanExecution.builder().state(IOPlanState.SKIPPED).build();
           }
         });

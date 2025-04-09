@@ -108,7 +108,7 @@ public class LoggingUtil {
       if (includeTiming) addTiming(false);
 
       String message = String.format("STARTED %s: %s", operation, buildParamString());
-      logger.debug(message);
+      logger.info(message);
     }
 
     /** Logs the end of an operation. */
@@ -117,7 +117,7 @@ public class LoggingUtil {
       if (includeTiming) addTiming(true);
 
       String message = String.format("DONE %s: %s", operation, buildParamString());
-      logger.debug(message);
+      logger.info(message);
     }
 
     /**
