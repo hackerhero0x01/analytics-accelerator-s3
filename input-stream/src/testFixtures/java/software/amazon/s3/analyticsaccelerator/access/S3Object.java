@@ -94,6 +94,14 @@ public enum S3Object {
   public static List<S3Object> smallObjects() {
     return filter(o -> o.size < 50 * SizeConstants.ONE_MB_IN_BYTES);
   }
+  /**
+   * Returns list of small binary objects (less than 50MB, .bin files only).
+   *
+   * @return list of small binary objects
+   */
+  public static List<S3Object> smallBinaryObjects() {
+    return filter(o -> o.size < 50 * SizeConstants.ONE_MB_IN_BYTES && o.getName().endsWith(".bin"));
+  }
 
   /**
    * Medium objects - between 50 MB and 500MB

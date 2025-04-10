@@ -130,7 +130,7 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
   static Stream<Arguments> etagTests() {
     return argumentsFor(
         getS3ClientKinds(),
-        S3Object.smallObjects(),
+        S3Object.smallBinaryObjects(),
         parquetPatterns(),
         getS3SeekableInputStreamConfigurations());
   }
