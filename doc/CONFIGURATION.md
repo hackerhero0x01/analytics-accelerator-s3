@@ -72,16 +72,16 @@ Options under `<CONNECTOR_PREFIX>.physicalio.`
 ## Telemetry Configuration
 Options under `<CONNECTOR_PREFIX>.telemetry.`
 
-| Option                                | Default                             | Description                                                              |
-|---------------------------------------|-------------------------------------|--------------------------------------------------------------------------|
-| `level`                               | `STANDARD`                          | Telemetry detail level (valid values: `CRITICAL`, `STANDARD`, `VERBOSE`) |
-| `std.out.enabled`                     | `false`                             | Enable stdout telemetry output                                           |
-| `logging.enabled`                     | `true`                              | Enable logging telemetry output                                          |
-| `aggregations.enabled`                | `false`                             | Enable telemetry aggregations                                            |
-| `aggregations.flush.interval.seconds` | `-1`                                | Interval to flush aggregated telemetry                                   |
-| `logging.level`                       | `INFO`                              | Log level for telemetry                                                  |
-| `logging.name`                        | `com.amazon.connector.s3.telemetry` | Logger name for telemetry                                                |
-| `format`                              | `default`                           | Telemetry output format (valid values: `json`, `default`)                |
+| Option                                | Default                                             | Description                                                              |
+|---------------------------------------|-----------------------------------------------------|--------------------------------------------------------------------------|
+| `level`                               | `STANDARD`                                          | Telemetry detail level (valid values: `CRITICAL`, `STANDARD`, `VERBOSE`) |
+| `std.out.enabled`                     | `false`                                             | Enable stdout telemetry output                                           |
+| `logging.enabled`                     | `true`                                              | Enable logging telemetry output                                          |
+| `aggregations.enabled`                | `false`                                             | Enable telemetry aggregations                                            |
+| `aggregations.flush.interval.seconds` | `-1`                                                | Interval to flush aggregated telemetry                                   |
+| `logging.level`                       | `DEBUG`                                             | Log level for telemetry                                                  |
+| `logging.name`                        | `software.amazon.s3.analyticsaccelerator.telemetry` | Logger name for telemetry                                                |
+| `format`                              | `default`                                           | Telemetry output format (valid values: `json`, `default`)                |
 
 ## Object Client Configuration
 Options under `<CONNECTOR_PREFIX>.`

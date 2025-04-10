@@ -39,7 +39,7 @@ class LoggingTelemetryReporter implements TelemetryReporter {
   public static Level DEFAULT_LOGGING_LEVEL = Level.DEBUG;
 
   /** Default logger name */
-  public static String DEFAULT_LOGGING_NAME = "com.amazon.connector.s3.telemetry";
+  public static String DEFAULT_LOGGING_NAME = "software.amazon.s3.analyticsaccelerator.telemetry";
 
   /** Creates a new instance of {@link LoggingTelemetryReporter} with sensible defaults. */
   public LoggingTelemetryReporter() {
