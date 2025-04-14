@@ -15,13 +15,12 @@
  */
 package software.amazon.s3.analyticsaccelerator.access;
 
+import java.util.HashMap;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /** Enum representing meaningful configuration samples for {@link S3ExecutionConfiguration} */
 @AllArgsConstructor
@@ -38,8 +37,8 @@ public enum AALInputStreamConfigurationKind {
     Map<String, String> customConfiguration = new HashMap<>();
     customConfiguration.put(configurationPrefix + ".physicalio.blockreadtimeout", "10000");
     customConfiguration.put(configurationPrefix + ".physicalio.blockreadretrycount", "2");
-    ConnectorConfiguration config = new ConnectorConfiguration(customConfiguration, configurationPrefix);
+    ConnectorConfiguration config =
+        new ConnectorConfiguration(customConfiguration, configurationPrefix);
     return S3SeekableInputStreamConfiguration.fromConfiguration(config);
   }
-
 }
