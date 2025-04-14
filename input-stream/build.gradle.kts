@@ -148,6 +148,8 @@ val shadowJar = tasks.withType<ShadowJar> {
 }
 
 val refTest = task<Test>("referenceTest") {
+    maxHeapSize = "2g"
+    jvmArgs = listOf("-Xms1g", "-Xmx2g")
     description = "Runs reference tests."
     group = "verification"
 
