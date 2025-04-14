@@ -18,11 +18,14 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -34,6 +37,7 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
+import software.amazon.s3.analyticsaccelerator.util.*;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
@@ -51,6 +55,7 @@ public class BlockManager implements Closeable {
   private final RangeOptimiser rangeOptimiser;
   private StreamContext streamContext;
   @Getter private AtomicLong memoryUsage;
+  private static final Logger LOG = LoggerFactory.getLogger(BlockManager.class);
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
@@ -161,7 +166,16 @@ public class BlockManager implements Closeable {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
+    Map<String, Object> logParams =
+        LogParamsBuilder.create()
+            .add("s3URI", objectKey.getS3URI().toString())
+            .add("pos", pos)
+            .add("length", len)
+            .add("readMode", readMode)
+            .build();
+
     if (isRangeAvailable(pos, len)) {
+      LogUtils.logInfo(LOG, "makeRangeAvailable", logParams, "total new blocks added: 0");
       return;
     }
 
@@ -201,6 +215,9 @@ public class BlockManager implements Closeable {
           List<Range> missingRanges =
               ioPlanner.planRead(pos, effectiveEndFinal, getLastObjectByte());
           List<Range> splits = rangeOptimiser.splitRanges(missingRanges);
+
+          LogUtils.logInfo(
+              LOG, "makeRangeAvailable", logParams, "total new blocks added: %d", splits.size());
           for (Range r : splits) {
             Block block =
                 new Block(

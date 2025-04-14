@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,23 +29,15 @@ import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
-import software.amazon.s3.analyticsaccelerator.request.GetRequest;
-import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
-import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
-import software.amazon.s3.analyticsaccelerator.request.Range;
-import software.amazon.s3.analyticsaccelerator.request.ReadMode;
-import software.amazon.s3.analyticsaccelerator.request.Referrer;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
-import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
-import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
-import software.amazon.s3.analyticsaccelerator.util.StreamUtils;
+import software.amazon.s3.analyticsaccelerator.request.*;
+import software.amazon.s3.analyticsaccelerator.util.*;
 
 /**
  * A Block holding part of an object's data and owning its own async process for fetching part of
  * the object.
  */
 public class Block implements Closeable {
-  private CompletableFuture<ObjectContent> source;
+  @Getter private CompletableFuture<ObjectContent> source;
   private CompletableFuture<byte[]> data;
   private final ObjectKey objectKey;
   private final Range range;
@@ -102,6 +95,11 @@ public class Block implements Closeable {
         readTimeout,
         readRetryCount,
         null);
+  }
+
+  /** @return data */
+  public CompletableFuture<byte[]> getData1() {
+    return data;
   }
 
   /**
@@ -206,9 +204,17 @@ public class Block implements Closeable {
 
   /** Method to help construct source and data */
   private void generateSourceAndData() throws IOException {
+    String methodName = "generateSourceAndData";
+    Map<String, Object> logParams =
+        LogParamsBuilder.create()
+            .add("s3Uri", objectKey.getS3URI().toString())
+            .add("range", start + "-" + end)
+            .build();
     int retries = 0;
     while (retries < this.readRetryCount) {
       try {
+        LogUtils.logInfo(LOG, methodName, logParams, "Starting source creation for block");
+
         GetRequest getRequest =
             GetRequest.builder()
                 .s3Uri(this.objectKey.getS3URI())
@@ -234,6 +240,9 @@ public class Block implements Closeable {
             this.source.thenApply(
                 objectContent -> {
                   try {
+                    LogUtils.logInfo(
+                        LOG, methodName, logParams, "Starting data creation for block");
+
                     memoryUsage.addAndGet(range.getLength());
                     return StreamUtils.toByteArray(
                         objectContent, this.objectKey, this.range, this.readTimeout);
