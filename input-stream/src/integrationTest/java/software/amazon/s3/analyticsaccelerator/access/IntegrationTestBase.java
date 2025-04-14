@@ -367,7 +367,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * @return configuration kind
    */
   static List<AALInputStreamConfigurationKind> getS3SeekableInputStreamConfigurations() {
-    return Arrays.asList(AALInputStreamConfigurationKind.values());
+    return Arrays.asList(AALInputStreamConfigurationKind.DEFAULT);
   }
 
   /**

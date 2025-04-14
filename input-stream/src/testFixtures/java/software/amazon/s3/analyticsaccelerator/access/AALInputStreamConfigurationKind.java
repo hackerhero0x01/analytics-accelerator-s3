@@ -18,13 +18,28 @@ package software.amazon.s3.analyticsaccelerator.access;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
+import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** Enum representing meaningful configuration samples for {@link S3ExecutionConfiguration} */
 @AllArgsConstructor
 @Getter
 public enum AALInputStreamConfigurationKind {
-  DEFAULT("DEFAULT", S3SeekableInputStreamConfiguration.DEFAULT);
+  DEFAULT("DEFAULT", S3SeekableInputStreamConfiguration.DEFAULT),
+  GRAY_FAILURE("GRAY_FAILURE", grayFailureConfiguration());
 
   private final String name;
   private final S3SeekableInputStreamConfiguration value;
+
+  private static S3SeekableInputStreamConfiguration grayFailureConfiguration() {
+    String configurationPrefix = "grayfailure";
+    Map<String, String> customConfiguration = new HashMap<>();
+    customConfiguration.put(configurationPrefix + ".physicalio.blockreadtimeout", "10000");
+    customConfiguration.put(configurationPrefix + ".physicalio.blockreadretrycount", "2");
+    ConnectorConfiguration config = new ConnectorConfiguration(customConfiguration, configurationPrefix);
+    return S3SeekableInputStreamConfiguration.fromConfiguration(config);
+  }
+
 }

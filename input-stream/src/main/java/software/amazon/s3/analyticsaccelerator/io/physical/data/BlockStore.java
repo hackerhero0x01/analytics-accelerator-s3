@@ -95,9 +95,9 @@ public class BlockStore implements Closeable {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
     long nextMissingByte = pos;
-
-    while (getBlock(nextMissingByte).isPresent()) {
-      nextMissingByte = getBlock(nextMissingByte).get().getEnd() + 1;
+    Optional<Block> nextBlock;
+    while ((nextBlock = getBlock(nextMissingByte)).isPresent()) {
+      nextMissingByte = nextBlock.get().getEnd() + 1;
     }
 
     return nextMissingByte <= getLastObjectByte()

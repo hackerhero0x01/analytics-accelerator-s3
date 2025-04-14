@@ -16,6 +16,8 @@
 package software.amazon.s3.analyticsaccelerator.access;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -61,7 +63,7 @@ public class GrayFailureTest extends IntegrationTestBase {
         S3ClientKind.faultyClients(),
         S3Object.smallObjects(),
         sequentialPatterns(),
-        getS3SeekableInputStreamConfigurations());
+        grayFailureConfigurationKind());
   }
 
   static Stream<Arguments> skippingReads() {
@@ -69,7 +71,7 @@ public class GrayFailureTest extends IntegrationTestBase {
         S3ClientKind.faultyClients(),
         S3Object.smallObjects(),
         skippingPatterns(),
-        getS3SeekableInputStreamConfigurations());
+        grayFailureConfigurationKind());
   }
 
   static Stream<Arguments> parquetReads() {
@@ -77,6 +79,10 @@ public class GrayFailureTest extends IntegrationTestBase {
         S3ClientKind.faultyClients(),
         S3Object.smallObjects(),
         parquetPatterns(),
-        getS3SeekableInputStreamConfigurations());
+        grayFailureConfigurationKind());
+  }
+
+  private static List<AALInputStreamConfigurationKind> grayFailureConfigurationKind() {
+    return Arrays.asList(AALInputStreamConfigurationKind.GRAY_FAILURE);
   }
 }
