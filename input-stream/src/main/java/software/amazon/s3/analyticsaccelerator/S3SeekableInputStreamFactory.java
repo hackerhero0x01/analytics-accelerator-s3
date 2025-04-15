@@ -32,7 +32,9 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.util.*;
+import software.amazon.s3.analyticsaccelerator.util.ObjectFormatSelector;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
+import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /**
  * Initialises resources to prepare for reading from S3. Resources initialised in this class are
@@ -65,11 +67,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   public S3SeekableInputStreamFactory(
       @NonNull ObjectClient objectClient,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
-    LogUtils.logInfo(
-        LOG,
-        "S3SeekableInputStreamFactoryConstructor",
-        LogParamsBuilder.create().build(),
-        "S3SeekableInputStreamFactory constructor without memory manager changes");
+    LOG.info("S3SeekableInputStreamFactory constructor without memory manager changes");
     this.configuration = configuration;
     this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
     this.parquetColumnPrefetchStore =
@@ -166,8 +164,6 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   @Override
   public void close() throws IOException {
-    LogUtils.logInfo(
-        LOG, "close", LogParamsBuilder.create().build(), "S3SeekableInputStreamFactory closing");
     LOG.info(
         "factory Cache Hits: {}, Misses: {}, Hit Rate: {}%",
         CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);

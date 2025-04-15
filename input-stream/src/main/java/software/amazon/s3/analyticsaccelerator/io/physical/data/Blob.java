@@ -17,7 +17,6 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Map;
 import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -31,8 +30,6 @@ import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanState;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
-import software.amazon.s3.analyticsaccelerator.util.*;
-import software.amazon.s3.analyticsaccelerator.util.LogUtils;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
@@ -74,59 +71,14 @@ public class Blob implements Closeable {
    * @throws IOException if an I/O error occurs
    */
   public int read(long pos) throws IOException {
-    String methodName = "read";
-    Map<String, Object> logParams =
-        LogParamsBuilder.create()
-            .add("s3URI", objectKey.getS3URI().toString())
-            .add("pos", pos)
-            .build();
-    LogUtils.logMethodEntry(LOG, methodName, logParams);
-
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
-    try {
-      // Make position available timing
-      long makeAvailableStart = System.nanoTime();
-      blockManager.makePositionAvailable(pos, ReadMode.SYNC);
-      double makeAvailableTime = (System.nanoTime() - makeAvailableStart) / 1_000_000_000.0;
-      LogUtils.logInfo(
-          LOG,
-          methodName,
-          logParams,
-          "Position made available for blob %s at position %d in %.3f seconds",
-          objectKey.getS3URI(),
-          pos,
-          makeAvailableTime);
-      int preJoinedBlocks = 0;
+    blockManager.makePositionAvailable(pos, ReadMode.SYNC);
+    Block block = blockManager.getBlock(pos).get();
+    LOG.info(
+        "blob Cache Hits: {}, Misses: {}, Hit Rate: {}%",
+        CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);
 
-      long readStart = System.nanoTime();
-      Block block = blockManager.getBlock(pos).get();
-      if (block.getData1() != null && block.getData1().isDone()) {
-        preJoinedBlocks++;
-      }
-      int bytesRead = block.read(pos);
-      double readTime = (System.nanoTime() - readStart) / 1_000_000_000.0;
-      LogUtils.logInfo(
-          LOG,
-          methodName,
-          logParams,
-          "Read operation completed for blob %s, Total blocks: %d, Pre-joined blocks: %d, total bytes read: %d in %.3f seconds",
-          objectKey.getS3URI(),
-          1,
-          preJoinedBlocks,
-          bytesRead,
-          readTime);
-
-      return bytesRead;
-    } finally {
-      LogUtils.logInfo(
-          LOG,
-          methodName,
-          logParams,
-          "Cache stats - Hits: %d, Misses: %d, Hit Rate: %.2f%%",
-          CacheStats.getHits(),
-          CacheStats.getMisses(),
-          CacheStats.getHitRate() * 100);
-    }
+    return block.read(pos);
   }
 
   /**
@@ -140,104 +92,44 @@ public class Blob implements Closeable {
    * @throws IOException if an I/O error occurs
    */
   public int read(byte[] buf, int off, int len, long pos) throws IOException {
-    String methodName = "read";
-    Map<String, Object> logParams =
-        LogParamsBuilder.create()
-            .add("s3URI", objectKey.getS3URI().toString())
-            .add("pos", pos)
-            .add("length", len)
-            .add("offset", off)
-            .add("bufferSize", buf.length)
-            .build();
-    LogUtils.logMethodEntry(LOG, methodName, logParams);
-
-    // Validate arguments
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(pos < contentLength(), "`pos` must be less than content length");
     Preconditions.checkArgument(0 <= off, "`off` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    try {
-      long makeRangeStart = System.nanoTime();
-      blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
-      double makeRangeTime = (System.nanoTime() - makeRangeStart) / 1_000_000_000.0;
-      LogUtils.logInfo(
-          LOG,
-          methodName,
-          logParams,
-          "Range made available for blob %s at position %d, length %d in %.3f seconds",
-          objectKey.getS3URI(),
-          pos,
-          len,
-          makeRangeTime);
+    blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
-      long readStart = System.nanoTime();
-      long nextPosition = pos;
-      int numBytesRead = 0;
-      int totalBlocks = 0;
-      int preJoinedBlocks = 0;
+    long nextPosition = pos;
+    int numBytesRead = 0;
 
-      while (numBytesRead < len && nextPosition < contentLength()) {
-        final long nextPositionFinal = nextPosition;
-        Block nextBlock =
-            blockManager
-                .getBlock(nextPosition)
-                .orElseThrow(
-                    () ->
-                        new IllegalStateException(
-                            String.format(
-                                "This block object key %s (for position %s) should have been available.",
-                                objectKey.getS3URI().toString(), nextPositionFinal)));
-        totalBlocks++;
-        // Check if block's future was already completed
-        if (nextBlock.getData1() != null && nextBlock.getData1().isDone()) {
-          preJoinedBlocks++;
-        }
+    while (numBytesRead < len && nextPosition < contentLength()) {
+      final long nextPositionFinal = nextPosition;
+      Block nextBlock =
+          blockManager
+              .getBlock(nextPosition)
+              .orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          String.format(
+                              "This block (for position %s) should have been available.",
+                              nextPositionFinal)));
 
-        int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
+      int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
 
-        if (bytesRead == -1) {
-          double readTime = (System.nanoTime() - readStart) / 1_000_000_000.0;
-          LogUtils.logInfo(
-              LOG,
-              methodName,
-              logParams,
-              "Read operation ended (EOF) for blob %s, total bytes read: %d in %.3f seconds",
-              objectKey.getS3URI(),
-              numBytesRead,
-              readTime);
-
-          return numBytesRead;
-        }
-
-        numBytesRead = numBytesRead + bytesRead;
-        nextPosition += bytesRead;
+      if (bytesRead == -1) {
+        return numBytesRead;
       }
 
-      double readTime = (System.nanoTime() - readStart) / 1_000_000_000.0;
-      LogUtils.logInfo(
-          LOG,
-          methodName,
-          logParams,
-          "Read operation completed for blob %s, Total blocks: %d, Pre-joined blocks: %d, total bytes read: %d in %.3f seconds",
-          objectKey.getS3URI(),
-          totalBlocks,
-          preJoinedBlocks,
-          numBytesRead,
-          readTime);
-
-      return numBytesRead;
-    } finally {
-      LogUtils.logInfo(
-          LOG,
-          methodName,
-          logParams,
-          "Cache stats - Hits: %d, Misses: %d, Hit Rate: %.2f%%",
-          CacheStats.getHits(),
-          CacheStats.getMisses(),
-          CacheStats.getHitRate() * 100);
+      numBytesRead = numBytesRead + bytesRead;
+      nextPosition += bytesRead;
     }
+
+    LOG.info(
+        "blob Cache Hits: {}, Misses: {}, Hit Rate: {}%",
+        CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);
+
+    return numBytesRead;
   }
 
   /**
@@ -247,14 +139,6 @@ public class Blob implements Closeable {
    * @return the status of execution
    */
   public IOPlanExecution execute(IOPlan plan) {
-    String methodName = "execute";
-    Map<String, Object> logParams =
-        LogParamsBuilder.create()
-            .add("s3URI", objectKey.getS3URI().toString())
-            .add("planRanges", plan.getPrefetchRanges())
-            .build();
-    LogUtils.logMethodEntry(LOG, methodName, logParams);
-
     return telemetry.measureStandard(
         () ->
             Operation.builder()
@@ -264,35 +148,15 @@ public class Blob implements Closeable {
                 .attribute(StreamAttributes.ioPlan(plan))
                 .build(),
         () -> {
-          long startTime = System.nanoTime();
           try {
-            LogUtils.logInfo(
-                LOG,
-                methodName,
-                logParams,
-                "Starting to process %d ranges for blob %s",
-                plan.getPrefetchRanges().size(),
-                objectKey.getS3URI().toString());
-
             for (Range range : plan.getPrefetchRanges()) {
-
               this.blockManager.makeRangeAvailable(
                   range.getStart(), range.getLength(), ReadMode.ASYNC);
             }
 
-            double totalTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-            LogUtils.logInfo(
-                LOG,
-                methodName,
-                logParams,
-                "Successfully completed IOPlan execution for blob %s in %.3f seconds",
-                objectKey.getS3URI(),
-                totalTime);
-
             return IOPlanExecution.builder().state(IOPlanState.SUBMITTED).build();
-
           } catch (Exception e) {
-            LogUtils.logMethodError(LOG, methodName, logParams, e);
+            LOG.error("Failed to submit IOPlan to PhysicalIO", e);
             return IOPlanExecution.builder().state(IOPlanState.FAILED).build();
           }
         });

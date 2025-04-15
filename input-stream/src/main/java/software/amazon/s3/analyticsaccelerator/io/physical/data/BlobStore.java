@@ -28,8 +28,6 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
-import software.amazon.s3.analyticsaccelerator.util.LogParamsBuilder;
-import software.amazon.s3.analyticsaccelerator.util.LogUtils;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
@@ -88,23 +86,16 @@ public class BlobStore implements Closeable {
    * @return the blob representing the object from the BlobStore
    */
   public Blob get(ObjectKey objectKey, ObjectMetadata metadata, StreamContext streamContext) {
-    String methodName = "get";
-    Map<String, Object> logParams =
-        LogParamsBuilder.create().add("s3URI", objectKey.getS3URI().toString()).build();
-    LogUtils.logMethodEntry(LOG, methodName, logParams);
-    LogUtils.logInfo(LOG, methodName, logParams, "rajdchak Blobmap size is: %d", blobMap.size());
-    Blob blob =
-        blobMap.computeIfAbsent(
-            objectKey,
-            uri ->
-                new Blob(
-                    uri,
-                    metadata,
-                    new BlockManager(
-                        uri, objectClient, metadata, telemetry, configuration, streamContext),
-                    telemetry));
-    LogUtils.logMethodSuccess(LOG, methodName, logParams);
-    return blob;
+    LOG.info("memory used calculation enhanced, no more print cache hit miss");
+    return blobMap.computeIfAbsent(
+        objectKey,
+        uri ->
+            new Blob(
+                uri,
+                metadata,
+                new BlockManager(
+                    uri, objectClient, metadata, telemetry, configuration, streamContext),
+                telemetry));
   }
 
   /**
