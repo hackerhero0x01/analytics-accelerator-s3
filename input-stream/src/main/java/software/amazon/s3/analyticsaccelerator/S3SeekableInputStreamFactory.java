@@ -67,7 +67,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   public S3SeekableInputStreamFactory(
       @NonNull ObjectClient objectClient,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
-    LOG.info("S3SeekableInputStreamFactory constructor without memory manager changes");
+    LOG.info(
+        "S3SeekableInputStreamFactory constructor without memory manager changes and new hadoop");
     this.configuration = configuration;
     this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
     this.parquetColumnPrefetchStore =
@@ -165,7 +166,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   @Override
   public void close() throws IOException {
     LOG.info(
-        "factory Cache Hits: {}, Misses: {}, Hit Rate: {}%",
+        "factory closing Cache Hits: {}, Misses: {}, Hit Rate: {}%",
         CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);
 
     this.objectMetadataStore.close();
