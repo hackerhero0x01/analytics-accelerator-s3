@@ -74,9 +74,6 @@ public class Blob implements Closeable {
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
     blockManager.makePositionAvailable(pos, ReadMode.SYNC);
     Block block = blockManager.getBlock(pos).get();
-    LOG.info(
-        "blob Cache Hits: {}, Misses: {}, Hit Rate: {}%",
-        CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);
 
     return block.read(pos);
   }
@@ -125,9 +122,6 @@ public class Blob implements Closeable {
       nextPosition += bytesRead;
     }
 
-    LOG.info(
-        "blob Cache Hits: {}, Misses: {}, Hit Rate: {}%",
-        CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);
 
     return numBytesRead;
   }

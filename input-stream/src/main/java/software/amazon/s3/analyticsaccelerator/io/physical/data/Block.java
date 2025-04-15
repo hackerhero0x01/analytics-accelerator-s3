@@ -174,7 +174,6 @@ public class Block implements Closeable {
       AtomicLong memoryUsage)
       throws IOException {
 
-    LOG.info("My memory initial value is {}", memoryUsage);
 
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);

@@ -230,9 +230,6 @@ public class S3SeekableInputStream extends SeekableInputStream {
    */
   @Override
   public void close() throws IOException {
-    LOG.info(
-        "stream Cache Hits: {}, Misses: {}, Hit Rate: {}%",
-        CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);
 
     this.telemetry.measureVerbose(
         () ->
