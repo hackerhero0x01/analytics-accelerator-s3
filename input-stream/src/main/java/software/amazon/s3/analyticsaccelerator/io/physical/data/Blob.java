@@ -122,7 +122,6 @@ public class Blob implements Closeable {
       nextPosition += bytesRead;
     }
 
-
     return numBytesRead;
   }
 

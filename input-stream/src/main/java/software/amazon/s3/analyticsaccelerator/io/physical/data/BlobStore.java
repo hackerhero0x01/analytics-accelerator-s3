@@ -86,6 +86,7 @@ public class BlobStore implements Closeable {
    * @return the blob representing the object from the BlobStore
    */
   public Blob get(ObjectKey objectKey, ObjectMetadata metadata, StreamContext streamContext) {
+    LOG.info("Getting blob");
     return blobMap.computeIfAbsent(
         objectKey,
         uri ->
