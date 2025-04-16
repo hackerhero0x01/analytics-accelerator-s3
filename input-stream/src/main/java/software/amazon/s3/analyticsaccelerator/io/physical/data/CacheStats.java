@@ -67,7 +67,7 @@ public class CacheStats {
     return total == 0 ? 0 : (double) hits / total;
   }
 
-  /** Resets both hit and miss counters to zero. */
+  /** Resets both hit-and-miss counters to zero. */
   public static void resetStats() {
     cacheHits.set(0);
     cacheMisses.set(0);

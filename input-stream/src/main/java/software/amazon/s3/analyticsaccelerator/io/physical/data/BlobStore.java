@@ -19,6 +19,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -62,19 +63,24 @@ public class BlobStore implements Closeable {
               protected boolean removeEldestEntry(final Map.Entry<ObjectKey, Blob> eldest) {
                 boolean shouldRemove = this.size() > configuration.getBlobStoreCapacity();
                 if (shouldRemove) {
-                  long memoryUsage = calculateTotalBlobMemoryUsage();
-                  LOG.info("Memory used by blobstore just before eviction: {}", memoryUsage);
+                  Blob blobToRemove = eldest.getValue();
+                  long blobMemoryToSubtract = 0;
+
+                  // Calculate memory used by this blob
+                  List<Block> blocks = blobToRemove.getBlockManager().getBlockStore().getBlocks();
+                  for (Block block : blocks) {
+                    blobMemoryToSubtract += block.getRange().getLength();
+                  }
+                  // Subtract the memory of the evicted blob
+                  MemoryUsageStats.recordMemoryUsageAcrossBlobMap(-blobMemoryToSubtract);
+                  LOG.debug(
+                      "Current memory usage of blobMap in bytes is: {}",
+                      MemoryUsageStats.getMemoryUsageAcrossBlobMap());
                 }
                 return shouldRemove;
               }
             });
     this.configuration = configuration;
-  }
-
-  private long calculateTotalBlobMemoryUsage() {
-    return blobMap.values().stream()
-        .mapToLong(blob -> blob.getBlockManager().getMemoryUsage().get())
-        .sum();
   }
 
   /**
@@ -86,7 +92,6 @@ public class BlobStore implements Closeable {
    * @return the blob representing the object from the BlobStore
    */
   public Blob get(ObjectKey objectKey, ObjectMetadata metadata, StreamContext streamContext) {
-    LOG.info("Getting blob");
     return blobMap.computeIfAbsent(
         objectKey,
         uri ->
