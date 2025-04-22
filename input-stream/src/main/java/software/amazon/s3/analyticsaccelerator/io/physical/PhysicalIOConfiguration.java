@@ -44,6 +44,8 @@ public class PhysicalIOConfiguration {
   private static final long DEFAULT_BLOCK_READ_TIMEOUT = 30_000;
   private static final int DEFAULT_BLOCK_READ_RETRY_COUNT = 20;
   private static final int DEFAULT_MEMORY_CLEANUP_FREQUENCY_MILLISECONDS = 5000;
+  private static final boolean DEFAULT_SMALL_OBJECTS_PREFETCHING_ENABLED = true;
+  private static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 8 * ONE_MB;
 
   /**
    * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_MEMORY_CAPACITY_BYTES} by default.
@@ -132,6 +134,21 @@ public class PhysicalIOConfiguration {
   /** Default set of settings for {@link PhysicalIO} */
   public static final PhysicalIOConfiguration DEFAULT = PhysicalIOConfiguration.builder().build();
 
+  /** Controls whether small object prefetching is enabled */
+  @Builder.Default
+  private boolean smallObjectsPrefetchingEnabled = DEFAULT_SMALL_OBJECTS_PREFETCHING_ENABLED;
+
+  private static final String SMALL_OBJECTS_PREFETCHING_ENABLED_KEY =
+      "small.objects.prefetching.enabled";
+
+  /**
+   * Defines the maximum size (in bytes) for an object to be considered "small" and eligible for
+   * prefetching
+   */
+  @Builder.Default private long smallObjectSizeThreshold = DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD;
+
+  private static final String SMALL_OBJECT_SIZE_THRESHOLD_KEY = "small.object.size.threshold";
+
   /**
    * Constructs {@link PhysicalIOConfiguration} from {@link ConnectorConfiguration} object.
    *
@@ -163,6 +180,12 @@ public class PhysicalIOConfiguration {
         .blockReadTimeout(configuration.getLong(BLOCK_READ_TIMEOUT_KEY, DEFAULT_BLOCK_READ_TIMEOUT))
         .blockReadRetryCount(
             configuration.getInt(BLOCK_READ_RETRY_COUNT_KEY, DEFAULT_BLOCK_READ_RETRY_COUNT))
+        .smallObjectsPrefetchingEnabled(
+            configuration.getBoolean(
+                SMALL_OBJECTS_PREFETCHING_ENABLED_KEY, DEFAULT_SMALL_OBJECTS_PREFETCHING_ENABLED))
+        .smallObjectSizeThreshold(
+            configuration.getLong(
+                SMALL_OBJECT_SIZE_THRESHOLD_KEY, DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD))
         .build();
   }
 
@@ -183,6 +206,8 @@ public class PhysicalIOConfiguration {
    *     prefetched physical blocks.
    * @param blockReadTimeout Timeout duration (in milliseconds) for reading a block object from S3
    * @param blockReadRetryCount Number of retries for block read failure
+   * @param smallObjectsPrefetchingEnabled Whether small object prefetching is enabled
+   * @param smallObjectSizeThreshold Maximum size in bytes for an object to be considered small
    */
   @Builder
   private PhysicalIOConfiguration(
@@ -197,7 +222,9 @@ public class PhysicalIOConfiguration {
       double sequentialPrefetchBase,
       double sequentialPrefetchSpeed,
       long blockReadTimeout,
-      int blockReadRetryCount) {
+      int blockReadRetryCount,
+      boolean smallObjectsPrefetchingEnabled,
+      long smallObjectSizeThreshold) {
     Preconditions.checkArgument(memoryCapacityBytes > 0, "`memoryCapacityBytes` must be positive");
     Preconditions.checkArgument(
         memoryCleanupFrequencyMilliseconds > 0,
@@ -216,6 +243,8 @@ public class PhysicalIOConfiguration {
         sequentialPrefetchSpeed > 0, "`sequentialPrefetchSpeed` must be positive");
     Preconditions.checkArgument(blockReadTimeout > 0, "`blockReadTimeout` must be positive");
     Preconditions.checkArgument(blockReadRetryCount > 0, "`blockReadRetryCount` must be positive");
+    Preconditions.checkArgument(
+        smallObjectSizeThreshold > 0, "`smallObjectSizeThreshold` must be positive");
 
     this.memoryCapacityBytes = memoryCapacityBytes;
     this.memoryCleanupFrequencyMilliseconds = memoryCleanupFrequencyMilliseconds;
@@ -229,6 +258,8 @@ public class PhysicalIOConfiguration {
     this.sequentialPrefetchSpeed = sequentialPrefetchSpeed;
     this.blockReadTimeout = blockReadTimeout;
     this.blockReadRetryCount = blockReadRetryCount;
+    this.smallObjectsPrefetchingEnabled = smallObjectsPrefetchingEnabled;
+    this.smallObjectSizeThreshold = smallObjectSizeThreshold;
   }
 
   @Override
@@ -249,6 +280,8 @@ public class PhysicalIOConfiguration {
     builder.append("\tsequentialPrefetchSpeed: " + sequentialPrefetchSpeed + "\n");
     builder.append("\tblockReadTimeout: " + blockReadTimeout + "\n");
     builder.append("\tblockReadRetryCount: " + blockReadRetryCount + "\n");
+    builder.append("\tsmallObjectsPrefetchingEnabled: " + smallObjectsPrefetchingEnabled + "\n");
+    builder.append("\tsmallObjectSizeThreshold: " + smallObjectSizeThreshold + "\n");
 
     return builder.toString();
   }
