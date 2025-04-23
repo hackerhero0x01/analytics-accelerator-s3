@@ -16,22 +16,17 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
-import software.amazon.s3.analyticsaccelerator.stats.MemoryUsageStats;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.FakeStuckObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
@@ -63,7 +58,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            new AtomicLong(0));
+            mock(BlockManager.BlockManagerCallback.class));
 
     // When: bytes are requested from the block
     int r1 = block.read(0);
@@ -92,7 +87,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            new AtomicLong(0));
+            mock(BlockManager.BlockManagerCallback.class));
 
     // When: bytes are requested from the block
     byte[] b1 = new byte[4];
@@ -187,7 +182,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                mock(BlockManager.BlockManagerCallback.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -201,7 +196,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                mock(BlockManager.BlockManagerCallback.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -215,7 +210,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                new AtomicLong(0)));
+                mock(BlockManager.BlockManagerCallback.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -229,7 +224,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                new AtomicLong(0)));
+                mock(BlockManager.BlockManagerCallback.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -243,7 +238,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                mock(BlockManager.BlockManagerCallback.class)));
   }
 
   @SneakyThrows
@@ -263,7 +258,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            new AtomicLong(0));
+            mock(BlockManager.BlockManagerCallback.class));
     assertThrows(IllegalArgumentException.class, () -> block.read(-10));
     assertThrows(NullPointerException.class, () -> block.read(null, 0, 3, 1));
     assertThrows(IllegalArgumentException.class, () -> block.read(b, -5, 3, 1));
@@ -287,7 +282,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            new AtomicLong(0));
+            mock(BlockManager.BlockManagerCallback.class));
     assertTrue(block.contains(0));
     assertFalse(block.contains(TEST_DATA.length() + 1));
   }
@@ -308,7 +303,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            new AtomicLong(0));
+            mock(BlockManager.BlockManagerCallback.class));
     assertThrows(IllegalArgumentException.class, () -> block.contains(-1));
   }
 
@@ -330,7 +325,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            new AtomicLong(0));
+            mock(BlockManager.BlockManagerCallback.class));
     assertThrows(IOException.class, () -> block.read(4));
   }
 
@@ -350,174 +345,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            new AtomicLong(0));
+            mock(BlockManager.BlockManagerCallback.class));
     block.close();
     block.close();
-  }
-
-  @Test
-  void testMemoryUsageWithConcurrentBlocks() throws InterruptedException {
-    MemoryUsageStats.resetStats();
-    final String TEST_DATA = "test-data"; // length is 9
-    final ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
-
-    int threadCount = 3;
-    int blockSize = 3;
-    AtomicReference<Exception> testException = new AtomicReference<>();
-
-    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-    CountDownLatch latch = new CountDownLatch(threadCount);
-    List<Future<?>> futures = new ArrayList<>();
-    List<Block> blocks = new ArrayList<>();
-
-    try {
-      for (int i = 0; i < threadCount; i++) {
-        final int startPos = i * blockSize;
-        final int endPos = Math.min(startPos + blockSize - 1, TEST_DATA.length() - 1);
-
-        Future<?> future =
-            executor.submit(
-                () -> {
-                  try {
-                    Block block =
-                        new Block(
-                            objectKey,
-                            fakeObjectClient,
-                            TestTelemetry.DEFAULT,
-                            startPos,
-                            endPos,
-                            0,
-                            ReadMode.SYNC,
-                            DEFAULT_READ_TIMEOUT,
-                            DEFAULT_READ_RETRY_COUNT,
-                            new AtomicLong(0));
-
-                    block.read(startPos);
-                    synchronized (blocks) {
-                      blocks.add(block);
-                    }
-                  } catch (RuntimeException e) {
-                    testException.set(e);
-                    throw e;
-                  } catch (IOException e) {
-                    testException.set(e);
-                  } finally {
-                    latch.countDown();
-                  }
-                });
-        futures.add(future);
-      }
-
-      assertTrue(latch.await(10, TimeUnit.SECONDS), "Timeout waiting for threads");
-
-      for (Future<?> future : futures) {
-        try {
-          future.get(1, TimeUnit.SECONDS);
-        } catch (ExecutionException e) {
-          fail("Future execution failed: " + e.getCause().getMessage());
-        } catch (TimeoutException e) {
-          fail("Future timed out: " + e.getMessage());
-        }
-      }
-
-      if (testException.get() != null) {
-        fail("Concurrent execution failed: " + testException.get().getMessage());
-      }
-
-      long expectedTotalMemory = (long) threadCount * blockSize;
-      assertEquals(
-          expectedTotalMemory,
-          MemoryUsageStats.getMemoryUsageAcrossBlobMap(),
-          "Memory usage should match total size of all concurrent blocks");
-
-    } finally {
-      for (Block block : blocks) {
-        block.close();
-      }
-      executor.shutdown();
-      assertTrue(
-          executor.awaitTermination(5, TimeUnit.SECONDS), "Executor did not terminate properly");
-    }
-  }
-
-  @Test
-  void testMemoryUsageWithMultipleBlocks() throws IOException {
-    MemoryUsageStats.resetStats();
-    final String TEST_DATA = "test-data";
-    ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
-
-    List<Block> blocks = new ArrayList<>();
-    int blockSize = 3;
-    long totalExpectedMemory = 0;
-
-    try {
-      for (int i = 0; i < 3; i++) {
-        int startPos = i * blockSize;
-        int endPos = Math.min(startPos + blockSize - 1, TEST_DATA.length() - 1);
-
-        Block block =
-            new Block(
-                objectKey,
-                fakeObjectClient,
-                TestTelemetry.DEFAULT,
-                startPos,
-                endPos,
-                i,
-                ReadMode.SYNC,
-                DEFAULT_READ_TIMEOUT,
-                DEFAULT_READ_RETRY_COUNT,
-                new AtomicLong(0));
-
-        block.read(startPos);
-        blocks.add(block);
-
-        totalExpectedMemory += (endPos - startPos + 1);
-      }
-
-      assertEquals(
-          totalExpectedMemory,
-          MemoryUsageStats.getMemoryUsageAcrossBlobMap(),
-          "Memory usage should match total size of all blocks");
-
-    } finally {
-      for (Block block : blocks) {
-        block.close();
-      }
-    }
-  }
-
-  @Test
-  void testMemoryUsageUpdate() throws IOException {
-    final String TEST_DATA = "test-data";
-    ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
-    MemoryUsageStats.resetStats();
-
-    Block block = null;
-    try {
-      block =
-          new Block(
-              objectKey,
-              fakeObjectClient,
-              TestTelemetry.DEFAULT,
-              0,
-              2,
-              0,
-              ReadMode.SYNC,
-              DEFAULT_READ_TIMEOUT,
-              DEFAULT_READ_RETRY_COUNT,
-              new AtomicLong(0));
-
-      block.read(0);
-
-      assertEquals(
-          3,
-          MemoryUsageStats.getMemoryUsageAcrossBlobMap(),
-          "Memory usage should match block size after data fetch");
-
-    } finally {
-      if (block != null) {
-        block.close();
-      }
-    }
   }
 }

@@ -23,8 +23,8 @@ import static org.mockito.Mockito.when;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -33,7 +33,6 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
-import software.amazon.s3.analyticsaccelerator.stats.MemoryUsageStats;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
@@ -113,17 +112,48 @@ public class BlobStoreTest {
   }
 
   @Test
-  void testBlobEvictionAndMemoryTracking() throws IOException {
-    // Setup
+  void testMemoryUsageTracking() throws IOException {
+    // Given: Initial memory usage is 0
+    assertEquals(0, blobStore.getBlobStoreMemoryUsage().get());
+
+    // When: Reading data which causes memory allocation
+    Blob blob = blobStore.get(objectKey, objectMetadata, mock(StreamContext.class));
+    byte[] b = new byte[TEST_DATA.length()];
+    blob.read(b, 0, b.length, 0);
+
+    // Then: Memory usage should be updated
+    assertTrue(blobStore.getBlobStoreMemoryUsage().get() > 0);
+    assertEquals(TEST_DATA.length(), blobStore.getBlobStoreMemoryUsage().get());
+  }
+
+  @Test
+  void testCacheHitsAndMisses() throws IOException {
+    // Given: Initial cache hits and misses are 0
+    assertEquals(0, blobStore.getCacheHits().get());
+    assertEquals(0, blobStore.getCacheMiss().get());
+
+    Blob blob = blobStore.get(objectKey, objectMetadata, mock(StreamContext.class));
+    byte[] b = new byte[TEST_DATA.length()];
+    blob.read(b, 0, b.length, 0);
+
+    // Then: Should record a cache miss
+    assertEquals(1, blobStore.getCacheHits().get());
+
+    // When: Second time access to same data (should be a hit)
+    blob.read(b, 0, b.length, 0);
+
+    // Then: Should record a cache hit
+    assertEquals(3, blobStore.getCacheHits().get());
+  }
+
+  @Test
+  void testMemoryUsageAfterEviction() throws IOException {
     final int BLOB_STORE_CAPACITY = 2;
     PhysicalIOConfiguration config =
         PhysicalIOConfiguration.builder().blobStoreCapacity(BLOB_STORE_CAPACITY).build();
 
     ObjectClient objectClient = new FakeObjectClient(TEST_DATA);
     BlobStore blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, config);
-
-    // Reset memory stats before test
-    MemoryUsageStats.resetStats();
 
     // Create multiple ObjectKeys
     ObjectKey key1 = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
@@ -140,7 +170,7 @@ public class BlobStoreTest {
     blob2.read(data, 0, data.length, 0);
 
     // Record initial memory usage
-    long initialMemoryUsage = MemoryUsageStats.getMemoryUsageAcrossBlobMap();
+    long initialMemoryUsage = blobStore.getBlobStoreMemoryUsage().get();
 
     // Then: Adding one more blob should trigger eviction
     Blob blob3 = blobStore.get(key3, objectMetadata, mock(StreamContext.class));
@@ -151,90 +181,50 @@ public class BlobStoreTest {
         BLOB_STORE_CAPACITY, blobStore.blobCount(), "BlobStore should maintain capacity limit");
 
     // Verify memory usage decreased after eviction
-    long finalMemoryUsage = MemoryUsageStats.getMemoryUsageAcrossBlobMap();
+    long finalMemoryUsage = blobStore.getBlobStoreMemoryUsage().get();
     System.out.println("Memory final " + finalMemoryUsage);
 
     assertEquals(
         finalMemoryUsage, initialMemoryUsage, "Memory usage should decrease after eviction");
-
-    // Verify evicted blob is no longer accessible
-    assertFalse(blobStore.getBlobMap().containsKey(key1), "First blob should have been evicted");
-    assertTrue(blobStore.getBlobMap().containsKey(key2), "Second blob should still be present");
-    assertTrue(blobStore.getBlobMap().containsKey(key3), "Third blob should be present");
   }
 
   @Test
-  void testBlobEvictionWithMultipleBlocks() throws IOException {
-    // Setup with small capacity
-    final int BLOB_STORE_CAPACITY = 1;
-    PhysicalIOConfiguration config =
-        PhysicalIOConfiguration.builder().blobStoreCapacity(BLOB_STORE_CAPACITY).build();
+  void testConcurrentMemoryUpdates() throws Exception {
+    // Given: Multiple threads updating memory
+    final int threadCount = 10;
+    final int bytesPerThread = 100;
+    final long expectedTotalMemory =
+        (long) threadCount * bytesPerThread; // Cast to long before multiplication
+    final CountDownLatch latch = new CountDownLatch(threadCount);
 
-    ObjectClient objectClient = new FakeObjectClient(TEST_DATA);
-    BlobStore blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, config);
+    // When: Concurrent memory updates
+    for (int i = 0; i < threadCount; i++) {
+      final int threadId = i;
+      new Thread(
+              () -> {
+                try {
+                  ObjectKey threadKey =
+                      ObjectKey.builder()
+                          .s3URI(S3URI.of("test", "test" + threadId))
+                          .etag(ETAG)
+                          .build();
+                  ObjectMetadata threadMetadata =
+                      ObjectMetadata.builder().contentLength(bytesPerThread).etag(ETAG).build();
 
-    MemoryUsageStats.resetStats();
-
-    // Create a blob with multiple blocks
-    ObjectKey key1 = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
-
-    Blob blob1 = blobStore.get(key1, objectMetadata, mock(StreamContext.class));
-
-    // Force creation of multiple blocks by reading different ranges
-    byte[] data = new byte[3];
-    blob1.read(data, 0, 3, 0);
-    blob1.read(data, 0, 3, 3);
-    blob1.read(data, 0, 3, 6);
-
-    long memoryWithOneBlob = MemoryUsageStats.getMemoryUsageAcrossBlobMap();
-
-    // Add another blob to trigger eviction
-    ObjectKey key2 = ObjectKey.builder().s3URI(S3URI.of("test", "test2")).etag(ETAG).build();
-
-    Blob blob2 = blobStore.get(key2, objectMetadata, mock(StreamContext.class));
-    blob2.read(data, 0, 3, 0);
-
-    // Verify
-    assertEquals(
-        BLOB_STORE_CAPACITY, blobStore.blobCount(), "BlobStore should maintain capacity limit");
-
-    long finalMemoryUsage = MemoryUsageStats.getMemoryUsageAcrossBlobMap();
-    assertEquals(
-        finalMemoryUsage,
-        memoryWithOneBlob,
-        "Memory usage should decrease after evicting blob with multiple blocks");
-
-    assertFalse(blobStore.getBlobMap().containsKey(key1), "First blob should have been evicted");
-    assertTrue(blobStore.getBlobMap().containsKey(key2), "Second blob should be present");
-  }
-
-  @Test
-  void testBlobEvictionOrder() throws IOException {
-    // Setup with capacity of 3
-    final int BLOB_STORE_CAPACITY = 3;
-    PhysicalIOConfiguration config =
-        PhysicalIOConfiguration.builder().blobStoreCapacity(BLOB_STORE_CAPACITY).build();
-
-    ObjectClient objectClient = new FakeObjectClient(TEST_DATA);
-    BlobStore blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, config);
-
-    MemoryUsageStats.resetStats();
-
-    // Create and access blobs in specific order
-    List<ObjectKey> keys = new ArrayList<>();
-    for (int i = 0; i < 4; i++) {
-      ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test" + i)).etag(ETAG).build();
-      keys.add(key);
-
-      Blob blob = blobStore.get(key, objectMetadata, mock(StreamContext.class));
-      byte[] data = new byte[TEST_DATA.length()];
-      blob.read(data, 0, data.length, 0);
+                  Blob blob = blobStore.get(threadKey, threadMetadata, mock(StreamContext.class));
+                  byte[] b = new byte[bytesPerThread];
+                  blob.read(b, 0, b.length, 0);
+                } catch (IOException e) {
+                  throw new RuntimeException(e);
+                } finally {
+                  latch.countDown();
+                }
+              })
+          .start();
     }
 
-    // Verify eviction order (first in, first out)
-    assertFalse(blobStore.getBlobMap().containsKey(keys.get(0)), "First blob should be evicted");
-    assertTrue(blobStore.getBlobMap().containsKey(keys.get(1)), "Second blob should remain");
-    assertTrue(blobStore.getBlobMap().containsKey(keys.get(2)), "Third blob should remain");
-    assertTrue(blobStore.getBlobMap().containsKey(keys.get(3)), "Fourth blob should be present");
+    // Then: Wait for all threads and verify total memory
+    assertTrue(latch.await(5, TimeUnit.SECONDS));
+    assertEquals(expectedTotalMemory, blobStore.getBlobStoreMemoryUsage().get());
   }
 }

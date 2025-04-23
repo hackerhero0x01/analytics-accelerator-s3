@@ -16,13 +16,13 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
@@ -51,7 +51,8 @@ public class IOPlannerTest {
     final int OBJECT_SIZE = 10_000;
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
-    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
+    BlockStore blockStore =
+        new BlockStore(objectKey, mockMetadataStore, mock(BlockManager.BlockManagerCallback.class));
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     assertThrows(IllegalArgumentException.class, () -> ioPlanner.planRead(-5, 10, 100));
@@ -65,7 +66,8 @@ public class IOPlannerTest {
     final int OBJECT_SIZE = 10_000;
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
-    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
+    BlockStore blockStore =
+        new BlockStore(objectKey, mockMetadataStore, mock(BlockManager.BlockManagerCallback.class));
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range
@@ -85,7 +87,8 @@ public class IOPlannerTest {
     byte[] content = new byte[OBJECT_SIZE];
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
-    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
+    BlockStore blockStore =
+        new BlockStore(objectKey, mockMetadataStore, mock(BlockManager.BlockManagerCallback.class));
     FakeObjectClient fakeObjectClient =
         new FakeObjectClient(new String(content, StandardCharsets.UTF_8));
     blockStore.add(
@@ -99,7 +102,7 @@ public class IOPlannerTest {
             ReadMode.SYNC,
             120_000,
             20,
-            new AtomicLong(0)));
+            mock(BlockManager.BlockManagerCallback.class)));
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range (0, 400)
@@ -119,7 +122,8 @@ public class IOPlannerTest {
     final int OBJECT_SIZE = 1;
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
-    BlockStore blockStore = new BlockStore(objectKey, mockMetadataStore);
+    BlockStore blockStore =
+        new BlockStore(objectKey, mockMetadataStore, mock(BlockManager.BlockManagerCallback.class));
     IOPlanner ioPlanner = new IOPlanner(blockStore);
 
     // When: a read plan is requested for a range (0, 400)

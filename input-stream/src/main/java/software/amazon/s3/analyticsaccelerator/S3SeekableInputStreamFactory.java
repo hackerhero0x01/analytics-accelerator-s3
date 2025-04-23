@@ -32,8 +32,6 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.stats.CacheStats;
-import software.amazon.s3.analyticsaccelerator.stats.MemoryUsageStats;
 import software.amazon.s3.analyticsaccelerator.util.ObjectFormatSelector;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
@@ -179,14 +177,9 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   @Override
   public void close() throws IOException {
-    LOG.debug(
-        "Cache Hits: {}, Misses: {}, Hit Rate: {}%",
-        CacheStats.getHits(), CacheStats.getMisses(), CacheStats.getHitRate() * 100);
 
     this.objectMetadataStore.close();
     this.objectBlobStore.close();
     this.telemetry.close();
-    MemoryUsageStats.resetStats();
-    CacheStats.resetStats();
   }
 }

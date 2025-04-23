@@ -43,8 +43,6 @@ import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOI
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.SequentialLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.stats.CacheStats;
-import software.amazon.s3.analyticsaccelerator.stats.MemoryUsageStats;
 import software.amazon.s3.analyticsaccelerator.util.InputPolicy;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
@@ -338,31 +336,8 @@ public class S3SeekableInputStreamFactoryTest {
         new S3SeekableInputStreamFactory(
             mockObjectClient, S3SeekableInputStreamConfiguration.DEFAULT);
 
-    // Generate some stats before closing
-    CacheStats.resetStats();
-    CacheStats.recordHit();
-    CacheStats.recordHit();
-    CacheStats.recordMiss();
-
-    MemoryUsageStats.resetStats();
-    MemoryUsageStats.recordMemoryUsageAcrossBlobMap(1000);
-
-    // Verify stats are present before close
-    assertEquals(2, CacheStats.getHits(), "Should have 2 hits before close");
-    assertEquals(1, CacheStats.getMisses(), "Should have 1 miss before close");
-    assertEquals(
-        1000,
-        MemoryUsageStats.getMemoryUsageAcrossBlobMap(),
-        "Should have memory usage before close");
-
     // Close the factory
     factory.close();
-
-    // Verify stats were reset
-    assertEquals(0, CacheStats.getHits(), "Hits should be reset to 0");
-    assertEquals(0, CacheStats.getMisses(), "Misses should be reset to 0");
-    assertEquals(
-        0, MemoryUsageStats.getMemoryUsageAcrossBlobMap(), "Memory usage should be reset to 0");
   }
 
   @Test

@@ -50,7 +50,9 @@ public class BlockManager implements Closeable {
   private final PhysicalIOConfiguration configuration;
   private final RangeOptimiser rangeOptimiser;
   private StreamContext streamContext;
-  @Getter private AtomicLong memoryUsage;
+  @Getter private AtomicLong blobMemoryUsage;
+  private final BlobStore.BlobStoreCallbacks blobStoreCallbacks;
+  private final BlockManagerCallback blockManagerCallback;
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
@@ -61,6 +63,7 @@ public class BlockManager implements Closeable {
    * @param objectClient object client capable of interacting with the underlying object store
    * @param telemetry an instance of {@link Telemetry} to use
    * @param metadata the metadata for the object we are reading
+   * @param blobStoreCallbacks blobStore callback
    * @param configuration the physicalIO configuration
    */
   public BlockManager(
@@ -68,8 +71,9 @@ public class BlockManager implements Closeable {
       @NonNull ObjectClient objectClient,
       @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
-      @NonNull PhysicalIOConfiguration configuration) {
-    this(objectKey, objectClient, metadata, telemetry, configuration, null);
+      @NonNull PhysicalIOConfiguration configuration,
+      @NonNull BlobStore.BlobStoreCallbacks blobStoreCallbacks) {
+    this(objectKey, objectClient, metadata, telemetry, configuration, blobStoreCallbacks, null);
   }
 
   /**
@@ -80,6 +84,7 @@ public class BlockManager implements Closeable {
    * @param telemetry an instance of {@link Telemetry} to use
    * @param metadata the metadata for the object
    * @param configuration the physicalIO configuration
+   * @param blobStoreCallbacks blobStore callback
    * @param streamContext contains audit headers to be attached in the request header
    */
   public BlockManager(
@@ -88,19 +93,22 @@ public class BlockManager implements Closeable {
       @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
+      @NonNull BlobStore.BlobStoreCallbacks blobStoreCallbacks,
       StreamContext streamContext) {
     this.objectKey = objectKey;
     this.objectClient = objectClient;
     this.metadata = metadata;
     this.telemetry = telemetry;
     this.configuration = configuration;
-    this.blockStore = new BlockStore(objectKey, metadata);
+    this.blobStoreCallbacks = blobStoreCallbacks;
+    this.blockManagerCallback = new BlockManagerCallback();
+    this.blockStore = new BlockStore(objectKey, metadata, blockManagerCallback);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
     this.rangeOptimiser = new RangeOptimiser(configuration);
     this.streamContext = streamContext;
-    this.memoryUsage = new AtomicLong(0);
+    this.blobMemoryUsage = new AtomicLong(0);
   }
 
   /**
@@ -213,7 +221,7 @@ public class BlockManager implements Closeable {
                     readMode,
                     this.configuration.getBlockReadTimeout(),
                     this.configuration.getBlockReadRetryCount(),
-                    memoryUsage,
+                    blockManagerCallback,
                     streamContext);
             blockStore.add(block);
           }
@@ -234,5 +242,29 @@ public class BlockManager implements Closeable {
   @Override
   public void close() {
     blockStore.close();
+  }
+
+  /** Callbacks from block instances. */
+  public class BlockManagerCallback {
+
+    /**
+     * Updates memory usage of blob and entire blobstore
+     *
+     * @param bytes to be added to memory usage
+     */
+    public void updateMemoryUsage(long bytes) {
+      getBlobMemoryUsage().addAndGet(bytes);
+      blobStoreCallbacks.updateBlobStoreMemoryUsage(bytes);
+    }
+
+    /** records a blobstore cache hit. */
+    public void recordCacheHit() {
+      blobStoreCallbacks.recordCacheHit();
+    }
+
+    /** records a blobstore cache miss. */
+    public void recordCacheMiss() {
+      blobStoreCallbacks.recordCacheMiss();
+    }
   }
 }
