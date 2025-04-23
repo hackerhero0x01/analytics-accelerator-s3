@@ -150,19 +150,21 @@ public class BlobStore implements Closeable {
 
     /**
      * Updates blobstore memory usage.
-     * @param bytes bytes to be added to memory usage. */
+     *
+     * @param bytes bytes to be added to memory usage.
+     */
     public void updateBlobStoreMemoryUsage(long bytes) {
       getBlobStoreMemoryUsage().addAndGet(bytes);
     }
 
     /** Records a blobstore cache hit. */
     public void recordCacheHit() {
-      cacheHits.incrementAndGet();
+      getCacheHits().incrementAndGet();
     }
 
     /** Records a blobstore cache miss. */
     public void recordCacheMiss() {
-      cacheMiss.incrementAndGet();
+      getCacheMiss().incrementAndGet();
     }
   }
 }
