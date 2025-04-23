@@ -25,6 +25,7 @@ public class ObjectFormatSelector {
   private final Pattern csvPattern;
   private final Pattern jsonPattern;
   private final Pattern txtPattern;
+  private final boolean useFormatSpecificIO;
 
   /**
    * Creates a new instance of {@ObjectFormatSelector}. Used to select the file format of a
@@ -41,6 +42,7 @@ public class ObjectFormatSelector {
         Pattern.compile(configuration.getJsonFormatSelectorRegex(), Pattern.CASE_INSENSITIVE);
     this.txtPattern =
         Pattern.compile(configuration.getTxtFormatSelectorRegex(), Pattern.CASE_INSENSITIVE);
+    this.useFormatSpecificIO = configuration.isUseFormatSpecificIO();
   }
 
   /**
@@ -51,6 +53,10 @@ public class ObjectFormatSelector {
    * @return the file format of the object
    */
   public ObjectFormat getObjectFormat(S3URI s3URI, OpenStreamInformation openStreamInformation) {
+    // If format-specific IO is disabled, always return DEFAULT regardless of file format
+    if (!useFormatSpecificIO) {
+      return ObjectFormat.DEFAULT;
+    }
 
     // If the supplied policy in open stream information is Sequential, then use the default input
     // stream, regardless of the file format (even if it's parquet!). This is important for

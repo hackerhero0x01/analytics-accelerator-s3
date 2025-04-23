@@ -72,6 +72,7 @@ public class LogicalIOConfigurationTest {
         "LogicalIO configuration:\n"
             + "\tprefetchFooterEnabled: true\n"
             + "\tprefetchPageIndexEnabled: true\n"
+            + "\tuseFormatSpecificIO: true\n"
             + "\tprefetchFileMetadataSize: 32768\n"
             + "\tprefetchLargeFileMetadataSize: 1048576\n"
             + "\tprefetchFilePageIndexSize: 10\n"

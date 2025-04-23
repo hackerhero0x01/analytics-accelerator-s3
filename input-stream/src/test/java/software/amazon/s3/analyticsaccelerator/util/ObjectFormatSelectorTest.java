@@ -97,4 +97,20 @@ public class ObjectFormatSelectorTest {
         objectFormatSelector.getObjectFormat(
             S3URI.of("bucket", key), OpenStreamInformation.DEFAULT));
   }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"key.parquet", "key.csv", "key.json", "key.txt"})
+  public void testAllFormatsReturnDefaultWhenFormatSpecificIODisabled(String key) {
+    // Create configuration with useFormatSpecificIO set to false
+    LogicalIOConfiguration config =
+        LogicalIOConfiguration.builder().useFormatSpecificIO(false).build();
+
+    ObjectFormatSelector objectFormatSelector = new ObjectFormatSelector(config);
+
+    assertEquals(
+        ObjectFormat.DEFAULT,
+        objectFormatSelector.getObjectFormat(
+            S3URI.of("bucket", key), OpenStreamInformation.DEFAULT),
+        "All formats should return DEFAULT when format-specific IO is disabled");
+  }
 }

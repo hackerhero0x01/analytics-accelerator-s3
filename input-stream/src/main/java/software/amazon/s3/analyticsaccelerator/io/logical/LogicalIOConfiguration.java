@@ -32,6 +32,7 @@ import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 public class LogicalIOConfiguration {
   private static final boolean DEFAULT_PREFETCH_FOOTER_ENABLED = true;
   private static final boolean DEFAULT_PREFETCH_PAGE_INDEX_ENABLED = true;
+  private static final boolean DEFAULT_USE_FORMAT_SPECIFIC_IO = true;
   private static final long DEFAULT_PREFETCH_FILE_METADATA_SIZE = 32 * ONE_KB;
   private static final long DEFAULT_PREFETCH_LARGE_FILE_METADATA_SIZE = ONE_MB;
   private static final long DEFAULT_PREFETCH_FILE_PAGE_INDEX_SIZE = ONE_MB;
@@ -56,6 +57,10 @@ public class LogicalIOConfiguration {
   @Builder.Default private boolean prefetchPageIndexEnabled = DEFAULT_PREFETCH_PAGE_INDEX_ENABLED;
 
   private static final String PAGE_INDEX_PREFETCH_ENABLED_KEY = "prefetch.page.index.enabled";
+
+  @Builder.Default private boolean useFormatSpecificIO = DEFAULT_USE_FORMAT_SPECIFIC_IO;
+
+  private static final String USE_FORMAT_SPECIFIC_IO_KEY = "use.format.specific.io";
 
   @Builder.Default private long prefetchFileMetadataSize = DEFAULT_PREFETCH_FILE_METADATA_SIZE;
 
@@ -137,6 +142,8 @@ public class LogicalIOConfiguration {
         .prefetchPageIndexEnabled(
             configuration.getBoolean(
                 PAGE_INDEX_PREFETCH_ENABLED_KEY, DEFAULT_PREFETCH_PAGE_INDEX_ENABLED))
+        .useFormatSpecificIO(
+            configuration.getBoolean(USE_FORMAT_SPECIFIC_IO_KEY, DEFAULT_USE_FORMAT_SPECIFIC_IO))
         .prefetchFileMetadataSize(
             configuration.getLong(
                 PREFETCH_FILE_METADATA_SIZE_KEY, DEFAULT_PREFETCH_FILE_METADATA_SIZE))
@@ -186,6 +193,7 @@ public class LogicalIOConfiguration {
     builder.append("LogicalIO configuration:\n");
     builder.append("\tprefetchFooterEnabled: " + prefetchFooterEnabled + "\n");
     builder.append("\tprefetchPageIndexEnabled: " + prefetchPageIndexEnabled + "\n");
+    builder.append("\tuseFormatSpecificIO: " + useFormatSpecificIO + "\n");
     builder.append("\tprefetchFileMetadataSize: " + prefetchFileMetadataSize + "\n");
     builder.append("\tprefetchLargeFileMetadataSize: " + prefetchLargeFileMetadataSize + "\n");
     builder.append("\tprefetchFilePageIndexSize: " + prefetchFilePageIndexSize + "\n");
