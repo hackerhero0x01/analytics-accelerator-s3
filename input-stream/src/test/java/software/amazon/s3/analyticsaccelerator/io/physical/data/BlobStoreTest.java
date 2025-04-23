@@ -28,12 +28,14 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
+import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -57,23 +59,46 @@ public class BlobStoreTest {
     MetadataStore metadataStore = mock(MetadataStore.class);
     when(metadataStore.get(any()))
         .thenReturn(ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag(ETAG).build());
-    blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    Metrics metrics = new Metrics();
+    blobStore =
+        new BlobStore(
+            objectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            metrics);
   }
 
   @Test
   void testCreateBoundaries() {
     assertThrows(
         NullPointerException.class,
-        () -> new BlobStore(null, mock(Telemetry.class), mock(PhysicalIOConfiguration.class)));
+        () ->
+            new BlobStore(
+                null,
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class),
+                mock(Metrics.class)));
     assertThrows(
         NullPointerException.class,
-        () -> new BlobStore(null, mock(Telemetry.class), mock(PhysicalIOConfiguration.class)));
+        () ->
+            new BlobStore(
+                null,
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class),
+                mock(Metrics.class)));
     assertThrows(
         NullPointerException.class,
-        () -> new BlobStore(mock(ObjectClient.class), null, mock(PhysicalIOConfiguration.class)));
+        () ->
+            new BlobStore(
+                mock(ObjectClient.class),
+                null,
+                mock(PhysicalIOConfiguration.class),
+                mock(Metrics.class)));
     assertThrows(
         NullPointerException.class,
-        () -> new BlobStore(mock(ObjectClient.class), mock(Telemetry.class), null));
+        () ->
+            new BlobStore(
+                mock(ObjectClient.class), mock(Telemetry.class), null, mock(Metrics.class)));
   }
 
   @Test
@@ -114,7 +139,7 @@ public class BlobStoreTest {
   @Test
   void testMemoryUsageTracking() throws IOException {
     // Given: Initial memory usage is 0
-    assertEquals(0, blobStore.getBlobStoreMemoryUsage().get());
+    assertEquals(0, blobStore.getMetrics().get(MetricKey.MEMORY_USAGE));
 
     // When: Reading data which causes memory allocation
     Blob blob = blobStore.get(objectKey, objectMetadata, mock(StreamContext.class));
@@ -122,28 +147,28 @@ public class BlobStoreTest {
     blob.read(b, 0, b.length, 0);
 
     // Then: Memory usage should be updated
-    assertTrue(blobStore.getBlobStoreMemoryUsage().get() > 0);
-    assertEquals(TEST_DATA.length(), blobStore.getBlobStoreMemoryUsage().get());
+    assertTrue(blobStore.getMetrics().get(MetricKey.MEMORY_USAGE) > 0);
+    assertEquals(TEST_DATA.length(), blobStore.getMetrics().get(MetricKey.MEMORY_USAGE));
   }
 
   @Test
   void testCacheHitsAndMisses() throws IOException {
     // Given: Initial cache hits and misses are 0
-    assertEquals(0, blobStore.getCacheHits().get());
-    assertEquals(0, blobStore.getCacheMiss().get());
+    assertEquals(0, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
+    assertEquals(0, blobStore.getMetrics().get(MetricKey.CACHE_MISS));
 
     Blob blob = blobStore.get(objectKey, objectMetadata, mock(StreamContext.class));
     byte[] b = new byte[TEST_DATA.length()];
     blob.read(b, 0, b.length, 0);
 
     // Then: Should record a cache miss
-    assertEquals(1, blobStore.getCacheHits().get());
+    assertEquals(1, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
 
     // When: Second time access to same data (should be a hit)
     blob.read(b, 0, b.length, 0);
 
     // Then: Should record a cache hit
-    assertEquals(3, blobStore.getCacheHits().get());
+    assertEquals(3, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
   }
 
   @Test
@@ -153,7 +178,8 @@ public class BlobStoreTest {
         PhysicalIOConfiguration.builder().blobStoreCapacity(BLOB_STORE_CAPACITY).build();
 
     ObjectClient objectClient = new FakeObjectClient(TEST_DATA);
-    BlobStore blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, config);
+    Metrics metrics = new Metrics();
+    BlobStore blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, config, metrics);
 
     // Create multiple ObjectKeys
     ObjectKey key1 = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
@@ -170,7 +196,7 @@ public class BlobStoreTest {
     blob2.read(data, 0, data.length, 0);
 
     // Record initial memory usage
-    long initialMemoryUsage = blobStore.getBlobStoreMemoryUsage().get();
+    long initialMemoryUsage = blobStore.getMetrics().get(MetricKey.MEMORY_USAGE);
 
     // Then: Adding one more blob should trigger eviction
     Blob blob3 = blobStore.get(key3, objectMetadata, mock(StreamContext.class));
@@ -181,11 +207,11 @@ public class BlobStoreTest {
         BLOB_STORE_CAPACITY, blobStore.blobCount(), "BlobStore should maintain capacity limit");
 
     // Verify memory usage decreased after eviction
-    long finalMemoryUsage = blobStore.getBlobStoreMemoryUsage().get();
+    long finalMemoryUsage = blobStore.getMetrics().get(MetricKey.MEMORY_USAGE);
     System.out.println("Memory final " + finalMemoryUsage);
 
     assertEquals(
-        finalMemoryUsage, initialMemoryUsage, "Memory usage should decrease after eviction");
+        initialMemoryUsage, finalMemoryUsage, "Memory usage should decrease after eviction");
   }
 
   @Test
@@ -225,6 +251,6 @@ public class BlobStoreTest {
 
     // Then: Wait for all threads and verify total memory
     assertTrue(latch.await(5, TimeUnit.SECONDS));
-    assertEquals(expectedTotalMemory, blobStore.getBlobStoreMemoryUsage().get());
+    assertEquals(expectedTotalMemory, blobStore.getMetrics().get(MetricKey.MEMORY_USAGE));
   }
 }

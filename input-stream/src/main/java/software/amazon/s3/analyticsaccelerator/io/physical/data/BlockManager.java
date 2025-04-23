@@ -23,6 +23,7 @@ import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 import lombok.NonNull;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -34,6 +35,7 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
+import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
@@ -51,8 +53,7 @@ public class BlockManager implements Closeable {
   private final RangeOptimiser rangeOptimiser;
   private StreamContext streamContext;
   @Getter private AtomicLong blobMemoryUsage;
-  private final BlobStore.BlobStoreCallbacks blobStoreCallbacks;
-  private final BlockManagerCallback blockManagerCallback;
+  private final Metrics metrics;
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
@@ -63,7 +64,7 @@ public class BlockManager implements Closeable {
    * @param objectClient object client capable of interacting with the underlying object store
    * @param telemetry an instance of {@link Telemetry} to use
    * @param metadata the metadata for the object we are reading
-   * @param blobStoreCallbacks blobStore callback
+   * @param metrics factory metrics
    * @param configuration the physicalIO configuration
    */
   public BlockManager(
@@ -72,8 +73,8 @@ public class BlockManager implements Closeable {
       @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
-      @NonNull BlobStore.BlobStoreCallbacks blobStoreCallbacks) {
-    this(objectKey, objectClient, metadata, telemetry, configuration, blobStoreCallbacks, null);
+      @NonNull Metrics metrics) {
+    this(objectKey, objectClient, metadata, telemetry, configuration, metrics, null);
   }
 
   /**
@@ -84,7 +85,7 @@ public class BlockManager implements Closeable {
    * @param telemetry an instance of {@link Telemetry} to use
    * @param metadata the metadata for the object
    * @param configuration the physicalIO configuration
-   * @param blobStoreCallbacks blobStore callback
+   * @param metrics factory metrics
    * @param streamContext contains audit headers to be attached in the request header
    */
   public BlockManager(
@@ -93,16 +94,15 @@ public class BlockManager implements Closeable {
       @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
-      @NonNull BlobStore.BlobStoreCallbacks blobStoreCallbacks,
+      @NonNull Metrics metrics,
       StreamContext streamContext) {
     this.objectKey = objectKey;
     this.objectClient = objectClient;
     this.metadata = metadata;
     this.telemetry = telemetry;
     this.configuration = configuration;
-    this.blobStoreCallbacks = blobStoreCallbacks;
-    this.blockManagerCallback = new BlockManagerCallback();
-    this.blockStore = new BlockStore(objectKey, metadata, blockManagerCallback);
+    this.metrics = metrics;
+    this.blockStore = new BlockStore(objectKey, metadata, this::updateMetricsCallback);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
@@ -221,11 +221,18 @@ public class BlockManager implements Closeable {
                     readMode,
                     this.configuration.getBlockReadTimeout(),
                     this.configuration.getBlockReadRetryCount(),
-                    blockManagerCallback,
+                    this::updateMetricsCallback,
                     streamContext);
             blockStore.add(block);
           }
         });
+  }
+
+  private void updateMetricsCallback(MetricKey metricKey, long value) {
+    if(metricKey.equals(MetricKey.MEMORY_USAGE)) {
+      blobMemoryUsage.addAndGet(value);
+    }
+    this.metrics.add(metricKey, value);
   }
 
   private long getLastObjectByte() {
@@ -242,29 +249,5 @@ public class BlockManager implements Closeable {
   @Override
   public void close() {
     blockStore.close();
-  }
-
-  /** Callbacks from block instances. */
-  public class BlockManagerCallback {
-
-    /**
-     * Updates memory usage of blob and entire blobstore
-     *
-     * @param bytes to be added to memory usage
-     */
-    public void updateMemoryUsage(long bytes) {
-      getBlobMemoryUsage().addAndGet(bytes);
-      blobStoreCallbacks.updateBlobStoreMemoryUsage(bytes);
-    }
-
-    /** records a blobstore cache hit. */
-    public void recordCacheHit() {
-      blobStoreCallbacks.recordCacheHit();
-    }
-
-    /** records a blobstore cache miss. */
-    public void recordCacheMiss() {
-      blobStoreCallbacks.recordCacheMiss();
-    }
   }
 }

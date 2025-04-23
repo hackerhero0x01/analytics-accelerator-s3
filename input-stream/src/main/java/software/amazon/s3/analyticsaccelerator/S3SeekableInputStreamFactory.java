@@ -21,6 +21,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
@@ -54,6 +55,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final BlobStore objectBlobStore;
   private final Telemetry telemetry;
   private final ObjectFormatSelector objectFormatSelector;
+  private final Metrics metrics;
 
   private static final Logger LOG = LoggerFactory.getLogger(S3SeekableInputStreamFactory.class);
 
@@ -70,6 +72,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     LOG.debug("Initializing S3SeekableInputStreamFactory with configuration: {}", configuration);
     this.configuration = configuration;
+    this.metrics = new Metrics();
     this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
     this.parquetColumnPrefetchStore =
         new ParquetColumnPrefetchStore(configuration.getLogicalIOConfiguration());
@@ -77,7 +80,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
     this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
     this.objectBlobStore =
-        new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
+        new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration(), metrics);
   }
 
   /**

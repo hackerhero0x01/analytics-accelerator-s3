@@ -20,17 +20,17 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
+import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
@@ -44,10 +44,9 @@ public class BlobStore implements Closeable {
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
   private final PhysicalIOConfiguration configuration;
-  @Getter private final AtomicLong blobStoreMemoryUsage;
-  @Getter private final AtomicInteger cacheHits;
-  @Getter private final AtomicInteger cacheMiss;
-  private final BlobStoreCallbacks blobStoreCallbacks;
+
+  @Getter
+  private final Metrics metrics;
 
   /**
    * Construct an instance of BlobStore.
@@ -55,16 +54,16 @@ public class BlobStore implements Closeable {
    * @param objectClient object client capable of interacting with the underlying object store
    * @param telemetry an instance of {@link Telemetry} to use
    * @param configuration the PhysicalIO configuration
+   * @param metrics an instance of {@link Metrics} to track metrics across the factory
    */
   public BlobStore(
       @NonNull ObjectClient objectClient,
       @NonNull Telemetry telemetry,
-      @NonNull PhysicalIOConfiguration configuration) {
+      @NonNull PhysicalIOConfiguration configuration,
+      @NonNull Metrics metrics) {
     this.objectClient = objectClient;
     this.telemetry = telemetry;
-    this.blobStoreMemoryUsage = new AtomicLong(0);
-    this.cacheHits = new AtomicInteger(0);
-    this.cacheMiss = new AtomicInteger(0);
+    this.metrics = metrics;
     this.blobMap =
         Collections.synchronizedMap(
             new LinkedHashMap<ObjectKey, Blob>() {
@@ -74,18 +73,17 @@ public class BlobStore implements Closeable {
                 if (shouldRemove) {
                   LOG.debug(
                       "Current memory usage of blobMap in bytes before eviction is: {}",
-                      blobStoreMemoryUsage.get());
+                      metrics.get(MetricKey.MEMORY_USAGE));
                   Blob blobToRemove = eldest.getValue();
-                  blobStoreMemoryUsage.addAndGet(-blobToRemove.getMemoryUsageOfBlob());
+                  metrics.add(MetricKey.MEMORY_USAGE, -blobToRemove.getMemoryUsageOfBlob());
                   LOG.debug(
                       "Current memory usage of blobMap in bytes after eviction is: {}",
-                      blobStoreMemoryUsage.get());
+                      metrics.get(MetricKey.MEMORY_USAGE));
                 }
                 return shouldRemove;
               }
             });
     this.configuration = configuration;
-    this.blobStoreCallbacks = new BlobStoreCallbacks();
   }
 
   /**
@@ -104,13 +102,7 @@ public class BlobStore implements Closeable {
                 uri,
                 metadata,
                 new BlockManager(
-                    uri,
-                    objectClient,
-                    metadata,
-                    telemetry,
-                    configuration,
-                    blobStoreCallbacks,
-                    streamContext),
+                    uri, objectClient, metadata, telemetry, configuration, metrics, streamContext),
                 telemetry));
   }
 
@@ -136,35 +128,11 @@ public class BlobStore implements Closeable {
   /** Closes the {@link BlobStore} and frees up all resources it holds. */
   @Override
   public void close() {
-    long hits = cacheHits.get();
-    long hitsAndMiss = hits + cacheMiss.get();
+    long hits = metrics.get(MetricKey.CACHE_HIT);
+    long miss = metrics.get(MetricKey.CACHE_MISS);
+    long hitsAndMiss = hits + miss;
     double hitRate = hitsAndMiss == 0 ? 0 : (double) hits / hitsAndMiss;
-    LOG.debug(
-        "Cache Hits: {}, Misses: {}, Hit Rate: {}%",
-        cacheHits.get(), cacheMiss.get(), hitRate * 100);
+    LOG.debug("Cache Hits: {}, Misses: {}, Hit Rate: {}%", hits, miss, hitRate * 100);
     blobMap.forEach((k, v) -> v.close());
-  }
-
-  /** Callbacks from block manager instances. */
-  public class BlobStoreCallbacks {
-
-    /**
-     * Updates blobstore memory usage.
-     *
-     * @param bytes bytes to be added to memory usage.
-     */
-    public void updateBlobStoreMemoryUsage(long bytes) {
-      getBlobStoreMemoryUsage().addAndGet(bytes);
-    }
-
-    /** Records a blobstore cache hit. */
-    public void recordCacheHit() {
-      getCacheHits().incrementAndGet();
-    }
-
-    /** Records a blobstore cache miss. */
-    public void recordCacheMiss() {
-      getCacheMiss().incrementAndGet();
-    }
   }
 }

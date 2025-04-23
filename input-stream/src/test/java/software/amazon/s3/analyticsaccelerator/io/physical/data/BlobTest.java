@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
@@ -177,7 +178,7 @@ public class BlobTest {
             mockMetadataStore,
             TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT,
-            mock(BlobStore.BlobStoreCallbacks.class));
+            mock(Metrics.class));
 
     return new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
   }

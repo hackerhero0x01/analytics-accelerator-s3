@@ -15,7 +15,10 @@
  */
 package software.amazon.s3.analyticsaccelerator;
 
+import static org.mockito.Mockito.mock;
+
 import java.io.IOException;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
@@ -37,7 +40,8 @@ public class S3SeekableInputStreamTestBase {
   protected final MetadataStore metadataStore =
       new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
   protected final BlobStore blobStore =
-      new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, physicalIOConfiguration);
+      new BlobStore(
+          fakeObjectClient, TestTelemetry.DEFAULT, physicalIOConfiguration, mock(Metrics.class));
   protected final LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
 
   protected final LogicalIO fakeLogicalIO;

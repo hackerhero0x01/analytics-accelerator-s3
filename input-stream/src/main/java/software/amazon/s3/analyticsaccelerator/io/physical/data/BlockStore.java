@@ -21,10 +21,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.function.BiConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 
 /** A BlockStore, which is a collection of Blocks. */
@@ -35,26 +37,24 @@ public class BlockStore implements Closeable {
   private final ObjectKey s3URI;
   private final ObjectMetadata metadata;
   private final List<Block> blocks;
-  private final BlockManager.BlockManagerCallback blockManagerCallback;
+  private final BiConsumer<MetricKey, Long> metricsCallback;
 
   /**
    * Constructs a new instance of a BlockStore.
    *
    * @param objectKey the etag and S3 URI of the object
    * @param metadata the metadata for the object
-   * @param blockManagerCallback blockManager callback
+   * @param metricsCallback callback to update metrics
    */
   public BlockStore(
-      ObjectKey objectKey,
-      ObjectMetadata metadata,
-      BlockManager.BlockManagerCallback blockManagerCallback) {
+      ObjectKey objectKey, ObjectMetadata metadata, BiConsumer<MetricKey, Long> metricsCallback) {
     Preconditions.checkNotNull(objectKey, "`objectKey` must not be null");
     Preconditions.checkNotNull(metadata, "`metadata` must not be null");
 
     this.s3URI = objectKey;
     this.metadata = metadata;
     this.blocks = new LinkedList<>();
-    this.blockManagerCallback = blockManagerCallback;
+    this.metricsCallback = metricsCallback;
   }
 
   /**
@@ -69,9 +69,9 @@ public class BlockStore implements Closeable {
 
     Optional<Block> block = blocks.stream().filter(b -> b.contains(pos)).findFirst();
     if (block.isPresent()) {
-      blockManagerCallback.recordCacheHit();
+      metricsCallback.accept(MetricKey.CACHE_HIT, 1L);
     } else {
-      blockManagerCallback.recordCacheMiss();
+      metricsCallback.accept(MetricKey.CACHE_MISS, 1L);
     }
     return block;
   }
