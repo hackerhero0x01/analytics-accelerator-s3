@@ -177,7 +177,6 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
    */
   @Override
   public void close() throws IOException {
-
     this.objectMetadataStore.close();
     this.objectBlobStore.close();
     this.telemetry.close();
