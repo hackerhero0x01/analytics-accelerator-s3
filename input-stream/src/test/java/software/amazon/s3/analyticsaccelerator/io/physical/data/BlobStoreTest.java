@@ -34,10 +34,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
-import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
-import software.amazon.s3.analyticsaccelerator.util.MetricKey;
-import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
-import software.amazon.s3.analyticsaccelerator.util.S3URI;
+import software.amazon.s3.analyticsaccelerator.util.*;
 
 @SuppressFBWarnings(
     value = "NP_NONNULL_PARAM_VIOLATION",
@@ -62,10 +59,7 @@ public class BlobStoreTest {
     Metrics metrics = new Metrics();
     blobStore =
         new BlobStore(
-            objectClient,
-            TestTelemetry.DEFAULT,
-            PhysicalIOConfiguration.DEFAULT,
-            metrics);
+            objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT, metrics);
   }
 
   @Test
@@ -252,5 +246,38 @@ public class BlobStoreTest {
     // Then: Wait for all threads and verify total memory
     assertTrue(latch.await(5, TimeUnit.SECONDS));
     assertEquals(expectedTotalMemory, blobStore.getMetrics().get(MetricKey.MEMORY_USAGE));
+  }
+
+  @Test
+  void testClose() {
+    // Given: Create multiple blobs and force data loading
+    ObjectKey key1 = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
+    ObjectKey key2 = ObjectKey.builder().s3URI(S3URI.of("test", "test2")).etag(ETAG).build();
+
+    Blob blob1 = blobStore.get(key1, objectMetadata, mock(StreamContext.class));
+    Blob blob2 = blobStore.get(key2, objectMetadata, mock(StreamContext.class));
+
+    byte[] data = new byte[TEST_DATA.length()];
+    try {
+
+      for (int i = 0; i <= 10; i++) {
+        blob1.read(data, 0, data.length, 0);
+        blob2.read(data, 0, data.length, 0);
+      }
+
+    } catch (IOException e) {
+      fail("Failed to read data from blobs", e);
+    }
+
+    // Record metrics before close
+    long cacheHits = blobStore.getMetrics().get(MetricKey.CACHE_HIT);
+    long cacheMisses = blobStore.getMetrics().get(MetricKey.CACHE_MISS);
+    double expectedHitRate = MetricComputationUtils.computeCacheHitRate(cacheHits, cacheMisses);
+
+    // When: Close the BlobStore
+    blobStore.close();
+
+    // Then: Verify the hit rate
+    assertEquals(60.0, expectedHitRate, 0.01, "Hit rate should be approximately 60%");
   }
 }

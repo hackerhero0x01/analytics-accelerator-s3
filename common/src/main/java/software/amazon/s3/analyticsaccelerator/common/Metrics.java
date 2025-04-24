@@ -44,6 +44,17 @@ public class Metrics {
   }
 
   /**
+   * Reduces the specified delta from the metric identified by the given key. If the metric doesn't
+   * exist, it will be created with an initial value of 0 before adding the delta.
+   *
+   * @param key the metric key to identify which metric to update
+   * @param delta the value to add to the metric (can be negative for decrements)
+   */
+  public void reduce(MetricKey key, long delta) {
+    getOrCreate(key).addAndGet(-delta);
+  }
+
+  /**
    * Retrieves the current value of the specified metric. If the metric doesn't exist, it will be
    * created with an initial value of 0.
    *

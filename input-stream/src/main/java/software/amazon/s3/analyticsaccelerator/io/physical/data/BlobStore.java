@@ -30,6 +30,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
+import software.amazon.s3.analyticsaccelerator.util.MetricComputationUtils;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 
@@ -45,8 +46,7 @@ public class BlobStore implements Closeable {
   private final Telemetry telemetry;
   private final PhysicalIOConfiguration configuration;
 
-  @Getter
-  private final Metrics metrics;
+  @Getter private final Metrics metrics;
 
   /**
    * Construct an instance of BlobStore.
@@ -75,7 +75,7 @@ public class BlobStore implements Closeable {
                       "Current memory usage of blobMap in bytes before eviction is: {}",
                       metrics.get(MetricKey.MEMORY_USAGE));
                   Blob blobToRemove = eldest.getValue();
-                  metrics.add(MetricKey.MEMORY_USAGE, -blobToRemove.getMemoryUsageOfBlob());
+                  metrics.reduce(MetricKey.MEMORY_USAGE, blobToRemove.getMemoryUsageOfBlob());
                   LOG.debug(
                       "Current memory usage of blobMap in bytes after eviction is: {}",
                       metrics.get(MetricKey.MEMORY_USAGE));
@@ -130,9 +130,9 @@ public class BlobStore implements Closeable {
   public void close() {
     long hits = metrics.get(MetricKey.CACHE_HIT);
     long miss = metrics.get(MetricKey.CACHE_MISS);
-    long hitsAndMiss = hits + miss;
-    double hitRate = hitsAndMiss == 0 ? 0 : (double) hits / hitsAndMiss;
-    LOG.debug("Cache Hits: {}, Misses: {}, Hit Rate: {}%", hits, miss, hitRate * 100);
+    LOG.debug(
+        "Cache Hits: {}, Misses: {}, Hit Rate: {}%",
+        hits, miss, MetricComputationUtils.computeCacheHitRate(hits, miss));
     blobMap.forEach((k, v) -> v.close());
   }
 }
