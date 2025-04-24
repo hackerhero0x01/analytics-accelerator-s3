@@ -44,6 +44,7 @@ Options under `<CONNECTOR_PREFIX>.logicalio.`
 |---------------------------------------|-----------------------|----------------------------------------------------------------------------|
 | `prefetch.footer.enabled`             | `true`                | Controls whether footer prefetching is enabled                             |
 | `prefetch.page.index.enabled`         | `true`                | Controls whether page index prefetching is enabled                         |
+| `use.format.specific.io`              | `true`                | Controls whether to use format-specific LogicalIO implementations          |
 | `prefetch.file.metadata.size`         | `32KB`                | Size of metadata to prefetch for regular files                             |
 | `prefetch.large.file.metadata.size`   | `1MB`                 | Size of metadata to prefetch for large files                               |
 | `prefetch.file.page.index.size`       | `1MB`                 | Size of page index to prefetch for regular files                           |
