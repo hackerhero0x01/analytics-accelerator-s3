@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.function.BiConsumer;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
@@ -52,6 +53,7 @@ public class BlockManager implements Closeable {
   private StreamContext streamContext;
   private final Metrics blobMetrics;
   private final Metrics aggregatingMetrics;
+  private final BiConsumer<MetricKey, Long> updateMetricsCallback;
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
@@ -100,13 +102,20 @@ public class BlockManager implements Closeable {
     this.telemetry = telemetry;
     this.configuration = configuration;
     this.aggregatingMetrics = aggregatingMetrics;
-    this.blockStore = new BlockStore(objectKey, metadata, this::updateMetricsCallback);
+    this.blobMetrics = new Metrics();
+    this.updateMetricsCallback =
+        (metricKey, value) -> {
+          if (metricKey.equals(MetricKey.MEMORY_USAGE)) {
+            this.blobMetrics.add(metricKey, value);
+          }
+          this.aggregatingMetrics.add(metricKey, value);
+        };
+    this.blockStore = new BlockStore(objectKey, metadata, updateMetricsCallback);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
     this.rangeOptimiser = new RangeOptimiser(configuration);
     this.streamContext = streamContext;
-    this.blobMetrics = new Metrics();
   }
 
   /**
@@ -228,19 +237,19 @@ public class BlockManager implements Closeable {
                     readMode,
                     this.configuration.getBlockReadTimeout(),
                     this.configuration.getBlockReadRetryCount(),
-                    this::updateMetricsCallback,
+                    updateMetricsCallback,
                     streamContext);
             blockStore.add(block);
           }
         });
   }
 
-  private void updateMetricsCallback(MetricKey metricKey, long value) {
+  /*private void updateMetricsCallback(MetricKey metricKey, long value) {
     if (metricKey.equals(MetricKey.MEMORY_USAGE)) {
       blobMetrics.add(metricKey, value);
     }
     aggregatingMetrics.add(metricKey, value);
-  }
+  }*/
 
   private long getLastObjectByte() {
     return this.metadata.getContentLength() - 1;
