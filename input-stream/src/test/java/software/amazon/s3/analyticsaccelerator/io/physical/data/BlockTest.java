@@ -22,7 +22,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.*;
-import java.util.function.BiConsumer;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -57,7 +56,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BiConsumer.class));
+            mock(BlockMetricsHandler.class));
 
     // When: bytes are requested from the block
     int r1 = block.read(0);
@@ -86,7 +85,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BiConsumer.class));
+            mock(BlockMetricsHandler.class));
 
     // When: bytes are requested from the block
     byte[] b1 = new byte[4];
@@ -181,7 +180,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BiConsumer.class)));
+                mock(BlockMetricsHandler.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -195,7 +194,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BiConsumer.class)));
+                mock(BlockMetricsHandler.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -209,7 +208,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BiConsumer.class)));
+                mock(BlockMetricsHandler.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -223,7 +222,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BiConsumer.class)));
+                mock(BlockMetricsHandler.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -237,7 +236,7 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BiConsumer.class)));
+                mock(BlockMetricsHandler.class)));
   }
 
   @SneakyThrows
@@ -257,7 +256,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BiConsumer.class));
+            mock(BlockMetricsHandler.class));
     assertThrows(IllegalArgumentException.class, () -> block.read(-10));
     assertThrows(NullPointerException.class, () -> block.read(null, 0, 3, 1));
     assertThrows(IllegalArgumentException.class, () -> block.read(b, -5, 3, 1));
@@ -281,7 +280,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BiConsumer.class));
+            mock(BlockMetricsHandler.class));
     assertTrue(block.contains(0));
     assertFalse(block.contains(TEST_DATA.length() + 1));
   }
@@ -302,7 +301,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BiConsumer.class));
+            mock(BlockMetricsHandler.class));
     assertThrows(IllegalArgumentException.class, () -> block.contains(-1));
   }
 
@@ -324,7 +323,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BiConsumer.class));
+            mock(BlockMetricsHandler.class));
     assertThrows(IOException.class, () -> block.read(4));
   }
 
@@ -344,7 +343,7 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BiConsumer.class));
+            mock(BlockMetricsHandler.class));
     block.close();
     block.close();
   }

@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.function.BiConsumer;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
@@ -34,6 +33,7 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
+import software.amazon.s3.analyticsaccelerator.util.BlockMetricsHandler;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
@@ -52,9 +52,7 @@ public class BlockManager implements Closeable {
   private final RangeOptimiser rangeOptimiser;
   private StreamContext streamContext;
   private final Metrics blobMetrics;
-  private final Metrics aggregatingMetrics;
-  private final BiConsumer<MetricKey, Long> updateMetricsCallback;
-
+  private final BlockMetricsHandler metricsHandler;
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
   /**
@@ -101,16 +99,9 @@ public class BlockManager implements Closeable {
     this.metadata = metadata;
     this.telemetry = telemetry;
     this.configuration = configuration;
-    this.aggregatingMetrics = aggregatingMetrics;
     this.blobMetrics = new Metrics();
-    this.updateMetricsCallback =
-        (metricKey, value) -> {
-          if (metricKey.equals(MetricKey.MEMORY_USAGE)) {
-            this.blobMetrics.add(metricKey, value);
-          }
-          this.aggregatingMetrics.add(metricKey, value);
-        };
-    this.blockStore = new BlockStore(objectKey, metadata, updateMetricsCallback);
+    this.metricsHandler = new BlockMetricsHandler(blobMetrics, aggregatingMetrics);
+    this.blockStore = new BlockStore(objectKey, metadata, metricsHandler);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
@@ -237,7 +228,7 @@ public class BlockManager implements Closeable {
                     readMode,
                     this.configuration.getBlockReadTimeout(),
                     this.configuration.getBlockReadRetryCount(),
-                    updateMetricsCallback,
+                    metricsHandler,
                     streamContext);
             blockStore.add(block);
           }
