@@ -14,9 +14,10 @@ The project uses Gradle 8.7 and targets Java 8, which is currently the most comm
 
 ## Microbenchmarks and Integration Tests
 We have a basic set of micro-benchmarks that test full sequential read, forward seeks, backward seeks, and a Parquet-like ("jumping around") read pattern.
-We also have a number of integration tests that cover various scenarios
-on integration of Analytics Accelerator Library and S3. Before starting integration tests or microbenchmarks you need to
-follow configuration and data generation steps (only once if re-using the same bucket for further testing) listed below. 
+We also have a number of integration tests that test correctness, exception handling, concurrency correctness and gray failures.
+The configuration and data generation steps are pre-requisite for running the integration tests and microbenchmarks.
+
+
 ### Configuration
 Configure the following environment variables before generating data and running benchmarks:
 * `S3_TEST_BUCKET` - the bucket benchmarks and the data generation runs against.
@@ -32,10 +33,13 @@ After your environment is configured, you can generate data to run benchmarks ag
 This will generate all the necessary data and upload it to the bucket and prefix identified by the `S3_TEST_BUCKET` and `S3_TEST_PREFIX` respectively.
 
 ### Running Integration Tests
+Before running integration tests, you'll need test data created by the 'Data Generation' process. 
+This is a one-time setup - you won't need to regenerate the data for subsequent test runs. 
+Note that these tests are specifically designed for this generated data and won't work with other data in your S3 bucket.
 
-If you already have your data in a bucket and the aforementioned environmental variables set, you can just run
+
+Once you've created the benchmark data and configured your environment variables, you can proceed with running the integration tests.
 * `./gradlew integrationTest`
-
 
 ### Running the Benchmarks
 There are two ways:
