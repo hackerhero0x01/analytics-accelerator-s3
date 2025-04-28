@@ -23,18 +23,26 @@ import static org.mockito.Mockito.when;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
+import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.*;
+import software.amazon.s3.analyticsaccelerator.util.BlockKey;
+import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
+import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
+import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
     value = "NP_NONNULL_PARAM_VIOLATION",
@@ -48,6 +56,7 @@ public class BlobStoreTest {
   private static final ObjectKey objectKey =
       ObjectKey.builder().s3URI(S3URI.of("test", "test")).etag(ETAG).build();
 
+  private PhysicalIOConfiguration config;
   private BlobStore blobStore;
 
   @BeforeEach
@@ -57,9 +66,33 @@ public class BlobStoreTest {
     when(metadataStore.get(any()))
         .thenReturn(ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag(ETAG).build());
     Metrics metrics = new Metrics();
-    blobStore =
-        new BlobStore(
-            objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT, metrics);
+    Map<String, String> configMap = new HashMap<>();
+    configMap.put("blobstore.capacitybytes", "1000");
+    configMap.put("blobstore.cleanupfrequencymilliseconds", "1");
+    ConnectorConfiguration connectorConfig = new ConnectorConfiguration(configMap);
+    config = PhysicalIOConfiguration.fromConfiguration(connectorConfig);
+
+    blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, config, metrics);
+    blobStore.schedulePeriodicCleanup();
+  }
+
+  @Test
+  void testIndexCacheEviction() throws InterruptedException {
+    // Fill the cache
+    for (int i = 0; i < 1000; i++) {
+      Range r = new Range(i, i + 100);
+      BlockKey blockKey = new BlockKey(objectKey, r);
+      blobStore.indexCache.put(blockKey, r.getLength());
+    }
+
+    // Wait for eviction
+    Thread.sleep(60);
+
+    // Check if some entries were evicted
+    System.out.println("Max weight set is " + blobStore.indexCache.getMaximumWeight());
+    long currentWeight = blobStore.indexCache.getCurrentWeight();
+    System.out.println("Current weight is " + currentWeight);
+    assertTrue(currentWeight < 1000, "Some entries should have been evicted");
   }
 
   @Test
@@ -166,14 +199,17 @@ public class BlobStoreTest {
   }
 
   @Test
-  void testMemoryUsageAfterEviction() throws IOException {
-    final int BLOB_STORE_CAPACITY = 2;
+  void testMemoryUsageAfterEviction() throws IOException, InterruptedException {
     PhysicalIOConfiguration config =
-        PhysicalIOConfiguration.builder().blobStoreCapacity(BLOB_STORE_CAPACITY).build();
+        PhysicalIOConfiguration.builder()
+            .blobStoreCapacityBytes(18)
+            .blobstoreCleanupFrequencyMilliseconds(1)
+            .build();
 
     ObjectClient objectClient = new FakeObjectClient(TEST_DATA);
     Metrics metrics = new Metrics();
     BlobStore blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, config, metrics);
+    blobStore.schedulePeriodicCleanup();
 
     // Create multiple ObjectKeys
     ObjectKey key1 = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
@@ -196,9 +232,7 @@ public class BlobStoreTest {
     Blob blob3 = blobStore.get(key3, objectMetadata, mock(StreamContext.class));
     blob3.read(data, 0, data.length, 0);
 
-    // Verify
-    assertEquals(
-        BLOB_STORE_CAPACITY, blobStore.blobCount(), "BlobStore should maintain capacity limit");
+    Thread.sleep(10);
 
     // Verify memory usage decreased after eviction
     long finalMemoryUsage = blobStore.getMetrics().get(MetricKey.MEMORY_USAGE);

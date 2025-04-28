@@ -70,7 +70,9 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   public S3SeekableInputStreamFactory(
       @NonNull ObjectClient objectClient,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
-    LOG.debug("Initializing S3SeekableInputStreamFactory with configuration: {}", configuration);
+    LOG.debug(
+        "Initializing S3SeekableInputStreamFactory memory manager with configuration: {}",
+        configuration);
     this.configuration = configuration;
     this.metrics = new Metrics();
     this.telemetry = Telemetry.createTelemetry(configuration.getTelemetryConfiguration());
@@ -81,6 +83,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
     this.objectBlobStore =
         new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration(), metrics);
+    objectBlobStore.schedulePeriodicCleanup();
   }
 
   /**

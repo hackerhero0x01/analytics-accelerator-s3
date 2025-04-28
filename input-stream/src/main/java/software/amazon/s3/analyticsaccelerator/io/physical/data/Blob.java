@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,7 @@ public class Blob implements Closeable {
   private final BlockManager blockManager;
   private final ObjectMetadata metadata;
   private final Telemetry telemetry;
+  private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
   /**
    * Construct a new Blob.
@@ -71,8 +73,27 @@ public class Blob implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
-    blockManager.makePositionAvailable(pos, ReadMode.SYNC);
-    return blockManager.getBlock(pos).get().read(pos);
+
+    try {
+      lock.readLock().lock();
+      blockManager.makePositionAvailable(pos, ReadMode.SYNC);
+      return blockManager.getBlock(pos).get().read(pos);
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
+  /** clean up blob */
+  public final void asyncCleanup() {
+    if (blockManager.isBlockStoreEmpty()) {
+      return;
+    }
+    try {
+      lock.writeLock().lock();
+      blockManager.cleanUp();
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
   /**
@@ -102,34 +123,40 @@ public class Blob implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
+    try {
+      lock.readLock().lock();
 
-    long nextPosition = pos;
-    int numBytesRead = 0;
+      blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
-    while (numBytesRead < len && nextPosition < contentLength()) {
-      final long nextPositionFinal = nextPosition;
-      Block nextBlock =
-          blockManager
-              .getBlock(nextPosition)
-              .orElseThrow(
-                  () ->
-                      new IllegalStateException(
-                          String.format(
-                              "This block (for position %s) should have been available.",
-                              nextPositionFinal)));
+      long nextPosition = pos;
+      int numBytesRead = 0;
 
-      int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
+      while (numBytesRead < len && nextPosition < contentLength()) {
+        final long nextPositionFinal = nextPosition;
+        Block nextBlock =
+            blockManager
+                .getBlock(nextPosition)
+                .orElseThrow(
+                    () ->
+                        new IllegalStateException(
+                            String.format(
+                                "This block object key %s (for position %s) should have been available.",
+                                objectKey.getS3URI().toString(), nextPositionFinal)));
 
-      if (bytesRead == -1) {
-        return numBytesRead;
+        int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
+
+        if (bytesRead == -1) {
+          return numBytesRead;
+        }
+
+        numBytesRead = numBytesRead + bytesRead;
+        nextPosition += bytesRead;
       }
 
-      numBytesRead = numBytesRead + bytesRead;
-      nextPosition += bytesRead;
+      return numBytesRead;
+    } finally {
+      lock.readLock().unlock();
     }
-
-    return numBytesRead;
   }
 
   /**

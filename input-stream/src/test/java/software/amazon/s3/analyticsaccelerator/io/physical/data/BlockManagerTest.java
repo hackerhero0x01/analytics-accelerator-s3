@@ -60,7 +60,8 @@ public class BlockManagerTest {
                 mock(ObjectMetadata.class),
                 mock(Telemetry.class),
                 mock(PhysicalIOConfiguration.class),
-                mock(Metrics.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -70,7 +71,8 @@ public class BlockManagerTest {
                 mock(ObjectMetadata.class),
                 mock(Telemetry.class),
                 mock(PhysicalIOConfiguration.class),
-                mock(Metrics.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -80,7 +82,8 @@ public class BlockManagerTest {
                 null,
                 mock(Telemetry.class),
                 mock(PhysicalIOConfiguration.class),
-                mock(Metrics.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -90,7 +93,8 @@ public class BlockManagerTest {
                 mock(ObjectMetadata.class),
                 null,
                 mock(PhysicalIOConfiguration.class),
-                mock(Metrics.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -100,7 +104,8 @@ public class BlockManagerTest {
                 mock(ObjectMetadata.class),
                 mock(Telemetry.class),
                 null,
-                mock(Metrics.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
   }
 
   @Test
@@ -297,6 +302,7 @@ public class BlockManagerTest {
         metadataStore,
         TestTelemetry.DEFAULT,
         configuration,
-        mock(Metrics.class));
+        mock(Metrics.class),
+        mock(BlobStoreIndexCache.class));
   }
 }

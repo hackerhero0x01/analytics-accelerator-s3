@@ -178,7 +178,8 @@ public class BlobTest {
             mockMetadataStore,
             TestTelemetry.DEFAULT,
             PhysicalIOConfiguration.DEFAULT,
-            mock(Metrics.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
 
     return new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
   }

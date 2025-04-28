@@ -26,6 +26,7 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.util.*;
 
@@ -45,18 +46,17 @@ public class BlockTest {
     // Given: a Block containing "test-data"
     final String TEST_DATA = "test-data";
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, TEST_DATA.length()));
     Block block =
         new Block(
-            objectKey,
+            blockKey,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            0,
-            TEST_DATA.length(),
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class));
+            mock(BlockMetricsAndCacheHandler.class));
 
     // When: bytes are requested from the block
     int r1 = block.read(0);
@@ -74,18 +74,17 @@ public class BlockTest {
     // Given: a Block containing "test-data"
     final String TEST_DATA = "test-data";
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, TEST_DATA.length()));
     Block block =
         new Block(
-            objectKey,
+            blockKey,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            0,
-            TEST_DATA.length(),
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class));
+            mock(BlockMetricsAndCacheHandler.class));
 
     // When: bytes are requested from the block
     byte[] b1 = new byte[4];
@@ -105,6 +104,7 @@ public class BlockTest {
   void testNulls() {
     final String TEST_DATA = "test-data";
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, TEST_DATA.length()));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -113,53 +113,49 @@ public class BlockTest {
                 fakeObjectClient,
                 TestTelemetry.DEFAULT,
                 0,
-                TEST_DATA.length(),
-                0,
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
+                mock(BlockMetricsAndCacheHandler.class),
                 null));
     assertThrows(
         NullPointerException.class,
         () ->
             new Block(
-                objectKey,
+                blockKey,
                 null,
                 TestTelemetry.DEFAULT,
                 0,
-                TEST_DATA.length(),
-                0,
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
+                mock(BlockMetricsAndCacheHandler.class),
                 null));
     assertThrows(
         NullPointerException.class,
         () ->
             new Block(
-                objectKey,
+                blockKey,
                 fakeObjectClient,
                 null,
                 0,
-                TEST_DATA.length(),
-                0,
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
+                mock(BlockMetricsAndCacheHandler.class),
                 null));
     assertThrows(
         NullPointerException.class,
         () ->
             new Block(
-                objectKey,
+                blockKey,
                 fakeObjectClient,
                 TestTelemetry.DEFAULT,
                 0,
-                TEST_DATA.length(),
-                0,
                 null,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
+                mock(BlockMetricsAndCacheHandler.class),
                 null));
   }
 
@@ -171,72 +167,62 @@ public class BlockTest {
         IllegalArgumentException.class,
         () ->
             new Block(
-                objectKey,
+                new BlockKey(objectKey, new Range(-1, TEST_DATA.length())),
                 fakeObjectClient,
                 TestTelemetry.DEFAULT,
-                -1,
-                TEST_DATA.length(),
                 0,
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsHandler.class)));
+                mock(BlockMetricsAndCacheHandler.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
             new Block(
-                objectKey,
+                new BlockKey(objectKey, new Range(0, -5)),
                 fakeObjectClient,
                 TestTelemetry.DEFAULT,
-                0,
-                -5,
                 0,
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsHandler.class)));
+                mock(BlockMetricsAndCacheHandler.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
             new Block(
-                objectKey,
+                new BlockKey(objectKey, new Range(20, 1)),
                 fakeObjectClient,
                 TestTelemetry.DEFAULT,
-                20,
-                1,
                 0,
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsHandler.class)));
+                mock(BlockMetricsAndCacheHandler.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
             new Block(
-                objectKey,
+                new BlockKey(objectKey, new Range(0, 5)),
                 fakeObjectClient,
                 TestTelemetry.DEFAULT,
-                0,
-                5,
                 -1,
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsHandler.class)));
+                mock(BlockMetricsAndCacheHandler.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
             new Block(
-                objectKey,
+                new BlockKey(objectKey, new Range(-5, 0)),
                 fakeObjectClient,
                 TestTelemetry.DEFAULT,
-                -5,
-                0,
                 TEST_DATA.length(),
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsHandler.class)));
+                mock(BlockMetricsAndCacheHandler.class)));
   }
 
   @SneakyThrows
@@ -247,16 +233,14 @@ public class BlockTest {
     byte[] b = new byte[4];
     Block block =
         new Block(
-            objectKey,
+            new BlockKey(objectKey, new Range(0, TEST_DATA.length())),
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            0,
-            TEST_DATA.length(),
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class));
+            mock(BlockMetricsAndCacheHandler.class));
     assertThrows(IllegalArgumentException.class, () -> block.read(-10));
     assertThrows(NullPointerException.class, () -> block.read(null, 0, 3, 1));
     assertThrows(IllegalArgumentException.class, () -> block.read(b, -5, 3, 1));
@@ -271,16 +255,14 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     Block block =
         new Block(
-            objectKey,
+            new BlockKey(objectKey, new Range(0, TEST_DATA.length())),
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            0,
-            TEST_DATA.length(),
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class));
+            mock(BlockMetricsAndCacheHandler.class));
     assertTrue(block.contains(0));
     assertFalse(block.contains(TEST_DATA.length() + 1));
   }
@@ -292,16 +274,14 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     Block block =
         new Block(
-            objectKey,
+            new BlockKey(objectKey, new Range(0, TEST_DATA.length())),
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            0,
-            TEST_DATA.length(),
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class));
+            mock(BlockMetricsAndCacheHandler.class));
     assertThrows(IllegalArgumentException.class, () -> block.contains(-1));
   }
 
@@ -311,19 +291,17 @@ public class BlockTest {
     ObjectKey stuckObjectKey =
         ObjectKey.builder().s3URI(S3URI.of("stuck-client", "bar")).etag(ETAG).build();
     ObjectClient fakeStuckObjectClient = new FakeStuckObjectClient(TEST_DATA);
-
+    BlockKey blockKey = new BlockKey(stuckObjectKey, new Range(0, TEST_DATA.length()));
     Block block =
         new Block(
-            stuckObjectKey,
+            blockKey,
             fakeStuckObjectClient,
             TestTelemetry.DEFAULT,
-            0,
-            TEST_DATA.length(),
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class));
+            mock(BlockMetricsAndCacheHandler.class));
     assertThrows(IOException.class, () -> block.read(4));
   }
 
@@ -334,16 +312,14 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     Block block =
         new Block(
-            objectKey,
+            new BlockKey(objectKey, new Range(0, TEST_DATA.length())),
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            0,
-            TEST_DATA.length(),
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class));
+            mock(BlockMetricsAndCacheHandler.class));
     block.close();
     block.close();
   }

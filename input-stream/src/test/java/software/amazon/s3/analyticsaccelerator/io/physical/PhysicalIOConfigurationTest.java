@@ -33,8 +33,8 @@ public class PhysicalIOConfigurationTest {
   @Test
   void testNonDefaults() {
     PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blobStoreCapacity(10).partSizeBytes(20).build();
-    assertEquals(10, configuration.getBlobStoreCapacity());
+        PhysicalIOConfiguration.builder().blobStoreCapacityBytes(10).partSizeBytes(20).build();
+    assertEquals(10, configuration.getBlobStoreCapacityBytes());
     assertEquals(20, configuration.getPartSizeBytes());
   }
 
@@ -51,19 +51,21 @@ public class PhysicalIOConfigurationTest {
     assertEquals(20, physicalIOConfiguration.getBlockSizeBytes());
     // This should be equal to default since Property Prefix is not s3.connector.
     assertEquals(
-        PhysicalIOConfiguration.DEFAULT.getBlobStoreCapacity(),
-        physicalIOConfiguration.getBlobStoreCapacity());
+        PhysicalIOConfiguration.DEFAULT.getBlobStoreCapacityBytes(),
+        physicalIOConfiguration.getBlobStoreCapacityBytes());
   }
 
   @Test
   void testToString() {
     PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blobStoreCapacity(10).partSizeBytes(20).build();
+        PhysicalIOConfiguration.builder().blobStoreCapacityBytes(10).partSizeBytes(20).build();
 
     assertEquals(
         configuration.toString(),
         "PhysicalIO configuration:\n"
-            + "\tblobStoreCapacity: 10\n"
+            + "\tblobStoreCapacityBytes: 10\n"
+            + "\tblobstoreCleanupFrequencyMilliseconds: 5000\n"
+            + "\tblobStoreTimeoutMilliseconds: 1000\n"
             + "\tmetadataStoreCapacity: 50\n"
             + "\tblockSizeBytes: 8388608\n"
             + "\treadAheadBytes: 65536\n"

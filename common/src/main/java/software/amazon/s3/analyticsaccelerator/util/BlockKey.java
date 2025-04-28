@@ -19,26 +19,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import software.amazon.s3.analyticsaccelerator.request.Range;
 
 /** Container used to represent an S3 object for a specific version/etag */
 @Getter
 @AllArgsConstructor
 @Builder
-public class ObjectKey {
-  @NonNull S3URI s3URI;
-  @NonNull String etag;
-
-  @Override
-  public final boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-
-    ObjectKey objectKey = (ObjectKey) o;
-    return s3URI.equals(objectKey.s3URI) && etag.equals(objectKey.etag);
-  }
-
-  @Override
-  public int hashCode() {
-    return s3URI.hashCode() + etag.hashCode();
-  }
+public class BlockKey {
+  @NonNull ObjectKey objectKey;
+  @NonNull Range range;
 }

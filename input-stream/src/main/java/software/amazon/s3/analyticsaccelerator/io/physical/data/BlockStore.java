@@ -17,15 +17,13 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.util.BlockMetricsHandler;
+import software.amazon.s3.analyticsaccelerator.util.BlockKey;
+import software.amazon.s3.analyticsaccelerator.util.BlockMetricsAndCacheHandler;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 
@@ -36,25 +34,36 @@ public class BlockStore implements Closeable {
 
   private final ObjectKey s3URI;
   private final ObjectMetadata metadata;
-  private final List<Block> blocks;
-  private final BlockMetricsHandler metricsHandler;
+  private final Map<BlockKey, Block> blocks;
+  private final BlockMetricsAndCacheHandler blockMetricsAndCacheHandler;
 
   /**
    * Constructs a new instance of a BlockStore.
    *
    * @param objectKey the etag and S3 URI of the object
    * @param metadata the metadata for the object
-   * @param metricsHandler callback to update metrics
+   * @param blockMetricsAndCacheHandler callback to update metrics
    */
   public BlockStore(
-      ObjectKey objectKey, ObjectMetadata metadata, BlockMetricsHandler metricsHandler) {
+      ObjectKey objectKey,
+      ObjectMetadata metadata,
+      BlockMetricsAndCacheHandler blockMetricsAndCacheHandler) {
     Preconditions.checkNotNull(objectKey, "`objectKey` must not be null");
     Preconditions.checkNotNull(metadata, "`metadata` must not be null");
 
     this.s3URI = objectKey;
     this.metadata = metadata;
-    this.blocks = new LinkedList<>();
-    this.metricsHandler = metricsHandler;
+    this.blocks = Collections.synchronizedMap(new LinkedHashMap<>());
+    this.blockMetricsAndCacheHandler = blockMetricsAndCacheHandler;
+  }
+
+  /**
+   * Returns true if blockstore is empty
+   *
+   * @return true if blockstore is empty
+   */
+  public boolean isBlockStoreEmpty() {
+    return blocks.isEmpty();
   }
 
   /**
@@ -67,11 +76,11 @@ public class BlockStore implements Closeable {
   public Optional<Block> getBlock(long pos) {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
-    Optional<Block> block = blocks.stream().filter(b -> b.contains(pos)).findFirst();
+    Optional<Block> block = blocks.values().stream().filter(b -> b.contains(pos)).findFirst();
     if (block.isPresent()) {
-      metricsHandler.updateMetrics(MetricKey.CACHE_HIT, 1L);
+      blockMetricsAndCacheHandler.updateMetrics(MetricKey.CACHE_HIT, 1L);
     } else {
-      metricsHandler.updateMetrics(MetricKey.CACHE_MISS, 1L);
+      blockMetricsAndCacheHandler.updateMetrics(MetricKey.CACHE_MISS, 1L);
     }
     return block;
   }
@@ -91,7 +100,10 @@ public class BlockStore implements Closeable {
       return OptionalLong.of(pos);
     }
 
-    return blocks.stream().mapToLong(Block::getStart).filter(startPos -> pos < startPos).min();
+    return blocks.values().stream()
+        .mapToLong(block -> block.getBlockKey().getRange().getStart())
+        .filter(startPos -> pos < startPos)
+        .min();
   }
 
   /**
@@ -109,7 +121,7 @@ public class BlockStore implements Closeable {
     long nextMissingByte = pos;
     Optional<Block> nextBlock;
     while ((nextBlock = getBlock(nextMissingByte)).isPresent()) {
-      nextMissingByte = nextBlock.get().getEnd() + 1;
+      nextMissingByte = nextBlock.get().getBlockKey().getRange().getEnd() + 1;
     }
 
     return nextMissingByte <= getLastObjectByte()
@@ -121,11 +133,52 @@ public class BlockStore implements Closeable {
    * Add a Block to the BlockStore.
    *
    * @param block the block to add to the BlockStore
+   * @param blockKey key to the block
    */
-  public void add(Block block) {
+  public void add(BlockKey blockKey, Block block) {
     Preconditions.checkNotNull(block, "`block` must not be null");
 
-    this.blocks.add(block);
+    this.blocks.put(blockKey, block);
+  }
+
+  /**
+   * Cleans data from memory by removing blocks that are no longer needed. This method iterates
+   * through all blocks in memory and removes those that: 1. Have their data loaded AND 2. Are not
+   * present in the index cache For each removed block, the method: - Removes the block from the
+   * internal block store - Updates memory usage metrics
+   */
+  public void cleanUp() {
+
+    Iterator<Map.Entry<BlockKey, Block>> iterator = blocks.entrySet().iterator();
+
+    while (iterator.hasNext()) {
+      Map.Entry<BlockKey, Block> entry = iterator.next();
+      BlockKey blockKey = entry.getKey();
+
+      if (entry.getValue().isDataLoaded()
+          && !blockMetricsAndCacheHandler.isPresentInIndexCache(blockKey)) {
+        // The block is not in the index cache, so remove it from the block store
+        int range = blockKey.getRange().getLength();
+        try {
+          iterator.remove(); // Remove from the iterator as well
+          blockMetricsAndCacheHandler.reduceMetrics(MetricKey.MEMORY_USAGE, range);
+          LOG.debug(
+              "Removed block with key {}-{}-{} from block store during cleanup",
+              blockKey.getObjectKey().getS3URI(),
+              blockKey.getRange().getStart(),
+              blockKey.getRange().getEnd());
+
+        } catch (Exception e) {
+          LOG.debug(
+              "Error in removing block with key {}-{}-{} from block store during cleanup due to exception {} and stack {}",
+              blockKey.getObjectKey().getS3URI(),
+              entry.getKey().getRange().getStart(),
+              entry.getKey().getRange().getEnd(),
+              e.getMessage(),
+              e.getStackTrace());
+        }
+      }
+    }
   }
 
   private long getLastObjectByte() {
@@ -142,6 +195,6 @@ public class BlockStore implements Closeable {
 
   @Override
   public void close() {
-    blocks.forEach(this::safeClose);
+    blocks.forEach((key, block) -> this.safeClose(block));
   }
 }
