@@ -207,13 +207,10 @@ public class BlobStoreTest {
     byte[] b = new byte[TEST_DATA.length()];
     blob.read(b, 0, b.length, 0);
 
-    // Then: Should record a cache miss
     assertEquals(1, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
 
-    // When: Second time access to same data (should be a hit)
     blob.read(b, 0, b.length, 0);
 
-    // Then: Should record a cache hit
     assertEquals(3, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
   }
 

@@ -18,17 +18,22 @@ package software.amazon.s3.analyticsaccelerator.property;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import lombok.Getter;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
 import software.amazon.s3.analyticsaccelerator.SeekableInputStream;
+import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 public class InMemoryS3SeekableInputStream extends SeekableInputStream {
 
+  @Getter private S3SeekableInputStreamFactory factory;
   private final SeekableInputStream delegate;
 
   /**
@@ -43,8 +48,19 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
     S3URI s3URI = S3URI.of(bucket, key);
     ObjectClient objectClient = new InMemoryObjectClient(len);
 
-    S3SeekableInputStreamFactory factory =
-        new S3SeekableInputStreamFactory(objectClient, S3SeekableInputStreamConfiguration.DEFAULT);
+    Map<String, String> configMap = new HashMap<>();
+    long maxHeapBytes = Runtime.getRuntime().maxMemory();
+    double percentage = 0.01;
+    long capacityBytes = (long) (maxHeapBytes * percentage);
+
+    configMap.put("physicalio.blobstore.capacitybytes", String.valueOf(capacityBytes));
+    configMap.put("physicalio.blobstore.cleanupfrequencymilliseconds", "1");
+
+    ConnectorConfiguration connectorConfig = new ConnectorConfiguration(configMap);
+    S3SeekableInputStreamConfiguration config =
+        S3SeekableInputStreamConfiguration.fromConfiguration(connectorConfig);
+
+    factory = new S3SeekableInputStreamFactory(objectClient, config);
     this.delegate = factory.createStream(s3URI);
   }
 
@@ -117,5 +133,8 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
   @Override
   public void close() throws IOException {
     this.delegate.close();
+    if (factory != null) {
+      factory.close();
+    }
   }
 }

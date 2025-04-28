@@ -84,7 +84,7 @@ public class BlobStore implements Closeable {
     this.configuration = configuration;
   }
 
-  /** hh */
+  /** Schedules a periodic cleanup task to sync the blop map with the index cache */
   public void schedulePeriodicCleanup() {
     maintenanceExecutor.scheduleAtFixedRate(
         this::scheduleCleanupIfNotRunning,

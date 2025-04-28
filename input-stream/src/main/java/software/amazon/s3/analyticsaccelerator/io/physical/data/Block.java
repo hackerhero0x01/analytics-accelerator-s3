@@ -118,21 +118,14 @@ public class Block implements Closeable {
       StreamContext streamContext)
       throws IOException {
 
+    long start = blockKey.getRange().getStart();
+    long end = blockKey.getRange().getEnd();
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
+    Preconditions.checkArgument(0 <= start, "`start` must be non-negative; was: %s", start);
+    Preconditions.checkArgument(0 <= end, "`end` must be non-negative; was: %s", end);
     Preconditions.checkArgument(
-        0 <= blockKey.getRange().getStart(),
-        "`start` must be non-negative; was: %s",
-        blockKey.getRange().getStart());
-    Preconditions.checkArgument(
-        0 <= blockKey.getRange().getEnd(),
-        "`end` must be non-negative; was: %s",
-        blockKey.getRange().getEnd());
-    Preconditions.checkArgument(
-        blockKey.getRange().getStart() <= blockKey.getRange().getEnd(),
-        "`start` must be less than `end`; %s is not less than %s",
-        blockKey.getRange().getStart(),
-        blockKey.getRange().getEnd());
+        start <= end, "`start` must be less than `end`; %s is not less than %s", start, end);
     Preconditions.checkArgument(
         0 < readTimeout, "`readTimeout` must be greater than 0; was %s", readTimeout);
     Preconditions.checkArgument(
