@@ -15,7 +15,9 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical;
 
-import static software.amazon.s3.analyticsaccelerator.util.Constants.*;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_GB;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

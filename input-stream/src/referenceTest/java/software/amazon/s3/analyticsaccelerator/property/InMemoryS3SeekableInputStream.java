@@ -53,8 +53,8 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
     double percentage = 0.01;
     long capacityBytes = (long) (maxHeapBytes * percentage);
 
-    configMap.put("physicalio.blobstore.capacitybytes", String.valueOf(capacityBytes));
-    configMap.put("physicalio.blobstore.cleanupfrequencymilliseconds", "1");
+    configMap.put("physicalio.memory.capacitybytes", String.valueOf(capacityBytes));
+    configMap.put("physicalio.memory.cleanupfrequencymilliseconds", "1");
 
     ConnectorConfiguration connectorConfig = new ConnectorConfiguration(configMap);
     S3SeekableInputStreamConfiguration config =
