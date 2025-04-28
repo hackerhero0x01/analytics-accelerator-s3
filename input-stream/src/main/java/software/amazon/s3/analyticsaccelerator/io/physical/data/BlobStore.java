@@ -53,7 +53,7 @@ public class BlobStore implements Closeable {
   final BlobStoreIndexCache indexCache;
   private final ScheduledExecutorService maintenanceExecutor;
   private static final Logger LOG = LoggerFactory.getLogger(BlobStore.class);
-  private final AtomicBoolean cleanupInProgress = new AtomicBoolean(false);
+  final AtomicBoolean cleanupInProgress = new AtomicBoolean(false);
 
   /**
    * Construct an instance of BlobStore.
@@ -88,13 +88,13 @@ public class BlobStore implements Closeable {
   public void schedulePeriodicCleanup() {
     maintenanceExecutor.scheduleAtFixedRate(
         this::scheduleCleanupIfNotRunning,
-        configuration.getBlobstoreCleanupFrequencyMilliseconds(),
-        configuration.getBlobstoreCleanupFrequencyMilliseconds(),
+        configuration.getMemoryCleanupFrequencyMilliseconds(),
+        configuration.getMemoryCleanupFrequencyMilliseconds(),
         TimeUnit.MILLISECONDS);
   }
 
-  private void scheduleCleanupIfNotRunning() {
-    if (metrics.get(MetricKey.MEMORY_USAGE) > configuration.getBlobStoreCapacityBytes()
+  void scheduleCleanupIfNotRunning() {
+    if (metrics.get(MetricKey.MEMORY_USAGE) > configuration.getMemoryCapacityBytes()
         && cleanupInProgress.compareAndSet(false, true)) {
       try {
         asyncCleanup();
@@ -106,14 +106,11 @@ public class BlobStore implements Closeable {
     }
   }
 
-  private void asyncCleanup() {
-
+  void asyncCleanup() {
     LOG.debug(
         "Current memory usage of blobMap in bytes before eviction is: {}",
         metrics.get(MetricKey.MEMORY_USAGE));
-
     blobMap.forEach((k, v) -> v.asyncCleanup());
-
     LOG.debug(
         "Current memory usage of blobMap in bytes after eviction is: {}",
         metrics.get(MetricKey.MEMORY_USAGE));
@@ -155,7 +152,6 @@ public class BlobStore implements Closeable {
   public boolean evictKey(ObjectKey objectKey) {
     return this.blobMap.remove(objectKey) != null;
   }
-
   /**
    * Returns the number of objects currently cached in the blobstore.
    *
@@ -164,27 +160,22 @@ public class BlobStore implements Closeable {
   public int blobCount() {
     return this.blobMap.size();
   }
-
   /** Closes the {@link BlobStore} and frees up all resources it holds. */
   @Override
   public void close() {
     try {
-      // Shutdown the maintenance executor immediately
       if (maintenanceExecutor != null) {
         maintenanceExecutor.shutdownNow();
       }
-      // Close all blobs
       blobMap.forEach((k, v) -> v.close());
-      // Clear and close the Caffeine cache
       indexCache.cleanUp();
-
       long hits = metrics.get(MetricKey.CACHE_HIT);
       long miss = metrics.get(MetricKey.CACHE_MISS);
       LOG.debug(
           "Cache Hits: {}, Misses: {}, Hit Rate: {}%",
           hits, miss, MetricComputationUtils.computeCacheHitRate(hits, miss));
     } catch (Exception e) {
-      LOG.info("Error while closing BlobStore", e);
+      LOG.error("Error while closing BlobStore", e);
     }
   }
 }

@@ -42,9 +42,9 @@ public class BlobStoreIndexCache {
     this.indexCache =
         Caffeine.newBuilder()
             .expireAfterAccess(
-                configuration.getBlobStoreTimeoutMilliseconds(), TimeUnit.MILLISECONDS)
+                configuration.getCacheDataTimeoutMilliseconds(), TimeUnit.MILLISECONDS)
             .weigher((BlockKey blockKey, Integer blockSize) -> blockSize)
-            .maximumWeight(configuration.getBlobStoreCapacityBytes())
+            .maximumWeight(configuration.getMemoryCapacityBytes())
             .build();
   }
 

@@ -16,13 +16,14 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.*;
 import lombok.SneakyThrows;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
@@ -40,13 +41,70 @@ public class BlockTest {
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
   private static final long DEFAULT_READ_TIMEOUT = 120_000;
   private static final int DEFAULT_READ_RETRY_COUNT = 20;
+  private static final byte[] TEST_DATA_BYTES = "test-data".getBytes(StandardCharsets.UTF_8);
+
+  @Test
+  public void testConstructor() throws IOException {
+
+    final String TEST_DATA = "test-data";
+    ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, TEST_DATA.length()));
+    Block block =
+        new Block(
+            blockKey,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            ReadMode.SYNC,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
+            mock(BlockMetricsAndCacheHandler.class));
+    assertNotNull(block);
+  }
+
+  @Test
+  @DisplayName("Test read method with valid position")
+  void testReadWithValidPosition() throws IOException {
+    // Setup
+    final String TEST_DATA = "test-data";
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, TEST_DATA.length()));
+    ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
+    byte[] testData = TEST_DATA.getBytes(StandardCharsets.UTF_8);
+
+    BlockMetricsAndCacheHandler mockHandler = mock(BlockMetricsAndCacheHandler.class);
+    Block block =
+        new Block(
+            blockKey,
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            ReadMode.SYNC,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
+            mockHandler);
+
+    // Test when data is not in cache
+    when(mockHandler.isPresentInIndexCache(blockKey)).thenReturn(false);
+    int result = block.read(0);
+
+    // Verify
+    assertEquals(Byte.toUnsignedInt(testData[0]), result);
+
+    // Test when data is in cache
+    when(mockHandler.isPresentInIndexCache(blockKey)).thenReturn(true);
+    result = block.read(1);
+
+    // Verify
+    verify(mockHandler).getIfPresentFromIndexCache(blockKey);
+    assertEquals(Byte.toUnsignedInt(testData[1]), result);
+  }
 
   @Test
   public void testSingleByteReadReturnsCorrectByte() throws IOException {
     // Given: a Block containing "test-data"
     final String TEST_DATA = "test-data";
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
-    BlockKey blockKey = new BlockKey(objectKey, new Range(0, TEST_DATA.length()));
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, TEST_DATA_BYTES.length));
     Block block =
         new Block(
             blockKey,

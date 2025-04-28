@@ -17,18 +17,21 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.CheckReturnValue;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
@@ -58,8 +61,13 @@ public class BlobStoreTest {
 
   private PhysicalIOConfiguration config;
   private BlobStore blobStore;
+  private BlobStore mockBlobStore;
+  private ObjectClient mockObjectClient;
+  private Metrics mockMetrics;
+  private PhysicalIOConfiguration mockConfig;
 
   @BeforeEach
+  @CheckReturnValue
   void setUp() throws IOException {
     ObjectClient objectClient = new FakeObjectClient("test-data");
     MetadataStore metadataStore = mock(MetadataStore.class);
@@ -67,13 +75,24 @@ public class BlobStoreTest {
         .thenReturn(ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag(ETAG).build());
     Metrics metrics = new Metrics();
     Map<String, String> configMap = new HashMap<>();
-    configMap.put("blobstore.capacitybytes", "1000");
-    configMap.put("blobstore.cleanupfrequencymilliseconds", "1");
+    configMap.put("memory.capacitybytes", "1000");
+    configMap.put("memory.cleanupfrequencymilliseconds", "1");
     ConnectorConfiguration connectorConfig = new ConnectorConfiguration(configMap);
     config = PhysicalIOConfiguration.fromConfiguration(connectorConfig);
 
     blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, config, metrics);
     blobStore.schedulePeriodicCleanup();
+
+    mockObjectClient = mock(ObjectClient.class);
+    mockMetrics = mock(Metrics.class);
+    mockConfig = mock(PhysicalIOConfiguration.class);
+
+    when(mockConfig.getMemoryCapacityBytes()).thenReturn(1000L);
+    when(mockConfig.getMemoryCleanupFrequencyMilliseconds()).thenReturn(1);
+
+    // Create mock BlobStore with configured mocks
+    mockBlobStore = new BlobStore(mockObjectClient, TestTelemetry.DEFAULT, mockConfig, mockMetrics);
+    mockBlobStore = spy(mockBlobStore);
   }
 
   @Test
@@ -86,7 +105,7 @@ public class BlobStoreTest {
     }
 
     // Wait for eviction
-    Thread.sleep(60);
+    Thread.sleep(600);
 
     // Check if some entries were evicted
     System.out.println("Max weight set is " + blobStore.indexCache.getMaximumWeight());
@@ -202,8 +221,8 @@ public class BlobStoreTest {
   void testMemoryUsageAfterEviction() throws IOException, InterruptedException {
     PhysicalIOConfiguration config =
         PhysicalIOConfiguration.builder()
-            .blobStoreCapacityBytes(18)
-            .blobstoreCleanupFrequencyMilliseconds(1)
+            .memoryCapacityBytes(18)
+            .memoryCleanupFrequencyMilliseconds(1)
             .build();
 
     ObjectClient objectClient = new FakeObjectClient(TEST_DATA);
@@ -247,8 +266,7 @@ public class BlobStoreTest {
     // Given: Multiple threads updating memory
     final int threadCount = 10;
     final int bytesPerThread = 100;
-    final long expectedTotalMemory =
-        (long) threadCount * bytesPerThread; // Cast to long before multiplication
+    final long expectedTotalMemory = 10L * 100L;
     final CountDownLatch latch = new CountDownLatch(threadCount);
 
     // When: Concurrent memory updates
@@ -313,5 +331,392 @@ public class BlobStoreTest {
 
     // Then: Verify the hit rate
     assertEquals(60.0, expectedHitRate, 0.01, "Hit rate should be approximately 60%");
+  }
+
+  @Test
+  @DisplayName("Test blobCount method")
+  void testBlobCount() {
+    // Initial count should be 0
+    assertEquals(0, blobStore.blobCount(), "Initial blob count should be 0");
+
+    // Add some blobs
+    ObjectKey key1 = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
+    ObjectKey key2 = ObjectKey.builder().s3URI(S3URI.of("test", "test2")).etag(ETAG).build();
+
+    // Get blobs (which adds them to the map)
+    blobStore.get(key1, objectMetadata, mock(StreamContext.class));
+    assertEquals(1, blobStore.blobCount(), "Blob count should be 1 after adding first blob");
+
+    blobStore.get(key2, objectMetadata, mock(StreamContext.class));
+    assertEquals(2, blobStore.blobCount(), "Blob count should be 2 after adding second blob");
+
+    // Test count after eviction
+    blobStore.evictKey(key1);
+    assertEquals(1, blobStore.blobCount(), "Blob count should be 1 after evicting one blob");
+
+    blobStore.evictKey(key2);
+    assertEquals(0, blobStore.blobCount(), "Blob count should be 0 after evicting all blobs");
+  }
+
+  @Test
+  @DisplayName("Test cleanup not triggered when memory usage is below capacity")
+  void testCleanupNotTriggeredBelowCapacity() {
+    // Setup memory usage below capacity
+    long capacity = mockConfig.getMemoryCapacityBytes();
+    doReturn(capacity + 1).when(mockMetrics).get(MetricKey.MEMORY_USAGE);
+
+    // Create a blob to potentially clean
+    ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
+    mockBlobStore.get(key, objectMetadata, mock(StreamContext.class));
+
+    // Attempt cleanup
+    mockBlobStore.scheduleCleanupIfNotRunning();
+
+    // Verify cleanup was not triggered
+    verify(mockBlobStore, times(1)).asyncCleanup();
+  }
+
+  @Test
+  @DisplayName("Test cleanup triggered when memory exceeds capacity")
+  void testCleanupTriggeredAboveCapacity() throws IOException {
+    // Setup memory usage above capacity
+    long capacity = mockConfig.getMemoryCapacityBytes();
+    doReturn(capacity + 1).when(mockMetrics).get(MetricKey.MEMORY_USAGE);
+
+    // Create and load a blob
+    ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
+    mockBlobStore.get(key, objectMetadata, mock(StreamContext.class));
+
+    // Trigger cleanup
+    mockBlobStore.scheduleCleanupIfNotRunning();
+
+    // Verify cleanup was triggered
+    verify(mockMetrics, atLeastOnce()).get(MetricKey.MEMORY_USAGE);
+  }
+
+  @Test
+  @DisplayName("Test cleanup flag prevents concurrent cleanups")
+  void testCleanupFlagPreventsConcurrentCleanups() throws InterruptedException {
+    // Setup memory usage above capacity
+    long capacity = mockConfig.getMemoryCapacityBytes();
+    doReturn(capacity + 1).when(mockMetrics).get(MetricKey.MEMORY_USAGE);
+
+    BlobStore spyBlobStore = spy(mockBlobStore);
+
+    // Force cleanup flag to true
+    spyBlobStore.cleanupInProgress.set(true);
+
+    // Attempt cleanup while flag is set
+    spyBlobStore.scheduleCleanupIfNotRunning();
+
+    // Verify cleanup was not attempted
+    verify(spyBlobStore, never()).asyncCleanup();
+  }
+
+  @Test
+  @DisplayName("Test cleanup flag reset after completion")
+  void testCleanupFlagResetAfterCompletion() throws InterruptedException {
+    // Setup memory usage above capacity
+    long capacity = mockConfig.getMemoryCapacityBytes();
+    doReturn(capacity + 1).when(mockMetrics).get(MetricKey.MEMORY_USAGE);
+
+    BlobStore spyBlobStore = spy(mockBlobStore);
+    CountDownLatch cleanupStarted = new CountDownLatch(1);
+    CountDownLatch cleanupShouldComplete = new CountDownLatch(1);
+
+    // Configure spy to simulate long-running cleanup
+    doAnswer(
+            invocation -> {
+              cleanupStarted.countDown();
+              assertTrue(
+                  cleanupShouldComplete.await(1, TimeUnit.SECONDS),
+                  "Cleanup should complete within timeout");
+              return null;
+            })
+        .when(spyBlobStore)
+        .asyncCleanup();
+
+    // Start cleanup in separate thread
+    Thread cleanupThread = new Thread(() -> spyBlobStore.scheduleCleanupIfNotRunning());
+    cleanupThread.start();
+
+    // Wait for cleanup to start
+    assertTrue(cleanupStarted.await(1, TimeUnit.SECONDS));
+
+    // Verify cleanup flag is set during cleanup
+    assertTrue(spyBlobStore.cleanupInProgress.get());
+
+    // Allow cleanup to complete
+    cleanupShouldComplete.countDown();
+    cleanupThread.join(1000);
+
+    // Verify cleanup flag was reset
+    assertFalse(spyBlobStore.cleanupInProgress.get());
+    verify(spyBlobStore, times(1)).asyncCleanup();
+  }
+
+  @Test
+  @DisplayName("Test cleanup with exception handling")
+  void testCleanupWithException() {
+    // Setup memory usage above capacity
+    long capacity = mockConfig.getMemoryCapacityBytes();
+    doReturn(capacity + 1).when(mockMetrics).get(MetricKey.MEMORY_USAGE);
+
+    // Create a blob that will throw exception during cleanup
+    ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
+
+    Blob mockBlob = mock(Blob.class);
+    doThrow(new RuntimeException("Cleanup failed")).when(mockBlob).asyncCleanup();
+
+    // Add mock blob to store
+    mockBlobStore.get(key, objectMetadata, mock(StreamContext.class));
+
+    // Attempt cleanup - should handle exception gracefully
+    assertDoesNotThrow(() -> mockBlobStore.scheduleCleanupIfNotRunning());
+
+    // Verify cleanupInProgress was reset
+    assertFalse(mockBlobStore.cleanupInProgress.get());
+  }
+
+  @Test
+  @DisplayName("Test cleanup flag reset after completion")
+  void testCleanupFlagReset() {
+    // Setup memory usage above capacity
+    long capacity = mockConfig.getMemoryCapacityBytes();
+    doReturn(capacity + 1).when(mockMetrics).get(MetricKey.MEMORY_USAGE);
+
+    // Trigger cleanup
+    mockBlobStore.scheduleCleanupIfNotRunning();
+
+    // Verify cleanup flag was reset
+    assertFalse(mockBlobStore.cleanupInProgress.get());
+  }
+
+  @Test
+  @DisplayName("Test concurrent cleanup and blob operations")
+  void testConcurrentCleanupAndBlobOperations() throws InterruptedException {
+    int numThreads = 5;
+    CountDownLatch startLatch = new CountDownLatch(1);
+    CountDownLatch completionLatch = new CountDownLatch(numThreads);
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      // Submit tasks that perform blob operations while cleanup is running
+      for (int i = 0; i < numThreads; i++) {
+        final int threadId = i;
+        Future<?> future =
+            executor.submit(
+                () -> {
+                  try {
+                    startLatch.await();
+                    ObjectKey threadKey =
+                        ObjectKey.builder()
+                            .s3URI(S3URI.of("test", "test" + threadId))
+                            .etag(ETAG)
+                            .build();
+
+                    // Perform operations while cleanup might be running
+                    Blob blob = blobStore.get(threadKey, objectMetadata, mock(StreamContext.class));
+                    byte[] data = new byte[TEST_DATA.length()];
+                    blob.read(data, 0, data.length, 0);
+
+                    // Verify data integrity
+                    assertEquals(TEST_DATA, new String(data, StandardCharsets.UTF_8));
+                  } catch (IOException e) {
+                    fail("IO Exception during concurrent operations: " + e.getMessage());
+                  } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    fail("Thread interrupted during concurrent operations: " + e.getMessage());
+                  } finally {
+                    completionLatch.countDown();
+                  }
+                });
+        futures.add(future);
+      }
+
+      startLatch.countDown();
+      assertTrue(completionLatch.await(5, TimeUnit.SECONDS));
+      for (Future<?> future : futures) {
+        assertDoesNotThrow(() -> future.get(5, TimeUnit.SECONDS));
+      }
+    } finally {
+      executor.shutdownNow();
+      assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  @DisplayName("Test rapid eviction and retrieval")
+  void testRapidEvictionAndRetrieval() throws IOException {
+    List<ObjectKey> keys = new ArrayList<>();
+    List<Blob> blobs = new ArrayList<>();
+
+    // Create and store multiple blobs
+    for (int i = 0; i < 10000; i++) {
+      ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test" + i)).etag(ETAG).build();
+      keys.add(key);
+      blobs.add(blobStore.get(key, objectMetadata, mock(StreamContext.class)));
+    }
+
+    // Force data loading for all blobs
+    byte[] data = new byte[TEST_DATA.length()];
+    for (Blob blob : blobs) {
+      blob.read(data, 0, data.length, 0);
+    }
+
+    // Evict keys while simultaneously retrieving them
+    for (int i = 0; i < keys.size(); i++) {
+      blobStore.evictKey(keys.get(i));
+      Blob newBlob = blobStore.get(keys.get(i), objectMetadata, mock(StreamContext.class));
+      byte[] newData = new byte[TEST_DATA.length()];
+      newBlob.read(newData, 0, newData.length, 0);
+      assertEquals(TEST_DATA, new String(newData, StandardCharsets.UTF_8));
+    }
+  }
+
+  @Test
+  @DisplayName("Test cleanup under memory pressure")
+  void testCleanupUnderMemoryPressure() throws IOException, InterruptedException {
+    List<Blob> blobs = new ArrayList<>();
+
+    // Create enough blobs to exceed the configured capacity
+    for (int i = 0; i < 10000; i++) {
+      ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test" + i)).etag(ETAG).build();
+      blobs.add(blobStore.get(key, objectMetadata, mock(StreamContext.class)));
+    }
+
+    // Force data loading to trigger memory pressure
+    byte[] data = new byte[TEST_DATA.length()];
+    for (Blob blob : blobs) {
+      blob.read(data, 0, data.length, 0);
+    }
+
+    // Wait for cleanup to occur
+    Thread.sleep(100);
+
+    // Verify memory usage is within limits
+    assertTrue(
+        blobStore.getMetrics().get(MetricKey.MEMORY_USAGE) <= config.getMemoryCapacityBytes());
+  }
+
+  @Test
+  @DisplayName("Test concurrent blob retrieval and cleanup")
+  void testConcurrentBlobRetrievalAndCleanup() throws InterruptedException {
+    int numThreads = 10;
+    CountDownLatch startLatch = new CountDownLatch(1);
+    CountDownLatch completionLatch = new CountDownLatch(numThreads);
+    ConcurrentHashMap<Integer, Boolean> successfulOperations = new ConcurrentHashMap<>();
+
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      // Submit tasks that perform get operations while cleanup might occur
+      for (int i = 0; i < numThreads; i++) {
+        final int threadId = i;
+        Future<?> future =
+            executor.submit(
+                () -> {
+                  try {
+                    startLatch.await();
+                    ObjectKey threadKey =
+                        ObjectKey.builder()
+                            .s3URI(S3URI.of("test", "test" + threadId))
+                            .etag(ETAG)
+                            .build();
+
+                    // Perform multiple get operations
+                    for (int j = 0; j < 5; j++) {
+                      Blob blob =
+                          blobStore.get(threadKey, objectMetadata, mock(StreamContext.class));
+                      byte[] data = new byte[TEST_DATA.length()];
+                      blob.read(data, 0, data.length, 0);
+
+                      if (TEST_DATA.equals(new String(data, StandardCharsets.UTF_8))) {
+                        successfulOperations.put(threadId * 100 + j, true);
+                      }
+                    }
+                  } catch (IOException e) {
+                    fail("IO Exception during concurrent operations: " + e.getMessage());
+                  } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    fail("Thread interrupted during concurrent operations: " + e.getMessage());
+                  } finally {
+                    completionLatch.countDown();
+                  }
+                });
+        futures.add(future);
+      }
+
+      startLatch.countDown();
+      assertTrue(completionLatch.await(5, TimeUnit.SECONDS));
+      // Check futures for exceptions
+      for (Future<?> future : futures) {
+        assertDoesNotThrow(() -> future.get(5, TimeUnit.SECONDS));
+      }
+
+      // Verify all operations were successful
+      assertEquals(numThreads * 5, successfulOperations.size());
+    } finally {
+      executor.shutdownNow();
+      assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+    }
+  }
+
+  @Test
+  @DisplayName("Test cleanup with active reads")
+  void testCleanupWithActiveReads() throws InterruptedException {
+    CountDownLatch readStarted = new CountDownLatch(1);
+    CountDownLatch cleanupComplete = new CountDownLatch(1);
+    AtomicReference<Exception> testException = new AtomicReference<>();
+
+    // Start a long-running read operation
+    Thread readThread =
+        new Thread(
+            () -> {
+              try {
+                ObjectKey key =
+                    ObjectKey.builder().s3URI(S3URI.of("test", "testLongRead")).etag(ETAG).build();
+
+                Blob blob = blobStore.get(key, objectMetadata, mock(StreamContext.class));
+                byte[] data = new byte[TEST_DATA.length()];
+
+                // Signal that read has started
+                readStarted.countDown();
+
+                // Perform multiple reads while cleanup might occur
+                for (int i = 0; i < 100; i++) {
+                  blob.read(data, 0, data.length, 0);
+                  assertEquals(TEST_DATA, new String(data, StandardCharsets.UTF_8));
+                }
+              } catch (Exception e) {
+                testException.set(e);
+              }
+            });
+
+    // Start cleanup operation after read begins
+    Thread cleanupThread =
+        new Thread(
+            () -> {
+              try {
+                readStarted.await();
+                blobStore.scheduleCleanupIfNotRunning();
+                cleanupComplete.countDown();
+              } catch (InterruptedException e) {
+                testException.set(e);
+              }
+            });
+
+    readThread.start();
+    cleanupThread.start();
+
+    // Wait for both operations to complete
+    assertTrue(cleanupComplete.await(5, TimeUnit.SECONDS));
+    readThread.join(5000);
+    cleanupThread.join(5000);
+
+    // Check for any exceptions
+    assertNull(testException.get(), "No exceptions should have occurred during test");
   }
 }

@@ -97,16 +97,6 @@ public class Blob implements Closeable {
   }
 
   /**
-   * Returns the memory used by the blob
-   *
-   * @return the memory used by the blob
-   */
-  public long getMemoryUsageOfBlob() {
-
-    return blockManager.getMemoryUsageOfBlob();
-  }
-
-  /**
    * Reads data into the provided buffer
    *
    * @param buf buffer to read data into
@@ -125,7 +115,6 @@ public class Blob implements Closeable {
 
     try {
       lock.readLock().lock();
-
       blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
       long nextPosition = pos;
@@ -148,7 +137,6 @@ public class Blob implements Closeable {
         if (bytesRead == -1) {
           return numBytesRead;
         }
-
         numBytesRead = numBytesRead + bytesRead;
         nextPosition += bytesRead;
       }

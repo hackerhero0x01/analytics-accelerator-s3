@@ -71,7 +71,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       @NonNull ObjectClient objectClient,
       @NonNull S3SeekableInputStreamConfiguration configuration) {
     LOG.debug(
-        "Initializing S3SeekableInputStreamFactory memory manager with configuration: {}",
+        "Initializing S3SeekableInputStreamFactory memory manager with blockstore linkedhashmap only with configuration: {}",
         configuration);
     this.configuration = configuration;
     this.metrics = new Metrics();

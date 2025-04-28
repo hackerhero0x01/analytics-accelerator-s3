@@ -33,8 +33,8 @@ public class PhysicalIOConfigurationTest {
   @Test
   void testNonDefaults() {
     PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blobStoreCapacityBytes(10).partSizeBytes(20).build();
-    assertEquals(10, configuration.getBlobStoreCapacityBytes());
+        PhysicalIOConfiguration.builder().memoryCapacityBytes(10).partSizeBytes(20).build();
+    assertEquals(10, configuration.getMemoryCapacityBytes());
     assertEquals(20, configuration.getPartSizeBytes());
   }
 
@@ -51,21 +51,21 @@ public class PhysicalIOConfigurationTest {
     assertEquals(20, physicalIOConfiguration.getBlockSizeBytes());
     // This should be equal to default since Property Prefix is not s3.connector.
     assertEquals(
-        PhysicalIOConfiguration.DEFAULT.getBlobStoreCapacityBytes(),
-        physicalIOConfiguration.getBlobStoreCapacityBytes());
+        PhysicalIOConfiguration.DEFAULT.getMemoryCapacityBytes(),
+        physicalIOConfiguration.getMemoryCapacityBytes());
   }
 
   @Test
   void testToString() {
     PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blobStoreCapacityBytes(10).partSizeBytes(20).build();
+        PhysicalIOConfiguration.builder().memoryCapacityBytes(10).partSizeBytes(20).build();
 
     assertEquals(
         configuration.toString(),
         "PhysicalIO configuration:\n"
-            + "\tblobStoreCapacityBytes: 10\n"
-            + "\tblobstoreCleanupFrequencyMilliseconds: 5000\n"
-            + "\tblobStoreTimeoutMilliseconds: 1000\n"
+            + "\tmemoryCapacityBytes: 10\n"
+            + "\tmemoryCleanupFrequencyMilliseconds: 5000\n"
+            + "\tcacheDataTimeoutMilliseconds: 1000\n"
             + "\tmetadataStoreCapacity: 50\n"
             + "\tblockSizeBytes: 8388608\n"
             + "\treadAheadBytes: 65536\n"

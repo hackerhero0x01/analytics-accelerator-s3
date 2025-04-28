@@ -117,21 +117,9 @@ public class BlockManager implements Closeable {
     this.streamContext = streamContext;
   }
 
-  /**
-   * Returns true if blockstore is empty
-   *
-   * @return true if blockstore is empty
-   */
+  /** @return true if blockstore is empty */
   public boolean isBlockStoreEmpty() {
     return blockStore.isBlockStoreEmpty();
-  }
-  /**
-   * Returns the memory used by the blob.
-   *
-   * @return the memory used by the blob
-   */
-  public long getMemoryUsageOfBlob() {
-    return blobMetrics.get(MetricKey.MEMORY_USAGE);
   }
 
   /**

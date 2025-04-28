@@ -16,22 +16,20 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanState.SUBMITTED;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
+import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanState;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
@@ -182,5 +180,113 @@ public class BlobTest {
             mock(BlobStoreIndexCache.class));
 
     return new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
+  }
+
+  @Test
+  public void testAsyncCleanupWithEmptyBlockStore() {
+    // Given: test blob with empty block store
+    BlockManager blockManager = mock(BlockManager.class);
+    when(blockManager.isBlockStoreEmpty()).thenReturn(true);
+    Blob blob = new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
+
+    // When: asyncCleanup is called
+    blob.asyncCleanup();
+
+    // Then: cleanup is not called since store is empty
+    verify(blockManager, never()).cleanUp();
+  }
+
+  @Test
+  public void testAsyncCleanupWithNonEmptyBlockStore() {
+    // Given: test blob with non-empty block store
+    BlockManager blockManager = mock(BlockManager.class);
+    when(blockManager.isBlockStoreEmpty()).thenReturn(false);
+    Blob blob = new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
+
+    // When: asyncCleanup is called
+    blob.asyncCleanup();
+
+    // Then: cleanup is called
+    verify(blockManager, times(1)).cleanUp();
+  }
+
+  @Test
+  public void testReadEntireContentLength() throws IOException {
+    // Given: test blob with known content
+    String data = "test123";
+    Blob blob = getTestBlob(data);
+
+    // When: reading entire content
+    byte[] buffer = new byte[data.length()];
+    int bytesRead = blob.read(buffer, 0, buffer.length, 0);
+
+    // Then: all bytes are read correctly
+    assertEquals(data.length(), bytesRead);
+    assertEquals(data, new String(buffer, StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void testReadBeyondContentLength() throws IOException {
+    // Given: test blob with known content
+    String data = "test";
+    Blob blob = getTestBlob(data);
+
+    // When: attempting to read beyond content length
+    byte[] buffer = new byte[10];
+    int bytesRead = blob.read(buffer, 0, buffer.length, 0);
+
+    // Then: only available bytes are read
+    assertEquals(data.length(), bytesRead);
+  }
+
+  @Test
+  public void testExecuteWithFailure() throws IOException {
+    // Given: test blob with block manager that throws exception
+    BlockManager blockManager = mock(BlockManager.class);
+    doThrow(new IOException("Simulated failure"))
+        .when(blockManager)
+        .makeRangeAvailable(anyLong(), anyLong(), any(ReadMode.class));
+
+    Blob blob = new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
+    List<Range> ranges = Collections.singletonList(new Range(0, 100));
+    IOPlan ioPlan = new IOPlan(ranges);
+
+    // When: executing plan that will fail
+    IOPlanExecution execution = blob.execute(ioPlan);
+
+    // Then: execution state is FAILED
+    assertEquals(IOPlanState.FAILED, execution.getState());
+  }
+
+  @Test
+  public void testReadWithMissingBlock() {
+    // Given: test blob with block manager that returns empty block
+    BlockManager blockManager = mock(BlockManager.class);
+    when(blockManager.getBlock(anyLong())).thenReturn(Optional.empty());
+    Blob blob = new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
+
+    // When & Then: reading with missing block throws exception
+    byte[] buffer = new byte[10];
+    assertThrows(IllegalStateException.class, () -> blob.read(buffer, 0, buffer.length, 0));
+  }
+
+  @Test
+  public void testReadWithPartialBlockRead() throws IOException {
+    // Given: test blob with block that returns partial data
+    Block mockBlock = mock(Block.class);
+    when(mockBlock.read(any(byte[].class), anyInt(), anyInt(), anyLong()))
+        .thenReturn(-1); // Simulate end of stream
+
+    BlockManager blockManager = mock(BlockManager.class);
+    when(blockManager.getBlock(anyLong())).thenReturn(Optional.of(mockBlock));
+
+    Blob blob = new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
+
+    // When: reading from block
+    byte[] buffer = new byte[10];
+    int bytesRead = blob.read(buffer, 0, buffer.length, 0);
+
+    // Then: returns number of bytes actually read
+    assertEquals(0, bytesRead);
   }
 }

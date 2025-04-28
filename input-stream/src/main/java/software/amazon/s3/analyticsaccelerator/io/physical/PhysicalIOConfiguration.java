@@ -29,8 +29,8 @@ import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.Sequential
 @Builder
 @EqualsAndHashCode
 public class PhysicalIOConfiguration {
-  private static final long DEFAULT_CAPACITY_BLOB_STORE_BYTES = 2 * ONE_GB;
-  private static final long DEFAULT_BLOBSTORE_TIMEOUT_MILLISECONDS = 1000;
+  private static final long DEFAULT_MEMORY_CAPACITY_BYTES = 2 * ONE_GB;
+  private static final long DEFAULT_CACHE_DATA_TIMEOUT_MILLISECONDS = 1000;
   private static final int DEFAULT_CAPACITY_METADATA_STORE = 50;
   private static final boolean DEFAULT_USE_SINGLE_CACHE = true;
   private static final long DEFAULT_BLOCK_SIZE_BYTES = 8 * ONE_MB;
@@ -41,35 +41,33 @@ public class PhysicalIOConfiguration {
   private static final double DEFAULT_SEQUENTIAL_PREFETCH_SPEED = 1.0;
   private static final long DEFAULT_BLOCK_READ_TIMEOUT = 30_000;
   private static final int DEFAULT_BLOCK_READ_RETRY_COUNT = 20;
-  private static final int DEFAULT_BLOBSTORE_CLEANUP_FREQUENCY_MILLISECONDS = 5000;
+  private static final int DEFAULT_MEMORY_CLEANUP_FREQUENCY_MILLISECONDS = 5000;
 
   /**
-   * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_BLOB_STORE_BYTES} by
-   * default.
+   * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_MEMORY_CAPACITY_BYTES} by default.
    */
-  @Builder.Default private long blobStoreCapacityBytes = DEFAULT_CAPACITY_BLOB_STORE_BYTES;
+  @Builder.Default private long memoryCapacityBytes = DEFAULT_MEMORY_CAPACITY_BYTES;
 
-  private static final String BLOB_STORE_CAPACITY_BYTES_KEY = "blobstore.capacitybytes";
+  private static final String MEMORY_CAPACITY_BYTES_KEY = "memory.capacitybytes";
 
   /**
    * Capacity, in blobs. {@link
-   * PhysicalIOConfiguration#DEFAULT_BLOBSTORE_CLEANUP_FREQUENCY_MILLISECONDS} by default.
+   * PhysicalIOConfiguration#DEFAULT_MEMORY_CLEANUP_FREQUENCY_MILLISECONDS} by default.
    */
   @Builder.Default
-  private int blobstoreCleanupFrequencyMilliseconds =
-      DEFAULT_BLOBSTORE_CLEANUP_FREQUENCY_MILLISECONDS;
+  private int memoryCleanupFrequencyMilliseconds = DEFAULT_MEMORY_CLEANUP_FREQUENCY_MILLISECONDS;
 
-  private static final String BLOB_STORE_CLEANUP_FREQUENCY_MILLISECONDS_KEY =
-      "blobstore.cleanupfrequencymilliseconds";
+  private static final String MEMORY_CLEANUP_FREQUENCY_MILLISECONDS_KEY =
+      "memory.cleanupfrequencymilliseconds";
 
   /**
-   * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_BLOBSTORE_TIMEOUT_MILLISECONDS} by
+   * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CACHE_DATA_TIMEOUT_MILLISECONDS} by
    * default.
    */
   @Builder.Default
-  private long blobStoreTimeoutMilliseconds = DEFAULT_BLOBSTORE_TIMEOUT_MILLISECONDS;
+  private long cacheDataTimeoutMilliseconds = DEFAULT_CACHE_DATA_TIMEOUT_MILLISECONDS;
 
-  private static final String BLOB_STORE_TIMEOUT_MILLISECONDS_KEY = "blobstore.timeoutmilliseconds";
+  private static final String CACHE_DATA_TIMEOUT_MILLISECONDS_KEY = "cachedata.timeoutmilliseconds";
 
   /**
    * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_METADATA_STORE} by default.
@@ -140,15 +138,15 @@ public class PhysicalIOConfiguration {
    */
   public static PhysicalIOConfiguration fromConfiguration(ConnectorConfiguration configuration) {
     return PhysicalIOConfiguration.builder()
-        .blobStoreCapacityBytes(
-            configuration.getLong(BLOB_STORE_CAPACITY_BYTES_KEY, DEFAULT_CAPACITY_BLOB_STORE_BYTES))
-        .blobstoreCleanupFrequencyMilliseconds(
+        .memoryCapacityBytes(
+            configuration.getLong(MEMORY_CAPACITY_BYTES_KEY, DEFAULT_MEMORY_CAPACITY_BYTES))
+        .memoryCleanupFrequencyMilliseconds(
             configuration.getInt(
-                BLOB_STORE_CLEANUP_FREQUENCY_MILLISECONDS_KEY,
-                DEFAULT_BLOBSTORE_CLEANUP_FREQUENCY_MILLISECONDS))
-        .blobStoreTimeoutMilliseconds(
+                MEMORY_CLEANUP_FREQUENCY_MILLISECONDS_KEY,
+                DEFAULT_MEMORY_CLEANUP_FREQUENCY_MILLISECONDS))
+        .cacheDataTimeoutMilliseconds(
             configuration.getLong(
-                BLOB_STORE_TIMEOUT_MILLISECONDS_KEY, DEFAULT_BLOBSTORE_TIMEOUT_MILLISECONDS))
+                CACHE_DATA_TIMEOUT_MILLISECONDS_KEY, DEFAULT_CACHE_DATA_TIMEOUT_MILLISECONDS))
         .metadataStoreCapacity(
             configuration.getInt(METADATA_STORE_CAPACITY_KEY, DEFAULT_CAPACITY_METADATA_STORE))
         .blockSizeBytes(configuration.getLong(BLOCK_SIZE_BYTES_KEY, DEFAULT_BLOCK_SIZE_BYTES))
@@ -169,9 +167,9 @@ public class PhysicalIOConfiguration {
   /**
    * Constructs {@link PhysicalIOConfiguration}.
    *
-   * @param blobStoreCapacityBytes The capacity of the BlobStore
-   * @param blobstoreCleanupFrequencyMilliseconds The blobstore clean up frequency
-   * @param blobStoreTimeoutMilliseconds The ttl of items in blobstore
+   * @param memoryCapacityBytes The capacity of the BlobStore
+   * @param memoryCleanupFrequencyMilliseconds The blobstore clean up frequency
+   * @param cacheDataTimeoutMilliseconds The ttl of items in blobstore
    * @param metadataStoreCapacity The capacity of the MetadataStore
    * @param blockSizeBytes Block size, in bytes
    * @param readAheadBytes Read ahead, in bytes
@@ -186,9 +184,9 @@ public class PhysicalIOConfiguration {
    */
   @Builder
   private PhysicalIOConfiguration(
-      long blobStoreCapacityBytes,
-      int blobstoreCleanupFrequencyMilliseconds,
-      long blobStoreTimeoutMilliseconds,
+      long memoryCapacityBytes,
+      int memoryCleanupFrequencyMilliseconds,
+      long cacheDataTimeoutMilliseconds,
       int metadataStoreCapacity,
       long blockSizeBytes,
       long readAheadBytes,
@@ -198,7 +196,7 @@ public class PhysicalIOConfiguration {
       double sequentialPrefetchSpeed,
       long blockReadTimeout,
       int blockReadRetryCount) {
-    Preconditions.checkArgument(blobStoreCapacityBytes > 0, "`blobStoreCapacity` must be positive");
+    Preconditions.checkArgument(memoryCapacityBytes > 0, "`blobStoreCapacity` must be positive");
     Preconditions.checkArgument(
         metadataStoreCapacity > 0, "`metadataStoreCapacity` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");
@@ -212,9 +210,9 @@ public class PhysicalIOConfiguration {
     Preconditions.checkArgument(blockReadTimeout > 0, "`blockReadTimeout` must be positive");
     Preconditions.checkArgument(blockReadRetryCount > 0, "`blockReadRetryCount` must be positive");
 
-    this.blobStoreCapacityBytes = blobStoreCapacityBytes;
-    this.blobstoreCleanupFrequencyMilliseconds = blobstoreCleanupFrequencyMilliseconds;
-    this.blobStoreTimeoutMilliseconds = blobStoreTimeoutMilliseconds;
+    this.memoryCapacityBytes = memoryCapacityBytes;
+    this.memoryCleanupFrequencyMilliseconds = memoryCleanupFrequencyMilliseconds;
+    this.cacheDataTimeoutMilliseconds = cacheDataTimeoutMilliseconds;
     this.metadataStoreCapacity = metadataStoreCapacity;
     this.blockSizeBytes = blockSizeBytes;
     this.readAheadBytes = readAheadBytes;
@@ -231,10 +229,10 @@ public class PhysicalIOConfiguration {
     final StringBuilder builder = new StringBuilder();
 
     builder.append("PhysicalIO configuration:\n");
-    builder.append("\tblobStoreCapacityBytes: " + blobStoreCapacityBytes + "\n");
+    builder.append("\tmemoryCapacityBytes: " + memoryCapacityBytes + "\n");
     builder.append(
-        "\tblobstoreCleanupFrequencyMilliseconds: " + blobstoreCleanupFrequencyMilliseconds + "\n");
-    builder.append("\tblobStoreTimeoutMilliseconds: " + blobStoreTimeoutMilliseconds + "\n");
+        "\tmemoryCleanupFrequencyMilliseconds: " + memoryCleanupFrequencyMilliseconds + "\n");
+    builder.append("\tcacheDataTimeoutMilliseconds: " + cacheDataTimeoutMilliseconds + "\n");
     builder.append("\tmetadataStoreCapacity: " + metadataStoreCapacity + "\n");
     builder.append("\tblockSizeBytes: " + blockSizeBytes + "\n");
     builder.append("\treadAheadBytes: " + readAheadBytes + "\n");

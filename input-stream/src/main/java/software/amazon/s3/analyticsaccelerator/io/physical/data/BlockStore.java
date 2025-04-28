@@ -53,7 +53,7 @@ public class BlockStore implements Closeable {
 
     this.s3URI = objectKey;
     this.metadata = metadata;
-    this.blocks = Collections.synchronizedMap(new LinkedHashMap<>());
+    this.blocks = new LinkedHashMap<>();
     this.blockMetricsAndCacheHandler = blockMetricsAndCacheHandler;
   }
 
@@ -169,13 +169,7 @@ public class BlockStore implements Closeable {
               blockKey.getRange().getEnd());
 
         } catch (Exception e) {
-          LOG.debug(
-              "Error in removing block with key {}-{}-{} from block store during cleanup due to exception {} and stack {}",
-              blockKey.getObjectKey().getS3URI(),
-              entry.getKey().getRange().getStart(),
-              entry.getKey().getRange().getEnd(),
-              e.getMessage(),
-              e.getStackTrace());
+          LOG.error("Error in removing block {}", e.getMessage());
         }
       }
     }

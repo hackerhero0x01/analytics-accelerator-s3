@@ -18,17 +18,17 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -48,6 +48,36 @@ public class BlockManagerTest {
   private ObjectMetadata metadataStore;
   static S3URI testUri = S3URI.of("foo", "bar");
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(testUri).etag(ETAG).build();
+
+  @Test
+  @DisplayName("Test complete constructor initialization")
+  void testConstructorInitialization() {
+    // Arrange
+    ObjectKey objectKey = mock(ObjectKey.class);
+    ObjectClient objectClient = mock(ObjectClient.class);
+    ObjectMetadata metadata =
+        ObjectMetadata.builder().contentLength(1000L).etag("test-etag").build();
+    Telemetry telemetry = mock(Telemetry.class);
+    PhysicalIOConfiguration configuration = mock(PhysicalIOConfiguration.class);
+    Metrics aggregatingMetrics = new Metrics();
+    BlobStoreIndexCache indexCache = mock(BlobStoreIndexCache.class);
+    StreamContext streamContext = mock(StreamContext.class);
+
+    // Act
+    BlockManager blockManager =
+        new BlockManager(
+            objectKey,
+            objectClient,
+            metadata,
+            telemetry,
+            configuration,
+            aggregatingMetrics,
+            indexCache,
+            streamContext);
+
+    // Assert
+    assertNotNull(blockManager, "BlockManager should not be null");
+  }
 
   @Test
   void testCreateBoundaries() {
@@ -304,5 +334,202 @@ public class BlockManagerTest {
         configuration,
         mock(Metrics.class),
         mock(BlobStoreIndexCache.class));
+  }
+
+  @Test
+  @DisplayName("Test isBlockStoreEmpty method")
+  void testIsBlockStoreEmpty() throws IOException {
+    // Given
+    BlockManager blockManager = getTestBlockManager(42);
+
+    // When & Then
+    assertTrue(blockManager.isBlockStoreEmpty(), "BlockStore should be empty initially");
+
+    // After adding a block
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
+    assertFalse(
+        blockManager.isBlockStoreEmpty(), "BlockStore should not be empty after adding block");
+  }
+
+  @Test
+  @DisplayName("Test makePositionAvailable with negative position")
+  void testMakePositionAvailableNegative() throws IOException {
+    BlockManager blockManager = getTestBlockManager(42);
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> blockManager.makePositionAvailable(-1, ReadMode.SYNC));
+  }
+
+  @Test
+  @DisplayName("Test makeRangeAvailable with negative values")
+  void testMakeRangeAvailableNegative() throws IOException {
+    BlockManager blockManager = getTestBlockManager(42);
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> blockManager.makeRangeAvailable(-1, 10, ReadMode.SYNC));
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> blockManager.makeRangeAvailable(0, -1, ReadMode.SYNC));
+  }
+
+  @Test
+  @DisplayName("Test sequential read pattern detection")
+  void testSequentialReadPattern() throws IOException {
+    // Given
+    ObjectClient objectClient = mock(ObjectClient.class);
+    when(objectClient.getObject(any(), any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectContent.builder().stream(new ByteArrayInputStream(new byte[1024])).build()));
+
+    PhysicalIOConfiguration config =
+        PhysicalIOConfiguration.builder().readAheadBytes(512).sequentialPrefetchBase(2.0).build();
+
+    BlockManager blockManager = getTestBlockManager(objectClient, 1024, config);
+
+    // When: making sequential reads
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
+    blockManager.makePositionAvailable(100, ReadMode.SYNC);
+    blockManager.makePositionAvailable(200, ReadMode.SYNC);
+
+    // Then: verify pattern detection through increased read ahead
+    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
+    verify(objectClient, atLeast(1)).getObject(requestCaptor.capture(), any());
+
+    // Verify that later requests have larger ranges due to sequential pattern detection
+    List<GetRequest> requests = requestCaptor.getAllValues();
+    long firstRequestSize = requests.get(0).getRange().getLength();
+    long lastRequestSize = requests.get(requests.size() - 1).getRange().getLength();
+    assertTrue(
+        lastRequestSize >= firstRequestSize,
+        "Read ahead size should increase for sequential pattern");
+  }
+
+  @Test
+  @DisplayName("Test cleanup method")
+  void testCleanup() throws IOException {
+    // Given
+    BlockManager blockManager = getTestBlockManager(1024);
+
+    // Add some blocks
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
+    blockManager.makePositionAvailable(100, ReadMode.SYNC);
+
+    // When
+    blockManager.cleanUp();
+
+    // Then
+    assertTrue(blockManager.isBlockStoreEmpty(), "BlockStore should be empty after cleanup");
+  }
+
+  @Test
+  void testClose() throws IOException, InterruptedException {
+    // Given
+    BlockManager blockManager = getTestBlockManager(1024);
+    CountDownLatch closeLatch = new CountDownLatch(1);
+
+    // Add some blocks
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
+
+    // When
+    Thread closeThread =
+        new Thread(
+            () -> {
+              blockManager.close();
+              closeLatch.countDown();
+            });
+    closeThread.start();
+
+    // Then
+    assertTrue(
+        closeLatch.await(5, TimeUnit.SECONDS), "Close operation should complete within timeout");
+  }
+
+  @Test
+  @DisplayName("Test makeRangeAvailable with async read mode")
+  void testMakeRangeAvailableAsync() throws IOException {
+    // Given
+    ObjectClient objectClient = mock(ObjectClient.class);
+    BlockManager blockManager = getTestBlockManager(objectClient, 1024);
+
+    // When
+    blockManager.makeRangeAvailable(0, 100, ReadMode.ASYNC);
+
+    // Then
+    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
+    verify(objectClient).getObject(requestCaptor.capture(), any());
+
+    // Verify that async mode doesn't trigger read ahead
+    assertEquals(1024, requestCaptor.getValue().getRange().getLength());
+  }
+
+  @Test
+  @DisplayName("Test truncatePos method")
+  void testTruncatePos() throws IOException {
+    // Given
+    int size = 1024;
+    BlockManager blockManager = getTestBlockManager(size);
+
+    // Test position within bounds
+    blockManager.makeRangeAvailable(size - 100, 50, ReadMode.SYNC);
+    assertTrue(blockManager.getBlock(size - 75).isPresent());
+
+    // Test position at boundary
+    blockManager.makeRangeAvailable(size - 1, 1, ReadMode.SYNC);
+    assertTrue(blockManager.getBlock(size - 1).isPresent());
+  }
+
+  @Test
+  @DisplayName("Test concurrent access to makeRangeAvailable")
+  void testConcurrentMakeRangeAvailable() throws Exception {
+    // Given
+    BlockManager blockManager = getTestBlockManager(1024);
+    int numThreads = 10;
+    CountDownLatch startLatch = new CountDownLatch(1);
+    CountDownLatch completionLatch = new CountDownLatch(numThreads);
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      // When
+      for (int i = 0; i < numThreads; i++) {
+        final int pos = i * 100;
+        Future<?> future =
+            executor.submit(
+                () -> {
+                  try {
+                    startLatch.await();
+                    blockManager.makeRangeAvailable(pos, 50, ReadMode.SYNC);
+                  } catch (Exception e) {
+                    fail("Unexpected exception: " + e);
+                  } finally {
+                    completionLatch.countDown();
+                  }
+                });
+        futures.add(future);
+      }
+
+      startLatch.countDown();
+      assertTrue(
+          completionLatch.await(5, TimeUnit.SECONDS), "Not all threads completed within timeout");
+
+      // Check futures for exceptions
+      for (Future<?> future : futures) {
+        assertDoesNotThrow(() -> future.get(5, TimeUnit.SECONDS));
+      }
+
+      // Then
+      for (int i = 0; i < numThreads; i++) {
+        assertTrue(
+            blockManager.getBlock(i * 100L).isPresent(),
+            "Block should be present for position " + (i * 100L));
+      }
+    } finally {
+      executor.shutdown();
+      assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+    }
   }
 }
