@@ -175,15 +175,17 @@ public class Block implements Closeable {
             this.source.thenApply(
                 objectContent -> {
                   try {
+                    byte[] bytes =
+                        StreamUtils.toByteArray(
+                            objectContent,
+                            this.blockKey.getObjectKey(),
+                            this.blockKey.getRange(),
+                            this.readTimeout);
                     int blockRange = blockKey.getRange().getLength();
                     this.blockMetricsAndCacheHandler.updateMetrics(
                         MetricKey.MEMORY_USAGE, blockRange);
                     this.blockMetricsAndCacheHandler.putInIndexCache(blockKey, blockRange);
-                    return StreamUtils.toByteArray(
-                        objectContent,
-                        this.blockKey.getObjectKey(),
-                        this.blockKey.getRange(),
-                        this.readTimeout);
+                    return bytes;
                   } catch (IOException | TimeoutException e) {
                     throw new RuntimeException(
                         "Error while converting InputStream to byte array", e);

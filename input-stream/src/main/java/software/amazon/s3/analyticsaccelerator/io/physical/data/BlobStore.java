@@ -94,8 +94,7 @@ public class BlobStore implements Closeable {
   }
 
   void scheduleCleanupIfNotRunning() {
-    if (metrics.get(MetricKey.MEMORY_USAGE) > configuration.getMemoryCapacityBytes()
-        && cleanupInProgress.compareAndSet(false, true)) {
+    if (metrics.get(MetricKey.MEMORY_USAGE) > 0 && cleanupInProgress.compareAndSet(false, true)) {
       try {
         asyncCleanup();
       } catch (Exception ex) {
