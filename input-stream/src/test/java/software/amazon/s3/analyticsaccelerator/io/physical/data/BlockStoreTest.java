@@ -29,6 +29,7 @@ import java.util.concurrent.*;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
@@ -52,7 +53,8 @@ public class BlockStoreTest {
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsAndCacheHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
 
     BlockKey blockKey = new BlockKey(objectKey, new Range(3, 5));
 
@@ -67,7 +69,8 @@ public class BlockStoreTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class)));
 
     // Then: getBlock can retrieve the same block
     Optional<Block> b = blockStore.getBlock(4);
@@ -87,7 +90,8 @@ public class BlockStoreTest {
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(size).etag(ETAG).build();
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsAndCacheHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
     BlockKey blockKey1 = new BlockKey(objectKey, new Range(2, 3));
     BlockKey blockKey2 = new BlockKey(objectKey, new Range(5, 10));
     BlockKey blockKey3 = new BlockKey(objectKey, new Range(12, 15));
@@ -101,7 +105,8 @@ public class BlockStoreTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class)));
     blockStore.add(
         blockKey2,
         new Block(
@@ -112,7 +117,8 @@ public class BlockStoreTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class)));
     blockStore.add(
         blockKey3,
         new Block(
@@ -123,7 +129,8 @@ public class BlockStoreTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class)));
 
     // When & Then: we query for the next missing byte, the result is correct
     assertEquals(OptionalLong.of(0), blockStore.findNextMissingByte(0));
@@ -145,7 +152,8 @@ public class BlockStoreTest {
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsAndCacheHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
 
     BlockKey blockKey1 = new BlockKey(objectKey, new Range(2, 3));
     BlockKey blockKey2 = new BlockKey(objectKey, new Range(5, 10));
@@ -160,7 +168,8 @@ public class BlockStoreTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class)));
     blockStore.add(
         blockKey2,
         new Block(
@@ -171,7 +180,8 @@ public class BlockStoreTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class)));
     blockStore.add(
         blockKey3,
         new Block(
@@ -182,7 +192,8 @@ public class BlockStoreTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class)));
 
     // When & Then: we query for the next available byte, the result is correct
     assertEquals(OptionalLong.of(2), blockStore.findNextLoadedByte(0));
@@ -202,7 +213,8 @@ public class BlockStoreTest {
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
     BlockKey blockKey = new BlockKey(objectKey, new Range(0, 5));
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsAndCacheHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
     Block block = mock(Block.class);
     blockStore.add(blockKey, block);
 
@@ -221,7 +233,8 @@ public class BlockStoreTest {
     BlockKey blockKey1 = new BlockKey(objectKey, new Range(0, 5));
     BlockKey blockKey2 = new BlockKey(objectKey, new Range(0, 6));
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsAndCacheHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
     Block b1 = mock(Block.class);
     Block b2 = mock(Block.class);
     blockStore.add(blockKey1, b1);

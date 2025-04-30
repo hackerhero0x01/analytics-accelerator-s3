@@ -26,6 +26,8 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
+import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
@@ -58,7 +60,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
     assertNotNull(block);
   }
 
@@ -71,7 +74,10 @@ public class BlockTest {
     ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     byte[] testData = TEST_DATA.getBytes(StandardCharsets.UTF_8);
 
-    BlockMetricsAndCacheHandler mockHandler = mock(BlockMetricsAndCacheHandler.class);
+    Metrics mockMetrics = mock(Metrics.class);
+    BlobStoreIndexCache mockIndexCache = new BlobStoreIndexCache(PhysicalIOConfiguration.DEFAULT);
+    mockIndexCache = spy(mockIndexCache);
+
     Block block =
         new Block(
             blockKey,
@@ -81,21 +87,24 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mockHandler);
+            mockMetrics,
+            mockIndexCache);
 
     // Test when data is not in cache
-    when(mockHandler.isPresentInIndexCache(blockKey)).thenReturn(false);
+    when(mockIndexCache.contains(blockKey)).thenReturn(false);
     int result = block.read(0);
 
     // Verify
+    verify(mockIndexCache, times(2)).put(blockKey, blockKey.getRange().getLength());
+    verify(mockIndexCache, times(0)).getIfPresent(blockKey);
     assertEquals(Byte.toUnsignedInt(testData[0]), result);
 
     // Test when data is in cache
-    when(mockHandler.isPresentInIndexCache(blockKey)).thenReturn(true);
+    when(mockIndexCache.contains(blockKey)).thenReturn(true);
     result = block.read(1);
 
     // Verify
-    verify(mockHandler).getIfPresentFromIndexCache(blockKey);
+    verify(mockIndexCache).getIfPresent(blockKey);
     assertEquals(Byte.toUnsignedInt(testData[1]), result);
   }
 
@@ -114,7 +123,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
 
     // When: bytes are requested from the block
     int r1 = block.read(0);
@@ -142,7 +152,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
 
     // When: bytes are requested from the block
     byte[] b1 = new byte[4];
@@ -174,7 +185,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class),
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class),
                 null));
     assertThrows(
         NullPointerException.class,
@@ -187,7 +199,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class),
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class),
                 null));
     assertThrows(
         NullPointerException.class,
@@ -200,7 +213,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class),
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class),
                 null));
     assertThrows(
         NullPointerException.class,
@@ -213,7 +227,8 @@ public class BlockTest {
                 null,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class),
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class),
                 null));
   }
 
@@ -232,7 +247,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -244,7 +260,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -256,7 +273,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -268,7 +286,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -280,7 +299,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                mock(BlockMetricsAndCacheHandler.class)));
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class)));
   }
 
   @SneakyThrows
@@ -298,7 +318,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
     assertThrows(IllegalArgumentException.class, () -> block.read(-10));
     assertThrows(NullPointerException.class, () -> block.read(null, 0, 3, 1));
     assertThrows(IllegalArgumentException.class, () -> block.read(b, -5, 3, 1));
@@ -320,7 +341,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
     assertTrue(block.contains(0));
     assertFalse(block.contains(TEST_DATA.length() + 1));
   }
@@ -339,7 +361,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
     assertThrows(IllegalArgumentException.class, () -> block.contains(-1));
   }
 
@@ -359,7 +382,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
     assertThrows(IOException.class, () -> block.read(4));
   }
 
@@ -377,7 +401,8 @@ public class BlockTest {
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsAndCacheHandler.class));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class));
     block.close();
     block.close();
   }

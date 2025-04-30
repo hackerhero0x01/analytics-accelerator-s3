@@ -48,6 +48,16 @@ public class Range {
   }
 
   /**
+   * Does this range contain the position?
+   *
+   * @param pos the position
+   * @return true if the byte at the position is contained by this range
+   */
+  public boolean contains(long pos) {
+    return start <= pos && pos <= end;
+  }
+
+  /**
    * Return the length of the range.
    *
    * @return the length of the range in bytes

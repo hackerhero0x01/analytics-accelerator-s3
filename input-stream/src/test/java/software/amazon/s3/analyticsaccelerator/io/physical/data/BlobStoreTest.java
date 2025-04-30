@@ -75,8 +75,8 @@ public class BlobStoreTest {
         .thenReturn(ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag(ETAG).build());
     Metrics metrics = new Metrics();
     Map<String, String> configMap = new HashMap<>();
-    configMap.put("memory.capacitybytes", "1000");
-    configMap.put("memory.cleanupfrequencymilliseconds", "1");
+    configMap.put("max.memory.limit", "1000");
+    configMap.put("memory.cleanup.frequency", "1");
     ConnectorConfiguration connectorConfig = new ConnectorConfiguration(configMap);
     config = PhysicalIOConfiguration.fromConfiguration(connectorConfig);
 

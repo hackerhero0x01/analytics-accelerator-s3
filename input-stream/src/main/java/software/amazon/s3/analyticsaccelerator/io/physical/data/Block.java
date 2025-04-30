@@ -24,6 +24,7 @@ import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -52,7 +53,8 @@ public class Block implements Closeable {
   private final int readRetryCount;
   @Getter private final long generation;
 
-  private final BlockMetricsAndCacheHandler blockMetricsAndCacheHandler;
+  private final Metrics aggregatingMetrics;
+  private final BlobStoreIndexCache indexCache;
   private static final String OPERATION_BLOCK_GET_ASYNC = "block.get.async";
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
 
@@ -68,7 +70,8 @@ public class Block implements Closeable {
    * @param readMode read mode describing whether this is a sync or async fetch
    * @param readTimeout Timeout duration (in milliseconds) for reading a block object from S3
    * @param readRetryCount Number of retries for block read failure
-   * @param blockMetricsAndCacheHandler block completion callback
+   * @param aggregatingMetrics blobstore metrics
+   * @param indexCache blobstore index cache
    */
   public Block(
       @NonNull BlockKey blockKey,
@@ -78,7 +81,8 @@ public class Block implements Closeable {
       @NonNull ReadMode readMode,
       long readTimeout,
       int readRetryCount,
-      @NonNull BlockMetricsAndCacheHandler blockMetricsAndCacheHandler)
+      @NonNull Metrics aggregatingMetrics,
+      @NonNull BlobStoreIndexCache indexCache)
       throws IOException {
 
     this(
@@ -89,7 +93,8 @@ public class Block implements Closeable {
         readMode,
         readTimeout,
         readRetryCount,
-        blockMetricsAndCacheHandler,
+        aggregatingMetrics,
+        indexCache,
         null);
   }
 
@@ -103,7 +108,8 @@ public class Block implements Closeable {
    * @param readMode read mode describing whether this is a sync or async fetch
    * @param readTimeout Timeout duration (in milliseconds) for reading a block object from S3
    * @param readRetryCount Number of retries for block read failure
-   * @param blockMetricsAndCacheHandler block completion callback
+   * @param aggregatingMetrics blobstore metrics
+   * @param indexCache blobstore index cache
    * @param streamContext contains audit headers to be attached in the request header
    */
   public Block(
@@ -114,7 +120,8 @@ public class Block implements Closeable {
       @NonNull ReadMode readMode,
       long readTimeout,
       int readRetryCount,
-      @NonNull BlockMetricsAndCacheHandler blockMetricsAndCacheHandler,
+      @NonNull Metrics aggregatingMetrics,
+      @NonNull BlobStoreIndexCache indexCache,
       StreamContext streamContext)
       throws IOException {
 
@@ -140,7 +147,8 @@ public class Block implements Closeable {
     this.referrer = new Referrer(this.blockKey.getRange().toHttpString(), readMode);
     this.readTimeout = readTimeout;
     this.readRetryCount = readRetryCount;
-    this.blockMetricsAndCacheHandler = blockMetricsAndCacheHandler;
+    this.aggregatingMetrics = aggregatingMetrics;
+    this.indexCache = indexCache;
     generateSourceAndData();
   }
 
@@ -182,9 +190,8 @@ public class Block implements Closeable {
                             this.blockKey.getRange(),
                             this.readTimeout);
                     int blockRange = blockKey.getRange().getLength();
-                    this.blockMetricsAndCacheHandler.updateMetrics(
-                        MetricKey.MEMORY_USAGE, blockRange);
-                    this.blockMetricsAndCacheHandler.putInIndexCache(blockKey, blockRange);
+                    this.aggregatingMetrics.add(MetricKey.MEMORY_USAGE, blockRange);
+                    this.indexCache.put(blockKey, blockRange);
                     return bytes;
                   } catch (IOException | TimeoutException e) {
                     throw new RuntimeException(
@@ -225,11 +232,7 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
 
     byte[] content = this.getDataWithRetries();
-    if (!blockMetricsAndCacheHandler.isPresentInIndexCache(blockKey)) {
-      blockMetricsAndCacheHandler.putInIndexCache(blockKey, blockKey.getRange().getLength());
-    } else {
-      blockMetricsAndCacheHandler.getIfPresentFromIndexCache(blockKey);
-    }
+    indexCache.recordAccess(blockKey);
     return Byte.toUnsignedInt(content[posToOffset(pos)]);
   }
 
@@ -250,11 +253,7 @@ public class Block implements Closeable {
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
     byte[] content = this.getDataWithRetries();
-    if (!blockMetricsAndCacheHandler.isPresentInIndexCache(blockKey)) {
-      blockMetricsAndCacheHandler.putInIndexCache(blockKey, blockKey.getRange().getLength());
-    } else {
-      blockMetricsAndCacheHandler.getIfPresentFromIndexCache(blockKey);
-    }
+    indexCache.recordAccess(blockKey);
     int contentOffset = posToOffset(pos);
     int available = content.length - contentOffset;
     int bytesToCopy = Math.min(len, available);
@@ -274,8 +273,7 @@ public class Block implements Closeable {
    */
   public boolean contains(long pos) {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
-
-    return this.blockKey.getRange().getStart() <= pos && pos <= this.blockKey.getRange().getEnd();
+    return this.blockKey.getRange().contains(pos);
   }
 
   /**

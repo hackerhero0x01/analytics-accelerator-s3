@@ -75,11 +75,11 @@ public class BlobStore implements Closeable {
     this.indexCache = new BlobStoreIndexCache(configuration);
     this.maintenanceExecutor =
         Executors.newSingleThreadScheduledExecutor(
-            r -> {
-              Thread t = new Thread(r);
-              t.setDaemon(true);
-              t.setPriority(Thread.MIN_PRIORITY);
-              return t;
+            cleanupTask -> {
+              Thread cleanupThread = new Thread(cleanupTask);
+              cleanupThread.setDaemon(true);
+              cleanupThread.setPriority(Thread.MIN_PRIORITY);
+              return cleanupThread;
             });
     this.configuration = configuration;
   }

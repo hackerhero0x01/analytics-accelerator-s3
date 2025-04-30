@@ -146,7 +146,7 @@ val shadowJar = tasks.withType<ShadowJar> {
 
     relocate("org.apache.parquet.format", "software.amazon.s3.shaded.apache.parquet.format")
     relocate("shaded.parquet.org.apache.thrift", "software.amazon.s3.shaded.parquet.org.apache.thrift")
-    relocate("com.github.benmanes.caffeine", "com.amazon.shaded.github.benmanes.caffeine")
+    relocate("com.github.benmanes.caffeine", "software.amazon.s3.shaded.com.github.benmanes.caffeine")
 }
 
 val refTest = task<Test>("referenceTest") {

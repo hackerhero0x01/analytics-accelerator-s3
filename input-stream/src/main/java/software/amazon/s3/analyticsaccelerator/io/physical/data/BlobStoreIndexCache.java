@@ -72,9 +72,24 @@ public class BlobStoreIndexCache {
    * Retrieves the range value associated with the specified block key from the cache, if it exists.
    *
    * @param blockKey the key whose associated range is to be returned
+   * @return the size of the block
    */
-  public void getIfPresent(BlockKey blockKey) {
-    indexCache.getIfPresent(blockKey);
+  public Integer getIfPresent(BlockKey blockKey) {
+    return indexCache.getIfPresent(blockKey);
+  }
+
+  /**
+   * Records the access of the block key in the index cache when the corresponding block is read
+   * from the blob map
+   *
+   * @param blockKey the key whose access needs to be updated
+   */
+  public void recordAccess(BlockKey blockKey) {
+    if (!contains(blockKey)) {
+      put(blockKey, blockKey.getRange().getLength());
+    } else {
+      getIfPresent(blockKey);
+    }
   }
 
   /**

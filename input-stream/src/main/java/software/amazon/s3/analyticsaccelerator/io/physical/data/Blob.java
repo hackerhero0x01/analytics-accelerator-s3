@@ -42,6 +42,23 @@ public class Blob implements Closeable {
   private final BlockManager blockManager;
   private final ObjectMetadata metadata;
   private final Telemetry telemetry;
+
+  /**
+   * The ReentrantReadWriteLock manages concurrent access between read operations and eviction:<br>
+   *
+   * <p>Read Lock (used in read() and read(byte[], int, int, long) methods):<br>
+   * - Prevents block eviction while reading is in progress<br>
+   * - Multiple threads can concurrently read data<br>
+   * - Ensures blocks being read cannot be evicted<br>
+   *
+   * <p>Write Lock (used in asyncCleanup()):<br>
+   * - Exclusive lock used during block eviction/cleanup<br>
+   * - Blocks any ongoing reads during cleanup<br>
+   * - Ensures no threads are reading blocks while they're being evicted<br>
+   *
+   * <p>This locking strategy ensures that blocks aren't evicted while being read, while still
+   * allowing new blocks to be read concurrently.
+   */
   private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
   /**
@@ -80,19 +97,6 @@ public class Blob implements Closeable {
       return blockManager.getBlock(pos).get().read(pos);
     } finally {
       lock.readLock().unlock();
-    }
-  }
-
-  /** clean up blob */
-  public final void asyncCleanup() {
-    if (blockManager.isBlockStoreEmpty()) {
-      return;
-    }
-    try {
-      lock.writeLock().lock();
-      blockManager.cleanUp();
-    } finally {
-      lock.writeLock().unlock();
     }
   }
 
@@ -175,6 +179,19 @@ public class Blob implements Closeable {
             return IOPlanExecution.builder().state(IOPlanState.FAILED).build();
           }
         });
+  }
+
+  /** clean up blob */
+  public final void asyncCleanup() {
+    if (blockManager.isBlockStoreEmpty()) {
+      return;
+    }
+    try {
+      lock.writeLock().lock();
+      blockManager.cleanUp();
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
   private long contentLength() {

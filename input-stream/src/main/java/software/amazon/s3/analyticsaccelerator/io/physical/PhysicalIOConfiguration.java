@@ -50,7 +50,7 @@ public class PhysicalIOConfiguration {
    */
   @Builder.Default private long memoryCapacityBytes = DEFAULT_MEMORY_CAPACITY_BYTES;
 
-  private static final String MEMORY_CAPACITY_BYTES_KEY = "memory.capacitybytes";
+  private static final String MEMORY_CAPACITY_BYTES_KEY = "max.memory.limit";
 
   /**
    * Capacity, in blobs. {@link
@@ -60,7 +60,7 @@ public class PhysicalIOConfiguration {
   private int memoryCleanupFrequencyMilliseconds = DEFAULT_MEMORY_CLEANUP_FREQUENCY_MILLISECONDS;
 
   private static final String MEMORY_CLEANUP_FREQUENCY_MILLISECONDS_KEY =
-      "memory.cleanupfrequencymilliseconds";
+      "memory.cleanup.frequency";
 
   /**
    * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CACHE_DATA_TIMEOUT_MILLISECONDS} by
@@ -69,7 +69,7 @@ public class PhysicalIOConfiguration {
   @Builder.Default
   private long cacheDataTimeoutMilliseconds = DEFAULT_CACHE_DATA_TIMEOUT_MILLISECONDS;
 
-  private static final String CACHE_DATA_TIMEOUT_MILLISECONDS_KEY = "cachedata.timeoutmilliseconds";
+  private static final String CACHE_DATA_TIMEOUT_MILLISECONDS_KEY = "cache.timeout";
 
   /**
    * Capacity, in blobs. {@link PhysicalIOConfiguration#DEFAULT_CAPACITY_METADATA_STORE} by default.
@@ -198,7 +198,12 @@ public class PhysicalIOConfiguration {
       double sequentialPrefetchSpeed,
       long blockReadTimeout,
       int blockReadRetryCount) {
-    Preconditions.checkArgument(memoryCapacityBytes > 0, "`blobStoreCapacity` must be positive");
+    Preconditions.checkArgument(memoryCapacityBytes > 0, "`memoryCapacityBytes` must be positive");
+    Preconditions.checkArgument(
+        memoryCleanupFrequencyMilliseconds > 0,
+        "`memoryCleanupFrequencyMilliseconds` must be positive");
+    Preconditions.checkArgument(
+        cacheDataTimeoutMilliseconds > 0, "`cacheDataTimeoutMilliseconds` must be positive");
     Preconditions.checkArgument(
         metadataStoreCapacity > 0, "`metadataStoreCapacity` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");

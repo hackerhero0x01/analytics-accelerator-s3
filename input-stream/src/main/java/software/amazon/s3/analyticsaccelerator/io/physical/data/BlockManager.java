@@ -17,7 +17,9 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalLong;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
@@ -46,8 +48,8 @@ public class BlockManager implements Closeable {
   private final PhysicalIOConfiguration configuration;
   private final RangeOptimiser rangeOptimiser;
   private StreamContext streamContext;
-  private final Metrics blobMetrics;
-  private final BlockMetricsAndCacheHandler blockMetricsAndCacheHandler;
+  private final Metrics aggregatingMetrics;
+  private final BlobStoreIndexCache indexCache;
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
   /**
@@ -106,10 +108,9 @@ public class BlockManager implements Closeable {
     this.metadata = metadata;
     this.telemetry = telemetry;
     this.configuration = configuration;
-    this.blobMetrics = new Metrics();
-    this.blockMetricsAndCacheHandler =
-        new BlockMetricsAndCacheHandler(blobMetrics, aggregatingMetrics, indexCache);
-    this.blockStore = new BlockStore(objectKey, metadata, blockMetricsAndCacheHandler);
+    this.aggregatingMetrics = aggregatingMetrics;
+    this.indexCache = indexCache;
+    this.blockStore = new BlockStore(objectKey, metadata, aggregatingMetrics, indexCache);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
@@ -231,7 +232,8 @@ public class BlockManager implements Closeable {
                     readMode,
                     this.configuration.getBlockReadTimeout(),
                     this.configuration.getBlockReadRetryCount(),
-                    blockMetricsAndCacheHandler,
+                    aggregatingMetrics,
+                    indexCache,
                     streamContext);
             blockStore.add(blockKey, block);
           }

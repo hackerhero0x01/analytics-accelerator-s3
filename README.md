@@ -134,6 +134,21 @@ These optimizations are:
 * Predictive column prefetching - The library tracks recent columns being read using parquet metadata. When
   subsequent Parquet files which have these columns are opened, the library will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened, and it also contains columns named `x` and `y`, the library will prefetch them asynchronously.
 
+## Memory Used by Library
+
+* The Analytics Accelerator Library uses a memory structure called blobstore to store data fetched from S3.
+* To keep the memory usage under a limit, the library implements a Caffeine index cache to store indexes of all blocks across all blobs. Each block is indexed using a BlockKey (combination of ObjectKey [S3Uri + Etag] and Range [start and end byte]).
+* The Caffeine cache is configured with:
+  * Entry expiration after 1 second of inactivity
+  * Custom weigher using block size as weight
+  * Maximum total weight set to configured blobstore memory limit.
+* The library runs a cleanup task every 5 seconds to sync the blobstore with the index cache and respect memory limits.
+* Memory limit can be set using the key `max.memory.limit` by default which is `2GB`. Maximum memory limit (in bytes) that BlobStore can utilize for storage.
+* Cache data timeout can be set using the key `cache.timeout` by default which is `1s`. Time duration (in milliseconds) a block remains in BlobStore after its last access.
+* Cleanup frequency can be set using the key `memory.cleanup.frequency` by default which is `5s`. Time period (in milliseconds) between consecutive BlobStore eviction cycles.
+To learn more about how to set the configurations, read our [configuration](doc/CONFIGURATION.md) documents.
+
+
 ## Benchmark Results 
 
 ### Benchmarking Results -- November 25, 2024

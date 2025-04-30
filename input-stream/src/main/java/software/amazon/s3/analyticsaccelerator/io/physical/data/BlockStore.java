@@ -17,13 +17,17 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.BlockKey;
-import software.amazon.s3.analyticsaccelerator.util.BlockMetricsAndCacheHandler;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 
@@ -35,26 +39,30 @@ public class BlockStore implements Closeable {
   private final ObjectKey s3URI;
   private final ObjectMetadata metadata;
   private final Map<BlockKey, Block> blocks;
-  private final BlockMetricsAndCacheHandler blockMetricsAndCacheHandler;
+  private final Metrics aggregatingMetrics;
+  private final BlobStoreIndexCache indexCache;
 
   /**
    * Constructs a new instance of a BlockStore.
    *
    * @param objectKey the etag and S3 URI of the object
    * @param metadata the metadata for the object
-   * @param blockMetricsAndCacheHandler callback to update metrics
+   * @param aggregatingMetrics blobstore metrics
+   * @param indexCache blobstore index cache
    */
   public BlockStore(
       ObjectKey objectKey,
       ObjectMetadata metadata,
-      BlockMetricsAndCacheHandler blockMetricsAndCacheHandler) {
+      Metrics aggregatingMetrics,
+      BlobStoreIndexCache indexCache) {
     Preconditions.checkNotNull(objectKey, "`objectKey` must not be null");
     Preconditions.checkNotNull(metadata, "`metadata` must not be null");
 
     this.s3URI = objectKey;
     this.metadata = metadata;
     this.blocks = new LinkedHashMap<>();
-    this.blockMetricsAndCacheHandler = blockMetricsAndCacheHandler;
+    this.aggregatingMetrics = aggregatingMetrics;
+    this.indexCache = indexCache;
   }
 
   /**
@@ -78,9 +86,9 @@ public class BlockStore implements Closeable {
 
     Optional<Block> block = blocks.values().stream().filter(b -> b.contains(pos)).findFirst();
     if (block.isPresent()) {
-      blockMetricsAndCacheHandler.updateMetrics(MetricKey.CACHE_HIT, 1L);
+      aggregatingMetrics.add(MetricKey.CACHE_HIT, 1L);
     } else {
-      blockMetricsAndCacheHandler.updateMetrics(MetricKey.CACHE_MISS, 1L);
+      aggregatingMetrics.add(MetricKey.CACHE_MISS, 1L);
     }
     return block;
   }
@@ -155,13 +163,12 @@ public class BlockStore implements Closeable {
       Map.Entry<BlockKey, Block> entry = iterator.next();
       BlockKey blockKey = entry.getKey();
 
-      if (entry.getValue().isDataLoaded()
-          && !blockMetricsAndCacheHandler.isPresentInIndexCache(blockKey)) {
+      if (entry.getValue().isDataLoaded() && !indexCache.contains(blockKey)) {
         // The block is not in the index cache, so remove it from the block store
         int range = blockKey.getRange().getLength();
         try {
           iterator.remove(); // Remove from the iterator as well
-          blockMetricsAndCacheHandler.reduceMetrics(MetricKey.MEMORY_USAGE, range);
+          aggregatingMetrics.reduce(MetricKey.MEMORY_USAGE, range);
           LOG.debug(
               "Removed block with key {}-{}-{} from block store during cleanup",
               blockKey.getObjectKey().getS3URI(),
