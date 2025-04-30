@@ -136,7 +136,7 @@ These optimizations are:
 
 When the object key ends with the file extension `.csv`, `.json`, or `.txt`, we use the following sequential format optimizations:
 
-Partition-aligned prefetching - The library implements aggressive prefetching up to the configured partition size. The default partition size is 128MB, which can be modified through configuration. This optimization reduces the number of GET requests by fetching larger chunks of data in advance, resulting in improved read throughput for sequential access patterns.
+Partition-aligned prefetching - The library implements aggressive prefetching up to the configured partition size. The default partition size is 128MB, which can be modified by setting the `partition.size` configuration parameter. This optimization reduces the number of GET requests by fetching larger chunks of data in advance, resulting in improved read throughput for sequential access patterns.
 ## Benchmark Results 
 
 ### Benchmarking Results -- November 25, 2024
