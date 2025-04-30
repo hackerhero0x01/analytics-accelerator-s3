@@ -49,11 +49,8 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
     ObjectClient objectClient = new InMemoryObjectClient(len);
 
     Map<String, String> configMap = new HashMap<>();
-    long maxHeapBytes = Runtime.getRuntime().maxMemory();
-    double percentage = 0.01;
-    long capacityBytes = (long) (maxHeapBytes * percentage);
 
-    configMap.put("physicalio.max.memory.limit", String.valueOf(capacityBytes));
+    configMap.put("physicalio.max.memory.limit", getMemoryCapacity());
     configMap.put("physicalio.memory.cleanup.frequency", "1");
 
     ConnectorConfiguration connectorConfig = new ConnectorConfiguration(configMap);
@@ -128,6 +125,13 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
   @Override
   public int read() throws IOException {
     return this.delegate.read();
+  }
+
+  private String getMemoryCapacity() {
+    long maxHeapBytes = Runtime.getRuntime().maxMemory();
+    double percentage = 0.01;
+    long capacityBytes = (long) (maxHeapBytes * percentage);
+    return String.valueOf(capacityBytes);
   }
 
   @Override

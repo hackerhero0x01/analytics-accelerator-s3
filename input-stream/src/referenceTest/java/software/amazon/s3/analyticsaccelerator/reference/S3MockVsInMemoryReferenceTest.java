@@ -76,11 +76,8 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
     s3Client = createS3ClientV2(S3_MOCK.getHttpsEndpoint());
     // Initialise streams
     Map<String, String> configMap = new HashMap<>();
-    long maxHeapBytes = Runtime.getRuntime().maxMemory();
-    double percentage = 0.01;
-    long capacityBytes = (long) (maxHeapBytes * percentage);
 
-    configMap.put("physicalio.max.memory.limit", String.valueOf(capacityBytes));
+    configMap.put("physicalio.max.memory.limit", getMemoryCapacity());
     configMap.put("physicalio.memory.cleanup.frequency", "1");
 
     ConnectorConfiguration connectorConfig = new ConnectorConfiguration(configMap);
@@ -96,6 +93,13 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
     if (s3SeekableInputStreamFactory != null) {
       s3SeekableInputStreamFactory.close();
     }
+  }
+
+  private static String getMemoryCapacity() {
+    long maxHeapBytes = Runtime.getRuntime().maxMemory();
+    double percentage = 0.01;
+    long capacityBytes = (long) (maxHeapBytes * percentage);
+    return String.valueOf(capacityBytes);
   }
 
   void setupStreams(int size) throws IOException {
