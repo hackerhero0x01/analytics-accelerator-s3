@@ -135,19 +135,14 @@ These optimizations are:
   subsequent Parquet files which have these columns are opened, the library will prefetch these columns. For example, if columns `x` and `y` are read from `A.parquet` , and then `B.parquet` is opened, and it also contains columns named `x` and `y`, the library will prefetch them asynchronously.
 
 ## Memory Used by Library
-
-* The Analytics Accelerator Library uses a memory structure called blobstore to store data fetched from S3.
-* To keep the memory usage under a limit, the library implements a Caffeine index cache to store indexes of all blocks across all blobs. Each block is indexed using a BlockKey (combination of ObjectKey [S3Uri + Etag] and Range [start and end byte]).
-* The Caffeine cache is configured with:
-  * Entry expiration after 1 second of inactivity
-  * Custom weigher using block size as weight
-  * Maximum total weight set to configured blobstore memory limit.
-* The library runs a cleanup task every 5 seconds to sync the blobstore with the index cache and respect memory limits.
-* Memory limit can be set using the key `max.memory.limit` by default which is `2GB`. Maximum memory limit (in bytes) that BlobStore can utilize for storage.
-* Cache data timeout can be set using the key `cache.timeout` by default which is `1s`. Time duration (in milliseconds) a block remains in BlobStore after its last access.
-* Cleanup frequency can be set using the key `memory.cleanup.frequency` by default which is `5s`. Time period (in milliseconds) between consecutive BlobStore eviction cycles.
+Analytics Accelerator Library for Amazon S3 implements a best-effort memory limiting mechanism. The library fetches data from S3 in blocks of bytes and keeps them in memory. Memory management is achieved through a dual strategy combining Time-to-Live (TTL) and maximum memory threshold.
+When time to live or memory usage exceeds the configured threshold, blocks to be removed are identified using [Time_based_eviction](https://github.com/ben-manes/caffeine/wiki/Eviction#time-based) and [Window TinyLfu algorithm](https://github.com/ben-manes/caffeine/wiki/Efficiency) respectively, implemented by [Caffeine library](https://github.com/ben-manes/caffeine/blob/master/README.md). Removal is done using an async process that runs every `X` seconds, meaning memory usage might temporarily exceed the threshold. This overflow period can be minimized by increasing the cleanup frequency, though at the cost of higher CPU utilization.
+You can change TTL, memory usage threshold and cleanup frequency as follows:
+Note: We allow only positive values for the below configs.
+* Memory limit can be set using the key `max.memory.limit` by default which is `2GB`. Take into consideration workload and system resources when configuring this value. For eg: For parquet workload consider factors like row group size and number of vCPUs on executors.
+* Cache data timeout can be set using the key `cache.timeout` by default which is `1s`.
+* Cleanup frequency can be set using the key `memory.cleanup.frequency` by default which is `5s`.
 To learn more about how to set the configurations, read our [configuration](doc/CONFIGURATION.md) documents.
-
 
 ## Benchmark Results 
 
