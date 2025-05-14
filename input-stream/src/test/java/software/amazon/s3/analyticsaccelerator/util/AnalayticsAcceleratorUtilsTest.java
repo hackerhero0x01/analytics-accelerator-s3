@@ -77,7 +77,7 @@ class AnalayticsAcceleratorUtilsTest {
   void testIsSmallObject_WhenPrefetchingIsDisabled() {
     // Given
     when(configuration.isSmallObjectsPrefetchingEnabled()).thenReturn(false);
-    long contentLength = 5 * 1024 * 1024L; // 5MB - smaller than threshold
+    long contentLength = 5 * 1024 * 1024L; // 5MB (smaller than threshold)
 
     // When/Then
     assertFalse(
