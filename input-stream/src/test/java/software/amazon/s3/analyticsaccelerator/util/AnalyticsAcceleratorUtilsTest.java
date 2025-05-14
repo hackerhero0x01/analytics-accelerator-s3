@@ -29,20 +29,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 
 @ExtendWith(MockitoExtension.class)
-class AnalayticsAcceleratorUtilsTest {
+class AnalyticsAcceleratorUtilsTest {
 
   @Mock private PhysicalIOConfiguration configuration;
 
   @Test
   void testUtilityClass() throws Exception {
-    Constructor<AnalayticsAcceleratorUtils> constructor =
-        AnalayticsAcceleratorUtils.class.getDeclaredConstructor();
+    Constructor<AnalyticsAcceleratorUtils> constructor =
+        AnalyticsAcceleratorUtils.class.getDeclaredConstructor();
 
     constructor.newInstance();
 
     // Verify all methods are static
     assertTrue(
-        Arrays.stream(AnalayticsAcceleratorUtils.class.getDeclaredMethods())
+        Arrays.stream(AnalyticsAcceleratorUtils.class.getDeclaredMethods())
             .allMatch(method -> Modifier.isStatic(method.getModifiers())),
         "All methods in utility class should be static");
   }
@@ -56,7 +56,7 @@ class AnalayticsAcceleratorUtilsTest {
 
     // When/Then
     assertTrue(
-        AnalayticsAcceleratorUtils.isSmallObject(configuration, contentLength),
+        AnalyticsAcceleratorUtils.isSmallObject(configuration, contentLength),
         "5MB object should be considered small when threshold is 8MB");
   }
 
@@ -69,7 +69,7 @@ class AnalayticsAcceleratorUtilsTest {
 
     // When/Then
     assertFalse(
-        AnalayticsAcceleratorUtils.isSmallObject(configuration, contentLength),
+        AnalyticsAcceleratorUtils.isSmallObject(configuration, contentLength),
         "10MB object should not be considered small when threshold is 8MB");
   }
 
@@ -81,7 +81,7 @@ class AnalayticsAcceleratorUtilsTest {
 
     // When/Then
     assertFalse(
-        AnalayticsAcceleratorUtils.isSmallObject(configuration, contentLength),
+        AnalyticsAcceleratorUtils.isSmallObject(configuration, contentLength),
         "Should return false when prefetching is disabled, regardless of object size");
   }
 }

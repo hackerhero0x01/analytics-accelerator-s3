@@ -130,7 +130,7 @@ public class BlockManager implements Closeable {
    * asynchronously to avoid blocking the constructor.
    */
   private void prefetchSmallObject() {
-    if (AnalayticsAcceleratorUtils.isSmallObject(configuration, metadata.getContentLength())) {
+    if (AnalyticsAcceleratorUtils.isSmallObject(configuration, metadata.getContentLength())) {
       CompletableFuture.runAsync(
           () -> {
             try {

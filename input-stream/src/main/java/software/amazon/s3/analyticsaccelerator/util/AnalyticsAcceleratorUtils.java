@@ -21,7 +21,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
  * Utility class for object size-related operations and determinations. Provides methods to classify
  * objects based on their size and configuration settings.
  */
-public class AnalayticsAcceleratorUtils {
+public class AnalyticsAcceleratorUtils {
   /**
    * Determines if an object should be treated as a small object based on the given configuration.
    *
