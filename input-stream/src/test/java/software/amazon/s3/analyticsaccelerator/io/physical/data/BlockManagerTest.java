@@ -152,14 +152,16 @@ public class BlockManagerTest {
   @Test
   void testGetBlockReturnsAvailableBlock() throws IOException {
     // Given
-    BlockManager blockManager = getTestBlockManager(9 * ONE_MB);
+    PhysicalIOConfiguration config =
+        PhysicalIOConfiguration.builder().smallObjectsPrefetchingEnabled(false).build();
+    BlockManager blockManager = getTestBlockManager(mock(ObjectClient.class), 65 * ONE_KB, config);
 
-    // When: have a 8MB block available from 0
+    // When: have a 64KB block available from 0
     blockManager.makePositionAvailable(0, ReadMode.SYNC);
 
-    // Then: 0 returns a block but 8MB + 1 byte returns no block
+    // Then: 0 returns a block but 64KB + 1 byte returns no block
     assertTrue(blockManager.getBlock(0).isPresent());
-    assertFalse(blockManager.getBlock(8 * ONE_MB).isPresent());
+    assertFalse(blockManager.getBlock(64 * ONE_KB).isPresent());
   }
 
   @Test

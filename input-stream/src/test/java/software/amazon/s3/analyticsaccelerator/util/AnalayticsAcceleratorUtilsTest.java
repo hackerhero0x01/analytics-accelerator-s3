@@ -29,7 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 
 @ExtendWith(MockitoExtension.class)
-class ObjectSizeTest {
+class AnalayticsAcceleratorUtilsTest {
 
   @Mock private PhysicalIOConfiguration configuration;
 
@@ -71,5 +71,17 @@ class ObjectSizeTest {
     assertFalse(
         AnalayticsAcceleratorUtils.isSmallObject(configuration, contentLength),
         "10MB object should not be considered small when threshold is 8MB");
+  }
+
+  @Test
+  void testIsSmallObject_WhenPrefetchingIsDisabled() {
+    // Given
+    when(configuration.isSmallObjectsPrefetchingEnabled()).thenReturn(false);
+    long contentLength = 5 * 1024 * 1024L; // 5MB - smaller than threshold
+
+    // When/Then
+    assertFalse(
+        AnalayticsAcceleratorUtils.isSmallObject(configuration, contentLength),
+        "Should return false when prefetching is disabled, regardless of object size");
   }
 }
