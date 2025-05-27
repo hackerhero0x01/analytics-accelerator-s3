@@ -142,6 +142,25 @@ public class PhysicalIOImplTest {
               null,
               executorService);
         });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new PhysicalIOImpl(
+              s3URI, mock(MetadataStore.class), mock(BlobStore.class), TestTelemetry.DEFAULT, null);
+        });
+
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new PhysicalIOImpl(
+              s3URI,
+              mock(MetadataStore.class),
+              mock(BlobStore.class),
+              TestTelemetry.DEFAULT,
+              null,
+              null);
+        });
   }
 
   @Test
