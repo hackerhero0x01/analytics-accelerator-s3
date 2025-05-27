@@ -15,7 +15,9 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
@@ -40,6 +42,9 @@ public class PhysicalIOImpl implements PhysicalIO {
   private ObjectKey objectKey;
   private final ObjectMetadata metadata;
 
+  @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "Setting up for future use")
+  private final ExecutorService threadPool;
+
   private final long physicalIOBirth = System.nanoTime();
 
   private static final String OPERATION_READ = "physical.io.read";
@@ -54,14 +59,16 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param metadataStore a metadata cache
    * @param blobStore a data cache
    * @param telemetry The {@link Telemetry} to use to report measurements.
+   * @param threadPool Thread pool for async operations
    */
   public PhysicalIOImpl(
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
-      @NonNull Telemetry telemetry)
+      @NonNull Telemetry telemetry,
+      @NonNull ExecutorService threadPool)
       throws IOException {
-    this(s3URI, metadataStore, blobStore, telemetry, null);
+    this(s3URI, metadataStore, blobStore, telemetry, null, threadPool);
   }
 
   /**
@@ -72,13 +79,15 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param blobStore a data cache
    * @param telemetry The {@link Telemetry} to use to report measurements.
    * @param streamContext contains audit headers to be attached in the request header
+   * @param threadPool Thread pool for async operations
    */
   public PhysicalIOImpl(
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
       @NonNull Telemetry telemetry,
-      StreamContext streamContext)
+      StreamContext streamContext,
+      @NonNull ExecutorService threadPool)
       throws IOException {
     this.metadataStore = metadataStore;
     this.blobStore = blobStore;
@@ -86,6 +95,7 @@ public class PhysicalIOImpl implements PhysicalIO {
     this.streamContext = streamContext;
     this.metadata = this.metadataStore.get(s3URI);
     this.objectKey = ObjectKey.builder().s3URI(s3URI).etag(metadata.getEtag()).build();
+    this.threadPool = threadPool;
   }
 
   /**
