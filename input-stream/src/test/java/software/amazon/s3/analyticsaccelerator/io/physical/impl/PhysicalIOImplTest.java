@@ -361,7 +361,8 @@ public class PhysicalIOImplTest {
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
 
     PhysicalIOImpl physicalIO =
-        new PhysicalIOImpl(s3URI, metadataStore, mockBlobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI, metadataStore, mockBlobStore, TestTelemetry.DEFAULT, executorService);
     ObjectKey objectKey = ObjectKey.builder().s3URI(s3URI).etag(fakeObjectClient.getEtag()).build();
     // When
     physicalIO.close(true);
