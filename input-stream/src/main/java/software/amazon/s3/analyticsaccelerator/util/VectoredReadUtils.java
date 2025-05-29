@@ -102,7 +102,6 @@ public final class VectoredReadUtils {
    *
    * @param range range to validate.
    * @return the range.
-   * @param range range for vectoredRead
    * @throws IllegalArgumentException the range length is negative or other invalid condition is met
    *     other than the those which raise EOFException or NullPointerException.
    * @throws EOFException the range offset is negative
