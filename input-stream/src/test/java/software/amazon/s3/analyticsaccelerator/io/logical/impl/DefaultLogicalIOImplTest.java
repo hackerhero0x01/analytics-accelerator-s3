@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
 import org.junit.jupiter.api.Test;
+import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
@@ -123,7 +124,8 @@ public class DefaultLogicalIOImplTest {
     PhysicalIO physicalIO = mock(PhysicalIO.class);
     when(physicalIO.metadata())
         .thenReturn(ObjectMetadata.builder().contentLength(123).etag("random").build());
-    DefaultLogicalIOImpl logicalIO = new DefaultLogicalIOImpl(TEST_URI, physicalIO, Telemetry.NOOP);
+    DefaultLogicalIOImpl logicalIO =
+        new DefaultLogicalIOImpl(TEST_URI, physicalIO, TestTelemetry.DEFAULT);
     List<ObjectRange> ranges = new ArrayList<>();
     IntFunction<ByteBuffer> allocate = ByteBuffer::allocate;
     logicalIO.readVectored(ranges, allocate);
