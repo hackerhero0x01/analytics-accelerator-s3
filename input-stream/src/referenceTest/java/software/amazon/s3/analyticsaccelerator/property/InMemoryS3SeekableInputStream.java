@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import lombok.Getter;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
@@ -127,9 +128,10 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
   }
 
   @Override
-  public void readVectored(List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate)
+  public void readVectored(
+      List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate, Consumer<ByteBuffer> release)
       throws IOException {
-    this.delegate.readVectored(ranges, allocate);
+    this.delegate.readVectored(ranges, allocate, release);
   }
 
   @Override

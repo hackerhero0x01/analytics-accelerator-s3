@@ -38,6 +38,8 @@ import lombok.NonNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.provider.Arguments;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.checksums.Crc32CChecksum;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -49,6 +51,8 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 /** Base class for the integration tests */
 public abstract class IntegrationTestBase extends ExecutionBase {
   @NonNull private final AtomicReference<S3ExecutionContext> s3ExecutionContext = new AtomicReference<>();
+
+  private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestBase.class);
 
   private static final int DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
 
@@ -202,7 +206,12 @@ public abstract class IntegrationTestBase extends ExecutionBase {
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 1000, 800));
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 4000, 5000));
 
-      s3SeekableInputStream.readVectored(objectRanges, allocate);
+      s3SeekableInputStream.readVectored(
+          objectRanges,
+          allocate,
+          (buffer) -> {
+            LOG.debug("Release buffer of length {}: {}", buffer.limit(), buffer);
+          });
 
       for (ObjectRange objectRange : objectRanges) {
         ByteBuffer byteBuffer = objectRange.getByteBuffer().join();

@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
@@ -70,10 +71,14 @@ public abstract class SeekableInputStream extends InputStream {
    *
    * @param ranges Ranges to be fetched in parallel
    * @param allocate the function to allocate ByteBuffer
+   * @param release release the buffer back to buffer pool in case of exceptions
    * @throws IOException on any IO failure
    */
   public abstract void readVectored(
-      List<ObjectRange> ranges, final IntFunction<ByteBuffer> allocate) throws IOException;
+      List<ObjectRange> ranges,
+      final IntFunction<ByteBuffer> allocate,
+      Consumer<ByteBuffer> release)
+      throws IOException;
 
   /**
    * Validates the arguments for a read operation. This method is available to use in all subclasses

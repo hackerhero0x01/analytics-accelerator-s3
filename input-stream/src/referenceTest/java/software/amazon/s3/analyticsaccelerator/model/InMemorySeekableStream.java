@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.model;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import org.junit.platform.commons.util.Preconditions;
 import software.amazon.s3.analyticsaccelerator.SeekableInputStream;
@@ -71,7 +72,8 @@ public class InMemorySeekableStream extends SeekableInputStream {
   }
 
   @Override
-  public void readVectored(List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate) {
+  public void readVectored(
+      List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate, Consumer<ByteBuffer> release) {
     for (ObjectRange range : ranges) {
       ByteBuffer buffer = allocate.apply(range.getLength());
       data.position((int) range.getOffset());
