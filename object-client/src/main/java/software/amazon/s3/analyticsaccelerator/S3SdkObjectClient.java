@@ -36,6 +36,9 @@ import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
+import static software.amazon.s3.analyticsaccelerator.request.RequestAttributes.OPERATION_NAME;
+import static software.amazon.s3.analyticsaccelerator.request.RequestAttributes.SPAN_ID;
+
 /** Object client, based on AWS SDK v2 */
 public class S3SdkObjectClient implements ObjectClient {
   private static final String HEADER_USER_AGENT = "User-Agent";
@@ -45,6 +48,7 @@ public class S3SdkObjectClient implements ObjectClient {
   @NonNull private final Telemetry telemetry;
   @NonNull private final UserAgent userAgent;
   private final boolean closeAsyncClient;
+
 
   /**
    * Create an instance of a S3 client, with default configuration, for interaction with Amazon S3
@@ -153,20 +157,12 @@ public class S3SdkObjectClient implements ObjectClient {
 
     final String range = getRequest.getRange().toHttpString();
     builder.range(range);
+    
+    AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder = AwsRequestOverrideConfiguration.builder()
+            .putHeader(HEADER_REFERER, getRequest.getReferrer().toString())
+            .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent());
 
-    final String referrerHeader;
-    if (openStreamInformation.getStreamContext() != null) {
-      referrerHeader =
-          openStreamInformation.getStreamContext().modifyAndBuildReferrerHeader(getRequest);
-    } else {
-      referrerHeader = getRequest.getReferrer().toString();
-    }
-
-    builder.overrideConfiguration(
-        AwsRequestOverrideConfiguration.builder()
-            .putHeader(HEADER_REFERER, referrerHeader)
-            .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
-            .build());
+    builder.overrideConfiguration(requestOverrideConfigurationBuilder.build());
 
     return this.telemetry.measureCritical(
         () ->
@@ -178,7 +174,7 @@ public class S3SdkObjectClient implements ObjectClient {
                 .build(),
         s3AsyncClient
             .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
-            .thenApply(
+                .thenApply(
                 responseInputStream -> ObjectContent.builder().stream(responseInputStream).build())
             .exceptionally(handleException(getRequest.getS3Uri())));
   }
