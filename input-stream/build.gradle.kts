@@ -376,7 +376,7 @@ publishing {
     repositories {
         maven {
             name = "sonatype"
-            url = uri("https://aws.oss.sonatype.org/service/local/staging/deploy/maven2/")
+            url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
            credentials {
                username = findProperty("mavenUsername") as String? ?: ""
                password = findProperty("mavenPassword") as String? ?: ""
