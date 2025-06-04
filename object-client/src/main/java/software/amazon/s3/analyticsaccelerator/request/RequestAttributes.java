@@ -18,12 +18,12 @@ package software.amazon.s3.analyticsaccelerator.request;
 import software.amazon.awssdk.core.interceptor.ExecutionAttribute;
 
 /**
- * These execution attributes are specific to the hadoop S3A integration, and are required for S3A's auditing feature.
- * These execution attributes can be set per request, which are then picked up by execution interceptors in S3A.
- * See S3A's LoggingAuditor for more usage.
+ * These execution attributes are specific to the hadoop S3A integration, and are required for S3A's
+ * auditing feature. These execution attributes can be set per request, which are then picked up by
+ * execution interceptors in S3A. See S3A's LoggingAuditor for more usage.
  */
-public class RequestAttributes
-{
-    public static final ExecutionAttribute<String> SPAN_ID  = new ExecutionAttribute<>("span");
-    public static final ExecutionAttribute<String> OPERATION_NAME  = new ExecutionAttribute<>("operation");
+public class RequestAttributes {
+  public static final ExecutionAttribute<String> SPAN_ID = new ExecutionAttribute<>("span");
+  public static final ExecutionAttribute<String> OPERATION_NAME =
+      new ExecutionAttribute<>("operation");
 }
