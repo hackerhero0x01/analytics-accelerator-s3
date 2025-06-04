@@ -223,15 +223,27 @@ public class S3SdkObjectClientTest {
   }
 
   @Test
-  void testGetObjectWithAuditHeaders() {
+  void testObjectClientClose() {
+    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+      try (S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient)) {
+        client.headObject(
+            HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build(),
+            OpenStreamInformation.DEFAULT);
+      }
+      verify(s3AsyncClient, times(1)).close();
+    }
+  }
+
+  @Test
+  void testGetObjectAttachesExecutionAttributes() {
     S3AsyncClient mockS3AsyncClient = createMockClient();
 
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
 
-    OpenStreamInformation openStreamInformation = mock(OpenStreamInformation.class);
-    StreamContext mockStreamContext = mock(StreamContext.class);
-    when(openStreamInformation.getStreamContext()).thenReturn(mockStreamContext);
-    when(mockStreamContext.modifyAndBuildReferrerHeader(any())).thenReturn("audit-referrer-value");
+    OpenStreamInformation openStreamInformation =
+        OpenStreamInformation.builder()
+            .streamContext(StreamContext.builder().spanId("12345").operationName("op_open").build())
+            .build();
 
     GetRequest getRequest =
         GetRequest.builder()
@@ -255,26 +267,40 @@ public class S3SdkObjectClientTest {
 
     GetObjectRequest capturedRequest = requestCaptor.getValue();
     assertEquals(
-        "audit-referrer-value",
-        capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
-    assertEquals(ETAG, capturedRequest.ifMatch());
+        "12345",
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(RequestAttributes.SPAN_ID));
+    assertEquals(
+        "op_open",
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(RequestAttributes.OPERATION_NAME));
   }
 
   @Test
-  void testGetObjectWithoutAuditHeaders() {
+  void testGetObjectDoesNotAttachExecutionAttributesWhenNotSet() {
     S3AsyncClient mockS3AsyncClient = createMockClient();
 
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    OpenStreamInformation openStreamInformation = OpenStreamInformation.DEFAULT;
 
     GetRequest getRequest =
         GetRequest.builder()
             .s3Uri(S3URI.of("bucket", "key"))
             .range(new Range(0, 20))
             .etag(ETAG)
-            .referrer(new Referrer("original-referrer", ReadMode.SYNC))
+            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
             .build();
 
-    client.getObject(getRequest, OpenStreamInformation.DEFAULT);
+    client.getObject(getRequest, openStreamInformation);
 
     ArgumentCaptor<GetObjectRequest> requestCaptor =
         ArgumentCaptor.forClass(GetObjectRequest.class);
@@ -288,22 +314,94 @@ public class S3SdkObjectClientTest {
 
     GetObjectRequest capturedRequest = requestCaptor.getValue();
     assertEquals(
-        "original-referrer,readMode=SYNC",
-        capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
-
-    assertEquals(ETAG, capturedRequest.ifMatch());
+        null,
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(RequestAttributes.SPAN_ID));
+    assertEquals(
+        null,
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(RequestAttributes.OPERATION_NAME));
   }
 
   @Test
-  void testObjectClientClose() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
-      try (S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient)) {
-        client.headObject(
-            HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build(),
-            OpenStreamInformation.DEFAULT);
-      }
-      verify(s3AsyncClient, times(1)).close();
-    }
+  void testHeadObjectAttachesExecutionAttributes() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    OpenStreamInformation openStreamInformation =
+        OpenStreamInformation.builder()
+            .streamContext(StreamContext.builder().spanId("12345").operationName("op_open").build())
+            .build();
+
+    HeadRequest headRequest = HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build();
+
+    client.headObject(headRequest, openStreamInformation);
+
+    ArgumentCaptor<HeadObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(mockS3AsyncClient).headObject(requestCaptor.capture());
+
+    HeadObjectRequest capturedRequest = requestCaptor.getValue();
+    assertEquals(
+        "12345",
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(RequestAttributes.SPAN_ID));
+    assertEquals(
+        "op_open",
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(RequestAttributes.OPERATION_NAME));
+  }
+
+  @Test
+  void testHeadObjectDoesNotAttachExecutionAttributesWhenNotSet() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    OpenStreamInformation openStreamInformation = OpenStreamInformation.DEFAULT;
+
+    HeadRequest headRequest = HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build();
+
+    client.headObject(headRequest, openStreamInformation);
+
+    ArgumentCaptor<HeadObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(mockS3AsyncClient).headObject(requestCaptor.capture());
+
+    HeadObjectRequest capturedRequest = requestCaptor.getValue();
+    assertEquals(
+        null,
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(RequestAttributes.SPAN_ID));
+    assertEquals(
+        null,
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(RequestAttributes.OPERATION_NAME));
   }
 
   @SuppressWarnings("unchecked")

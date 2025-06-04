@@ -15,6 +15,9 @@
  */
 package software.amazon.s3.analyticsaccelerator;
 
+import static software.amazon.s3.analyticsaccelerator.request.RequestAttributes.OPERATION_NAME;
+import static software.amazon.s3.analyticsaccelerator.request.RequestAttributes.SPAN_ID;
+
 import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -36,9 +39,6 @@ import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
-import static software.amazon.s3.analyticsaccelerator.request.RequestAttributes.OPERATION_NAME;
-import static software.amazon.s3.analyticsaccelerator.request.RequestAttributes.SPAN_ID;
-
 /** Object client, based on AWS SDK v2 */
 public class S3SdkObjectClient implements ObjectClient {
   private static final String HEADER_USER_AGENT = "User-Agent";
@@ -48,7 +48,6 @@ public class S3SdkObjectClient implements ObjectClient {
   @NonNull private final Telemetry telemetry;
   @NonNull private final UserAgent userAgent;
   private final boolean closeAsyncClient;
-
 
   /**
    * Create an instance of a S3 client, with default configuration, for interaction with Amazon S3
@@ -121,11 +120,17 @@ public class S3SdkObjectClient implements ObjectClient {
             .bucket(headRequest.getS3Uri().getBucket())
             .key(headRequest.getS3Uri().getKey());
 
-    // Add User-Agent header to the request.
-    builder.overrideConfiguration(
-        AwsRequestOverrideConfiguration.builder()
-            .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
-            .build());
+    AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder =
+        AwsRequestOverrideConfiguration.builder();
+
+    requestOverrideConfigurationBuilder.putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent());
+
+    if (openStreamInformation.getStreamContext() != null) {
+      attachStreamContextToExecutionAttributes(
+          requestOverrideConfigurationBuilder, openStreamInformation.getStreamContext());
+    }
+
+    builder.overrideConfiguration(requestOverrideConfigurationBuilder.build());
 
     return this.telemetry
         .measureCritical(
@@ -157,10 +162,16 @@ public class S3SdkObjectClient implements ObjectClient {
 
     final String range = getRequest.getRange().toHttpString();
     builder.range(range);
-    
-    AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder = AwsRequestOverrideConfiguration.builder()
+
+    AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder =
+        AwsRequestOverrideConfiguration.builder()
             .putHeader(HEADER_REFERER, getRequest.getReferrer().toString())
             .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent());
+
+    if (openStreamInformation.getStreamContext() != null) {
+      attachStreamContextToExecutionAttributes(
+          requestOverrideConfigurationBuilder, openStreamInformation.getStreamContext());
+    }
 
     builder.overrideConfiguration(requestOverrideConfigurationBuilder.build());
 
@@ -174,7 +185,7 @@ public class S3SdkObjectClient implements ObjectClient {
                 .build(),
         s3AsyncClient
             .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
-                .thenApply(
+            .thenApply(
                 responseInputStream -> ObjectContent.builder().stream(responseInputStream).build())
             .exceptionally(handleException(getRequest.getS3Uri())));
   }
@@ -190,5 +201,13 @@ public class S3SdkObjectClient implements ObjectClient {
               .orElse(throwable);
       throw new UncheckedIOException(ExceptionHandler.toIOException(cause, s3Uri));
     };
+  }
+
+  private void attachStreamContextToExecutionAttributes(
+      AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder,
+      StreamContext streamContext) {
+    requestOverrideConfigurationBuilder
+        .putExecutionAttribute(SPAN_ID, streamContext.getSpanId())
+        .putExecutionAttribute(OPERATION_NAME, streamContext.getOperationName());
   }
 }

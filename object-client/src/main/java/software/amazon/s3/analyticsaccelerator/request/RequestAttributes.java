@@ -22,7 +22,10 @@ import software.amazon.awssdk.core.interceptor.ExecutionAttribute;
  * auditing feature. These execution attributes can be set per request, which are then picked up by
  * execution interceptors in S3A. See S3A's LoggingAuditor for more usage.
  */
-public class RequestAttributes {
+public final class RequestAttributes {
+  /** Prevent instantiation, this is meant to be a facade */
+  private RequestAttributes() {}
+
   public static final ExecutionAttribute<String> SPAN_ID = new ExecutionAttribute<>("span");
   public static final ExecutionAttribute<String> OPERATION_NAME =
       new ExecutionAttribute<>("operation");
