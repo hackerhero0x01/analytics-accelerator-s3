@@ -42,7 +42,7 @@ import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Object client, based on AWS SDK v2 */
-public class S3SdkObjectClient implements ObjectClient {;
+public class S3SdkObjectClient implements ObjectClient {
 
   @Getter @NonNull private final S3AsyncClient s3AsyncClient;
   @NonNull private final Telemetry telemetry;
