@@ -19,7 +19,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
+import software.amazon.s3.analyticsaccelerator.request.StreamAuditContext;
 
 /**
  * Open stream information, useful for allowing the stream opening application to pass down known
@@ -38,7 +38,7 @@ import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 @Builder(access = AccessLevel.PUBLIC)
 @Getter
 public class OpenStreamInformation {
-  private final StreamContext streamContext;
+  private final StreamAuditContext streamAuditContext;
   private final ObjectMetadata objectMetadata;
   private final InputPolicy inputPolicy;
 

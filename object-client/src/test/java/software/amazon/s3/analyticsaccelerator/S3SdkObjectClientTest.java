@@ -242,7 +242,8 @@ public class S3SdkObjectClientTest {
 
     OpenStreamInformation openStreamInformation =
         OpenStreamInformation.builder()
-            .streamContext(StreamContext.builder().spanId("12345").operationName("op_open").build())
+            .streamAuditContext(
+                StreamAuditContext.builder().spanId("12345").operationName("op_open").build())
             .build();
 
     GetRequest getRequest =
@@ -339,7 +340,8 @@ public class S3SdkObjectClientTest {
 
     OpenStreamInformation openStreamInformation =
         OpenStreamInformation.builder()
-            .streamContext(StreamContext.builder().spanId("12345").operationName("op_open").build())
+            .streamAuditContext(
+                StreamAuditContext.builder().spanId("12345").operationName("op_open").build())
             .build();
 
     HeadRequest headRequest = HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build();

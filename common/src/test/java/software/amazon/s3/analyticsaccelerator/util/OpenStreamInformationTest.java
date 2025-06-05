@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
+import software.amazon.s3.analyticsaccelerator.request.StreamAuditContext;
 
 public class OpenStreamInformationTest {
 
@@ -29,41 +29,41 @@ public class OpenStreamInformationTest {
     OpenStreamInformation info = OpenStreamInformation.DEFAULT;
 
     assertNotNull(info, "Default instance should not be null");
-    assertNull(info.getStreamContext(), "Default streamContext should be null");
+    assertNull(info.getStreamAuditContext(), "Default streamContext should be null");
     assertNull(info.getObjectMetadata(), "Default objectMetadata should be null");
     assertNull(info.getInputPolicy(), "Default inputPolicy should be null");
   }
 
   @Test
   public void testBuilderWithAllFields() {
-    StreamContext mockContext = Mockito.mock(StreamContext.class);
+    StreamAuditContext mockContext = Mockito.mock(StreamAuditContext.class);
     ObjectMetadata mockMetadata = Mockito.mock(ObjectMetadata.class);
     InputPolicy mockPolicy = Mockito.mock(InputPolicy.class);
 
     OpenStreamInformation info =
         OpenStreamInformation.builder()
-            .streamContext(mockContext)
+            .streamAuditContext(mockContext)
             .objectMetadata(mockMetadata)
             .inputPolicy(mockPolicy)
             .build();
 
-    assertSame(mockContext, info.getStreamContext(), "StreamContext should match");
+    assertSame(mockContext, info.getStreamAuditContext(), "StreamContext should match");
     assertSame(mockMetadata, info.getObjectMetadata(), "ObjectMetadata should match");
     assertSame(mockPolicy, info.getInputPolicy(), "InputPolicy should match");
   }
 
   @Test
   public void testBuilderWithPartialFields() {
-    StreamContext mockContext = Mockito.mock(StreamContext.class);
+    StreamAuditContext mockContext = Mockito.mock(StreamAuditContext.class);
     ObjectMetadata mockMetadata = Mockito.mock(ObjectMetadata.class);
 
     OpenStreamInformation info =
         OpenStreamInformation.builder()
-            .streamContext(mockContext)
+            .streamAuditContext(mockContext)
             .objectMetadata(mockMetadata)
             .build();
 
-    assertSame(mockContext, info.getStreamContext(), "StreamContext should match");
+    assertSame(mockContext, info.getStreamAuditContext(), "StreamContext should match");
     assertSame(mockMetadata, info.getObjectMetadata(), "ObjectMetadata should match");
     assertNull(info.getInputPolicy(), "InputPolicy should be null");
   }
@@ -71,21 +71,21 @@ public class OpenStreamInformationTest {
   @Test
   public void testBuilderFieldRetention() {
     // Create mocks
-    StreamContext mockContext = Mockito.mock(StreamContext.class);
+    StreamAuditContext mockContext = Mockito.mock(StreamAuditContext.class);
     ObjectMetadata mockMetadata = Mockito.mock(ObjectMetadata.class);
     InputPolicy mockPolicy = Mockito.mock(InputPolicy.class);
 
     // Build object
     OpenStreamInformation info =
         OpenStreamInformation.builder()
-            .streamContext(mockContext)
+            .streamAuditContext(mockContext)
             .objectMetadata(mockMetadata)
             .inputPolicy(mockPolicy)
             .build();
 
     // Verify field retention
     assertNotNull(info, "Built object should not be null");
-    assertNotNull(info.getStreamContext(), "StreamContext should be retained");
+    assertNotNull(info.getStreamAuditContext(), "StreamContext should be retained");
     assertNotNull(info.getObjectMetadata(), "ObjectMetadata should be retained");
     assertNotNull(info.getInputPolicy(), "InputPolicy should be retained");
   }
@@ -94,12 +94,12 @@ public class OpenStreamInformationTest {
   public void testNullFields() {
     OpenStreamInformation info =
         OpenStreamInformation.builder()
-            .streamContext(null)
+            .streamAuditContext(null)
             .objectMetadata(null)
             .inputPolicy(null)
             .build();
 
-    assertNull(info.getStreamContext(), "StreamContext should be null");
+    assertNull(info.getStreamAuditContext(), "StreamContext should be null");
     assertNull(info.getObjectMetadata(), "ObjectMetadata should be null");
     assertNull(info.getInputPolicy(), "InputPolicy should be null");
   }

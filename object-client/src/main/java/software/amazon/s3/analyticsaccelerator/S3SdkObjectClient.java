@@ -15,8 +15,10 @@
  */
 package software.amazon.s3.analyticsaccelerator;
 
-import static software.amazon.s3.analyticsaccelerator.request.RequestAttributes.OPERATION_NAME;
-import static software.amazon.s3.analyticsaccelerator.request.RequestAttributes.SPAN_ID;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.HEADER_REFERER;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.HEADER_USER_AGENT;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.OPERATION_NAME;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.SPAN_ID;
 
 import java.io.UncheckedIOException;
 import java.util.Optional;
@@ -40,9 +42,7 @@ import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Object client, based on AWS SDK v2 */
-public class S3SdkObjectClient implements ObjectClient {
-  private static final String HEADER_USER_AGENT = "User-Agent";
-  private static final String HEADER_REFERER = "Referer";
+public class S3SdkObjectClient implements ObjectClient {;
 
   @Getter @NonNull private final S3AsyncClient s3AsyncClient;
   @NonNull private final Telemetry telemetry;
@@ -125,9 +125,9 @@ public class S3SdkObjectClient implements ObjectClient {
 
     requestOverrideConfigurationBuilder.putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent());
 
-    if (openStreamInformation.getStreamContext() != null) {
+    if (openStreamInformation.getStreamAuditContext() != null) {
       attachStreamContextToExecutionAttributes(
-          requestOverrideConfigurationBuilder, openStreamInformation.getStreamContext());
+          requestOverrideConfigurationBuilder, openStreamInformation.getStreamAuditContext());
     }
 
     builder.overrideConfiguration(requestOverrideConfigurationBuilder.build());
@@ -168,9 +168,9 @@ public class S3SdkObjectClient implements ObjectClient {
             .putHeader(HEADER_REFERER, getRequest.getReferrer().toString())
             .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent());
 
-    if (openStreamInformation.getStreamContext() != null) {
+    if (openStreamInformation.getStreamAuditContext() != null) {
       attachStreamContextToExecutionAttributes(
-          requestOverrideConfigurationBuilder, openStreamInformation.getStreamContext());
+          requestOverrideConfigurationBuilder, openStreamInformation.getStreamAuditContext());
     }
 
     builder.overrideConfiguration(requestOverrideConfigurationBuilder.build());
@@ -205,9 +205,9 @@ public class S3SdkObjectClient implements ObjectClient {
 
   private void attachStreamContextToExecutionAttributes(
       AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder,
-      StreamContext streamContext) {
+      StreamAuditContext streamAuditContext) {
     requestOverrideConfigurationBuilder
-        .putExecutionAttribute(SPAN_ID, streamContext.getSpanId())
-        .putExecutionAttribute(OPERATION_NAME, streamContext.getOperationName());
+        .putExecutionAttribute(SPAN_ID, streamAuditContext.getSpanId())
+        .putExecutionAttribute(OPERATION_NAME, streamAuditContext.getOperationName());
   }
 }

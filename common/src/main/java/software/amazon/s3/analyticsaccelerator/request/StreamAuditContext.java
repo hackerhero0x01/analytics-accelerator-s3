@@ -31,7 +31,7 @@ import lombok.Getter;
  */
 @Builder(access = AccessLevel.PUBLIC)
 @Getter
-public class StreamContext {
+public class StreamAuditContext {
   private final String spanId;
   private final String operationName;
 }
