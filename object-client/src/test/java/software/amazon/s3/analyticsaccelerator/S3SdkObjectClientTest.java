@@ -22,6 +22,8 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.OPERATION_NAME;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.SPAN_ID;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -274,7 +276,7 @@ public class S3SdkObjectClientTest {
             .get()
             .executionAttributes()
             .getAttributes()
-            .get(RequestAttributes.SPAN_ID));
+            .get(SPAN_ID));
     assertEquals(
         "op_open",
         capturedRequest
@@ -282,7 +284,7 @@ public class S3SdkObjectClientTest {
             .get()
             .executionAttributes()
             .getAttributes()
-            .get(RequestAttributes.OPERATION_NAME));
+            .get(OPERATION_NAME));
   }
 
   @Test
@@ -321,7 +323,7 @@ public class S3SdkObjectClientTest {
             .get()
             .executionAttributes()
             .getAttributes()
-            .get(RequestAttributes.SPAN_ID));
+            .get(SPAN_ID));
     assertEquals(
         null,
         capturedRequest
@@ -329,7 +331,7 @@ public class S3SdkObjectClientTest {
             .get()
             .executionAttributes()
             .getAttributes()
-            .get(RequestAttributes.OPERATION_NAME));
+            .get(OPERATION_NAME));
   }
 
   @Test
@@ -360,7 +362,7 @@ public class S3SdkObjectClientTest {
             .get()
             .executionAttributes()
             .getAttributes()
-            .get(RequestAttributes.SPAN_ID));
+            .get(SPAN_ID));
     assertEquals(
         "op_open",
         capturedRequest
@@ -368,7 +370,7 @@ public class S3SdkObjectClientTest {
             .get()
             .executionAttributes()
             .getAttributes()
-            .get(RequestAttributes.OPERATION_NAME));
+            .get(OPERATION_NAME));
   }
 
   @Test
@@ -395,7 +397,7 @@ public class S3SdkObjectClientTest {
             .get()
             .executionAttributes()
             .getAttributes()
-            .get(RequestAttributes.SPAN_ID));
+            .get(SPAN_ID));
     assertEquals(
         null,
         capturedRequest
@@ -403,7 +405,7 @@ public class S3SdkObjectClientTest {
             .get()
             .executionAttributes()
             .getAttributes()
-            .get(RequestAttributes.OPERATION_NAME));
+            .get(OPERATION_NAME));
   }
 
   @SuppressWarnings("unchecked")
