@@ -15,6 +15,11 @@
  */
 package software.amazon.s3.analyticsaccelerator;
 
+import static software.amazon.s3.analyticsaccelerator.request.Constants.HEADER_REFERER;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.HEADER_USER_AGENT;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.OPERATION_NAME;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.SPAN_ID;
+
 import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -33,12 +38,11 @@ import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.exceptions.ExceptionHandler;
 import software.amazon.s3.analyticsaccelerator.request.*;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Object client, based on AWS SDK v2 */
 public class S3SdkObjectClient implements ObjectClient {
-  private static final String HEADER_USER_AGENT = "User-Agent";
-  private static final String HEADER_REFERER = "Referer";
 
   @Getter @NonNull private final S3AsyncClient s3AsyncClient;
   @NonNull private final Telemetry telemetry;
@@ -109,17 +113,24 @@ public class S3SdkObjectClient implements ObjectClient {
   }
 
   @Override
-  public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
+  public CompletableFuture<ObjectMetadata> headObject(
+      HeadRequest headRequest, OpenStreamInformation openStreamInformation) {
     HeadObjectRequest.Builder builder =
         HeadObjectRequest.builder()
             .bucket(headRequest.getS3Uri().getBucket())
             .key(headRequest.getS3Uri().getKey());
 
-    // Add User-Agent header to the request.
-    builder.overrideConfiguration(
-        AwsRequestOverrideConfiguration.builder()
-            .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
-            .build());
+    AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder =
+        AwsRequestOverrideConfiguration.builder();
+
+    requestOverrideConfigurationBuilder.putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent());
+
+    if (openStreamInformation.getStreamAuditContext() != null) {
+      attachStreamContextToExecutionAttributes(
+          requestOverrideConfigurationBuilder, openStreamInformation.getStreamAuditContext());
+    }
+
+    builder.overrideConfiguration(requestOverrideConfigurationBuilder.build());
 
     return this.telemetry
         .measureCritical(
@@ -140,13 +151,8 @@ public class S3SdkObjectClient implements ObjectClient {
   }
 
   @Override
-  public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
-    return getObject(getRequest, null);
-  }
-
-  @Override
   public CompletableFuture<ObjectContent> getObject(
-      GetRequest getRequest, StreamContext streamContext) {
+      GetRequest getRequest, OpenStreamInformation openStreamInformation) {
 
     GetObjectRequest.Builder builder =
         GetObjectRequest.builder()
@@ -157,18 +163,17 @@ public class S3SdkObjectClient implements ObjectClient {
     final String range = getRequest.getRange().toHttpString();
     builder.range(range);
 
-    final String referrerHeader;
-    if (streamContext != null) {
-      referrerHeader = streamContext.modifyAndBuildReferrerHeader(getRequest);
-    } else {
-      referrerHeader = getRequest.getReferrer().toString();
+    AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder =
+        AwsRequestOverrideConfiguration.builder()
+            .putHeader(HEADER_REFERER, getRequest.getReferrer().toString())
+            .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent());
+
+    if (openStreamInformation.getStreamAuditContext() != null) {
+      attachStreamContextToExecutionAttributes(
+          requestOverrideConfigurationBuilder, openStreamInformation.getStreamAuditContext());
     }
 
-    builder.overrideConfiguration(
-        AwsRequestOverrideConfiguration.builder()
-            .putHeader(HEADER_REFERER, referrerHeader)
-            .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
-            .build());
+    builder.overrideConfiguration(requestOverrideConfigurationBuilder.build());
 
     return this.telemetry.measureCritical(
         () ->
@@ -196,5 +201,13 @@ public class S3SdkObjectClient implements ObjectClient {
               .orElse(throwable);
       throw new UncheckedIOException(ExceptionHandler.toIOException(cause, s3Uri));
     };
+  }
+
+  private void attachStreamContextToExecutionAttributes(
+      AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder,
+      StreamAuditContext streamAuditContext) {
+    requestOverrideConfigurationBuilder
+        .putExecutionAttribute(SPAN_ID, streamAuditContext.getSpanId())
+        .putExecutionAttribute(OPERATION_NAME, streamAuditContext.getOperationName());
   }
 }

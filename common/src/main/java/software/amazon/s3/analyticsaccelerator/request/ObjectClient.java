@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.request;
 
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 
 /** Represents APIs of an Amazon S3 compatible object store */
 public interface ObjectClient extends Closeable {
@@ -25,24 +26,19 @@ public interface ObjectClient extends Closeable {
    * Make a headObject request to the object store.
    *
    * @param headRequest The HEAD request to be sent
+   * @param openStreamInformation contains stream information
    * @return an instance of {@link CompletableFuture} of type {@link ObjectMetadata}
    */
-  CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest);
+  CompletableFuture<ObjectMetadata> headObject(
+      HeadRequest headRequest, OpenStreamInformation openStreamInformation);
 
   /**
    * Make a getObject request to the object store.
    *
    * @param getRequest The GET request to be sent
+   * @param openStreamInformation contains stream information
    * @return an instance of {@link CompletableFuture} of type {@link ObjectContent}
    */
-  CompletableFuture<ObjectContent> getObject(GetRequest getRequest);
-
-  /**
-   * Make a getObject request to the object store.
-   *
-   * @param getRequest The GET request to be sent
-   * @param streamContext audit headers to be attached in the request header
-   * @return an instance of {@link CompletableFuture} of type {@link ObjectContent}
-   */
-  CompletableFuture<ObjectContent> getObject(GetRequest getRequest, StreamContext streamContext);
+  CompletableFuture<ObjectContent> getObject(
+      GetRequest getRequest, OpenStreamInformation openStreamInformation);
 }

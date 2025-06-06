@@ -33,7 +33,6 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.*;
 
 /**
@@ -46,7 +45,7 @@ public class Block implements Closeable {
   @Getter private final BlockKey blockKey;
   private final Telemetry telemetry;
   private final ObjectClient objectClient;
-  private final StreamContext streamContext;
+  private final OpenStreamInformation openStreamInformation;
   private final ReadMode readMode;
   private final Referrer referrer;
   private final long readTimeout;
@@ -72,45 +71,7 @@ public class Block implements Closeable {
    * @param readRetryCount Number of retries for block read failure
    * @param aggregatingMetrics blobstore metrics
    * @param indexCache blobstore index cache
-   */
-  public Block(
-      @NonNull BlockKey blockKey,
-      @NonNull ObjectClient objectClient,
-      @NonNull Telemetry telemetry,
-      long generation,
-      @NonNull ReadMode readMode,
-      long readTimeout,
-      int readRetryCount,
-      @NonNull Metrics aggregatingMetrics,
-      @NonNull BlobStoreIndexCache indexCache)
-      throws IOException {
-
-    this(
-        blockKey,
-        objectClient,
-        telemetry,
-        generation,
-        readMode,
-        readTimeout,
-        readRetryCount,
-        aggregatingMetrics,
-        indexCache,
-        null);
-  }
-
-  /**
-   * Constructs a Block data.
-   *
-   * @param blockKey the objectkey and range of the object
-   * @param objectClient the object client to use to interact with the object store
-   * @param telemetry an instance of {@link Telemetry} to use
-   * @param generation generation of the block in a sequential read pattern (should be 0 by default)
-   * @param readMode read mode describing whether this is a sync or async fetch
-   * @param readTimeout Timeout duration (in milliseconds) for reading a block object from S3
-   * @param readRetryCount Number of retries for block read failure
-   * @param aggregatingMetrics blobstore metrics
-   * @param indexCache blobstore index cache
-   * @param streamContext contains audit headers to be attached in the request header
+   * @param openStreamInformation contains stream information
    */
   public Block(
       @NonNull BlockKey blockKey,
@@ -122,7 +83,7 @@ public class Block implements Closeable {
       int readRetryCount,
       @NonNull Metrics aggregatingMetrics,
       @NonNull BlobStoreIndexCache indexCache,
-      StreamContext streamContext)
+      @NonNull OpenStreamInformation openStreamInformation)
       throws IOException {
 
     long start = blockKey.getRange().getStart();
@@ -142,7 +103,7 @@ public class Block implements Closeable {
     this.telemetry = telemetry;
     this.blockKey = blockKey;
     this.objectClient = objectClient;
-    this.streamContext = streamContext;
+    this.openStreamInformation = openStreamInformation;
     this.readMode = readMode;
     this.referrer = new Referrer(this.blockKey.getRange().toHttpString(), readMode);
     this.readTimeout = readTimeout;
@@ -176,7 +137,7 @@ public class Block implements Closeable {
                         .attribute(StreamAttributes.range(this.blockKey.getRange()))
                         .attribute(StreamAttributes.generation(generation))
                         .build(),
-                objectClient.getObject(getRequest, streamContext));
+                objectClient.getObject(getRequest, openStreamInformation));
 
         // Handle IOExceptions when converting stream to byte array
         this.data =

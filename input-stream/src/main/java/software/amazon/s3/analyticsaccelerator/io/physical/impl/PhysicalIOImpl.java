@@ -35,8 +35,8 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
@@ -45,7 +45,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   private MetadataStore metadataStore;
   private BlobStore blobStore;
   private final Telemetry telemetry;
-  private final StreamContext streamContext;
+  private final OpenStreamInformation openStreamInformation;
   private ObjectKey objectKey;
   private final ObjectMetadata metadata;
   private final ExecutorService threadPool;
@@ -67,6 +67,7 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param metadataStore a metadata cache
    * @param blobStore a data cache
    * @param telemetry The {@link Telemetry} to use to report measurements.
+   * @param openStreamInformation contains stream information
    * @param threadPool Thread pool for async operations
    */
   public PhysicalIOImpl(
@@ -74,34 +75,14 @@ public class PhysicalIOImpl implements PhysicalIO {
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
       @NonNull Telemetry telemetry,
-      @NonNull ExecutorService threadPool)
-      throws IOException {
-    this(s3URI, metadataStore, blobStore, telemetry, null, threadPool);
-  }
-
-  /**
-   * Construct a new instance of PhysicalIOV2.
-   *
-   * @param s3URI the S3 URI of the object
-   * @param metadataStore a metadata cache
-   * @param blobStore a data cache
-   * @param telemetry The {@link Telemetry} to use to report measurements.
-   * @param streamContext contains audit headers to be attached in the request header
-   * @param threadPool Thread pool for async operations
-   */
-  public PhysicalIOImpl(
-      @NonNull S3URI s3URI,
-      @NonNull MetadataStore metadataStore,
-      @NonNull BlobStore blobStore,
-      @NonNull Telemetry telemetry,
-      StreamContext streamContext,
+      @NonNull OpenStreamInformation openStreamInformation,
       @NonNull ExecutorService threadPool)
       throws IOException {
     this.metadataStore = metadataStore;
     this.blobStore = blobStore;
     this.telemetry = telemetry;
-    this.streamContext = streamContext;
-    this.metadata = this.metadataStore.get(s3URI);
+    this.openStreamInformation = openStreamInformation;
+    this.metadata = this.metadataStore.get(s3URI, openStreamInformation);
     this.objectKey = ObjectKey.builder().s3URI(s3URI).etag(metadata.getEtag()).build();
     this.threadPool = threadPool;
   }
@@ -140,7 +121,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () -> blobStore.get(this.objectKey, this.metadata, streamContext).read(pos));
+          () -> blobStore.get(this.objectKey, this.metadata, openStreamInformation).read(pos));
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -177,7 +158,10 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () -> blobStore.get(objectKey, this.metadata, streamContext).read(buf, off, len, pos));
+          () ->
+              blobStore
+                  .get(objectKey, this.metadata, openStreamInformation)
+                  .read(buf, off, len, pos));
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -213,7 +197,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                   .build(),
           () ->
               blobStore
-                  .get(objectKey, this.metadata, streamContext)
+                  .get(objectKey, this.metadata, openStreamInformation)
                   .read(buf, off, len, contentLength - len));
     } catch (Exception e) {
       handleOperationExceptions(e);
@@ -240,7 +224,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(objectKey, this.metadata, streamContext).execute(ioPlan));
+        () -> blobStore.get(objectKey, this.metadata, openStreamInformation).execute(ioPlan));
   }
 
   @SuppressFBWarnings(
@@ -250,7 +234,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   @Override
   public void readVectored(List<ObjectRange> objectRanges, IntFunction<ByteBuffer> allocate)
       throws IOException {
-    Blob blob = blobStore.get(objectKey, this.metadata, streamContext);
+    Blob blob = blobStore.get(objectKey, this.metadata, openStreamInformation);
 
     for (ObjectRange objectRange : objectRanges) {
       ByteBuffer buffer = allocate.apply(objectRange.getLength());
