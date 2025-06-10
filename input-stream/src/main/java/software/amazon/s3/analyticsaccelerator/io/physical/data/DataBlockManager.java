@@ -43,19 +43,9 @@ public class DataBlockManager implements Closeable {
   private final Telemetry telemetry;
 
   private final PhysicalIOConfiguration configuration;
-
-  @SuppressFBWarnings(
-      value = "URF_UNREAD_FIELD",
-      justification = "Field is injected and may be used in the future")
   private final Metrics aggregatingMetrics;
-
-  @SuppressFBWarnings(
-      value = "URF_UNREAD_FIELD",
-      justification = "Field is injected and may be used in the future")
   private final BlobStoreIndexCache indexCache;
-
   private final StreamReader streamReader;
-
   private final DataBlockStore blockStore;
 
   /**
