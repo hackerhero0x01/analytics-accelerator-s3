@@ -17,14 +17,16 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
+import software.amazon.s3.analyticsaccelerator.util.BlockKey;
+import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 
 /**
  * A container that manages a collection of {@link DataBlock} instances. Each {@code DataBlock}
@@ -32,6 +34,11 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
  * methods to retrieve, add, and track missing blocks within a specified data range.
  */
 public class DataBlockStore implements Closeable {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DataBlockStore.class);
+
+  private final BlobStoreIndexCache indexCache;
+  private final Metrics aggregatingMetrics;
   private final PhysicalIOConfiguration configuration;
   // It is safe to use Integer as key since maximum single file size is 5TB in S3
   // and if we assume that block size will be 8KB, total number of blocks is within range
@@ -44,8 +51,15 @@ public class DataBlockStore implements Closeable {
    *
    * @param configuration the {@link PhysicalIOConfiguration} used to define block size and other
    *     I/O settings
+   * @param indexCache blobstore index cache
+   * @param aggregatingMetrics blobstore metrics
    */
-  public DataBlockStore(@NonNull PhysicalIOConfiguration configuration) {
+  public DataBlockStore(
+      @NonNull BlobStoreIndexCache indexCache,
+      @NonNull Metrics aggregatingMetrics,
+      @NonNull PhysicalIOConfiguration configuration) {
+    this.indexCache = indexCache;
+    this.aggregatingMetrics = aggregatingMetrics;
     this.configuration = configuration;
     blocks = new ConcurrentHashMap<>();
   }
@@ -69,7 +83,13 @@ public class DataBlockStore implements Closeable {
    *     {@link Optional}
    */
   public Optional<DataBlock> getBlockByIndex(int index) {
-    return Optional.ofNullable(blocks.get(index));
+    Optional<DataBlock> block = Optional.ofNullable(blocks.get(index));
+    if (block.isPresent()) {
+      aggregatingMetrics.add(MetricKey.CACHE_HIT, 1L);
+    } else {
+      aggregatingMetrics.add(MetricKey.CACHE_MISS, 1L);
+    }
+    return block;
   }
 
   /**
@@ -101,6 +121,34 @@ public class DataBlockStore implements Closeable {
       if (!blocks.containsKey(i)) missingBlockIndexes.add(i);
     }
     return missingBlockIndexes;
+  }
+
+  /**
+   * Cleans data from memory by removing blocks that are no longer needed. This method iterates
+   * through all blocks in memory and removes those that: 1. Have their data loaded AND 2. Are not
+   * present in the index cache For each removed block, the method: - Removes the block from the
+   * internal block store - Updates memory usage metrics
+   */
+  public void cleanUp() {
+    Iterator<Map.Entry<Integer, DataBlock>> iterator = blocks.entrySet().iterator();
+    while (iterator.hasNext()) {
+      Map.Entry<Integer, DataBlock> entry = iterator.next();
+      DataBlock block = entry.getValue();
+      if (block.isDataReady() && !indexCache.contains(block.getBlockKey())) {
+        try {
+          iterator.remove();
+          BlockKey blockKey = block.getBlockKey();
+          aggregatingMetrics.reduce(MetricKey.MEMORY_USAGE, blockKey.getRange().getLength());
+          LOG.debug(
+              "Removed block with key {}-{}-{} from block store during cleanup",
+              blockKey.getObjectKey().getS3URI(),
+              blockKey.getRange().getStart(),
+              blockKey.getRange().getEnd());
+        } catch (Exception e) {
+          LOG.error("Error in removing block {}", e.getMessage());
+        }
+      }
+    }
   }
 
   private int getBlockIndex(DataBlock block) {
