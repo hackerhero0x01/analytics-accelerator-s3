@@ -118,7 +118,12 @@ public class DataBlockStore implements Closeable {
     List<Integer> missingBlockIndexes = new ArrayList<>();
 
     for (int i = startIndex; i <= endIndex; i++) {
-      if (!blocks.containsKey(i)) missingBlockIndexes.add(i);
+      if (!blocks.containsKey(i)) {
+        missingBlockIndexes.add(i);
+        aggregatingMetrics.add(MetricKey.CACHE_MISS, 1L);
+      } else {
+        aggregatingMetrics.add(MetricKey.CACHE_HIT, 1L);
+      }
     }
     return missingBlockIndexes;
   }
