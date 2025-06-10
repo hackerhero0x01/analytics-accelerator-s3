@@ -90,10 +90,6 @@ public class DataBlockManager implements Closeable {
    */
   public synchronized void makePositionAvailable(long pos, ReadMode readMode) {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
-
-    // TODO if this is the only usage of getBlock(pos) we can remove it
-    if (getBlock(pos).isPresent()) return;
-
     makeRangeAvailable(pos, 1, readMode);
   }
 

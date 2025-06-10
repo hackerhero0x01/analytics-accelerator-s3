@@ -162,9 +162,9 @@ public class DataBlock implements Closeable {
    */
   public void setData(final byte[] data) {
     this.data = data;
-    dataReadyLatch.countDown();
-    this.indexCache.put(this.blockKey, this.blockKey.getRange().getLength());
     this.aggregatingMetrics.add(MetricKey.MEMORY_USAGE, data.length);
+    this.indexCache.put(this.blockKey, this.blockKey.getRange().getLength());
+    dataReadyLatch.countDown();
   }
 
   /**

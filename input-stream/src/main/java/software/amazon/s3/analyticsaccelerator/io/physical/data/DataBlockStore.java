@@ -17,7 +17,11 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -83,13 +87,8 @@ public class DataBlockStore implements Closeable {
    *     {@link Optional}
    */
   public Optional<DataBlock> getBlockByIndex(int index) {
-    Optional<DataBlock> block = Optional.ofNullable(blocks.get(index));
-    if (block.isPresent()) {
-      aggregatingMetrics.add(MetricKey.CACHE_HIT, 1L);
-    } else {
-      aggregatingMetrics.add(MetricKey.CACHE_MISS, 1L);
-    }
-    return block;
+    Preconditions.checkArgument(0 <= index, "`index` must not be negative");
+    return Optional.ofNullable(blocks.get(index));
   }
 
   /**
@@ -139,10 +138,10 @@ public class DataBlockStore implements Closeable {
     while (iterator.hasNext()) {
       Map.Entry<Integer, DataBlock> entry = iterator.next();
       DataBlock block = entry.getValue();
-      if (block.isDataReady() && !indexCache.contains(block.getBlockKey())) {
+      BlockKey blockKey = block.getBlockKey();
+      if (block.isDataReady() && !indexCache.contains(blockKey)) {
         try {
           iterator.remove();
-          BlockKey blockKey = block.getBlockKey();
           aggregatingMetrics.reduce(MetricKey.MEMORY_USAGE, blockKey.getRange().getLength());
           LOG.debug(
               "Removed block with key {}-{}-{} from block store during cleanup",
