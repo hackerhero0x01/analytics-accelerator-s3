@@ -46,6 +46,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
 import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Base class for the integration tests */
@@ -99,7 +100,11 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     // Read using the standard S3 async client
     Crc32CChecksum directChecksum = new Crc32CChecksum();
     executeReadPatternDirectly(
-        s3ClientKind, s3Object, streamReadPattern, Optional.of(directChecksum));
+        s3ClientKind,
+        s3Object,
+        streamReadPattern,
+        Optional.of(directChecksum),
+        OpenStreamInformation.DEFAULT);
 
     // Read using the AAL S3
     Crc32CChecksum aalChecksum = new Crc32CChecksum();
@@ -108,7 +113,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
         s3Object,
         streamReadPattern,
         AALInputStreamConfigurationKind,
-        Optional.of(aalChecksum));
+        Optional.of(aalChecksum),
+        OpenStreamInformation.DEFAULT);
 
     // Assert checksums
     assertChecksums(directChecksum, aalChecksum);
@@ -140,7 +146,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
       S3URI s3URI =
           s3Object.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());
       S3AsyncClient s3Client = this.getS3ExecutionContext().getS3Client();
-      S3SeekableInputStream stream = s3AALClientStreamReader.createReadStream(s3Object);
+      S3SeekableInputStream stream =
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
 
       // Read first 100 bytes
       readAndAssert(stream, buffer, 0, 100);
@@ -171,7 +178,11 @@ public abstract class IntegrationTestBase extends ExecutionBase {
       assertDoesNotThrow(
           () ->
               executeReadPatternOnAAL(
-                  s3Object, s3AALClientStreamReader, streamReadPattern, Optional.of(datChecksum)));
+                  s3Object,
+                  s3AALClientStreamReader,
+                  streamReadPattern,
+                  Optional.of(datChecksum),
+                  OpenStreamInformation.DEFAULT));
       assert (datChecksum.getChecksumBytes().length > 0);
     }
   }
@@ -199,7 +210,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       S3SeekableInputStream s3SeekableInputStream =
-          s3AALClientStreamReader.createReadStream(s3Object);
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
 
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 50, 500));
@@ -217,7 +228,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
         ByteBuffer byteBuffer = objectRange.getByteBuffer().join();
 
         S3SeekableInputStream verificationStream =
-            s3AALClientStreamReader.createReadStream(s3Object);
+            s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
         verificationStream.seek(objectRange.getOffset());
         byte[] buffer = new byte[objectRange.getLength()];
         int readBytes = verificationStream.read(buffer, 0, buffer.length);
@@ -273,7 +284,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     // Create the s3DATClientStreamReader - that creates the shared state
     try (S3AALClientStreamReader s3AALClientStreamReader =
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
-      S3SeekableInputStream stream = s3AALClientStreamReader.createReadStream(s3Object);
+      S3SeekableInputStream stream =
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
       Crc32CChecksum datChecksum = calculateCRC32C(stream, bufferSize);
 
       S3URI s3URI =
@@ -287,7 +299,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
               AsyncRequestBody.fromBytes(generateRandomBytes(bufferSize)))
           .join();
 
-      S3SeekableInputStream cacheStream = s3AALClientStreamReader.createReadStream(s3Object);
+      S3SeekableInputStream cacheStream =
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
       Crc32CChecksum cachedChecksum = calculateCRC32C(cacheStream, bufferSize);
 
       // Assert checksums
@@ -351,7 +364,11 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     // Read using the standard S3 async client. We do this once, to calculate the checksums
     Crc32CChecksum directChecksum = new Crc32CChecksum();
     executeReadPatternDirectly(
-        s3ClientKind, s3Object, streamReadPattern, Optional.of(directChecksum));
+        s3ClientKind,
+        s3Object,
+        streamReadPattern,
+        Optional.of(directChecksum),
+        OpenStreamInformation.DEFAULT);
 
     // Create the s3DATClientStreamReader - that creates the shared state
     try (S3AALClientStreamReader s3AALClientStreamReader =
@@ -374,7 +391,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
                           s3Object,
                           s3AALClientStreamReader,
                           streamReadPattern,
-                          Optional.of(datChecksum));
+                          Optional.of(datChecksum),
+                          OpenStreamInformation.DEFAULT);
 
                       // Assert checksums
                       assertChecksums(directChecksum, datChecksum);
@@ -418,7 +436,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       // First stream
-      S3SeekableInputStream stream = s3AALClientStreamReader.createReadStream(s3Object);
+      S3SeekableInputStream stream =
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
       Crc32CChecksum firstChecksum = calculateCRC32C(stream, (int) s3Object.getSize());
 
       S3URI s3URI =
@@ -433,7 +452,8 @@ public abstract class IntegrationTestBase extends ExecutionBase {
           .join();
 
       // Create second stream
-      S3SeekableInputStream secondStream = s3AALClientStreamReader.createReadStream(s3Object);
+      S3SeekableInputStream secondStream =
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
       Crc32CChecksum secondChecksum = calculateCRC32C(secondStream, (int) s3Object.getSize());
 
       if (s3Object.getSize() < 8 * ONE_MB) {

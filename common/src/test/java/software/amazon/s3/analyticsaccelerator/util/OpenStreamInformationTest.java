@@ -17,12 +17,24 @@ package software.amazon.s3.analyticsaccelerator.util;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import software.amazon.s3.analyticsaccelerator.request.EncryptionSecrets;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamAuditContext;
 
 public class OpenStreamInformationTest {
+
+  private static final String CUSTOMER_KEY = "32-bytes-long-key-for-testing-123";
+
+  /**
+   * To generate the base64 encoded md5 value for a customer key use the cli command echo -n
+   * "customer_key" | base64 | base64 -d | openssl md5 -binary | base64
+   */
+  private static final String EXPECTED_BASE64_MD5 = "R+k8pqEVUmkxDfaH5MqIdw==";
 
   @Test
   public void testDefaultInstance() {
@@ -32,6 +44,7 @@ public class OpenStreamInformationTest {
     assertNull(info.getStreamAuditContext(), "Default streamContext should be null");
     assertNull(info.getObjectMetadata(), "Default objectMetadata should be null");
     assertNull(info.getInputPolicy(), "Default inputPolicy should be null");
+    assertNull(info.getEncryptionSecrets(), "Default encryptionSecrets should be null");
   }
 
   @Test
@@ -39,17 +52,28 @@ public class OpenStreamInformationTest {
     StreamAuditContext mockContext = Mockito.mock(StreamAuditContext.class);
     ObjectMetadata mockMetadata = Mockito.mock(ObjectMetadata.class);
     InputPolicy mockPolicy = Mockito.mock(InputPolicy.class);
+    String base64Key =
+        Base64.getEncoder().encodeToString(CUSTOMER_KEY.getBytes(StandardCharsets.UTF_8));
+    EncryptionSecrets secrets =
+        EncryptionSecrets.builder().sseCustomerKey(Optional.of(base64Key)).build();
 
     OpenStreamInformation info =
         OpenStreamInformation.builder()
             .streamAuditContext(mockContext)
             .objectMetadata(mockMetadata)
             .inputPolicy(mockPolicy)
+            .encryptionSecrets(secrets)
             .build();
 
     assertSame(mockContext, info.getStreamAuditContext(), "StreamContext should match");
     assertSame(mockMetadata, info.getObjectMetadata(), "ObjectMetadata should match");
     assertSame(mockPolicy, info.getInputPolicy(), "InputPolicy should match");
+    assertEquals(
+        base64Key,
+        info.getEncryptionSecrets().getSsecCustomerKey().get(),
+        "Customer key should match");
+    assertNotNull(info.getEncryptionSecrets().getSsecCustomerKeyMd5(), "MD5 should not be null");
+    assertEquals(EXPECTED_BASE64_MD5, info.getEncryptionSecrets().getSsecCustomerKeyMd5());
   }
 
   @Test
@@ -102,5 +126,48 @@ public class OpenStreamInformationTest {
     assertNull(info.getStreamAuditContext(), "StreamContext should be null");
     assertNull(info.getObjectMetadata(), "ObjectMetadata should be null");
     assertNull(info.getInputPolicy(), "InputPolicy should be null");
+  }
+
+  @Test
+  public void testDefaultInstanceEncryptionSecrets() {
+    OpenStreamInformation info = OpenStreamInformation.DEFAULT;
+    assertNull(info.getEncryptionSecrets(), "Default encryptionSecrets should be null");
+  }
+
+  @Test
+  public void testBuilderWithEncryptionSecrets() {
+    // Create a sample base64 encoded key
+    String base64Key =
+        Base64.getEncoder().encodeToString(CUSTOMER_KEY.getBytes(StandardCharsets.UTF_8));
+    EncryptionSecrets secrets =
+        EncryptionSecrets.builder().sseCustomerKey(Optional.of(base64Key)).build();
+
+    OpenStreamInformation info = OpenStreamInformation.builder().encryptionSecrets(secrets).build();
+
+    assertNotNull(info.getEncryptionSecrets(), "EncryptionSecrets should not be null");
+    assertTrue(
+        info.getEncryptionSecrets().getSsecCustomerKey().isPresent(),
+        "Customer key should be present");
+    assertEquals(
+        base64Key,
+        info.getEncryptionSecrets().getSsecCustomerKey().get(),
+        "Customer key should match");
+    assertNotNull(info.getEncryptionSecrets().getSsecCustomerKeyMd5(), "MD5 should not be null");
+    assertEquals(EXPECTED_BASE64_MD5, info.getEncryptionSecrets().getSsecCustomerKeyMd5());
+  }
+
+  @Test
+  public void testBuilderWithEmptyEncryptionSecrets() {
+    EncryptionSecrets secrets =
+        EncryptionSecrets.builder().sseCustomerKey(Optional.empty()).build();
+
+    OpenStreamInformation info = OpenStreamInformation.builder().encryptionSecrets(secrets).build();
+
+    assertNotNull(info.getEncryptionSecrets(), "EncryptionSecrets should not be null");
+    assertFalse(
+        info.getEncryptionSecrets().getSsecCustomerKey().isPresent(),
+        "Customer key should be empty");
+    assertNull(
+        info.getEncryptionSecrets().getSsecCustomerKeyMd5(), "MD5 should be null for empty key");
   }
 }
