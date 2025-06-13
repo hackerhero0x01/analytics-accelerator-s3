@@ -238,7 +238,8 @@ public class BlockManager implements Closeable {
     if (readMode == ReadMode.READ_VECTORED
         || readMode == ReadMode.REMAINING_COLUMN_PREFETCH
         || readMode == ReadMode.COLUMN_PREFETCH
-        || readMode == ReadMode.DICTIONARY_PREFETCH) {
+        || readMode == ReadMode.DICTIONARY_PREFETCH
+        || readMode == ReadMode.PREFETCH_TAIL) {
       return false;
     }
 
