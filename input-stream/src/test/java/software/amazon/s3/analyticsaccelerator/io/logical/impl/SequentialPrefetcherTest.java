@@ -97,7 +97,7 @@ public class SequentialPrefetcherTest {
     Range range = ranges.get(0);
     assertEquals(0, range.getStart());
     assertEquals(4095, range.getEnd());
-    assertEquals(readModeCaptor.getValue(), ReadMode.SEQUENTIAL_READ);
+    assertEquals(readModeCaptor.getValue(), ReadMode.SEQUENTIAL_FILE_PREFETCH);
   }
 
   @Test
@@ -127,7 +127,7 @@ public class SequentialPrefetcherTest {
     Range range = ranges.get(0);
     assertEquals(2000, range.getStart());
     assertEquals(2999, range.getEnd());
-    assertEquals(readModeCaptor.getValue(), ReadMode.SEQUENTIAL_READ);
+    assertEquals(readModeCaptor.getValue(), ReadMode.SEQUENTIAL_FILE_PREFETCH);
   }
 
   @Test

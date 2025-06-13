@@ -86,7 +86,7 @@ public class SequentialPrefetcher {
                   .build(),
           () -> {
             IOPlan prefetchPlan = new IOPlan(new Range(position, endPosition - 1));
-            return physicalIO.execute(prefetchPlan, ReadMode.SEQUENTIAL_READ);
+            return physicalIO.execute(prefetchPlan, ReadMode.SEQUENTIAL_FILE_PREFETCH);
           });
     } catch (Exception e) {
       // Log the exception at debug level and swallow it
