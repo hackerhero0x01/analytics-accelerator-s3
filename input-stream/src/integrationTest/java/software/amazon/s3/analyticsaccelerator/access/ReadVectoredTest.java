@@ -22,7 +22,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -77,6 +76,9 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
     testReadVectoredInSingleBlock(
         s3ClientKind, s3Object, streamReadPattern, configuration, ByteBuffer::allocate);
+
+    testReadVectoredInSingleBlock(
+        s3ClientKind, s3Object, streamReadPattern, configuration, ByteBuffer::allocateDirect);
   }
 
   @ParameterizedTest
@@ -90,6 +92,9 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
     testReadVectoredForSequentialRanges(
         s3ClientKind, s3Object, streamReadPattern, configuration, ByteBuffer::allocate);
+
+    testReadVectoredForSequentialRanges(
+        s3ClientKind, s3Object, streamReadPattern, configuration, ByteBuffer::allocateDirect);
   }
 
   @Test
@@ -231,25 +236,9 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
       s3SeekableInputStream.readVectored(objectRanges, allocate, LOG_BYTE_BUFFER_RELEASED);
 
-      int exceptionThrownCount = 0;
-
-      // First range should throw as the fault client will block the first GET to the object.
-      // Subsequent ranges
-      // will complete.
-      try {
-        for (ObjectRange range : objectRanges) {
-          range.getByteBuffer().join();
-        }
-      } catch (CompletionException e) {
-        exceptionThrownCount++;
-      }
-
-      // Exactly one of the above ranges will block and throw an exception, as the faulty client
-      // will block the first
-      // S3 request to an object. Due to the async nature of these calls, it is not possible to
-      // assert on which one
-      // that will be exactly.
-      assertEquals(1, exceptionThrownCount);
+      assertThrows(CompletionException.class, () -> objectRanges.get(0).getByteBuffer().join());
+      assertDoesNotThrow(() -> objectRanges.get(1).getByteBuffer().join());
+      assertDoesNotThrow(() -> objectRanges.get(2).getByteBuffer().join());
 
       assertEquals(
           s3AALClientStreamReader
@@ -362,28 +351,12 @@ public class ReadVectoredTest extends IntegrationTestBase {
         objectRange.getByteBuffer().join();
       }
 
-      List<Long> getRequestCount = Arrays.asList(1L, 2L);
-
-      // In the above case, due to the async nature of these readVectored() calls, there are two
-      // cases:
-      //
-      // 1) The range [2000 - 200] gets processed first, in this case the first GET request is for
-      // [2000, 200 + 64KB],
-      // it gets extended due to the readAhead. And then the block [500 - 1300] happens, which will
-      // then create a
-      // request for [500 - 1999]. This is because the 500 - 1300 also gets extended to [500 - 500 +
-      // 64KB],
-      // but bytes from [2000, 500 + 64KB] are already there from the previous request.
-      //
-      // 2) The range [500, 800] gets processed first. The GET request is for [500, 500 + 64KB]. And
-      // so a new request
-      // is not needed for the second range: [2000, 2200].
-      assertTrue(
-          getRequestCount.contains(
-              s3AALClientStreamReader
-                  .getS3SeekableInputStreamFactory()
-                  .getMetrics()
-                  .get(MetricKey.GET_REQUEST_COUNT)));
+      assertEquals(
+          1,
+          s3AALClientStreamReader
+              .getS3SeekableInputStreamFactory()
+              .getMetrics()
+              .get(MetricKey.GET_REQUEST_COUNT));
     }
   }
 
@@ -401,7 +374,6 @@ public class ReadVectoredTest extends IntegrationTestBase {
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
 
-      // this test will be super unpredictable, let's think about what we want to do here!
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 2 * ONE_MB, 8 * ONE_MB));
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 10 * ONE_MB, ONE_MB));
@@ -416,6 +388,13 @@ public class ReadVectoredTest extends IntegrationTestBase {
       for (ObjectRange objectRange : objectRanges) {
         objectRange.getByteBuffer().join();
       }
+
+      assertEquals(
+          5,
+          s3AALClientStreamReader
+              .getS3SeekableInputStreamFactory()
+              .getMetrics()
+              .get(MetricKey.GET_REQUEST_COUNT));
     }
   }
 

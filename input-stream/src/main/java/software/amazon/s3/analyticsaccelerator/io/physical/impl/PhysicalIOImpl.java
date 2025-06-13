@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.IntFunction;
@@ -35,6 +36,8 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.request.Range;
+import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
@@ -212,7 +215,7 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @return an IOPlanExecution object tracking the execution of the submitted plan
    */
   @Override
-  public IOPlanExecution execute(IOPlan ioPlan) {
+  public IOPlanExecution execute(IOPlan ioPlan, ReadMode readMode) {
     return telemetry.measureVerbose(
         () ->
             Operation.builder()
@@ -224,7 +227,10 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(objectKey, this.metadata, openStreamInformation).execute(ioPlan));
+        () ->
+            blobStore
+                .get(objectKey, this.metadata, openStreamInformation)
+                .execute(ioPlan, readMode));
   }
 
   @SuppressFBWarnings(
@@ -235,6 +241,8 @@ public class PhysicalIOImpl implements PhysicalIO {
   public void readVectored(List<ObjectRange> objectRanges, IntFunction<ByteBuffer> allocate)
       throws IOException {
     Blob blob = blobStore.get(objectKey, this.metadata, openStreamInformation);
+
+    makeReadVectoredRangesAvailable(objectRanges);
 
     for (ObjectRange objectRange : objectRanges) {
       ByteBuffer buffer = allocate.apply(objectRange.getLength());
@@ -273,10 +281,37 @@ public class PhysicalIOImpl implements PhysicalIO {
       return;
     }
 
-    byte[] tmp = new byte[length];
-    blob.read(tmp, 0, length, range.getOffset());
+    int readBytes = 0;
+    long position = range.getOffset();
+    int tmpBufferMaxSize = Math.min(TMP_BUFFER_MAX_SIZE, length);
+    byte[] tmp = new byte[tmpBufferMaxSize];
+    while (readBytes < length) {
+      int currentLength =
+          (readBytes + tmpBufferMaxSize) < length ? tmpBufferMaxSize : (length - readBytes);
+      LOG.debug(
+          "Reading {} bytes from position {} (bytes read={}", currentLength, position, readBytes);
+      blob.read(tmp, 0, currentLength, position);
+      buffer.put(tmp, 0, currentLength);
+      position = position + currentLength;
+      readBytes = readBytes + currentLength;
+    }
+  }
 
-    buffer.put(tmp, 0, length);
+  /**
+   * Does the block creation for the read vectored ranges.
+   *
+   * @param objectRanges Vectored ranges to fetch
+   */
+  private void makeReadVectoredRangesAvailable(List<ObjectRange> objectRanges) {
+    List<Range> ranges = new ArrayList<>();
+
+    for (ObjectRange objectRange : objectRanges) {
+      ranges.add(
+          new Range(
+              objectRange.getOffset(), objectRange.getOffset() + objectRange.getLength() - 1));
+    }
+
+    execute(new IOPlan(ranges), ReadMode.READ_VECTORED);
   }
 
   private void handleOperationExceptions(Exception e) {
