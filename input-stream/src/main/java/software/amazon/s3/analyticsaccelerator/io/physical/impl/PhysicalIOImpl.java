@@ -253,10 +253,10 @@ public class PhysicalIOImpl implements PhysicalIO {
                 readIntoDirectBuffer(buffer, blob, objectRange);
                 buffer.flip();
               } else {
+                // there is no use of a temp byte buffer, or buffer.put() calls,
+                // so flip() is not needed.
                 blob.read(buffer.array(), 0, objectRange.getLength(), objectRange.getOffset());
               }
-              // there is no use of a temp byte buffer, or buffer.put() calls,
-              // so flip() is not needed.
               objectRange.getByteBuffer().complete(buffer);
             } catch (Exception e) {
               objectRange.getByteBuffer().completeExceptionally(e);
@@ -273,20 +273,10 @@ public class PhysicalIOImpl implements PhysicalIO {
       return;
     }
 
-    int readBytes = 0;
-    long position = range.getOffset();
-    int tmpBufferMaxSize = Math.min(TMP_BUFFER_MAX_SIZE, length);
-    byte[] tmp = new byte[tmpBufferMaxSize];
-    while (readBytes < length) {
-      int currentLength =
-          (readBytes + tmpBufferMaxSize) < length ? tmpBufferMaxSize : (length - readBytes);
-      LOG.debug(
-          "Reading {} bytes from position {} (bytes read={}", currentLength, position, readBytes);
-      blob.read(tmp, 0, currentLength, position);
-      buffer.put(tmp, 0, currentLength);
-      position = position + currentLength;
-      readBytes = readBytes + currentLength;
-    }
+    byte[] tmp = new byte[length];
+    blob.read(tmp, 0, length, range.getOffset());
+
+    buffer.put(tmp, 0, length);
   }
 
   private void handleOperationExceptions(Exception e) {
