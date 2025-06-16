@@ -76,7 +76,7 @@ func (service *PrefetchingService) prefetchFileColumns(ctx context.Context, buck
 
 	requestedColumns, _ := getRequestedColumns(footerData, columnSet)
 
-	jobs := make(chan ColumnJob, len(requestedColumns))
+	jobs := make(chan ColumnJob, 10)
 
 	var wg sync.WaitGroup
 	for i := 0; i < service.Config.ConcurrencyLimit; i++ {
@@ -92,7 +92,6 @@ func (service *PrefetchingService) prefetchFileColumns(ctx context.Context, buck
 			RequestedColumn: requestedColumn,
 		}
 	}
-
 	close(jobs)
 	wg.Wait()
 

@@ -1,6 +1,6 @@
 {
   "prefetching": {
-    "concurrency_limit": 10
+    "concurrency_limit": 100
   },
 
   "cache": {

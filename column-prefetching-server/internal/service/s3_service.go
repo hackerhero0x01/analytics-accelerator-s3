@@ -110,9 +110,12 @@ func (service *S3Service) GetParquetFileFooter(ctx context.Context, bucket strin
 		return nil, fmt.Errorf("failed to read footer content: %w", err)
 	}
 
+	// handles the case where the file is less than 1 MB for whatever reason
+	actualDataLength := int64(len(lastMB))
+
 	// now we have footerLength, we can make retrieve the actual footer content
-	footerStart := oneMB - 8 - int64(footerLength)
-	footerEnd := oneMB - 8
+	footerStart := actualDataLength - 8 - int64(footerLength)
+	footerEnd := actualDataLength - 8
 
 	footerContent := lastMB[footerStart:footerEnd]
 	fileMetadata, _ := metadata.NewFileMetaData(footerContent, nil)

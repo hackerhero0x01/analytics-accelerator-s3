@@ -228,7 +228,7 @@ public class Block implements Closeable {
 
         if (cachedData != null) {
           LOG.info(
-              "Cache hit for tail metadata: {}. Request took: {}ms, start = {}, end = {}. RangeType: {}",
+              "Cache hit for: {}. Request took: {}ms, start = {}, end = {}. RangeType: {}",
               cacheKey,
               String.format("%.2f", cacheGetMsDuration),
               range.getStart(),

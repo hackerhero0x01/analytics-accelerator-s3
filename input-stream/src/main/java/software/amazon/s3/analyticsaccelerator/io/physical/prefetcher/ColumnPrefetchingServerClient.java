@@ -43,8 +43,10 @@ public class ColumnPrefetchingServerClient {
     json.put("prefix", prefix.substring(0, prefix.lastIndexOf("/")));
     json.put("columns", new JSONArray(columns));
 
+    // TODO: look into why we must use the deprecated method
+    @SuppressWarnings("deprecation")
     RequestBody body =
-        RequestBody.create(json.toString(), MediaType.parse("application/json; charset=utf-8"));
+            RequestBody.create(MediaType.parse("application/json"), json.toString());
 
 
     LOG.info("The request body to CPS is: {}", json.toString());
