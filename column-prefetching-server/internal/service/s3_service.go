@@ -146,7 +146,7 @@ func (service *S3Service) GetColumnData(ctx context.Context, bucket string, key 
 		Column: requestedColumn.ColumnName,
 		Data:   columnDataBytes,
 		Etag:   *columnDataResult.ETag,
-		Range:  rangeHeader,
+		Range:  fmt.Sprintf("%d-%d", requestedColumn.Start, requestedColumn.End),
 	}
 
 	return parquetColumnData, nil
