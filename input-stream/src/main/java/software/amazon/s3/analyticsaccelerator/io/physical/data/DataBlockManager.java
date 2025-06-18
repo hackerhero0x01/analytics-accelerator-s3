@@ -26,6 +26,7 @@ import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
+import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialReadProgression;
 import software.amazon.s3.analyticsaccelerator.io.physical.reader.StreamReader;
 import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.BlockKey;
@@ -47,6 +48,8 @@ public class DataBlockManager implements Closeable {
   private final BlobStoreIndexCache indexCache;
   private final StreamReader streamReader;
   private final DataBlockStore blockStore;
+  private final SequentialReadProgression sequentialReadProgression;
+  private final RangeOptimiser rangeOptimiser;
 
   /**
    * Constructs a new BlockManager.
@@ -80,6 +83,8 @@ public class DataBlockManager implements Closeable {
     this.streamReader =
         new StreamReader(objectClient, objectKey, threadPool, openStreamInformation);
     this.blockStore = new DataBlockStore(indexCache, aggregatingMetrics, configuration);
+    this.sequentialReadProgression = new SequentialReadProgression(configuration);
+    this.rangeOptimiser = new RangeOptimiser(configuration);
   }
 
   /**
@@ -108,22 +113,97 @@ public class DataBlockManager implements Closeable {
 
     long endPos = pos + len - 1;
 
+    // Range is available, return
+    if (isRangeAvailable(pos, endPos)) return;
+
+    long generation = getGeneration(pos, readMode);
+
+    /*
+     There are three different range length we need to consider.
+     1/ Length of the requested read
+     2/ Read ahead bytes length
+     3/ Sequential read pattern length
+     We need to send the request for the largest of one of these 3 lengths
+     to find the optimum request length
+    */
+    long effectiveEnd =
+        truncatePos(
+            pos
+                + Math.max(
+                    Math.max(len, configuration.getReadAheadBytes()),
+                    sequentialReadProgression.getSizeForGeneration(generation))
+                - 1);
+
     // Find missing blocks for given range
-    List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, endPos);
+    List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, effectiveEnd);
 
     // Return if all blocks are in store
     if (missingBlockIndexes.isEmpty()) return;
 
-    long generation = 0;
-    List<DataBlock> blocksToFill = new ArrayList<>();
-    for (int blockIndex : missingBlockIndexes) {
-      BlockKey blockKey = new BlockKey(objectKey, getBlockIndexRange(blockIndex));
-      DataBlock block = new DataBlock(blockKey, generation, this.indexCache, this.aggregatingMetrics);
-      blockStore.add(block);
-      blocksToFill.add(block);
-    }
+    // Split missing blocks into groups of sequential indexes that respect maximum range size
+    List<List<Integer>> groupedReads = splitReads(missingBlockIndexes);
 
-    streamReader.read(blocksToFill, readMode);
+    // Process each group separately to optimize read operations
+    for (List<Integer> group : groupedReads) {
+      // Create blocks for this group of sequential indexes
+      List<DataBlock> blocksToFill = new ArrayList<>();
+      for (int blockIndex : group) {
+        BlockKey blockKey = new BlockKey(objectKey, getBlockIndexRange(blockIndex));
+        DataBlock block =
+            new DataBlock(blockKey, generation, this.indexCache, this.aggregatingMetrics);
+        // Add block to the store for future reference
+        blockStore.add(block);
+        blocksToFill.add(block);
+      }
+
+      // Perform a single read operation for this group of sequential blocks
+      streamReader.read(blocksToFill, readMode);
+    }
+  }
+
+  /**
+   * Groups sequential block indexes into separate lists, ensuring each group doesn't exceed the
+   * maximum block count.
+   *
+   * @param blockIndexes an ordered list of block indexes
+   * @return a list of lists where each inner list contains sequential block indexes within size
+   *     limits
+   * @see RangeOptimiser#optimizeReads(List, long)
+   */
+  private List<List<Integer>> splitReads(List<Integer> blockIndexes) {
+    return rangeOptimiser.optimizeReads(blockIndexes, configuration.getReadBufferSize());
+  }
+
+  /**
+   * Detects sequential read pattern and finds the generation of the block
+   *
+   * @param pos position of the read
+   * @param readMode whether this ask corresponds to a sync or async read
+   * @return generation of the block
+   */
+  private long getGeneration(long pos, ReadMode readMode) {
+    Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
+
+    // Generation is non-zero for non-ASYNC reads
+    if (readMode == ReadMode.ASYNC) return 0;
+
+    // Check if it is first block index
+    if (pos < configuration.getReadBufferSize()) return 0;
+
+    Optional<DataBlock> previousBlock = blockStore.getBlock(pos - 1);
+    return previousBlock.map(dataBlock -> dataBlock.getGeneration() + 1).orElse(0L);
+  }
+
+  private long truncatePos(long pos) {
+    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
+    return Math.min(pos, getLastObjectByte());
+  }
+
+  private boolean isRangeAvailable(long pos, long len) {
+    long endPos = pos + len - 1;
+    List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, endPos);
+    return missingBlockIndexes.isEmpty();
   }
 
   /**
@@ -157,11 +237,12 @@ public class DataBlockManager implements Closeable {
   /**
    * Calculates the {@link Range} for a given block index within the S3 object.
    *
-   * <p>The start of the range is calculated as {@code blockIndex * readBufferSize}.
-   * The end of the range is the smaller of:
+   * <p>The start of the range is calculated as {@code blockIndex * readBufferSize}. The end of the
+   * range is the smaller of:
+   *
    * <ul>
-   *   <li>The last byte of the block: {@code ((blockIndex + 1) * readBufferSize) - 1}</li>
-   *   <li>The last byte of the S3 object: {@code getLastObjectByte()}</li>
+   *   <li>The last byte of the block: {@code ((blockIndex + 1) * readBufferSize) - 1}
+   *   <li>The last byte of the S3 object: {@code getLastObjectByte()}
    * </ul>
    *
    * <p>This ensures that the returned range does not exceed the actual size of the object.
