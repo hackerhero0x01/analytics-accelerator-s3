@@ -142,6 +142,7 @@ public class RangeOptimiser {
         currentSequence.add(current);
       } else {
         // Start new sequence
+        // Sequential index, add to current sequence
         sequentialGroups.add(currentSequence);
         currentSequence = new ArrayList<>();
         currentSequence.add(current);

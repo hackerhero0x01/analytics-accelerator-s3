@@ -229,11 +229,12 @@ public class DataBlockManager implements Closeable {
   /**
    * Calculates the {@link Range} for a given block index within the S3 object.
    *
-   * <p>The start of the range is calculated as {@code blockIndex * readBufferSize}.
-   * The end of the range is the smaller of:
+   * <p>The start of the range is calculated as {@code blockIndex * readBufferSize}. The end of the
+   * range is the smaller of:
+   *
    * <ul>
-   *   <li>The last byte of the block: {@code ((blockIndex + 1) * readBufferSize) - 1}</li>
-   *   <li>The last byte of the S3 object: {@code getLastObjectByte()}</li>
+   *   <li>The last byte of the block: {@code ((blockIndex + 1) * readBufferSize) - 1}
+   *   <li>The last byte of the S3 object: {@code getLastObjectByte()}
    * </ul>
    *
    * <p>This ensures that the returned range does not exceed the actual size of the object.
