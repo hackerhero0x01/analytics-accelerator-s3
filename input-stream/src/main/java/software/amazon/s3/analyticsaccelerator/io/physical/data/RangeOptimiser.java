@@ -91,20 +91,44 @@ public class RangeOptimiser {
    *     limits
    */
   public List<List<Integer>> optimizeReads(List<Integer> blockIndexes, long readBufferSize) {
-    List<List<Integer>> result = new ArrayList<>();
     if (blockIndexes == null || blockIndexes.isEmpty()) {
-      return result;
+      return new ArrayList<>();
     }
 
-    // Calculate max blocks per read based on configuration values
-    int maxRangeBlocks = (int) (configuration.getMaxRangeSizeBytes() / readBufferSize);
-    int partSizeBlocks = (int) (configuration.getPartSizeBytes() / readBufferSize);
+    int maxRangeBlocks = calculateMaxRangeBlocks(readBufferSize);
+    int partSizeBlocks = calculatePartSizeBlocks(readBufferSize);
 
-    // Ensure at least one block per read
-    maxRangeBlocks = Math.max(1, maxRangeBlocks);
-    partSizeBlocks = Math.max(1, partSizeBlocks);
+    List<List<Integer>> sequentialGroups = groupSequentialBlocks(blockIndexes);
+    return splitLargeGroups(sequentialGroups, maxRangeBlocks, partSizeBlocks);
+  }
 
-    // First, group by sequential blocks
+  /**
+   * Calculate maximum blocks per read based on configuration limit.
+   *
+   * @param readBufferSize size of each block in bytes
+   * @return maximum number of blocks per read operation
+   */
+  private int calculateMaxRangeBlocks(long readBufferSize) {
+    return Math.max(1, (int) (configuration.getMaxRangeSizeBytes() / readBufferSize));
+  }
+
+  /**
+   * Calculate partition size in blocks for splitting large groups.
+   *
+   * @param readBufferSize size of each block in bytes
+   * @return number of blocks per partition
+   */
+  private int calculatePartSizeBlocks(long readBufferSize) {
+    return Math.max(1, (int) (configuration.getPartSizeBytes() / readBufferSize));
+  }
+
+  /**
+   * Group consecutive block indexes into sequences.
+   *
+   * @param blockIndexes ordered list of block indexes
+   * @return list of sequential groups
+   */
+  private List<List<Integer>> groupSequentialBlocks(List<Integer> blockIndexes) {
     List<List<Integer>> sequentialGroups = new ArrayList<>();
     List<Integer> currentSequence = new ArrayList<>();
     currentSequence.add(blockIndexes.get(0));
@@ -114,38 +138,68 @@ public class RangeOptimiser {
       int previous = blockIndexes.get(i - 1);
 
       if (current == previous + 1) {
-        // Sequential index, add to current sequence
+        // Continue current sequence
         currentSequence.add(current);
       } else {
-        // Non-sequential index, start a new sequence
+        // Start new sequence
         sequentialGroups.add(currentSequence);
         currentSequence = new ArrayList<>();
         currentSequence.add(current);
       }
     }
 
-    // Add the last sequence if not empty
+    // Add final sequence
     if (!currentSequence.isEmpty()) {
       sequentialGroups.add(currentSequence);
     }
 
-    // Now split each sequential group if it exceeds maxRangeBlocks
+    return sequentialGroups;
+  }
+
+  /**
+   * Split groups exceeding maxRangeBlocks into smaller chunks.
+   *
+   * @param sequentialGroups list of sequential block groups
+   * @param maxRangeBlocks maximum blocks allowed per group
+   * @param partSizeBlocks size of chunks for splitting large groups
+   * @return list of groups within size limits
+   */
+  private List<List<Integer>> splitLargeGroups(
+      List<List<Integer>> sequentialGroups, int maxRangeBlocks, int partSizeBlocks) {
+    List<List<Integer>> result = new ArrayList<>();
+
     for (List<Integer> group : sequentialGroups) {
       if (group.size() <= maxRangeBlocks) {
-        // Group is within size limit, add as is
+        // Group fits within limit
         result.add(group);
       } else {
-        // Group exceeds size limit, split into partSizeBlocks chunks
-        for (int i = 0; i < group.size(); i += partSizeBlocks) {
-          List<Integer> chunk = new ArrayList<>();
-          for (int j = i; j < i + partSizeBlocks && j < group.size(); j++) {
-            chunk.add(group.get(j));
-          }
-          result.add(chunk);
-        }
+        // Split oversized group
+        result.addAll(splitGroupIntoChunks(group, partSizeBlocks));
       }
     }
 
     return result;
+  }
+
+  /**
+   * Split a group into fixed-size chunks.
+   *
+   * @param group list of block indexes to split
+   * @param partSizeBlocks maximum size of each chunk
+   * @return list of chunks
+   */
+  private List<List<Integer>> splitGroupIntoChunks(List<Integer> group, int partSizeBlocks) {
+    List<List<Integer>> chunks = new ArrayList<>();
+
+    for (int i = 0; i < group.size(); i += partSizeBlocks) {
+      List<Integer> chunk = new ArrayList<>();
+      // Add up to partSizeBlocks elements to chunk
+      for (int j = i; j < i + partSizeBlocks && j < group.size(); j++) {
+        chunk.add(group.get(j));
+      }
+      chunks.add(chunk);
+    }
+
+    return chunks;
   }
 }
