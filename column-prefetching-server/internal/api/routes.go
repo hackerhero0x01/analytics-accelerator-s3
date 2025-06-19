@@ -7,13 +7,15 @@ import (
 )
 
 type API struct {
-	PrefetchingService *service.PrefetchingService
+	prefetchingService *service.PrefetchingService
+	batchManager       *service.BatchManager
 	prefetchCache      sync.Map
 }
 
-func NewAPI(prefetchingService *service.PrefetchingService) *API {
+func NewAPI(prefetchingService *service.PrefetchingService, batchManager *service.BatchManager) *API {
 	return &API{
-		PrefetchingService: prefetchingService,
+		prefetchingService: prefetchingService,
+		batchManager:       batchManager,
 	}
 }
 

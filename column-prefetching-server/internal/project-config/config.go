@@ -20,10 +20,15 @@ type S3Config struct {
 	Region string `json:"region"`
 }
 
+type BatchConfig struct {
+	BatchTimeout time.Duration `json:"batch_timeout"`
+}
+
 type Config struct {
 	Prefetching PrefetchingConfig `json:"prefetching"`
 	Cache       CacheConfig       `json:"cache"`
 	S3          S3Config          `json:"s3"`
+	Batch       BatchConfig       `json:"batch"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {

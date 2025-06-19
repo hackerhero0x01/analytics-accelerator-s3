@@ -41,8 +41,6 @@ func (api *API) HandlePrefetchColumns(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//fmt.Printf("bucket is: %s, prefix is: %s, columns is: %s \n", apiReq.Bucket, apiReq.Prefix, apiReq.Columns)
-
 	newColumns := api.getNewColumnsToFetch(apiReq)
 
 	// return response if there are no new columns to fetch
@@ -65,13 +63,9 @@ func (api *API) HandlePrefetchColumns(w http.ResponseWriter, r *http.Request) {
 			Columns: newColumns,
 		}
 
-		startTime := time.Now()
-		api.PrefetchingService.PrefetchColumns(ctx, prefetchRequest)
-		elapsedTime := time.Since(startTime)
-
-		fmt.Printf("Prefetching took: %f seconds\n", elapsedTime.Seconds())
+		// send to batch manager
+		api.batchManager.AddRequest(ctx, prefetchRequest)
 	}()
-
 }
 
 // getNewColumnsToFetch checks against prefetchCache to filter out columns that have already been prefetched in a prior

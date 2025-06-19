@@ -30,7 +30,9 @@ func main() {
 		cfg.Prefetching,
 	)
 
-	apiInstance := api.NewAPI(prefetchingService)
+	batchManager := service.NewBatchManager(prefetchingService, cfg.Batch)
+
+	apiInstance := api.NewAPI(prefetchingService, batchManager)
 
 	mux := apiInstance.SetupRoutes()
 

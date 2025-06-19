@@ -1,14 +1,14 @@
 package service
 
 import (
-	project_config "column-prefetching-server/internal/project-config"
+	projectconfig "column-prefetching-server/internal/project-config"
 	"fmt"
 	"github.com/valkey-io/valkey-glide/go/api"
 	"github.com/valkey-io/valkey-glide/go/api/options"
 	"time"
 )
 
-func NewCacheService(cfg project_config.CacheConfig) (*CacheService, error) {
+func NewCacheService(cfg projectconfig.CacheConfig) (*CacheService, error) {
 	// TODO: decide if we want to pass in the host and port from AAL via the HTTP request to CPS endpoint
 	host := cfg.ElastiCacheEndpoint
 	port := cfg.ElastiCachePort
@@ -24,27 +24,27 @@ func NewCacheService(cfg project_config.CacheConfig) (*CacheService, error) {
 	}
 
 	return &CacheService{
-		ElastiCacheClient: client,
-		Config:            cfg,
+		elastiCacheClient: client,
+		config:            cfg,
 	}, nil
 }
 
-func (service *CacheService) CacheColumnData(data ParquetColumnData) error {
+func (service *CacheService) CacheColumnData(data parquetColumnData) error {
 	cacheKey := generateCacheKey(data)
 
 	startTime := time.Now()
 
 	//TODO: the following is how we would batch SET to cache
-	//_, err := service.ElastiCacheClient.MSet(map[string]string{
-	//	cacheKey: string(data.Data),
+	//_, err := service.elastiCacheClient.MSet(map[string]string{
+	//	cacheKey: string(data.data),
 	//})
 
-	expiry := options.NewExpiry().SetType(options.Seconds).SetCount(uint64(service.Config.TimeToLive))
+	expiry := options.NewExpiry().SetType(options.Seconds).SetCount(uint64(service.config.TimeToLive))
 	setOptions := options.NewSetOptions().SetExpiry(expiry)
 
 	//fmt.Printf("time to live is: %d seconds \n", expiry.Count)
 
-	_, err := service.ElastiCacheClient.SetWithOptions(cacheKey, string(data.Data), *setOptions)
+	_, err := service.elastiCacheClient.SetWithOptions(cacheKey, string(data.data), *setOptions)
 	elapsedTime := time.Since(startTime)
 
 	AddDurationToTotalCacheCPUTime(elapsedTime)
@@ -56,7 +56,7 @@ func (service *CacheService) CacheColumnData(data ParquetColumnData) error {
 	return nil
 }
 
-func generateCacheKey(data ParquetColumnData) string {
-	s3URI := fmt.Sprintf("s3://%s/%s", data.Bucket, data.Key)
-	return fmt.Sprintf("%s#%s#%s", s3URI, data.Etag, data.Range)
+func generateCacheKey(data parquetColumnData) string {
+	s3URI := fmt.Sprintf("s3://%s/%s", data.bucket, data.key)
+	return fmt.Sprintf("%s#%s#%s", s3URI, data.etag, data.columnRange)
 }

@@ -2,7 +2,7 @@ package service
 
 import (
 	"bytes"
-	"column-prefetching-server/internal/project-config"
+	projectconfig "column-prefetching-server/internal/project-config"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-func NewS3Service(cfg project_config.S3Config) (*S3Service, error) {
+func NewS3Service(cfg projectconfig.S3Config) (*S3Service, error) {
 	ctx := context.Background()
 
 	sdkConfig, err := config.LoadDefaultConfig(ctx,
@@ -31,8 +31,8 @@ func NewS3Service(cfg project_config.S3Config) (*S3Service, error) {
 	s3Client := s3.NewFromConfig(sdkConfig)
 
 	return &S3Service{
-		S3Client: s3Client,
-		Config:   cfg,
+		s3Client: s3Client,
+		config:   cfg,
 	}, nil
 }
 
@@ -44,7 +44,7 @@ func (service *S3Service) ListParquetFiles(ctx context.Context, bucket string, p
 		Prefix: aws.String(prefix),
 	}
 	var objects []types.Object
-	objectPaginator := s3.NewListObjectsV2Paginator(service.S3Client, input)
+	objectPaginator := s3.NewListObjectsV2Paginator(service.s3Client, input)
 
 	for objectPaginator.HasMorePages() {
 
@@ -58,7 +58,7 @@ func (service *S3Service) ListParquetFiles(ctx context.Context, bucket string, p
 			var noBucket *types.NoSuchBucket
 
 			if errors.As(err, &noBucket) {
-				log.Printf("Bucket %s does not exist.\n", bucket)
+				log.Printf("bucket %s does not exist.\n", bucket)
 				err = noBucket
 			}
 			break
@@ -81,7 +81,7 @@ func (service *S3Service) GetParquetFileFooter(ctx context.Context, bucket strin
 
 	// Make request for only the last 1 MB of the Parquet file. This contains all necessary data to retrieve the footer.
 	startTime := time.Now()
-	result, _ := service.S3Client.GetObject(ctx, &s3.GetObjectInput{
+	result, _ := service.s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Range:  aws.String(rangeHeader),
@@ -123,11 +123,11 @@ func (service *S3Service) GetParquetFileFooter(ctx context.Context, bucket strin
 	return fileMetadata, nil
 }
 
-func (service *S3Service) GetColumnData(ctx context.Context, bucket string, key string, requestedColumn RequestedColumn) (ParquetColumnData, error) {
-	rangeHeader := fmt.Sprintf("bytes=%d-%d", requestedColumn.Start, requestedColumn.End)
+func (service *S3Service) GetColumnData(ctx context.Context, bucket string, key string, requestedColumn requestedColumn) (parquetColumnData, error) {
+	rangeHeader := fmt.Sprintf("bytes=%d-%d", requestedColumn.start, requestedColumn.end)
 
 	startTime := time.Now()
-	columnDataResult, _ := service.S3Client.GetObject(ctx, &s3.GetObjectInput{
+	columnDataResult, _ := service.s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Range:  aws.String(rangeHeader),
@@ -140,13 +140,13 @@ func (service *S3Service) GetColumnData(ctx context.Context, bucket string, key 
 
 	columnDataBytes, _ := io.ReadAll(columnDataResult.Body)
 
-	parquetColumnData := ParquetColumnData{
-		Bucket: bucket,
-		Key:    key,
-		Column: requestedColumn.ColumnName,
-		Data:   columnDataBytes,
-		Etag:   *columnDataResult.ETag,
-		Range:  fmt.Sprintf("%d-%d", requestedColumn.Start, requestedColumn.End),
+	parquetColumnData := parquetColumnData{
+		bucket:      bucket,
+		key:         key,
+		column:      requestedColumn.columnName,
+		data:        columnDataBytes,
+		etag:        *columnDataResult.ETag,
+		columnRange: fmt.Sprintf("%d-%d", requestedColumn.start, requestedColumn.end),
 	}
 
 	return parquetColumnData, nil
