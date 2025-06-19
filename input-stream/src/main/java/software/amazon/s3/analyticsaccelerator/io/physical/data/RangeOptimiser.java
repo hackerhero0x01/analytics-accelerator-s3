@@ -176,6 +176,7 @@ public class RangeOptimiser {
       } else {
         // Split oversized group
         result.addAll(splitGroupIntoChunks(group, partSizeBlocks));
+
       }
     }
 
