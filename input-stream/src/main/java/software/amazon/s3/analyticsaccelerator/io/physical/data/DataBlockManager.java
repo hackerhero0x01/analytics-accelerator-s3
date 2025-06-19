@@ -126,13 +126,11 @@ public class DataBlockManager implements Closeable {
      We need to send the request for the largest of one of these 3 lengths
      to find the optimum request length
     */
-    long effectiveEnd =
-        truncatePos(
-            pos
-                + Math.max(
-                    Math.max(len, configuration.getReadAheadBytes()),
-                    sequentialReadProgression.getSizeForGeneration(generation))
-                - 1);
+    long maxReadLength =
+        Math.max(
+            Math.max(len, configuration.getReadAheadBytes()),
+            sequentialReadProgression.getSizeForGeneration(generation));
+    long effectiveEnd = truncatePos(pos + maxReadLength - 1);
 
     // Find missing blocks for given range
     List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, effectiveEnd);
@@ -182,13 +180,8 @@ public class DataBlockManager implements Closeable {
    * @return generation of the block
    */
   private long getGeneration(long pos, ReadMode readMode) {
-    Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
-
-    // Generation is non-zero for non-ASYNC reads
-    if (readMode == ReadMode.ASYNC) return 0;
-
-    // Check if it is first block index
-    if (pos < configuration.getReadBufferSize()) return 0;
+    // Generation is zero for ASYNC reads or first block of the object
+    if (readMode == ReadMode.ASYNC || pos < configuration.getReadBufferSize()) return 0;
 
     Optional<DataBlock> previousBlock = blockStore.getBlock(pos - 1);
     return previousBlock.map(dataBlock -> dataBlock.getGeneration() + 1).orElse(0L);
@@ -251,9 +244,9 @@ public class DataBlockManager implements Closeable {
    * @return a {@link Range} representing the byte range [start, end] for the specified block
    */
   private Range getBlockIndexRange(int blockIndex) {
-    return new Range(
-        blockIndex * configuration.getReadBufferSize(),
-        Math.min(((blockIndex + 1) * configuration.getReadBufferSize()) - 1, getLastObjectByte()));
+    long start = blockIndex * configuration.getReadBufferSize();
+    long end = Math.min(start + configuration.getReadBufferSize() - 1, getLastObjectByte());
+    return new Range(start, end);
   }
 
   /**

@@ -136,10 +136,10 @@ public class RangeOptimiser {
         result.add(group);
       } else {
         // Group exceeds size limit, split into partSizeBlocks chunks
-        for (int j = 0; j < group.size(); j += partSizeBlocks) {
+        for (int i = 0; i < group.size(); i += partSizeBlocks) {
           List<Integer> chunk = new ArrayList<>();
-          for (int k = j; k < j + partSizeBlocks && k < group.size(); k++) {
-            chunk.add(group.get(k));
+          for (int j = i; j < i + partSizeBlocks && j < group.size(); j++) {
+            chunk.add(group.get(j));
           }
           result.add(chunk);
         }
