@@ -193,8 +193,7 @@ public class DataBlockManager implements Closeable {
     return Math.min(pos, getLastObjectByte());
   }
 
-  private boolean isRangeAvailable(long pos, long len) {
-    long endPos = pos + len - 1;
+  private boolean isRangeAvailable(long pos, long endPos) {
     List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, endPos);
     return missingBlockIndexes.isEmpty();
   }
