@@ -106,22 +106,26 @@ public class DataBlockStore implements Closeable {
    *
    * @param startPos the starting byte position (inclusive)
    * @param endPos the ending byte position (inclusive)
+   * @param measure whether to measure cache hits and misses. If true, metrics will be updated.
    * @return a list of missing block indexes within the specified range
    */
-  public List<Integer> getMissingBlockIndexesInRange(long startPos, long endPos) {
-    return getMissingBlockIndexesInRange(getPositionIndex(startPos), getPositionIndex(endPos));
+  public List<Integer> getMissingBlockIndexesInRange(long startPos, long endPos, boolean measure) {
+    return getMissingBlockIndexesInRange(
+        getPositionIndex(startPos), getPositionIndex(endPos), measure);
   }
 
   // TODO Consider using Range, otherwise add Preconditions to check start and end indexes
-  private List<Integer> getMissingBlockIndexesInRange(int startIndex, int endIndex) {
+  private List<Integer> getMissingBlockIndexesInRange(
+      int startIndex, int endIndex, boolean measure) {
     List<Integer> missingBlockIndexes = new ArrayList<>();
 
     for (int i = startIndex; i <= endIndex; i++) {
       if (!blocks.containsKey(i)) {
         missingBlockIndexes.add(i);
-        aggregatingMetrics.add(MetricKey.CACHE_MISS, 1L);
+
+        if (measure) aggregatingMetrics.add(MetricKey.CACHE_MISS, 1L);
       } else {
-        aggregatingMetrics.add(MetricKey.CACHE_HIT, 1L);
+        if (measure) aggregatingMetrics.add(MetricKey.CACHE_HIT, 1L);
       }
     }
     return missingBlockIndexes;

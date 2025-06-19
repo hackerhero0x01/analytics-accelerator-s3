@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -93,7 +94,7 @@ public class DataBlockManager implements Closeable {
    * @param pos the position of the byte
    * @param readMode whether this ask corresponds to a sync or async read
    */
-  public synchronized void makePositionAvailable(long pos, ReadMode readMode) {
+  public synchronized void makePositionAvailable(long pos, ReadMode readMode) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     makeRangeAvailable(pos, 1, readMode);
   }
@@ -107,7 +108,8 @@ public class DataBlockManager implements Closeable {
    * @param len length of the read
    * @param readMode whether this ask corresponds to a sync or async read
    */
-  public synchronized void makeRangeAvailable(long pos, long len, ReadMode readMode) {
+  public synchronized void makeRangeAvailable(long pos, long len, ReadMode readMode)
+      throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
 
@@ -132,8 +134,11 @@ public class DataBlockManager implements Closeable {
             sequentialReadProgression.getSizeForGeneration(generation));
     long effectiveEnd = truncatePos(pos + maxReadLength - 1);
 
-    // Find missing blocks for given range
-    List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, effectiveEnd);
+    // Find missing blocks for given range.
+    // measure is false because we already add statistics in isRangeAvailable(),
+    // so no need to add measure
+    List<Integer> missingBlockIndexes =
+        blockStore.getMissingBlockIndexesInRange(pos, effectiveEnd, false);
 
     // Return if all blocks are in store
     if (missingBlockIndexes.isEmpty()) return;
@@ -194,7 +199,8 @@ public class DataBlockManager implements Closeable {
   }
 
   private boolean isRangeAvailable(long pos, long endPos) {
-    List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, endPos);
+    // measure is true, since this is the first check if block exist or not
+    List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, endPos, true);
     return missingBlockIndexes.isEmpty();
   }
 
