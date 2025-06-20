@@ -28,7 +28,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.IntFunction;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -287,7 +286,6 @@ public class PhysicalIOImplTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  @Disabled
   public void test_FailureEvictsObjectsAsExpected() throws IOException {
     AwsServiceException s3Exception =
         S3Exception.builder()
@@ -310,18 +308,15 @@ public class PhysicalIOImplTest {
             any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
         .thenReturn(failedFuture);
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+    PhysicalIOConfiguration configuration =
+        PhysicalIOConfiguration.builder().blockReadTimeout(2_000).build();
 
-    MetadataStore metadataStore =
-        new MetadataStore(client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    MetadataStore metadataStore = new MetadataStore(client, TestTelemetry.DEFAULT, configuration);
     ObjectMetadata objectMetadata = ObjectMetadata.builder().contentLength(100).etag(etag).build();
     metadataStore.storeObjectMetadata(s3URI, objectMetadata);
     BlobStore blobStore =
         new BlobStore(
-            client,
-            TestTelemetry.DEFAULT,
-            PhysicalIOConfiguration.DEFAULT,
-            mock(Metrics.class),
-            executorService);
+            client, TestTelemetry.DEFAULT, configuration, mock(Metrics.class), executorService);
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(
             s3URI,
@@ -338,7 +333,6 @@ public class PhysicalIOImplTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  @Disabled
   public void test_FailureEvictsObjectsAsExpected_WhenSDKClientGetsStuck() throws IOException {
     IOException ioException = new IOException(new IOException("Error while getting block"));
 
@@ -350,18 +344,15 @@ public class PhysicalIOImplTest {
             any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
         .thenReturn(failedFuture);
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+    PhysicalIOConfiguration configuration =
+        PhysicalIOConfiguration.builder().blockReadTimeout(2_000).build();
 
-    MetadataStore metadataStore =
-        new MetadataStore(client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    MetadataStore metadataStore = new MetadataStore(client, TestTelemetry.DEFAULT, configuration);
     ObjectMetadata objectMetadata = ObjectMetadata.builder().contentLength(100).etag(etag).build();
     metadataStore.storeObjectMetadata(s3URI, objectMetadata);
     BlobStore blobStore =
         new BlobStore(
-            client,
-            TestTelemetry.DEFAULT,
-            PhysicalIOConfiguration.DEFAULT,
-            mock(Metrics.class),
-            executorService);
+            client, TestTelemetry.DEFAULT, configuration, mock(Metrics.class), executorService);
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(
             s3URI,

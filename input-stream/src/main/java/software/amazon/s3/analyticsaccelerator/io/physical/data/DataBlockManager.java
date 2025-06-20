@@ -81,9 +81,9 @@ public class DataBlockManager implements Closeable {
     this.configuration = configuration;
     this.aggregatingMetrics = aggregatingMetrics;
     this.indexCache = indexCache;
-    this.streamReader =
-        new StreamReader(objectClient, objectKey, threadPool, openStreamInformation);
     this.blockStore = new DataBlockStore(indexCache, aggregatingMetrics, configuration);
+    this.streamReader =
+        new StreamReader(objectClient, objectKey, threadPool, blockStore, openStreamInformation);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.rangeOptimiser = new RangeOptimiser(configuration);
   }
@@ -153,7 +153,12 @@ public class DataBlockManager implements Closeable {
       for (int blockIndex : group) {
         BlockKey blockKey = new BlockKey(objectKey, getBlockIndexRange(blockIndex));
         DataBlock block =
-            new DataBlock(blockKey, generation, this.indexCache, this.aggregatingMetrics);
+            new DataBlock(
+                blockKey,
+                generation,
+                this.indexCache,
+                this.aggregatingMetrics,
+                this.configuration.getBlockReadTimeout());
         // Add block to the store for future reference
         blockStore.add(block);
         blocksToFill.add(block);
@@ -263,6 +268,15 @@ public class DataBlockManager implements Closeable {
    */
   public synchronized Optional<DataBlock> getBlock(long pos) {
     return this.blockStore.getBlock(pos);
+  }
+
+  /**
+   * Removes the specified {@link DataBlock}s from the block store.
+   *
+   * @param blocks the list of {@link DataBlock}s to remove
+   */
+  public synchronized void removeBlocks(final List<DataBlock> blocks) {
+    blocks.forEach(blockStore::remove);
   }
 
   /**

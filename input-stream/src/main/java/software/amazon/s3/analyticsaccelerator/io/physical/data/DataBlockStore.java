@@ -102,6 +102,18 @@ public class DataBlockStore implements Closeable {
   }
 
   /**
+   * Removes the specified {@link DataBlock} from the store and updates memory usage metrics.
+   *
+   * @param block the {@code DataBlock} to remove
+   */
+  public void remove(DataBlock block) {
+    int blockIndex = getBlockIndex(block);
+    if (blocks.remove(blockIndex) != null) {
+      aggregatingMetrics.reduce(MetricKey.MEMORY_USAGE, block.getBlockKey().getRange().getLength());
+    }
+  }
+
+  /**
    * Returns the list of block indexes that are missing for the given byte range.
    *
    * @param startPos the starting byte position (inclusive)

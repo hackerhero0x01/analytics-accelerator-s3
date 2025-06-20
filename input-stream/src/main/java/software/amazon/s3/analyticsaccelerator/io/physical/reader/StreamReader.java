@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.DataBlock;
+import software.amazon.s3.analyticsaccelerator.io.physical.data.DataBlockStore;
 import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
@@ -39,6 +40,7 @@ public class StreamReader implements Closeable {
   private final ObjectClient objectClient;
   private final ObjectKey objectKey;
   private final ExecutorService threadPool;
+  private final DataBlockStore blockStore;
   private final OpenStreamInformation openStreamInformation;
 
   /**
@@ -47,16 +49,19 @@ public class StreamReader implements Closeable {
    * @param objectClient the client used to fetch S3 object content
    * @param objectKey the key identifying the S3 object and its ETag
    * @param threadPool an {@link ExecutorService} used for async I/O operations
+   * @param blockStore the store for managing {@link DataBlock}s
    * @param openStreamInformation contains stream information
    */
   public StreamReader(
       @NonNull ObjectClient objectClient,
       @NonNull ObjectKey objectKey,
       @NonNull ExecutorService threadPool,
+      @NonNull DataBlockStore blockStore,
       @NonNull OpenStreamInformation openStreamInformation) {
     this.objectClient = objectClient;
     this.objectKey = objectKey;
     this.threadPool = threadPool;
+    this.blockStore = blockStore;
     this.openStreamInformation = openStreamInformation;
   }
 
@@ -92,8 +97,18 @@ public class StreamReader implements Closeable {
                   .referrer(new Referrer(requestRange.toHttpString(), readMode))
                   .build();
 
-          ObjectContent objectContent =
-              objectClient.getObject(getRequest, openStreamInformation).join();
+          ObjectContent objectContent = null;
+          try {
+            objectContent = objectClient.getObject(getRequest, openStreamInformation).join();
+          } catch (Exception e) {
+            removeNonFilledBlocksFromStore(blocks);
+            return;
+          }
+
+          if (objectContent == null) {
+            removeNonFilledBlocksFromStore(blocks);
+            return;
+          }
 
           try (InputStream inputStream = objectContent.getStream()) {
             long currentOffset = rangeStart;
@@ -107,7 +122,8 @@ public class StreamReader implements Closeable {
               if (skipBytes > 0) {
                 long skipped = inputStream.skip(skipBytes);
                 if (skipped != skipBytes) {
-                  throw new IOException("Failed to skip required number of bytes in stream");
+                  removeNonFilledBlocksFromStore(blocks);
+                  return;
                 }
                 currentOffset += skipped;
               }
@@ -116,8 +132,10 @@ public class StreamReader implements Closeable {
               int totalRead = 0;
               while (totalRead < blockSize) {
                 int bytesRead = inputStream.read(blockData, totalRead, blockSize - totalRead);
+                // Unexpected end of stream
                 if (bytesRead == -1) {
-                  throw new IOException("Unexpected end of stream while reading block data");
+                  removeNonFilledBlocksFromStore(blocks);
+                  return;
                 }
                 totalRead += bytesRead;
               }
@@ -127,10 +145,13 @@ public class StreamReader implements Closeable {
               currentOffset += blockSize;
             }
           } catch (IOException e) {
-            // TODO handle failure cases gracefully
-            throw new RuntimeException("Unexpected error while reading from stream", e);
+            removeNonFilledBlocksFromStore(blocks);
           }
         });
+  }
+
+  private void removeNonFilledBlocksFromStore(List<DataBlock> blocks) {
+    blocks.stream().filter(block -> !block.isDataReady()).forEach(blockStore::remove);
   }
 
   /**
