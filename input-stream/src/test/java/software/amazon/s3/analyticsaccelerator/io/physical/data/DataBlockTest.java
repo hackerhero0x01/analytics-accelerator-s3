@@ -40,7 +40,8 @@ public class DataBlockTest {
     BlockKey blockKey = new BlockKey(TEST_OBJECT_KEY, range);
 
     DataBlock block =
-        new DataBlock(blockKey, 2, mock(BlobStoreIndexCache.class), mock(Metrics.class), READ_TIMEOUT);
+        new DataBlock(
+            blockKey, 2, mock(BlobStoreIndexCache.class), mock(Metrics.class), READ_TIMEOUT);
 
     assertEquals(block.getBlockKey(), blockKey);
     assertEquals(block.getGeneration(), 2);
@@ -53,6 +54,8 @@ public class DataBlockTest {
 
     assertThrows(
         IllegalArgumentException.class,
-        () -> new DataBlock(blockKey, -1, mock(BlobStoreIndexCache.class), mock(Metrics.class), READ_TIMEOUT));
+        () ->
+            new DataBlock(
+                blockKey, -1, mock(BlobStoreIndexCache.class), mock(Metrics.class), READ_TIMEOUT));
   }
 }

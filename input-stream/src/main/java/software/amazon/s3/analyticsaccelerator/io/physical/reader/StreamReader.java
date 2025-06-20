@@ -21,10 +21,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.DataBlock;
-import software.amazon.s3.analyticsaccelerator.io.physical.data.DataBlockStore;
 import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
@@ -40,7 +41,7 @@ public class StreamReader implements Closeable {
   private final ObjectClient objectClient;
   private final ObjectKey objectKey;
   private final ExecutorService threadPool;
-  private final DataBlockStore blockStore;
+  private final Consumer<List<DataBlock>> removeBlocksFunc;
   private final OpenStreamInformation openStreamInformation;
 
   /**
@@ -49,19 +50,19 @@ public class StreamReader implements Closeable {
    * @param objectClient the client used to fetch S3 object content
    * @param objectKey the key identifying the S3 object and its ETag
    * @param threadPool an {@link ExecutorService} used for async I/O operations
-   * @param blockStore the store for managing {@link DataBlock}s
+   * @param removeBlocksFunc a function to remove blocks from
    * @param openStreamInformation contains stream information
    */
   public StreamReader(
       @NonNull ObjectClient objectClient,
       @NonNull ObjectKey objectKey,
       @NonNull ExecutorService threadPool,
-      @NonNull DataBlockStore blockStore,
+      @NonNull Consumer<List<DataBlock>> removeBlocksFunc,
       @NonNull OpenStreamInformation openStreamInformation) {
     this.objectClient = objectClient;
     this.objectKey = objectKey;
     this.threadPool = threadPool;
-    this.blockStore = blockStore;
+    this.removeBlocksFunc = removeBlocksFunc;
     this.openStreamInformation = openStreamInformation;
   }
 
@@ -97,7 +98,7 @@ public class StreamReader implements Closeable {
                   .referrer(new Referrer(requestRange.toHttpString(), readMode))
                   .build();
 
-          ObjectContent objectContent = null;
+          ObjectContent objectContent;
           try {
             objectContent = objectClient.getObject(getRequest, openStreamInformation).join();
           } catch (Exception e) {
@@ -151,7 +152,8 @@ public class StreamReader implements Closeable {
   }
 
   private void removeNonFilledBlocksFromStore(List<DataBlock> blocks) {
-    blocks.stream().filter(block -> !block.isDataReady()).forEach(blockStore::remove);
+    this.removeBlocksFunc.accept(
+        blocks.stream().filter(block -> !block.isDataReady()).collect(Collectors.toList()));
   }
 
   /**

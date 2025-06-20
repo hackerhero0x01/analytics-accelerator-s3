@@ -83,7 +83,8 @@ public class DataBlockManager implements Closeable {
     this.indexCache = indexCache;
     this.blockStore = new DataBlockStore(indexCache, aggregatingMetrics, configuration);
     this.streamReader =
-        new StreamReader(objectClient, objectKey, threadPool, blockStore, openStreamInformation);
+        new StreamReader(
+            objectClient, objectKey, threadPool, this::removeBlocks, openStreamInformation);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.rangeOptimiser = new RangeOptimiser(configuration);
   }
@@ -209,30 +210,6 @@ public class DataBlockManager implements Closeable {
     return missingBlockIndexes.isEmpty();
   }
 
-  /**
-   * Retrieves all {@link DataBlock}s that cover the specified byte range {@code [pos, pos + len)}.
-   *
-   * @param pos the starting byte position of the desired range (inclusive)
-   * @param len the number of bytes to include in the range
-   * @return a list of {@link DataBlock}s that together cover the specified range
-   */
-  public synchronized List<DataBlock> getBlocks(long pos, long len) {
-    // TODO This method assumes that all required blocks are already present in the BlockStore.
-    // If any block is missing, code will throw exception. We need to handle this case
-    int startBlockIndex = getPositionIndex(pos);
-    int endBlockIndex = getPositionIndex(Math.min(pos + len - 1, getLastObjectByte()));
-
-    List<DataBlock> blocks = new ArrayList<>();
-    for (int index = startBlockIndex; index <= endBlockIndex; index++) {
-      blocks.add(blockStore.getBlockByIndex(index).get());
-    }
-    return blocks;
-  }
-
-  private int getPositionIndex(long pos) {
-    return (int) (pos / this.configuration.getReadBufferSize());
-  }
-
   private long getLastObjectByte() {
     return this.metadata.getContentLength() - 1;
   }
@@ -275,7 +252,7 @@ public class DataBlockManager implements Closeable {
    *
    * @param blocks the list of {@link DataBlock}s to remove
    */
-  public synchronized void removeBlocks(final List<DataBlock> blocks) {
+  private synchronized void removeBlocks(final List<DataBlock> blocks) {
     blocks.forEach(blockStore::remove);
   }
 
