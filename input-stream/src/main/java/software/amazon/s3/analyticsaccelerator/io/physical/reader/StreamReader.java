@@ -40,13 +40,11 @@ import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
  * <p>It submits the read task to a provided {@link ExecutorService}, allowing non-blocking
  * operation.
  */
-@SuppressFBWarnings(
-    value = "RCN_REDUNDANT_NULLCHECK",
-    justification = "Returning null is intentional to signal premature EOF")
 public class StreamReader implements Closeable {
   private final ObjectClient objectClient;
   private final ObjectKey objectKey;
   private final ExecutorService threadPool;
+  // Callback function to remove failed blocks from the data store
   private final Consumer<List<DataBlock>> removeBlocksFunc;
   private final OpenStreamInformation openStreamInformation;
 
@@ -94,10 +92,20 @@ public class StreamReader implements Closeable {
     threadPool.submit(processReadTask(blocks, readMode));
   }
 
+  /**
+   * Creates a runnable task that handles the complete read operation for a list of data blocks.
+   * This includes fetching the S3 object content and populating each block with data.
+   *
+   * @param blocks the list of data blocks to populate with data
+   * @param readMode the mode in which the read is being performed
+   * @return a Runnable that executes the read operation asynchronously
+   */
   private Runnable processReadTask(final List<DataBlock> blocks, ReadMode readMode) {
     return () -> {
+      // Calculate the byte range needed to cover all blocks
       Range requestRange = computeRange(blocks);
 
+      // Build S3 GET request with range, ETag validation, and referrer info
       GetRequest getRequest =
           GetRequest.builder()
               .s3Uri(objectKey.getS3URI())
@@ -106,6 +114,7 @@ public class StreamReader implements Closeable {
               .referrer(new Referrer(requestRange.toHttpString(), readMode))
               .build();
 
+      // Fetch the object content from S3
       ObjectContent objectContent = fetchObjectContent(getRequest);
 
       if (objectContent == null) {
@@ -115,6 +124,7 @@ public class StreamReader implements Closeable {
         return;
       }
 
+      // Process the input stream and populate data blocks
       try (InputStream inputStream = objectContent.getStream()) {
         boolean success = readBlocksFromStream(inputStream, blocks, requestRange.getStart());
         if (!success) {
@@ -130,6 +140,16 @@ public class StreamReader implements Closeable {
     };
   }
 
+  /**
+   * Sequentially reads data from the input stream to populate all blocks. Maintains current offset
+   * position to handle potential gaps between blocks.
+   *
+   * @param inputStream the input stream to read data from
+   * @param blocks the list of data blocks to populate
+   * @param initialOffset the starting offset position in the stream
+   * @return true if all blocks were successfully read, false otherwise
+   * @throws IOException if an I/O error occurs while reading from the stream
+   */
   private boolean readBlocksFromStream(
       InputStream inputStream, List<DataBlock> blocks, long initialOffset) throws IOException {
     long currentOffset = initialOffset;
@@ -139,6 +159,7 @@ public class StreamReader implements Closeable {
         return false;
       }
 
+      // Update current position after reading this block
       long blockSize =
           block.getBlockKey().getRange().getEnd() - block.getBlockKey().getRange().getStart() + 1;
       currentOffset += blockSize;
@@ -146,14 +167,29 @@ public class StreamReader implements Closeable {
     return true;
   }
 
+  /**
+   * Computes the overall byte range needed to fetch all blocks in a single S3 request. Uses the
+   * start of the first block and end of the last block.
+   *
+   * @param blocks the list of data blocks, must be non-empty and sorted by offset
+   * @return the Range covering all blocks from first start to last end
+   */
   private Range computeRange(List<DataBlock> blocks) {
     long rangeStart = blocks.get(0).getBlockKey().getRange().getStart();
     long rangeEnd = blocks.get(blocks.size() - 1).getBlockKey().getRange().getEnd();
     return new Range(rangeStart, rangeEnd);
   }
 
+  /**
+   * Fetches object content from S3 using the provided request. Returns null if the request fails,
+   * allowing caller to handle gracefully.
+   *
+   * @param getRequest the S3 GET request containing object URI, range, and ETag
+   * @return the ObjectContent containing the S3 object data stream, or null if request fails
+   */
   private ObjectContent fetchObjectContent(GetRequest getRequest) {
     try {
+      // Block on the async S3 request and return the result
       return this.objectClient.getObject(getRequest, this.openStreamInformation).join();
     } catch (Exception e) {
       LOG.error("Error while fetching object content", e);
@@ -161,39 +197,61 @@ public class StreamReader implements Closeable {
     }
   }
 
+  /**
+   * Reads data for a single block from the input stream. Handles skipping to the correct position
+   * and reading the exact number of bytes.
+   *
+   * @param inputStream the input stream to read from
+   * @param block the data block to populate with read data
+   * @param currentOffset the current position in the stream
+   * @return true if the block was successfully read and populated, false otherwise
+   * @throws IOException if an I/O error occurs while reading or skipping bytes
+   */
   private boolean readBlock(InputStream inputStream, DataBlock block, long currentOffset)
       throws IOException {
     long blockStart = block.getBlockKey().getRange().getStart();
     long blockEnd = block.getBlockKey().getRange().getEnd();
     int blockSize = (int) (blockEnd - blockStart + 1);
 
-    // Skip if needed
+    // Skip bytes if there's a gap between current position and block start
     if (!skipToBlockStart(inputStream, blockStart, currentOffset)) {
       return false;
     }
 
-    // Read block data
+    // Read the exact number of bytes for this block
     byte[] blockData = readExactBytes(inputStream, blockSize);
     if (blockData == null) {
       return false;
     }
 
+    // Populate the block with the read data
     block.setData(blockData);
     return true;
   }
 
+  /**
+   * Skips bytes in the input stream to reach the start position of a block. Handles cases where
+   * blocks may not be contiguous in the stream.
+   *
+   * @param inputStream the input stream to skip bytes from
+   * @param blockStart the target start position of the block
+   * @param currentOffset the current position in the stream
+   * @return true if successfully skipped to the target position, false if EOF reached
+   * @throws IOException if an I/O error occurs while skipping bytes
+   */
   private boolean skipToBlockStart(InputStream inputStream, long blockStart, long currentOffset)
       throws IOException {
     long skipBytes = blockStart - currentOffset;
     if (skipBytes <= 0) {
-      return true;
+      return true; // Already at or past the target position
     }
 
+    // Skip bytes in chunks until we reach the target position
     long totalSkipped = 0;
     while (totalSkipped < skipBytes) {
       long skipped = inputStream.skip(skipBytes - totalSkipped);
       if (skipped <= 0) {
-        return false;
+        return false; // Unable to skip, likely EOF
       }
       totalSkipped += skipped;
     }
@@ -208,6 +266,8 @@ public class StreamReader implements Closeable {
    * @param inputStream The input stream to read from.
    * @param size Number of bytes to read.
    * @return A byte array of exactly {@code size} bytes, or {@code null} on premature EOF.
+   * @throws IOException if an I/O error occurs while reading from the stream
+   * @throws EOFException if the end of stream is reached before reading all requested bytes
    */
   private byte[] readExactBytes(InputStream inputStream, int size) throws IOException {
     byte[] buffer = new byte[size];
@@ -222,7 +282,14 @@ public class StreamReader implements Closeable {
     return buffer;
   }
 
+  /**
+   * Removes blocks that failed to be populated with data from the data store. This cleanup ensures
+   * failed blocks don't remain in an inconsistent state.
+   *
+   * @param blocks the list of blocks to check and potentially remove if not filled with data
+   */
   private void removeNonFilledBlocksFromStore(List<DataBlock> blocks) {
+    // Filter out blocks that don't have data and remove them via callback
     this.removeBlocksFunc.accept(
         blocks.stream().filter(block -> !block.isDataReady()).collect(Collectors.toList()));
   }
