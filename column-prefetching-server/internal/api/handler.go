@@ -2,11 +2,9 @@ package api
 
 import (
 	"column-prefetching-server/internal/service"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 )
 
 // ColumnPrefetchRequest represents the format of the incoming HTTP request from ALL.
@@ -53,10 +51,6 @@ func (api *API) HandlePrefetchColumns(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 
 	go func() {
-		// TODO: probably want to tweak this context
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-
 		prefetchRequest := service.PrefetchRequest{
 			Bucket:  apiReq.Bucket,
 			Prefix:  apiReq.Prefix,
@@ -64,7 +58,7 @@ func (api *API) HandlePrefetchColumns(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// send to batch manager
-		api.batchManager.AddRequest(ctx, prefetchRequest)
+		api.batchManager.AddRequest(prefetchRequest)
 	}()
 }
 

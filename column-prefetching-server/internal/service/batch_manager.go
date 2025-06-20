@@ -14,11 +14,11 @@ func NewBatchManager(
 	return &BatchManager{
 		prefetchingService: prefetchingService,
 		batches:            make(map[string]*batch),
-		batchTimeout:       cfg.BatchTimeout,
+		batchTimeout:       cfg.BatchTimeout * time.Millisecond,
 	}
 }
 
-func (manager *BatchManager) AddRequest(ctx context.Context, request PrefetchRequest) {
+func (manager *BatchManager) AddRequest(request PrefetchRequest) {
 	batchKey := fmt.Sprintf("%s:%s", request.Bucket, request.Prefix)
 	manager.mu.Lock()
 	// check if the batchKey (bucket:prefix) does not exist - create a new batch for it if so
@@ -50,12 +50,12 @@ func (manager *BatchManager) AddRequest(ctx context.Context, request PrefetchReq
 
 	// create a new timer for the specified period of 'inactivity', processing the batch if it expires
 	currBatch.timer = time.AfterFunc(manager.batchTimeout, func() {
-		manager.processBatch(ctx, batchKey)
+		manager.processBatch(batchKey)
 	})
 
 }
 
-func (manager *BatchManager) processBatch(ctx context.Context, batchKey string) {
+func (manager *BatchManager) processBatch(batchKey string) {
 	manager.mu.Lock()
 
 	// check that the batch key in question hasn't already been deleted (by another goroutine). If it has, then return.
@@ -74,6 +74,10 @@ func (manager *BatchManager) processBatch(ctx context.Context, batchKey string) 
 		columns = append(columns, column)
 	}
 	currBatch.mu.Unlock()
+
+	// TODO: probably want to tweak this context
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
 	prefetchRequest := PrefetchRequest{
 		Bucket:  currBatch.bucket,
