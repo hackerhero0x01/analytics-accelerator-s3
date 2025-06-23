@@ -139,7 +139,7 @@ public class BlockManager implements Closeable {
     // measure is false because we already add statistics in isRangeAvailable(),
     // so no need to add measure
     List<Integer> missingBlockIndexes =
-        blockStore.getMissingBlockIndexesInRange(pos, effectiveEnd, false);
+        blockStore.getMissingBlockIndexesInRange(new Range(pos, effectiveEnd), false);
 
     // Return if all blocks are in store
     if (missingBlockIndexes.isEmpty()) return;
@@ -206,7 +206,8 @@ public class BlockManager implements Closeable {
 
   private boolean isRangeAvailable(long pos, long endPos) {
     // measure is true, since this is the first check if block exist or not
-    List<Integer> missingBlockIndexes = blockStore.getMissingBlockIndexesInRange(pos, endPos, true);
+    List<Integer> missingBlockIndexes =
+        blockStore.getMissingBlockIndexesInRange(new Range(pos, endPos), true);
     return missingBlockIndexes.isEmpty();
   }
 

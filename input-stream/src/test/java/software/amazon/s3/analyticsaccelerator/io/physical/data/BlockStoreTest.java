@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,9 @@ import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.util.*;
 
 @SuppressWarnings("unchecked")
+@SuppressFBWarnings(
+    value = "NP_NONNULL_PARAM_VIOLATION",
+    justification = "We mean to pass nulls to checks")
 public class BlockStoreTest {
 
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
@@ -52,6 +56,38 @@ public class BlockStoreTest {
     mockMetrics = mock(Metrics.class);
     configuration = PhysicalIOConfiguration.DEFAULT;
     blockStore = new BlockStore(mockIndexCache, mockMetrics, configuration);
+  }
+
+  @Test
+  public void constructor_nullIndexCache_throws() {
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new BlockStore(null, mockMetrics, configuration);
+        });
+  }
+
+  @Test
+  public void constructor_nullMetrics_throws() {
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new BlockStore(mockIndexCache, null, configuration);
+        });
+  }
+
+  @Test
+  public void constructor_nullConfiguration_throws() {
+    assertThrows(
+        NullPointerException.class,
+        () -> {
+          new BlockStore(mockIndexCache, mockMetrics, null);
+        });
+  }
+
+  @Test
+  public void constructor_allNonNull_succeeds() {
+    new BlockStore(mockIndexCache, mockMetrics, configuration);
   }
 
   @SneakyThrows
@@ -216,7 +252,8 @@ public class BlockStoreTest {
     blockStore.add(block2);
 
     // When: Missing blocks are requested for range covering indexes 0-2
-    List<Integer> missingBlocks = blockStore.getMissingBlockIndexesInRange(0, 24575, true);
+    List<Integer> missingBlocks =
+        blockStore.getMissingBlockIndexesInRange(new Range(0, 24575), true);
 
     // Then: Only index 1 is reported as missing (indexes 0 and 2 exist)
     assertEquals(1, missingBlocks.size());
@@ -235,7 +272,7 @@ public class BlockStoreTest {
     blockStore.add(block);
 
     // When: Missing blocks are requested with measure=false
-    blockStore.getMissingBlockIndexesInRange(0, 16383, false);
+    blockStore.getMissingBlockIndexesInRange(new Range(0, 16383), false);
 
     // Then: No metrics are updated
     verify(mockMetrics, never()).add(any(), anyLong());
@@ -297,5 +334,122 @@ public class BlockStoreTest {
 
     // Then: isEmpty returns true again
     assertTrue(blockStore.isEmpty());
+  }
+
+  @Test
+  public void test__blockStore__concurrentAddRemove() throws InterruptedException {
+    int threadCount = 10;
+    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+    CountDownLatch latch = new CountDownLatch(threadCount);
+
+    for (int i = 0; i < threadCount; i++) {
+      final int index = i;
+      executor.submit(
+          () -> {
+            BlockKey blockKey =
+                new BlockKey(objectKey, new Range(index * 8192L, (index + 1) * 8192L - 1));
+            Block block =
+                new Block(blockKey, index, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT);
+            blockStore.add(block);
+            blockStore.remove(block);
+            latch.countDown();
+          });
+    }
+
+    boolean completed = latch.await(10, TimeUnit.SECONDS);
+    assertTrue(completed, "Timeout waiting for concurrent add/remove operations to complete");
+    assertTrue(blockStore.isEmpty());
+
+    executor.shutdownNow();
+  }
+
+  @Test
+  public void test__blockStore__getBlock_atRangeBoundaries() {
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, 8191));
+    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT);
+    blockStore.add(block);
+
+    // At start of range
+    Optional<Block> startBlock = blockStore.getBlock(0);
+    assertTrue(startBlock.isPresent());
+    assertEquals(block, startBlock.get());
+
+    // At end of range
+    Optional<Block> endBlock = blockStore.getBlock(8191);
+    assertTrue(endBlock.isPresent());
+    assertEquals(block, endBlock.get());
+  }
+
+  @Test
+  public void test__blockStore__add_nullBlock() {
+    assertThrows(NullPointerException.class, () -> blockStore.add(null));
+  }
+
+  @Test
+  public void test__blockStore__remove_nullBlock() {
+    // Should not throw exception
+    blockStore.remove(null);
+    // Optionally verify no metrics or actions triggered
+    verify(mockMetrics, never()).reduce(any(), anyLong());
+  }
+
+  @Test
+  public void test__blockStore__getBlock_positionOutsideAnyBlock() {
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, 8191));
+    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT);
+    blockStore.add(block);
+
+    Optional<Block> outsideBlock = blockStore.getBlock(100_000);
+    assertFalse(outsideBlock.isPresent());
+  }
+
+  @Test
+  public void test__blockStore__cleanUp_leavesDataNotReadyBlocks() {
+    BlockKey blockKey1 = new BlockKey(objectKey, new Range(0, 8191));
+    Block block1 = mock(Block.class);
+    when(block1.getBlockKey()).thenReturn(blockKey1);
+    when(block1.isDataReady()).thenReturn(false);
+
+    when(mockIndexCache.contains(blockKey1)).thenReturn(false);
+
+    blockStore.add(block1);
+
+    blockStore.cleanUp();
+
+    // Should still be present since isDataReady is false
+    Optional<Block> result = blockStore.getBlockByIndex(0);
+    assertTrue(result.isPresent());
+
+    verify(mockMetrics, never()).reduce(eq(MetricKey.MEMORY_USAGE), anyLong());
+  }
+
+  @Test
+  public void test__blockStore__getMissingBlockIndexesInRange_startGreaterThanEnd() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> blockStore.getMissingBlockIndexesInRange(new Range(10_000, 5_000), true));
+  }
+
+  @Test
+  public void test__blockStore__close_multipleBlocksThrowExceptions() throws IOException {
+    Block b1 = mock(Block.class);
+    Block b2 = mock(Block.class);
+
+    BlockKey blockKey1 = new BlockKey(objectKey, new Range(0, 8191));
+    BlockKey blockKey2 = new BlockKey(objectKey, new Range(8192, 16383));
+    when(b1.getBlockKey()).thenReturn(blockKey1);
+    when(b2.getBlockKey()).thenReturn(blockKey2);
+
+    blockStore.add(b1);
+    blockStore.add(b2);
+
+    doThrow(new RuntimeException("error1")).when(b1).close();
+    doThrow(new RuntimeException("error2")).when(b2).close();
+
+    // Should not throw exception
+    blockStore.close();
+
+    verify(b1).close();
+    verify(b2).close();
   }
 }

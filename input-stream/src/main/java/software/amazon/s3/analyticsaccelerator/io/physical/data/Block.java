@@ -82,12 +82,8 @@ public class Block implements Closeable {
       @NonNull BlobStoreIndexCache indexCache,
       @NonNull Metrics aggregatingMetrics,
       long readTimeout) {
-    long start = blockKey.getRange().getStart();
-    long end = blockKey.getRange().getEnd();
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
-    Preconditions.checkArgument(0 <= start, "`start` must be non-negative; was: %s", start);
-    Preconditions.checkArgument(0 <= end, "`end` must be non-negative; was: %s", end);
 
     this.blockKey = blockKey;
     this.generation = generation;

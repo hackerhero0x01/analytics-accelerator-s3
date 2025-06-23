@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
+import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.util.BlockKey;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 
@@ -107,6 +108,10 @@ public class BlockStore implements Closeable {
    * @param block the {@code Block} to remove
    */
   public void remove(Block block) {
+    if (block == null) {
+      return; // no-op on null input
+    }
+
     int blockIndex = getBlockIndex(block);
     if (blocks.remove(blockIndex) != null) {
       aggregatingMetrics.reduce(MetricKey.MEMORY_USAGE, block.getBlockKey().getRange().getLength());
@@ -116,17 +121,15 @@ public class BlockStore implements Closeable {
   /**
    * Returns the list of block indexes that are missing for the given byte range.
    *
-   * @param startPos the starting byte position (inclusive)
-   * @param endPos the ending byte position (inclusive)
+   * @param range the byte range to check for missing blocks
    * @param measure whether to measure cache hits and misses. If true, metrics will be updated.
    * @return a list of missing block indexes within the specified range
    */
-  public List<Integer> getMissingBlockIndexesInRange(long startPos, long endPos, boolean measure) {
+  public List<Integer> getMissingBlockIndexesInRange(Range range, boolean measure) {
     return getMissingBlockIndexesInRange(
-        getPositionIndex(startPos), getPositionIndex(endPos), measure);
+        getPositionIndex(range.getStart()), getPositionIndex(range.getEnd()), measure);
   }
 
-  // TODO Consider using Range, otherwise add Preconditions to check start and end indexes
   private List<Integer> getMissingBlockIndexesInRange(
       int startIndex, int endIndex, boolean measure) {
     List<Integer> missingBlockIndexes = new ArrayList<>();
