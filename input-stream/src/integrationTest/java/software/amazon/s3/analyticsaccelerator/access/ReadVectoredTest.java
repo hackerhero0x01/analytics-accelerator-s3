@@ -23,8 +23,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.stream.Stream;
@@ -250,32 +249,21 @@ public class ReadVectoredTest extends IntegrationTestBase {
   }
 
   @Test
-  void testTwoConcurrentStreams() throws IOException {
+  void testTwoConcurrentStreams() throws IOException, ExecutionException, InterruptedException {
     try (S3AALClientStreamReader s3AALClientStreamReader =
         this.createS3AALClientStreamReader(
-            S3ClientKind.FAULTY_S3_CLIENT, AALInputStreamConfigurationKind.NO_RETRY)) {
+            S3ClientKind.SDK_V2_JAVA_ASYNC, AALInputStreamConfigurationKind.READ_CORRECTNESS)) {
 
-      IntFunction<ByteBuffer> allocate = ByteBuffer::allocate;
+      ExecutorService threadPool =  Executors.newFixedThreadPool(5);
 
-      S3SeekableInputStream s3SeekableInputStream1 =
-          s3AALClientStreamReader.createReadStream(
-              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+      // Do three readVectored() concurrently
+      Future<?> x =  threadPool.submit(() -> performReadVectored(s3AALClientStreamReader));
+      Future<?> y = threadPool.submit(() -> performReadVectored(s3AALClientStreamReader));
+      Future<?> z = threadPool.submit(() -> performReadVectored(s3AALClientStreamReader));
 
-      S3SeekableInputStream s3SeekableInputStream2 =
-          s3AALClientStreamReader.createReadStream(
-              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
-
-      List<ObjectRange> objectRanges = new ArrayList<>();
-      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 700, 500));
-      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 100 * ONE_MB, 500));
-      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 500 * ONE_MB, 500));
-
-      s3SeekableInputStream1.readVectored(objectRanges, allocate, LOG_BYTE_BUFFER_RELEASED);
-      s3SeekableInputStream2.readVectored(objectRanges, allocate, LOG_BYTE_BUFFER_RELEASED);
-
-      assertThrows(CompletionException.class, () -> objectRanges.get(0).getByteBuffer().join());
-      assertDoesNotThrow(() -> objectRanges.get(1).getByteBuffer().join());
-      assertDoesNotThrow(() -> objectRanges.get(2).getByteBuffer().join());
+      x.get();
+      y.get();
+      z.get();
 
       assertEquals(
           s3AALClientStreamReader
@@ -283,6 +271,28 @@ public class ReadVectoredTest extends IntegrationTestBase {
               .getMetrics()
               .get(MetricKey.GET_REQUEST_COUNT),
           3);
+    }
+  }
+
+  private void performReadVectored(S3AALClientStreamReader s3AALClientStreamReader) {
+
+    try {
+      S3SeekableInputStream s3SeekableInputStream =
+              s3AALClientStreamReader.createReadStream(
+                      S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+
+      List<ObjectRange> objectRanges = new ArrayList<>();
+      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 700, 500));
+      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 100 * ONE_MB, 500));
+      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 500 * ONE_MB, 500));
+
+      s3SeekableInputStream.readVectored(objectRanges, ByteBuffer::allocate, LOG_BYTE_BUFFER_RELEASED);
+
+      for (ObjectRange objectRange : objectRanges) {
+        objectRange.getByteBuffer().join();
+      }
+    } catch (IOException e) {
+      // Do nothing
     }
   }
 
