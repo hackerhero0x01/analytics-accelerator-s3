@@ -25,10 +25,13 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -48,7 +51,6 @@ public class BlockManagerTest {
   private ObjectMetadata metadataStore;
   static S3URI testUri = S3URI.of("foo", "bar");
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(testUri).etag(ETAG).build();
-  private final ExecutorService threadPool = Executors.newFixedThreadPool(30);
 
   @Test
   @DisplayName("Test complete constructor initialization")
@@ -63,7 +65,6 @@ public class BlockManagerTest {
     Metrics aggregatingMetrics = new Metrics();
     BlobStoreIndexCache indexCache = mock(BlobStoreIndexCache.class);
     OpenStreamInformation openStreamInformation = mock(OpenStreamInformation.class);
-    ExecutorService executorService = mock(ExecutorService.class);
 
     // Act
     BlockManager blockManager =
@@ -75,8 +76,7 @@ public class BlockManagerTest {
             configuration,
             aggregatingMetrics,
             indexCache,
-            openStreamInformation,
-            executorService);
+            openStreamInformation);
 
     // Assert
     assertNotNull(blockManager, "BlockManager should not be null");
@@ -84,7 +84,6 @@ public class BlockManagerTest {
 
   @Test
   void testCreateBoundaries() {
-    // Test when objectKey is null
     assertThrows(
         NullPointerException.class,
         () ->
@@ -96,10 +95,7 @@ public class BlockManagerTest {
                 mock(PhysicalIOConfiguration.class),
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT,
-                mock(ExecutorService.class)));
-
-    // Test when objectClient is null
+                OpenStreamInformation.DEFAULT));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -111,10 +107,7 @@ public class BlockManagerTest {
                 mock(PhysicalIOConfiguration.class),
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT,
-                threadPool));
-
-    // Test when metadata is null
+                OpenStreamInformation.DEFAULT));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -126,10 +119,7 @@ public class BlockManagerTest {
                 mock(PhysicalIOConfiguration.class),
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT,
-                threadPool));
-
-    // Test when telemetry is null
+                OpenStreamInformation.DEFAULT));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -141,10 +131,7 @@ public class BlockManagerTest {
                 mock(PhysicalIOConfiguration.class),
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT,
-                threadPool));
-
-    // Test when configuration is null
+                OpenStreamInformation.DEFAULT));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -156,148 +143,29 @@ public class BlockManagerTest {
                 null,
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT,
-                threadPool));
-
-    // Test when metrics is null
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new BlockManager(
-                mock(ObjectKey.class),
-                mock(ObjectClient.class),
-                mock(ObjectMetadata.class),
-                mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class),
-                null,
-                mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT,
-                threadPool));
-
-    // Test when indexCache is null
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new BlockManager(
-                mock(ObjectKey.class),
-                mock(ObjectClient.class),
-                mock(ObjectMetadata.class),
-                mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class),
-                mock(Metrics.class),
-                null,
-                OpenStreamInformation.DEFAULT,
-                threadPool));
-
-    // Test when openStreamInformation is null
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new BlockManager(
-                mock(ObjectKey.class),
-                mock(ObjectClient.class),
-                mock(ObjectMetadata.class),
-                mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class),
-                mock(Metrics.class),
-                mock(BlobStoreIndexCache.class),
-                null,
-                threadPool));
-
-    // Test when threadPool is null
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            new BlockManager(
-                mock(ObjectKey.class),
-                mock(ObjectClient.class),
-                mock(ObjectMetadata.class),
-                mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class),
-                mock(Metrics.class),
-                mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT,
-                null));
+                OpenStreamInformation.DEFAULT));
   }
 
   @Test
-  void testGetBlockIsEmptyWhenNotSmallObject() {
-    ObjectClient objectClient = mock(ObjectClient.class);
-    int largeObjectSize = 9 * ONE_MB;
-    PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder()
-            .smallObjectSizeThreshold(8 * ONE_MB)
-            .smallObjectsPrefetchingEnabled(true)
-            .build();
-
+  void testGetBlockIsEmptyWhenNotSmallObject() throws IOException {
     // Given
-    BlockManager blockManager = getTestBlockManager(objectClient, largeObjectSize, configuration);
+    BlockManager blockManager = getTestBlockManager(9 * ONE_MB);
 
     // When: nothing
 
     // Then
-    verifyNoInteractions(objectClient);
     assertFalse(blockManager.getBlock(0).isPresent());
   }
 
   @Test
-  void testGetBlockIsNotEmptyWhenSmallObject() {
+  void testGetBlockIsNotEmptyWhenSmallObject() throws IOException {
     // Given
-    ObjectClient objectClient = mock(ObjectClient.class);
-    PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder()
-            .smallObjectSizeThreshold(8 * ONE_MB)
-            .smallObjectsPrefetchingEnabled(true)
-            .build();
-    BlockManager blockManager = getTestBlockManager(objectClient, 42, configuration);
+    BlockManager blockManager = getTestBlockManager(42);
 
     // When: nothing
 
     // Then
-    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, timeout(1_000)).getObject(requestCaptor.capture(), any());
     assertTrue(blockManager.getBlock(0).isPresent());
-  }
-
-  @Test
-  void testSmallObjectPrefetchingDisabled() {
-    // Given
-    int smallObjectSize = 2 * ONE_MB;
-    PhysicalIOConfiguration config =
-        PhysicalIOConfiguration.builder()
-            .smallObjectsPrefetchingEnabled(false)
-            .smallObjectSizeThreshold(
-                8 * ONE_MB) // Make sure that threshold is always higher than small object size
-            .build();
-
-    ObjectClient objectClient = mock(ObjectClient.class);
-
-    // When
-    BlockManager blockManager = getTestBlockManager(objectClient, smallObjectSize, config);
-
-    // Then
-    verifyNoInteractions(objectClient);
-    assertFalse(blockManager.getBlock(0).isPresent());
-  }
-
-  @Test
-  void testSmallObjectPrefetching() throws IOException, InterruptedException {
-    // Given
-    ObjectClient objectClient = mock(ObjectClient.class);
-    int smallObjectSize = 2 * ONE_MB; // Size less than default threshold (3MB)
-
-    // When
-    BlockManager blockManager = getTestBlockManager(objectClient, smallObjectSize);
-
-    // Then
-    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, timeout(1_000)).getObject(requestCaptor.capture(), any());
-
-    GetRequest request = requestCaptor.getValue();
-    assertEquals(1, requestCaptor.getAllValues().size());
-    assertEquals(0, request.getRange().getStart());
-    assertEquals(smallObjectSize - 1, request.getRange().getEnd());
-    assertRangeIsAvailable(blockManager, 0, smallObjectSize - 1);
   }
 
   @Test
@@ -311,7 +179,8 @@ public class BlockManagerTest {
     blockManager.makePositionAvailable(0, ReadMode.SYNC);
 
     // Then: 0 returns a block but 64KB + 1 byte returns no block
-    assertRangeIsAvailable(blockManager, 0, (64 * ONE_KB) - 1);
+    assertTrue(blockManager.getBlock(0).isPresent());
+    assertFalse(blockManager.getBlock(64 * ONE_KB).isPresent());
   }
 
   @Test
@@ -330,14 +199,12 @@ public class BlockManagerTest {
 
     // Then
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, timeout(1_000)).getObject(requestCaptor.capture(), any());
+    verify(objectClient).getObject(requestCaptor.capture(), any());
 
     assertEquals(0, requestCaptor.getValue().getRange().getStart());
     assertEquals(
         PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() - 1,
         requestCaptor.getValue().getRange().getEnd());
-    assertRangeIsAvailable(
-        blockManager, 0, PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() - 1);
   }
 
   @Test
@@ -352,11 +219,10 @@ public class BlockManagerTest {
 
     // Then
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, timeout(1_000)).getObject(requestCaptor.capture(), any());
+    verify(objectClient).getObject(requestCaptor.capture(), any());
 
     assertEquals(0, requestCaptor.getValue().getRange().getStart());
     assertEquals(objectSize - 1, requestCaptor.getValue().getRange().getEnd());
-    assertRangeIsAvailable(blockManager, 0, objectSize - 1);
   }
 
   @Test
@@ -367,33 +233,24 @@ public class BlockManagerTest {
     BlockManager blockManager =
         getTestBlockManager(
             objectClient,
-            136 * ONE_KB,
+            128 * ONE_KB,
             PhysicalIOConfiguration.builder().smallObjectsPrefetchingEnabled(false).build());
-    blockManager.makePositionAvailable(
-        0, ReadMode.SYNC); // This code will create blocks [0,1,2,3,4,5,6,7]
-    blockManager.makePositionAvailable(
-        72 * ONE_KB + 1, ReadMode.SYNC); // This code will create blocks [9,10,11,12,13,14,15,16]
+    blockManager.makePositionAvailable(0, ReadMode.SYNC);
+    blockManager.makePositionAvailable(64 * ONE_KB + 1, ReadMode.SYNC);
 
     // When: requesting the byte at 64KB
-    blockManager.makeRangeAvailable(64 * ONE_KB, 100, ReadMode.SYNC); // This will create block [8]
+    blockManager.makeRangeAvailable(64 * ONE_KB, 100, ReadMode.SYNC);
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, timeout(1_000).times(3)).getObject(requestCaptor.capture(), any());
+    verify(objectClient, times(3)).getObject(requestCaptor.capture(), any());
 
-    List<GetRequest> capturedRequests = requestCaptor.getAllValues();
+    // Then: request size is a single byte as more is not needed
+    GetRequest firstRequest = requestCaptor.getAllValues().get(0);
+    GetRequest secondRequest = requestCaptor.getAllValues().get(1);
+    GetRequest lastRequest = requestCaptor.getAllValues().get(2);
 
-    // Convert expected ranges to a Set
-    Set<Range> expectedRanges = new HashSet<>();
-    expectedRanges.add(new Range(0, 65535));
-    expectedRanges.add(new Range(65536, 73727));
-    expectedRanges.add(new Range(73728, 139263));
-
-    // Convert actual requests to ranges
-    Set<Range> actualRanges = new HashSet<>();
-    for (GetRequest req : capturedRequests) {
-      actualRanges.add(new Range(req.getRange().getStart(), req.getRange().getEnd()));
-    }
-
-    assertEquals(expectedRanges, actualRanges);
+    assertEquals(65_536, firstRequest.getRange().getLength());
+    assertEquals(65_535, secondRequest.getRange().getLength());
+    assertEquals(1, lastRequest.getRange().getLength());
   }
 
   @Test
@@ -401,23 +258,23 @@ public class BlockManagerTest {
       throws IOException {
     // Given: BM with 0-64KB and 64KB+1 to 128KB
     ObjectClient objectClient = mock(ObjectClient.class);
-    BlockManager blockManager = getTestBlockManager(objectClient, 136 * ONE_KB);
+    BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_KB);
     blockManager.makePositionAvailable(0, ReadMode.SYNC);
-    blockManager.makePositionAvailable(72 * ONE_KB + 1, ReadMode.SYNC);
+    blockManager.makePositionAvailable(64 * ONE_KB + 1, ReadMode.SYNC);
 
     // When: requesting the byte at 64KB
     blockManager.makeRangeAvailable(64 * ONE_KB, 100, ReadMode.SYNC);
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, timeout(1_000)).getObject(requestCaptor.capture(), any());
+    verify(objectClient, times(1)).getObject(requestCaptor.capture(), any());
 
     // Then: request size is a single byte as more is not needed
     GetRequest firstRequest = requestCaptor.getAllValues().get(0);
 
-    assertEquals(139264, firstRequest.getRange().getLength());
+    assertEquals(131072, firstRequest.getRange().getLength());
   }
 
   @Test
-  void testMakeRangeAvailableNotFillBlockWhenEtagChanges() throws IOException {
+  void testMakeRangeAvailableThrowsExceptionWhenEtagChanges() throws IOException {
     ObjectClient objectClient = mock(ObjectClient.class);
     BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_MB);
     blockManager.makePositionAvailable(0, ReadMode.SYNC);
@@ -437,8 +294,9 @@ public class BlockManagerTest {
             any()))
         .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
 
-    Optional<Block> blockOpt = blockManager.getBlock(readAheadBytes + 1);
-    assertFalse(blockOpt.isPresent());
+    assertThrows(
+        IOException.class,
+        () -> blockManager.makePositionAvailable(readAheadBytes + 1, ReadMode.SYNC));
   }
 
   @Test
@@ -470,6 +328,63 @@ public class BlockManagerTest {
                     () ->
                         new IllegalStateException(
                             "block should have been available because it was requested before")));
+  }
+
+  private BlockManager getTestBlockManager(int size) throws IOException {
+    return getTestBlockManager(mock(ObjectClient.class), size);
+  }
+
+  private BlockManager getTestBlockManager(ObjectClient objectClient, int size) throws IOException {
+    return getTestBlockManager(objectClient, size, PhysicalIOConfiguration.DEFAULT);
+  }
+
+  private BlockManager getTestBlockManager(
+      ObjectClient objectClient, int size, PhysicalIOConfiguration configuration) {
+    /*
+     The argument matcher is used to check if our arguments match the values we want to mock a return for
+     (https://www.baeldung.com/mockito-argument-matchers)
+     If the header doesn't exist or if the header matches we want to return our positive response.
+    */
+    when(objectClient.getObject(
+            argThat(
+                request -> {
+                  if (request == null) {
+                    return false;
+                  }
+                  // Check if the If-Match header matches expected ETag
+                  return request.getEtag() == null || request.getEtag().equals(ETAG);
+                }),
+            any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                ObjectContent.builder().stream(new ByteArrayInputStream(new byte[size])).build()));
+
+    /*
+     Here we check if our header is present and the etags don't match then we expect an error to be thrown.
+    */
+    when(objectClient.getObject(
+            argThat(
+                request -> {
+                  if (request == null) {
+                    return false;
+                  }
+                  // Check if the If-Match header matches expected ETag
+                  return request.getEtag() != null && !request.getEtag().equals(ETAG);
+                }),
+            any()))
+        .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
+
+    metadataStore = ObjectMetadata.builder().contentLength(size).etag(ETAG).build();
+
+    return new BlockManager(
+        objectKey,
+        objectClient,
+        metadataStore,
+        TestTelemetry.DEFAULT,
+        configuration,
+        mock(Metrics.class),
+        mock(BlobStoreIndexCache.class),
+        OpenStreamInformation.DEFAULT);
   }
 
   @Test
@@ -529,7 +444,7 @@ public class BlockManagerTest {
 
     // Then: verify pattern detection through increased read ahead
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, timeout(1_00).atLeast(1)).getObject(requestCaptor.capture(), any());
+    verify(objectClient, atLeast(1)).getObject(requestCaptor.capture(), any());
 
     // Verify that later requests have larger ranges due to sequential pattern detection
     List<GetRequest> requests = requestCaptor.getAllValues();
@@ -542,7 +457,7 @@ public class BlockManagerTest {
 
   @Test
   @DisplayName("Test cleanup method")
-  void testCleanup() throws IOException, InterruptedException {
+  void testCleanup() throws IOException {
     // Given
     BlockManager blockManager = getTestBlockManager(1024);
 
@@ -550,8 +465,6 @@ public class BlockManagerTest {
     blockManager.makePositionAvailable(0, ReadMode.SYNC);
     blockManager.makePositionAvailable(100, ReadMode.SYNC);
 
-    // Wait for some time till data is ready
-    Thread.sleep(500);
     // When
     blockManager.cleanUp();
 
@@ -582,39 +495,63 @@ public class BlockManagerTest {
         closeLatch.await(5, TimeUnit.SECONDS), "Close operation should complete within timeout");
   }
 
-  @Test
-  @DisplayName("Test makeRangeAvailable with async read mode")
-  void testMakeRangeAvailableAsync() throws IOException {
-    PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().smallObjectsPrefetchingEnabled(false).build();
-
+  @ParameterizedTest
+  @MethodSource("readModes")
+  @DisplayName("Test makeRangeAvailable with async read modes")
+  void testMakeRangeAvailableAsync(ReadMode readMode) throws IOException {
     // Given
     ObjectClient objectClient = mock(ObjectClient.class);
-    BlockManager blockManager = getTestBlockManager(objectClient, 16 * ONE_MB, configuration);
-    blockManager.makePositionAvailable(0, ReadMode.SYNC); // Create first 8 blocks with generation 0
+    BlockManager blockManager = getTestBlockManager(objectClient, 100 * ONE_MB);
 
     // When
-    blockManager.makeRangeAvailable(
-        64 * ONE_KB, 100, ReadMode.ASYNC); // Should read next 64KB but with generation 0 not 1.
+    blockManager.makeRangeAvailable(0, 5 * ONE_MB, readMode);
+    blockManager.makeRangeAvailable(5 * ONE_MB, 3 * ONE_MB, readMode);
+    blockManager.makeRangeAvailable(8 * ONE_MB, 5 * ONE_MB, readMode);
 
     // Then
     ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, timeout(1_000).times(2)).getObject(requestCaptor.capture(), any());
+    verify(objectClient, times(3)).getObject(requestCaptor.capture(), any());
 
-    List<GetRequest> capturedRequests = requestCaptor.getAllValues();
-    // Convert expected ranges to a Set
-    Set<Range> expectedRanges = new HashSet<>();
-    expectedRanges.add(new Range(0, 65535));
-    expectedRanges.add(new Range(65536, 131071));
+    List<GetRequest> getRequestList = requestCaptor.getAllValues();
 
-    // Convert actual requests to ranges
-    Set<Range> actualRanges = new HashSet<>();
-    for (GetRequest req : capturedRequests) {
-      actualRanges.add(new Range(req.getRange().getStart(), req.getRange().getEnd()));
-    }
+    // Verify that prefetch modes don't trigger sequential prefetching
+    assertEquals(getRequestList.get(0).getRange().getLength(), 5 * ONE_MB);
+    assertEquals(getRequestList.get(1).getRange().getLength(), 3 * ONE_MB);
+    assertEquals(getRequestList.get(2).getRange().getLength(), 5 * ONE_MB);
+  }
 
-    // Verify that async mode doesn't trigger sequential read
-    assertEquals(expectedRanges, actualRanges);
+  @Test
+  @DisplayName("Test makeRangeAvailable with sync read mode")
+  void testMakeRangeAvailableSync() throws IOException {
+    // Given
+    ObjectClient objectClient = mock(ObjectClient.class);
+    BlockManager blockManager = getTestBlockManager(objectClient, 100 * ONE_MB);
+
+    // When
+    blockManager.makeRangeAvailable(0, 5 * ONE_MB, ReadMode.SYNC);
+    blockManager.makeRangeAvailable(5 * ONE_MB, 3 * ONE_MB, ReadMode.SYNC);
+
+    // Then
+    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
+    verify(objectClient, times(2)).getObject(requestCaptor.capture(), any());
+
+    List<GetRequest> getRequestList = requestCaptor.getAllValues();
+
+    // Verify that with the SYNC mode, sequential prefetching kicks in
+    assertEquals(getRequestList.get(0).getRange().getLength(), 5 * ONE_MB);
+    // Second request gets extended by 4MB to 9MB.
+    assertEquals(getRequestList.get(1).getRange().getLength(), 4 * ONE_MB + 1);
+  }
+
+  private static List<ReadMode> readModes() {
+    List<ReadMode> readModes = new ArrayList<>();
+    readModes.add(ReadMode.READ_VECTORED);
+    readModes.add(ReadMode.COLUMN_PREFETCH);
+    readModes.add(ReadMode.DICTIONARY_PREFETCH);
+    readModes.add(ReadMode.PREFETCH_TAIL);
+    readModes.add(ReadMode.REMAINING_COLUMN_PREFETCH);
+
+    return readModes;
   }
 
   @Test
@@ -684,71 +621,43 @@ public class BlockManagerTest {
     }
   }
 
-  private BlockManager getTestBlockManager(int size) throws IOException {
-    return getTestBlockManager(mock(ObjectClient.class), size);
+  @Test
+  void testSmallObjectPrefetching() throws IOException {
+    // Given
+    ObjectClient objectClient = mock(ObjectClient.class);
+    int smallObjectSize = 2 * ONE_MB; // Size less than default threshold (3MB)
+
+    // When
+    PhysicalIOConfiguration config = PhysicalIOConfiguration.builder().build();
+
+    BlockManager blockManager = getTestBlockManager(objectClient, smallObjectSize, config);
+
+    // Trigger prefetching
+    blockManager.makeRangeAvailable(0, smallObjectSize, ReadMode.SMALL_OBJECT_PREFETCH);
+
+    // Then
+    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
+    verify(objectClient).getObject(requestCaptor.capture(), any());
+
+    GetRequest request = requestCaptor.getValue();
+    assertEquals(0, request.getRange().getStart());
+    assertEquals(smallObjectSize - 1, request.getRange().getEnd());
   }
 
-  private BlockManager getTestBlockManager(ObjectClient objectClient, int size) throws IOException {
-    return getTestBlockManager(objectClient, size, PhysicalIOConfiguration.DEFAULT);
-  }
+  @Test
+  void testSmallObjectPrefetchingDisabled() throws IOException {
+    // Given
+    PhysicalIOConfiguration config =
+        PhysicalIOConfiguration.builder().smallObjectsPrefetchingEnabled(false).build();
 
-  private BlockManager getTestBlockManager(
-      ObjectClient objectClient, int size, PhysicalIOConfiguration configuration) {
-    /*
-     The argument matcher is used to check if our arguments match the values we want to mock a return for
-     (https://www.baeldung.com/mockito-argument-matchers)
-     If the header doesn't exist or if the header matches we want to return our positive response.
-    */
-    when(objectClient.getObject(
-            argThat(
-                request -> {
-                  if (request == null) {
-                    return false;
-                  }
-                  // Check if the If-Match header matches expected ETag
-                  return request.getEtag() == null || request.getEtag().equals(ETAG);
-                }),
-            any()))
-        .thenReturn(
-            CompletableFuture.completedFuture(
-                ObjectContent.builder().stream(new ByteArrayInputStream(new byte[size])).build()));
+    ObjectClient objectClient = mock(ObjectClient.class);
+    int smallObjectSize = 2 * ONE_MB;
 
-    /*
-     Here we check if our header is present and the etags don't match then we expect an error to be thrown.
-    */
-    when(objectClient.getObject(
-            argThat(
-                request -> {
-                  if (request == null) {
-                    return false;
-                  }
-                  // Check if the If-Match header matches expected ETag
-                  return request.getEtag() != null && !request.getEtag().equals(ETAG);
-                }),
-            any()))
-        .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
+    // When
+    BlockManager blockManager = getTestBlockManager(objectClient, smallObjectSize, config);
 
-    metadataStore = ObjectMetadata.builder().contentLength(size).etag(ETAG).build();
-
-    return new BlockManager(
-        objectKey,
-        objectClient,
-        metadataStore,
-        TestTelemetry.DEFAULT,
-        configuration,
-        mock(Metrics.class),
-        mock(BlobStoreIndexCache.class),
-        OpenStreamInformation.DEFAULT,
-        threadPool);
-  }
-
-  private void assertRangeIsAvailable(BlockManager blockManager, long start, long end) {
-    for (long pos = start; pos <= end; ) {
-      Optional<Block> blockOpt = blockManager.getBlock(pos);
-      assertTrue(blockOpt.isPresent(), "Block should be available at position " + pos);
-
-      Block block = blockOpt.get();
-      pos = block.getBlockKey().getRange().getEnd() + 1;
-    }
+    // Then
+    verify(objectClient, times(0)).getObject(any(), any());
+    assertFalse(blockManager.getBlock(0).isPresent());
   }
 }

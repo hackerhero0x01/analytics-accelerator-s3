@@ -15,12 +15,35 @@
  */
 package software.amazon.s3.analyticsaccelerator.request;
 
+import lombok.AllArgsConstructor;
+
 /**
  * Enum to help with the annotation of reads. We mark reads SYNC when they were triggered by a
  * synchronous read or ASYNC when they were to do logical or physical prefetching.
  */
+@AllArgsConstructor
 public enum ReadMode {
-  SYNC,
-  ASYNC,
-  SMALL_OBJECT_PREFETCH;
+  SYNC(true),
+  ASYNC(true),
+  SMALL_OBJECT_PREFETCH(true),
+  SEQUENTIAL_FILE_PREFETCH(true),
+  DICTIONARY_PREFETCH(false),
+  COLUMN_PREFETCH(false),
+  REMAINING_COLUMN_PREFETCH(false),
+  PREFETCH_TAIL(false),
+  READ_VECTORED(false);
+
+  private final boolean allowRequestExtension;
+
+  /**
+   * Should requests be extended for this read mode?
+   *
+   * <p>When the read is from the parquet prefetcher or readVectored(), we know the exact ranges we
+   * want to read, so in this case don't extend the ranges.
+   *
+   * @return true if requests should be extended
+   */
+  public boolean allowRequestExtension() {
+    return allowRequestExtension;
+  }
 }
