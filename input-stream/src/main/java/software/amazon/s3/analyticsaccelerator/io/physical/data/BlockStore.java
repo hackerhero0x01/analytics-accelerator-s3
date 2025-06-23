@@ -188,9 +188,17 @@ public class BlockStore implements Closeable {
   @Override
   public void close() throws IOException {
     for (Block block : blocks.values()) {
-      block.close();
+      safeClose(block);
     }
     blocks.clear();
+  }
+
+  private void safeClose(Block block) {
+    try {
+      block.close();
+    } catch (Exception e) {
+      LOG.error("Exception when closing Block in the BlockStore", e);
+    }
   }
 
   /**
