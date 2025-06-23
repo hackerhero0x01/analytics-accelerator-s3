@@ -7,7 +7,8 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.80.0
-	github.com/valkey-io/valkey-glide/go v1.3.4
+	github.com/valkey-io/valkey-glide/go/v2 v2.0.1
+
 )
 
 require (

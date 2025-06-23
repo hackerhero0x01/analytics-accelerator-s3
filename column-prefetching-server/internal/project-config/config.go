@@ -14,6 +14,9 @@ type CacheConfig struct {
 	TimeToLive          time.Duration `json:"time_to_live"`
 	ElastiCacheEndpoint string        `json:"elasticache_endpoint"`
 	ElastiCachePort     int           `json:"elasticache_port"`
+	BatchTimeout        time.Duration `json:"batch_timeout"`
+	BatchSize           int           `json:"batch_size"`
+	RequestTimeout      time.Duration `json:"request_timeout"`
 }
 
 type S3Config struct {

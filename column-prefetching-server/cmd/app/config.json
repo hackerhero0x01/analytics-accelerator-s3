@@ -6,7 +6,10 @@
   "cache": {
     "time_to_live": 1200,
     "elasticache_endpoint": "www.changeme.com",
-    "elasticache_port": 6379
+    "elasticache_port": 6379,
+    "batch_timeout": 500,
+    "batch_size": 100,
+    "request_timeout": 5000
   },
 
   "s3": {

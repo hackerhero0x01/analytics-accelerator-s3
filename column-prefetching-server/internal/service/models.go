@@ -2,9 +2,10 @@ package service
 
 import (
 	project_config "column-prefetching-server/internal/project-config"
+	"context"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/valkey-io/valkey-glide/go/api"
+	glide "github.com/valkey-io/valkey-glide/go/v2"
 	"sync"
 	"time"
 )
@@ -40,8 +41,14 @@ type S3Service struct {
 }
 
 type CacheService struct {
-	elastiCacheClient api.GlideClusterClientCommands
+	elastiCacheClient glide.ClusterClient
 	config            project_config.CacheConfig
+	batchRequests     chan SetRequest
+	wg                sync.WaitGroup
+	ctx               context.Context
+	cancel            context.CancelFunc
+	batcherStarted    bool
+	mu                sync.Mutex
 }
 
 // Request / Response types
@@ -78,4 +85,9 @@ type columnJob struct {
 	bucket          string
 	fileKey         string
 	requestedColumn requestedColumn
+}
+
+type SetRequest struct {
+	Key   string
+	Value string
 }
