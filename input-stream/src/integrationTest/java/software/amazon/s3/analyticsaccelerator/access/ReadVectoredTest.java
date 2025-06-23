@@ -249,6 +249,43 @@ public class ReadVectoredTest extends IntegrationTestBase {
     }
   }
 
+  @Test
+  void testTwoConcurrentStreams() throws IOException {
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        this.createS3AALClientStreamReader(
+            S3ClientKind.FAULTY_S3_CLIENT, AALInputStreamConfigurationKind.NO_RETRY)) {
+
+      IntFunction<ByteBuffer> allocate = ByteBuffer::allocate;
+
+      S3SeekableInputStream s3SeekableInputStream1 =
+          s3AALClientStreamReader.createReadStream(
+              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+
+      S3SeekableInputStream s3SeekableInputStream2 =
+          s3AALClientStreamReader.createReadStream(
+              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+
+      List<ObjectRange> objectRanges = new ArrayList<>();
+      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 700, 500));
+      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 100 * ONE_MB, 500));
+      objectRanges.add(new ObjectRange(new CompletableFuture<>(), 500 * ONE_MB, 500));
+
+      s3SeekableInputStream1.readVectored(objectRanges, allocate, LOG_BYTE_BUFFER_RELEASED);
+      s3SeekableInputStream2.readVectored(objectRanges, allocate, LOG_BYTE_BUFFER_RELEASED);
+
+      assertThrows(CompletionException.class, () -> objectRanges.get(0).getByteBuffer().join());
+      assertDoesNotThrow(() -> objectRanges.get(1).getByteBuffer().join());
+      assertDoesNotThrow(() -> objectRanges.get(2).getByteBuffer().join());
+
+      assertEquals(
+          s3AALClientStreamReader
+              .getS3SeekableInputStreamFactory()
+              .getMetrics()
+              .get(MetricKey.GET_REQUEST_COUNT),
+          3);
+    }
+  }
+
   static Stream<Arguments> vectoredReads() {
     List<S3Object> readVectoredObjects = new ArrayList<>();
     readVectoredObjects.add(S3Object.RANDOM_1GB);
