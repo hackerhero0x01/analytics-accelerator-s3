@@ -28,14 +28,14 @@ import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
-import software.amazon.s3.analyticsaccelerator.io.physical.data.DataBlock;
+import software.amazon.s3.analyticsaccelerator.io.physical.data.Block;
 import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 
 /**
  * {@code StreamReader} is responsible for asynchronously reading a range of bytes from an object in
- * S3 and populating the corresponding {@link DataBlock}s with the downloaded data.
+ * S3 and populating the corresponding {@link Block}s with the downloaded data.
  *
  * <p>It submits the read task to a provided {@link ExecutorService}, allowing non-blocking
  * operation.
@@ -45,7 +45,7 @@ public class StreamReader implements Closeable {
   private final ObjectKey objectKey;
   private final ExecutorService threadPool;
   // Callback function to remove failed blocks from the data store
-  private final Consumer<List<DataBlock>> removeBlocksFunc;
+  private final Consumer<List<Block>> removeBlocksFunc;
   private final OpenStreamInformation openStreamInformation;
 
   private static final Logger LOG = LoggerFactory.getLogger(StreamReader.class);
@@ -63,7 +63,7 @@ public class StreamReader implements Closeable {
       @NonNull ObjectClient objectClient,
       @NonNull ObjectKey objectKey,
       @NonNull ExecutorService threadPool,
-      @NonNull Consumer<List<DataBlock>> removeBlocksFunc,
+      @NonNull Consumer<List<Block>> removeBlocksFunc,
       @NonNull OpenStreamInformation openStreamInformation) {
     this.objectClient = objectClient;
     this.objectKey = objectKey;
@@ -74,11 +74,11 @@ public class StreamReader implements Closeable {
 
   /**
    * Asynchronously reads a range of bytes from the S3 object and fills the corresponding {@link
-   * DataBlock}s with data. The byte range is determined by the start of the first block and the end
-   * of the last block.
+   * Block}s with data. The byte range is determined by the start of the first block and the end of
+   * the last block.
    *
-   * @param blocks the list of {@link DataBlock}s to be populated; must not be empty and must be
-   *     sorted by offset
+   * @param blocks the list of {@link Block}s to be populated; must not be empty and must be sorted
+   *     by offset
    * @param readMode the mode in which the read is being performed (used for tracking or metrics)
    * @throws IllegalArgumentException if the {@code blocks} list is empty
    * @implNote This method uses a fire-and-forget strategy and doesn't return a {@code Future};
@@ -87,7 +87,7 @@ public class StreamReader implements Closeable {
   @SuppressFBWarnings(
       value = "RV_RETURN_VALUE_IGNORED",
       justification = "Intentional fire-and-forget task")
-  public void read(@NonNull final List<DataBlock> blocks, ReadMode readMode) {
+  public void read(@NonNull final List<Block> blocks, ReadMode readMode) {
     Preconditions.checkArgument(!blocks.isEmpty(), "`blocks` list must not be empty");
     threadPool.submit(processReadTask(blocks, readMode));
   }
@@ -100,7 +100,7 @@ public class StreamReader implements Closeable {
    * @param readMode the mode in which the read is being performed
    * @return a Runnable that executes the read operation asynchronously
    */
-  private Runnable processReadTask(final List<DataBlock> blocks, ReadMode readMode) {
+  private Runnable processReadTask(final List<Block> blocks, ReadMode readMode) {
     return () -> {
       // Calculate the byte range needed to cover all blocks
       Range requestRange = computeRange(blocks);
@@ -151,9 +151,9 @@ public class StreamReader implements Closeable {
    * @throws IOException if an I/O error occurs while reading from the stream
    */
   private boolean readBlocksFromStream(
-      InputStream inputStream, List<DataBlock> blocks, long initialOffset) throws IOException {
+      InputStream inputStream, List<Block> blocks, long initialOffset) throws IOException {
     long currentOffset = initialOffset;
-    for (DataBlock block : blocks) {
+    for (Block block : blocks) {
       boolean success = readBlock(inputStream, block, currentOffset);
       if (!success) {
         return false;
@@ -174,7 +174,7 @@ public class StreamReader implements Closeable {
    * @param blocks the list of data blocks, must be non-empty and sorted by offset
    * @return the Range covering all blocks from first start to last end
    */
-  private Range computeRange(List<DataBlock> blocks) {
+  private Range computeRange(List<Block> blocks) {
     long rangeStart = blocks.get(0).getBlockKey().getRange().getStart();
     long rangeEnd = blocks.get(blocks.size() - 1).getBlockKey().getRange().getEnd();
     return new Range(rangeStart, rangeEnd);
@@ -207,7 +207,7 @@ public class StreamReader implements Closeable {
    * @return true if the block was successfully read and populated, false otherwise
    * @throws IOException if an I/O error occurs while reading or skipping bytes
    */
-  private boolean readBlock(InputStream inputStream, DataBlock block, long currentOffset)
+  private boolean readBlock(InputStream inputStream, Block block, long currentOffset)
       throws IOException {
     long blockStart = block.getBlockKey().getRange().getStart();
     long blockEnd = block.getBlockKey().getRange().getEnd();
@@ -288,7 +288,7 @@ public class StreamReader implements Closeable {
    *
    * @param blocks the list of blocks to check and potentially remove if not filled with data
    */
-  private void removeNonFilledBlocksFromStore(List<DataBlock> blocks) {
+  private void removeNonFilledBlocksFromStore(List<Block> blocks) {
     // Filter out blocks that don't have data and remove them via callback
     this.removeBlocksFunc.accept(
         blocks.stream().filter(block -> !block.isDataReady()).collect(Collectors.toList()));

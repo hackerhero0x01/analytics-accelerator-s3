@@ -49,6 +49,7 @@ public class BlockManagerTest {
   private ObjectMetadata metadataStore;
   static S3URI testUri = S3URI.of("foo", "bar");
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(testUri).etag(ETAG).build();
+  private final ExecutorService threadPool = Executors.newFixedThreadPool(30);
 
   @Test
   @DisplayName("Test complete constructor initialization")
@@ -74,7 +75,8 @@ public class BlockManagerTest {
             configuration,
             aggregatingMetrics,
             indexCache,
-            openStreamInformation);
+            openStreamInformation,
+            threadPool);
 
     // Assert
     assertNotNull(blockManager, "BlockManager should not be null");
@@ -93,7 +95,8 @@ public class BlockManagerTest {
                 mock(PhysicalIOConfiguration.class),
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT));
+                OpenStreamInformation.DEFAULT,
+                threadPool));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -105,7 +108,8 @@ public class BlockManagerTest {
                 mock(PhysicalIOConfiguration.class),
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT));
+                OpenStreamInformation.DEFAULT,
+                threadPool));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -117,7 +121,8 @@ public class BlockManagerTest {
                 mock(PhysicalIOConfiguration.class),
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT));
+                OpenStreamInformation.DEFAULT,
+                threadPool));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -129,7 +134,8 @@ public class BlockManagerTest {
                 mock(PhysicalIOConfiguration.class),
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT));
+                OpenStreamInformation.DEFAULT,
+                threadPool));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -141,7 +147,8 @@ public class BlockManagerTest {
                 null,
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
-                OpenStreamInformation.DEFAULT));
+                OpenStreamInformation.DEFAULT,
+                threadPool));
   }
 
   @Test
@@ -382,7 +389,8 @@ public class BlockManagerTest {
         configuration,
         mock(Metrics.class),
         mock(BlobStoreIndexCache.class),
-        OpenStreamInformation.DEFAULT);
+        OpenStreamInformation.DEFAULT,
+        threadPool);
   }
 
   @Test

@@ -136,7 +136,7 @@ public class BlobStore implements Closeable {
             new Blob(
                 uri,
                 metadata,
-                new DataBlockManager(
+                new BlockManager(
                     objectKey,
                     objectClient,
                     metadata,

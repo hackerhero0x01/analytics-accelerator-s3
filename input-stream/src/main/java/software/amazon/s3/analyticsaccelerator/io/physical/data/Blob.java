@@ -39,7 +39,7 @@ public class Blob implements Closeable {
   private static final String OPERATION_EXECUTE = "blob.execute";
 
   private final ObjectKey objectKey;
-  private final DataBlockManager blockManager;
+  private final BlockManager blockManager;
   private final ObjectMetadata metadata;
   private final Telemetry telemetry;
 
@@ -72,7 +72,7 @@ public class Blob implements Closeable {
   public Blob(
       @NonNull ObjectKey objectKey,
       @NonNull ObjectMetadata metadata,
-      @NonNull DataBlockManager blockManager,
+      @NonNull BlockManager blockManager,
       @NonNull Telemetry telemetry) {
 
     this.objectKey = objectKey;
@@ -128,7 +128,7 @@ public class Blob implements Closeable {
         final long nextPositionFinal = nextPosition;
 
         // TODO throw IOException here
-        DataBlock nextBlock =
+        Block nextBlock =
             blockManager
                 .getBlock(nextPosition)
                 .orElseThrow(
