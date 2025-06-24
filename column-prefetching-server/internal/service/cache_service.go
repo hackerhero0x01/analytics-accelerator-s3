@@ -4,11 +4,11 @@ import (
 	projectconfig "column-prefetching-server/internal/project-config"
 	"context"
 	"fmt"
+	"time"
 	"github.com/valkey-io/valkey-glide/go/v2"
 	"github.com/valkey-io/valkey-glide/go/v2/config"
 	"github.com/valkey-io/valkey-glide/go/v2/options"
 	"github.com/valkey-io/valkey-glide/go/v2/pipeline"
-	"time"
 )
 
 func NewCacheService(cfg projectconfig.CacheConfig) (*CacheService, error) {
@@ -28,9 +28,9 @@ func NewCacheService(cfg projectconfig.CacheConfig) (*CacheService, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	service := &CacheService{
-		elastiCacheClient: *client,
+		elastiCacheClient: client,
 		config:            cfg,
-		batchRequests:     make(chan SetRequest, 1000),
+		batchRequests:     make(chan SetRequest, 50000),
 		ctx:               ctx,
 		cancel:            cancel,
 		batcherStarted:    false,
@@ -42,8 +42,6 @@ func NewCacheService(cfg projectconfig.CacheConfig) (*CacheService, error) {
 }
 
 func (service *CacheService) CacheColumnData(data parquetColumnData) {
-	service.startBatching()
-
 	cacheKey := generateCacheKey(data)
 
 	service.batchRequests <- SetRequest{
@@ -62,11 +60,14 @@ func (service *CacheService) startBatching() {
 	}
 
 	service.batcherStarted = true
-	service.wg.Add(1)
-	go service.batchProcessor()
+
+	for i := 0; i < 64; i++ {
+		service.wg.Add(1)
+		go service.batchProcessor(i)
+	}
 }
 
-func (service *CacheService) batchProcessor() {
+func (service *CacheService) batchProcessor(workerID int) {
 	defer service.wg.Done()
 
 	var currentBatch *pipeline.ClusterBatch
@@ -83,13 +84,18 @@ func (service *CacheService) batchProcessor() {
 	// anonymous function to process accumulated cache set operations
 	sendBatch := func() {
 		if len(setBatch) == 0 {
-			fmt.Printf("No items in batch, skipping send")
 			return
 		}
 
-		fmt.Printf("Sending batch of %d items to ElastiCache", len(setBatch))
+		fmt.Printf("Worker %d: Sending batch of %d items to ElastiCache \n", 
+            workerID, len(setBatch))
 
-		service.elastiCacheClient.Exec(service.ctx, *currentBatch, false)
+		_, err := service.elastiCacheClient.Exec(service.ctx, *currentBatch, false)
+
+		if err != nil {
+			fmt.Printf("Error executing batch: %v\n", err)
+			return
+    	}
 
 		resetBatch()
 	}
@@ -99,13 +105,12 @@ func (service *CacheService) batchProcessor() {
 
 	timer.Reset(service.config.BatchTimeout)
 
-	fmt.Printf("Batch processor started")
-
 	for {
 		select {
 		// received a new request, add it to the set batch
-		case req, _ := <-service.batchRequests:
-			fmt.Printf("Adding item to batch. Current batch size: %d/%d",
+		case req := <-service.batchRequests:
+
+			fmt.Printf("Adding item to batch. Current batch size: %d/%d \n",
 				len(setBatch)+1, service.config.BatchSize)
 
 			// add request to set batch
@@ -127,12 +132,11 @@ func (service *CacheService) batchProcessor() {
 
 		//	the timer is done, so process the batch
 		case <-timer.C:
-			fmt.Printf("Batch timeout reached. Sending batch with %d items", len(setBatch))
 			sendBatch()
-			fmt.Printf("Timeout batch sent. Creating new batch.")
 			timer.Reset(service.config.BatchTimeout)
 		}
 	}
+
 }
 
 func generateCacheKey(data parquetColumnData) string {

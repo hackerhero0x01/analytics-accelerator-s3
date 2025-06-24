@@ -41,7 +41,7 @@ type S3Service struct {
 }
 
 type CacheService struct {
-	elastiCacheClient glide.ClusterClient
+	elastiCacheClient *glide.ClusterClient
 	config            project_config.CacheConfig
 	batchRequests     chan SetRequest
 	wg                sync.WaitGroup

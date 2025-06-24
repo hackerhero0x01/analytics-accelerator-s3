@@ -41,5 +41,11 @@ func LoadConfig(configPath string) (*Config, error) {
 
 	err = json.Unmarshal(jsonFile, &cfg)
 
+	cfg.Cache.TimeToLive = cfg.Cache.TimeToLive * time.Minute
+	cfg.Cache.BatchTimeout = cfg.Cache.BatchTimeout * time.Millisecond
+	cfg.Cache.RequestTimeout = cfg.Cache.RequestTimeout * time.Second
+
+	cfg.Batch.BatchTimeout = cfg.Batch.BatchTimeout * time.Millisecond
+
 	return &cfg, err
 }

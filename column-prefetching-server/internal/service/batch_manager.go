@@ -14,7 +14,7 @@ func NewBatchManager(
 	return &BatchManager{
 		prefetchingService: prefetchingService,
 		batches:            make(map[string]*batch),
-		batchTimeout:       cfg.BatchTimeout * time.Millisecond,
+		batchTimeout:       cfg.BatchTimeout,
 	}
 }
 

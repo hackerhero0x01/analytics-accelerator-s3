@@ -4,12 +4,12 @@
   },
 
   "cache": {
-    "time_to_live": 1200,
-    "elasticache_endpoint": "www.changeme.com",
+    "time_to_live": 20,
+    "elasticache_endpoint": "clustercfg.aal-megacluster.o6izbh.use1.cache.amazonaws.com",
     "elasticache_port": 6379,
-    "batch_timeout": 500,
-    "batch_size": 100,
-    "request_timeout": 5000
+    "batch_timeout": 1000,
+    "batch_size": 5,
+    "request_timeout": 20
   },
 
   "s3": {
@@ -17,6 +17,6 @@
   },
 
   "batch": {
-    "batch_timeout": 2500
+    "batch_timeout": 1000
   }
 }
