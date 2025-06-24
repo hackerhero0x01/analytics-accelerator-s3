@@ -66,6 +66,7 @@ public class BlockManagerTest {
     Metrics aggregatingMetrics = new Metrics();
     BlobStoreIndexCache indexCache = mock(BlobStoreIndexCache.class);
     OpenStreamInformation openStreamInformation = mock(OpenStreamInformation.class);
+    ExecutorService executorService = mock(ExecutorService.class);
 
     // Act
     BlockManager blockManager =
@@ -78,7 +79,7 @@ public class BlockManagerTest {
             aggregatingMetrics,
             indexCache,
             openStreamInformation,
-            threadPool);
+            executorService);
 
     // Assert
     assertNotNull(blockManager, "BlockManager should not be null");
@@ -86,6 +87,7 @@ public class BlockManagerTest {
 
   @Test
   void testCreateBoundaries() {
+    // Test when objectKey is null
     assertThrows(
         NullPointerException.class,
         () ->
@@ -98,7 +100,9 @@ public class BlockManagerTest {
                 mock(Metrics.class),
                 mock(BlobStoreIndexCache.class),
                 OpenStreamInformation.DEFAULT,
-                threadPool));
+                mock(ExecutorService.class)));
+
+    // Test when objectClient is null
     assertThrows(
         NullPointerException.class,
         () ->
@@ -112,6 +116,8 @@ public class BlockManagerTest {
                 mock(BlobStoreIndexCache.class),
                 OpenStreamInformation.DEFAULT,
                 threadPool));
+
+    // Test when metadata is null
     assertThrows(
         NullPointerException.class,
         () ->
@@ -125,6 +131,8 @@ public class BlockManagerTest {
                 mock(BlobStoreIndexCache.class),
                 OpenStreamInformation.DEFAULT,
                 threadPool));
+
+    // Test when telemetry is null
     assertThrows(
         NullPointerException.class,
         () ->
@@ -138,6 +146,8 @@ public class BlockManagerTest {
                 mock(BlobStoreIndexCache.class),
                 OpenStreamInformation.DEFAULT,
                 threadPool));
+
+    // Test when configuration is null
     assertThrows(
         NullPointerException.class,
         () ->
@@ -151,6 +161,66 @@ public class BlockManagerTest {
                 mock(BlobStoreIndexCache.class),
                 OpenStreamInformation.DEFAULT,
                 threadPool));
+
+    // Test when metrics is null
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                mock(ObjectKey.class),
+                mock(ObjectClient.class),
+                mock(ObjectMetadata.class),
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class),
+                null,
+                mock(BlobStoreIndexCache.class),
+                OpenStreamInformation.DEFAULT,
+                threadPool));
+
+    // Test when indexCache is null
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                mock(ObjectKey.class),
+                mock(ObjectClient.class),
+                mock(ObjectMetadata.class),
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class),
+                mock(Metrics.class),
+                null,
+                OpenStreamInformation.DEFAULT,
+                threadPool));
+
+    // Test when openStreamInformation is null
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                mock(ObjectKey.class),
+                mock(ObjectClient.class),
+                mock(ObjectMetadata.class),
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class),
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class),
+                null,
+                threadPool));
+
+    // Test when threadPool is null
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new BlockManager(
+                mock(ObjectKey.class),
+                mock(ObjectClient.class),
+                mock(ObjectMetadata.class),
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class),
+                mock(Metrics.class),
+                mock(BlobStoreIndexCache.class),
+                OpenStreamInformation.DEFAULT,
+                null));
   }
 
   @Test

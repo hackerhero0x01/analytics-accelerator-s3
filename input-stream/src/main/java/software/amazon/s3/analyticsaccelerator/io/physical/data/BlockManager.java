@@ -104,7 +104,7 @@ public class BlockManager implements Closeable {
     if (AnalyticsAcceleratorUtils.isSmallObject(configuration, metadata.getContentLength())) {
       try {
         makeRangeAvailable(0, metadata.getContentLength(), ReadMode.SMALL_OBJECT_PREFETCH);
-      } catch (IOException e) {
+      } catch (Exception e) {
         LOG.debug("Failed to prefetch small object for key: {}", objectKey.getS3URI().getKey(), e);
       }
     }
@@ -155,8 +155,7 @@ public class BlockManager implements Closeable {
     // If generation is greater than 0, it is sequential read
     if (generation > 0) {
       maxReadLength =
-          Math.max(
-              maxReadLength, sequentialReadProgression.getSizeForGeneration(generation));
+          Math.max(maxReadLength, sequentialReadProgression.getSizeForGeneration(generation));
     }
     // Truncate end position to the object length
     long effectiveEnd = truncatePos(pos + maxReadLength - 1);

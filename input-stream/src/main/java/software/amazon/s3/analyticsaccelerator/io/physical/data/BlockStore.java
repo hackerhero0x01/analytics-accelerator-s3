@@ -16,7 +16,6 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
