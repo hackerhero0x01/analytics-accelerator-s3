@@ -15,6 +15,9 @@
  */
 package software.amazon.s3.analyticsaccelerator.benchmarks.data.generation;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 @Getter
 @RequiredArgsConstructor
 public abstract class BenchmarkObjectGenerator {
+  protected static final String CUSTOMER_KEY = System.getenv("CUSTOMER_KEY");
   @NonNull private final S3ExecutionContext context;
   @NonNull private final S3ObjectKind kind;
 
@@ -36,4 +40,19 @@ public abstract class BenchmarkObjectGenerator {
    * @param size object size
    */
   public abstract void generate(S3URI s3URI, long size);
+
+  /**
+   * Helper method to calculate MD5 hash of customer key
+   *
+   * @return MD5 hash of customer key
+   */
+  public String calculateBase64MD5() {
+    try {
+      MessageDigest md = MessageDigest.getInstance("MD5");
+      return Base64.getEncoder()
+          .encodeToString(md.digest(Base64.getDecoder().decode(CUSTOMER_KEY)));
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("MD5 algorithm not available", e);
+    }
+  }
 }

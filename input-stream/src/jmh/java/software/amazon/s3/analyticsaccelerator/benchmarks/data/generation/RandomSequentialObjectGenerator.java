@@ -26,6 +26,7 @@ import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
 import software.amazon.awssdk.transfer.s3.model.CompletedUpload;
 import software.amazon.awssdk.transfer.s3.model.UploadRequest;
@@ -45,9 +46,11 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
    * Creates an instance of random data generator
    *
    * @param context an instance of {@link S3ExecutionContext}
+   * @param s3ObjectKind S3 Object Kind
    */
-  public RandomSequentialObjectGenerator(@NonNull S3ExecutionContext context) {
-    super(context, S3ObjectKind.RANDOM_SEQUENTIAL);
+  public RandomSequentialObjectGenerator(
+      @NonNull S3ExecutionContext context, @NonNull S3ObjectKind s3ObjectKind) {
+    super(context, s3ObjectKind);
   }
 
   /**
@@ -78,11 +81,21 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
     try (S3TransferManager s3TransferManager =
         S3TransferManager.builder().s3Client(this.getContext().getS3CrtClient()).build()) {
 
+      PutObjectRequest.Builder requestBuilder =
+          PutObjectRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey());
+
+      // Add encryption headers if customer key is provided
+      if (getKind().equals(S3ObjectKind.RANDOM_SEQUENTIAL_ENCRYPTED)) {
+        requestBuilder
+            .sseCustomerAlgorithm(ServerSideEncryption.AES256.name())
+            .sseCustomerKey(CUSTOMER_KEY)
+            .sseCustomerKeyMD5(calculateBase64MD5());
+      }
+
       // Create the upload request based on the publisher
       UploadRequest uploadRequest =
           UploadRequest.builder()
-              .putObjectRequest(
-                  PutObjectRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build())
+              .putObjectRequest(requestBuilder.build())
               .requestBody(
                   AsyncRequestBody.fromPublisher(
                       new RandomDataGeneratorPublisher(size, bufferSize)))
@@ -97,13 +110,20 @@ public class RandomSequentialObjectGenerator extends BenchmarkObjectGenerator {
       // Verify the size and MD5 of the data to see that they match
       System.out.println(progressPrefix + "Verifying data...");
 
+      HeadObjectRequest.Builder headRequestBuilder =
+          HeadObjectRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey());
+
+      // Add encryption headers if customer key is provided
+      if (getKind().equals(S3ObjectKind.RANDOM_SEQUENTIAL_ENCRYPTED)) {
+        headRequestBuilder
+            .sseCustomerAlgorithm(ServerSideEncryption.AES256.name())
+            .sseCustomerKey(CUSTOMER_KEY)
+            .sseCustomerKeyMD5(calculateBase64MD5());
+      }
+
       // Get object metadata via HEAD
       HeadObjectResponse headObjectResponse =
-          this.getContext()
-              .getS3CrtClient()
-              .headObject(
-                  HeadObjectRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey()).build())
-              .join();
+          this.getContext().getS3CrtClient().headObject(headRequestBuilder.build()).join();
 
       // Verify length
       if (headObjectResponse.contentLength() != size) {
