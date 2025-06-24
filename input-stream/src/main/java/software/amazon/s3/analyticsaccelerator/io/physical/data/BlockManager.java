@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -30,6 +32,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
 import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.SequentialReadProgression;
 import software.amazon.s3.analyticsaccelerator.io.physical.reader.StreamReader;
 import software.amazon.s3.analyticsaccelerator.request.*;
+import software.amazon.s3.analyticsaccelerator.util.AnalyticsAcceleratorUtils;
 import software.amazon.s3.analyticsaccelerator.util.BlockKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
@@ -51,6 +54,8 @@ public class BlockManager implements Closeable {
   private final BlockStore blockStore;
   private final SequentialReadProgression sequentialReadProgression;
   private final RangeOptimiser rangeOptimiser;
+
+  private static final Logger LOG = LoggerFactory.getLogger(BlockManager.class);
 
   /**
    * Constructs a new BlockManager.
@@ -87,6 +92,22 @@ public class BlockManager implements Closeable {
             objectClient, objectKey, threadPool, this::removeBlocks, openStreamInformation);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.rangeOptimiser = new RangeOptimiser(configuration);
+
+    prefetchSmallObject();
+  }
+
+  /**
+   * Initializes the BlockManager with small object prefetching if applicable. This is done
+   * asynchronously to avoid blocking the constructor.
+   */
+  private void prefetchSmallObject() {
+    if (AnalyticsAcceleratorUtils.isSmallObject(configuration, metadata.getContentLength())) {
+      try {
+        makeRangeAvailable(0, metadata.getContentLength(), ReadMode.SMALL_OBJECT_PREFETCH);
+      } catch (IOException e) {
+        LOG.debug("Failed to prefetch small object for key: {}", objectKey.getS3URI().getKey(), e);
+      }
+    }
   }
 
   /**
