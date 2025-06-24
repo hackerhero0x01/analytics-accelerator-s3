@@ -185,11 +185,9 @@ public class BlockStore implements Closeable {
   /**
    * Closes all {@link Block} instances in the store and clears the internal map. This should be
    * called to release any underlying resources or memory.
-   *
-   * @throws IOException if an I/O error occurs during block closure
    */
   @Override
-  public void close() throws IOException {
+  public void close() {
     for (Block block : blocks.values()) {
       safeClose(block);
     }

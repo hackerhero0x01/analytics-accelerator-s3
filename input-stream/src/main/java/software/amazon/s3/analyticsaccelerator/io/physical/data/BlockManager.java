@@ -150,10 +150,15 @@ public class BlockManager implements Closeable {
      We need to send the request for the largest of one of these 3 lengths
      to find the optimum request length
     */
-    long maxReadLength =
-        Math.max(
-            Math.max(len, configuration.getReadAheadBytes()),
-            sequentialReadProgression.getSizeForGeneration(generation));
+    long maxReadLength = Math.max(len, configuration.getReadAheadBytes());
+
+    // If generation is greater than 0, it is sequential read
+    if (generation > 0) {
+      maxReadLength =
+          Math.max(
+              maxReadLength, sequentialReadProgression.getSizeForGeneration(generation));
+    }
+    // Truncate end position to the object length
     long effectiveEnd = truncatePos(pos + maxReadLength - 1);
 
     // Find missing blocks for given range.
@@ -294,5 +299,7 @@ public class BlockManager implements Closeable {
 
   /** Closes the {@link BlockManager} and frees up all resources it holds */
   @Override
-  public void close() {}
+  public void close() {
+    blockStore.close();
+  }
 }
