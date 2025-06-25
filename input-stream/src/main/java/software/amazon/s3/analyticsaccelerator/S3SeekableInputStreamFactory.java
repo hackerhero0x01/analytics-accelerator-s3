@@ -199,5 +199,6 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.objectMetadataStore.close();
     this.objectBlobStore.close();
     this.telemetry.close();
+    this.threadPool.shutdown();
   }
 }
