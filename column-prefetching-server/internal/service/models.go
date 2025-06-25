@@ -41,14 +41,15 @@ type S3Service struct {
 }
 
 type CacheService struct {
-	elastiCacheClient *glide.ClusterClient
-	config            project_config.CacheConfig
-	batchRequests     chan SetRequest
-	wg                sync.WaitGroup
-	ctx               context.Context
-	cancel            context.CancelFunc
-	batcherStarted    bool
-	mu                sync.Mutex
+	elastiCacheClients []*glide.ClusterClient
+	config             project_config.CacheConfig
+	batchRequests      []chan SetRequest
+	wg                 sync.WaitGroup
+	ctx                context.Context
+	cancel             context.CancelFunc
+	batcherStarted     bool
+	mu                 sync.Mutex
+	clientIndex		   int
 }
 
 // Request / Response types

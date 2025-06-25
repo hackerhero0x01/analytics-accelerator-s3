@@ -1,145 +1,151 @@
 package service
 
 import (
-	projectconfig "column-prefetching-server/internal/project-config"
-	"context"
-	"fmt"
-	"time"
-	"github.com/valkey-io/valkey-glide/go/v2"
-	"github.com/valkey-io/valkey-glide/go/v2/config"
-	"github.com/valkey-io/valkey-glide/go/v2/options"
-	"github.com/valkey-io/valkey-glide/go/v2/pipeline"
+  projectconfig "column-prefetching-server/internal/project-config"
+  "context"
+  "fmt"
+  "time"
+  "github.com/valkey-io/valkey-glide/go/v2"
+  "github.com/valkey-io/valkey-glide/go/v2/config"
+  "github.com/valkey-io/valkey-glide/go/v2/options"
+  "github.com/valkey-io/valkey-glide/go/v2/pipeline"
 )
 
 func NewCacheService(cfg projectconfig.CacheConfig) (*CacheService, error) {
-	// TODO: decide if we want to pass in the host and port from AAL via the HTTP request to CPS endpoint
-	host := cfg.ElastiCacheEndpoint
-	port := cfg.ElastiCachePort
-	clusterConfig := config.NewClusterClientConfiguration().
-		WithAddress(&config.NodeAddress{Host: host, Port: port}).
-		WithUseTLS(true).
-		WithRequestTimeout(cfg.RequestTimeout)
-	client, err := glide.NewClusterClient(clusterConfig)
+  host := cfg.ElastiCacheEndpoint
+  port := cfg.ElastiCachePort
 
-	if err != nil {
-		return nil, err
-	}
+  numClients := cfg.NumClients
+  
+  clients := make([]*glide.ClusterClient, numClients)
+  channels := make([]chan SetRequest, numClients)
+  
+  for i := 0; i < numClients; i++ {
+    clusterConfig := config.NewClusterClientConfiguration().
+      WithAddress(&config.NodeAddress{Host: host, Port: port}).
+      WithUseTLS(true).
+      WithRequestTimeout(cfg.RequestTimeout)
+    client, err := glide.NewClusterClient(clusterConfig)
+    if err != nil {
+      return nil, err
+    }
+    clients[i] = client
+    channels[i] = make(chan SetRequest, 10000)
+  }
 
-	ctx, cancel := context.WithCancel(context.Background())
+  ctx, cancel := context.WithCancel(context.Background())
 
-	service := &CacheService{
-		elastiCacheClient: client,
-		config:            cfg,
-		batchRequests:     make(chan SetRequest, 50000),
-		ctx:               ctx,
-		cancel:            cancel,
-		batcherStarted:    false,
-	}
+  service := &CacheService{
+    elastiCacheClients: clients,
+    config:             cfg,
+    batchRequests:      channels,
+    ctx:                ctx,
+    cancel:             cancel,
+    batcherStarted:     false,
+  }
 
-	service.startBatching()
-
-	return service, nil
+  service.startBatching()
+  return service, nil
 }
 
 func (service *CacheService) CacheColumnData(data parquetColumnData) {
-	cacheKey := generateCacheKey(data)
-
-	service.batchRequests <- SetRequest{
-		Key:   cacheKey,
-		Value: string(data.data),
-	}
+  cacheKey := generateCacheKey(data)
+  
+  channelIndex := int(service.clientIndex) % len(service.batchRequests)
+  service.clientIndex++
+  
+  service.batchRequests[channelIndex] <- SetRequest{
+    Key:   cacheKey,
+    Value: string(data.data),
+  }
 }
 
 func (service *CacheService) startBatching() {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+  service.mu.Lock()
+  defer service.mu.Unlock()
 
-	// we only want to start the batch processor once, so return if already started
-	if service.batcherStarted {
-		return
-	}
+  // we only want to start the batch processor once, so return if already started
+  if service.batcherStarted {
+    return
+  }
+  service.batcherStarted = true
 
-	service.batcherStarted = true
-
-	for i := 0; i < 64; i++ {
-		service.wg.Add(1)
-		go service.batchProcessor(i)
-	}
+  // Start one processor per client/channel
+  for i := 0; i < len(service.elastiCacheClients); i++ {
+    service.wg.Add(1)
+    go service.batchProcessor(i)
+  }
 }
 
-func (service *CacheService) batchProcessor(workerID int) {
-	defer service.wg.Done()
+func (service *CacheService) batchProcessor(clientID int) {
+  defer service.wg.Done()
 
-	var currentBatch *pipeline.ClusterBatch
-	var setBatch []SetRequest
-	timer := time.NewTimer(service.config.BatchTimeout)
-	defer timer.Stop()
+  client := service.elastiCacheClients[clientID]
+  channel := service.batchRequests[clientID]
 
-	// anonymous function to create a new batch of cache set operations
-	resetBatch := func() {
-		currentBatch = pipeline.NewClusterBatch(false)
-		setBatch = make([]SetRequest, 0, service.config.BatchSize)
-	}
+  var currentBatch *pipeline.ClusterBatch
+  var setBatch []SetRequest
+  timer := time.NewTimer(service.config.BatchTimeout)
+  defer timer.Stop()
 
-	// anonymous function to process accumulated cache set operations
-	sendBatch := func() {
-		if len(setBatch) == 0 {
-			return
-		}
+  // anonymous function to create a new batch of cache set operations
+  resetBatch := func() {
+    currentBatch = pipeline.NewClusterBatch(false)
+    setBatch = make([]SetRequest, 0, service.config.BatchSize)
+  }
 
-		fmt.Printf("Worker %d: Sending batch of %d items to ElastiCache \n", 
-            workerID, len(setBatch))
+  // anonymous function to process accumulated cache set operations
+  sendBatch := func() {
+    if len(setBatch) == 0 {
+      return
+    }
 
-		_, err := service.elastiCacheClient.Exec(service.ctx, *currentBatch, false)
+    _, err := client.Exec(service.ctx, *currentBatch, false)
 
-		if err != nil {
-			fmt.Printf("Error executing batch: %v\n", err)
-			return
-    	}
+    if err != nil {
+      fmt.Printf("Error executing batch: %v\n", err)
+      return
+      }
+    
+    resetBatch()
+  }
 
-		resetBatch()
-	}
+  // create an initial batch
+  resetBatch()
 
-	// create an initial batch
-	resetBatch()
+  timer.Reset(service.config.BatchTimeout)
 
-	timer.Reset(service.config.BatchTimeout)
+  for {
+    select {
+    case req := <-channel:
 
-	for {
-		select {
-		// received a new request, add it to the set batch
-		case req := <-service.batchRequests:
+		// add request to set batch
+      setBatch = append(setBatch, req)
 
-			fmt.Printf("Adding item to batch. Current batch size: %d/%d \n",
-				len(setBatch)+1, service.config.BatchSize)
+	  // add the set command to the batch operation
+      setOptions := options.NewSetOptions().
+        SetExpiry(options.NewExpiryIn(service.config.TimeToLive))
+      currentBatch.SetWithOptions(req.Key, req.Value, *setOptions)
 
-			// add request to set batch
-			setBatch = append(setBatch, req)
+	  // check if the batch is full, process it if so
+      if len(setBatch) >= service.config.BatchSize {
+        if !timer.Stop() {
+          <-timer.C
+        }
+        sendBatch()
+        timer.Reset(service.config.BatchTimeout)
+      }
 
-			// add the set command to the batch operation
-			setOptions := options.NewSetOptions().
-				SetExpiry(options.NewExpiryIn(service.config.TimeToLive))
-			currentBatch.SetWithOptions(req.Key, req.Value, *setOptions)
-
-			// check if the batch is full, process it if so
-			if len(setBatch) >= service.config.BatchSize {
-				if !timer.Stop() {
-					<-timer.C
-				}
-				sendBatch()
-				timer.Reset(service.config.BatchTimeout)
-			}
-
-		//	the timer is done, so process the batch
-		case <-timer.C:
-			sendBatch()
-			timer.Reset(service.config.BatchTimeout)
-		}
-	}
+	  //	the timer is done, so process the batch
+    case <-timer.C:
+      sendBatch()
+      timer.Reset(service.config.BatchTimeout)
+    }
+  }
 
 }
 
 func generateCacheKey(data parquetColumnData) string {
-	s3URI := fmt.Sprintf("s3://%s/%s", data.bucket, data.key)
-	return fmt.Sprintf("%s#%s#%s", s3URI, data.etag, data.columnRange)
+  s3URI := fmt.Sprintf("s3://%s/%s", data.bucket, data.key)
+  return fmt.Sprintf("%s#%s#%s", s3URI, data.etag, data.columnRange)
 }

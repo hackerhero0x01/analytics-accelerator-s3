@@ -17,6 +17,7 @@ type CacheConfig struct {
 	BatchTimeout        time.Duration `json:"batch_timeout"`
 	BatchSize           int           `json:"batch_size"`
 	RequestTimeout      time.Duration `json:"request_timeout"`
+	NumClients          int			  `json:"num_clients"`
 }
 
 type S3Config struct {

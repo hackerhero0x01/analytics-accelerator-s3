@@ -4,12 +4,13 @@
   },
 
   "cache": {
-    "time_to_live": 20,
-    "elasticache_endpoint": "clustercfg.aal-megacluster.o6izbh.use1.cache.amazonaws.com",
+    "time_to_live": 60,
+    "elasticache_endpoint": "www.changeme.com",
     "elasticache_port": 6379,
     "batch_timeout": 1000,
     "batch_size": 5,
-    "request_timeout": 20
+    "request_timeout": 20,
+    "num_clients": 16
   },
 
   "s3": {
