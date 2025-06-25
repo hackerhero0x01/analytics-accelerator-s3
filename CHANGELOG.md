@@ -1,3 +1,20 @@
+## v1.2.0 (Jun 25, 2025)
+
+* Adds test cases for readVectored() https://github.com/awslabs/analytics-accelerator-s3/pull/284
+* Update-integration-tests-worflow https://github.com/awslabs/analytics-accelerator-s3/pull/291
+* SSE_C changes https://github.com/awslabs/analytics-accelerator-s3/pull/281
+* Adds in support for S3A's auditing
+* Pass down OpenStreamInformation to objectClient https://github.com/awslabs/analytics-accelerator-s3/pull/283
+* Migration to Central Portal for Maven https://github.com/awslabs/analytics-accelerator-s3/pull/282
+* Implements readVectored() in AAL https://github.com/awslabs/analytics-accelerator-s3/pull/270
+* Fix bug in small object prefetching https://github.com/awslabs/analytics-accelerator-s3/pull/279
+* Modify gradle setup step to reduce time https://github.com/awslabs/analytics-accelerator-s3/pull/278
+* Run integration tests on self hosted runner https://github.com/awslabs/analytics-accelerator-s3/pull/277
+* Introduces common executor pool https://github.com/awslabs/analytics-accelerator-s3/pull/275
+* Fix fleaky unit tests on BlobStore https://github.com/awslabs/analytics-accelerator-s3/pull/273
+* Move small object prefetching to physicalIO https://github.com/awslabs/analytics-accelerator-s3/pull/258
+* Updated release.yml to fix signing issue https://github.com/awslabs/analytics-accelerator-s3/pull/269
+
 ## v1.1.0 (May 09, 2025)
 
 * feat: Memory Manager https://github.com/awslabs/analytics-accelerator-s3/pull/251
