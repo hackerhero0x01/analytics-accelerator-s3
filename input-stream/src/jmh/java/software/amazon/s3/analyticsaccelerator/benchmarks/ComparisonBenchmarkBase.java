@@ -35,8 +35,8 @@ public abstract class ComparisonBenchmarkBase extends BenchmarkBase {
   @Override
   protected void executeBenchmark() throws IOException {
     switch (this.getS3InputStreamKind()) {
-      case S3_DAT_GET:
-        this.executeReadPatternOnDAT();
+      case S3_AAL_GET:
+        this.executeReadPatternOnAAL();
         break;
       case S3_SDK_GET:
         this.executeReadPatternDirectly();

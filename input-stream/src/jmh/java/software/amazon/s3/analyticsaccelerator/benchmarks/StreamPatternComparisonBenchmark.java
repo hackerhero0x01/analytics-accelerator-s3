@@ -24,7 +24,7 @@ import software.amazon.s3.analyticsaccelerator.access.StreamReadPatternKind;
 
 /**
  * This benchmarks fixes the ReadPattern, and then, for each object size, replays the pattern on
- * "raw" clients as well as "DAT" streams that sit on the clients The main point here is to
+ * "raw" clients as well as "AAL" streams that sit on the clients The main point here is to
  * determine which combo is the fastest for each pattern.
  */
 public abstract class StreamPatternComparisonBenchmark extends ComparisonBenchmarkBase {

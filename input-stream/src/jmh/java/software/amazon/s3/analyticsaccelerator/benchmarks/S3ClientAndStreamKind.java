@@ -25,9 +25,9 @@ import software.amazon.s3.analyticsaccelerator.access.S3InputStreamKind;
 @Getter
 public enum S3ClientAndStreamKind {
   SDK_ASYNC_JAVA(S3ClientKind.SDK_V2_JAVA_ASYNC, S3InputStreamKind.S3_SDK_GET),
-  SDK_DAT_JAVA(S3ClientKind.SDK_V2_JAVA_ASYNC, S3InputStreamKind.S3_DAT_GET),
+  SDK_AAL_JAVA(S3ClientKind.SDK_V2_JAVA_ASYNC, S3InputStreamKind.S3_AAL_GET),
   SDK_ASYNC_CRT(S3ClientKind.SDK_V2_CRT_ASYNC, S3InputStreamKind.S3_SDK_GET),
-  SDK_DAT_CRT(S3ClientKind.SDK_V2_CRT_ASYNC, S3InputStreamKind.S3_DAT_GET);
+  SDK_AAL_CRT(S3ClientKind.SDK_V2_CRT_ASYNC, S3InputStreamKind.S3_AAL_GET);
 
   private final S3ClientKind clientKind;
   private final S3InputStreamKind inputStreamKind;

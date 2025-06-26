@@ -25,7 +25,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * This tests concurrency and thread safety of teh shared state. While the DAT InputStream itself is
+ * This tests concurrency and thread safety of teh shared state. While the AAL InputStream itself is
  * not thread-safe, the shared state that multiple streams access and manipulate should be.
  */
 public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
