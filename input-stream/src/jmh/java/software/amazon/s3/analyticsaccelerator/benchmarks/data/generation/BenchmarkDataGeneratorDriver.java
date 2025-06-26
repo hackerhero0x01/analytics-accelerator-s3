@@ -96,13 +96,13 @@ public class BenchmarkDataGeneratorDriver {
   private static BenchmarkObjectGenerator createGenerator(
       S3ExecutionContext context, S3ObjectKind s3ObjectKind) {
     switch (s3ObjectKind) {
-      case RANDOM_SEQUENTIAL:
-        return new RandomSequentialObjectGenerator(context, S3ObjectKind.RANDOM_SEQUENTIAL);
       case RANDOM_SEQUENTIAL_ENCRYPTED:
         return new RandomSequentialObjectGenerator(
             context, S3ObjectKind.RANDOM_SEQUENTIAL_ENCRYPTED);
       case RANDOM_PARQUET_ENCRYPTED:
         return new ParquetObjectGenerator(context, S3ObjectKind.RANDOM_PARQUET_ENCRYPTED);
+      case RANDOM_SEQUENTIAL:
+        return new RandomSequentialObjectGenerator(context, S3ObjectKind.RANDOM_SEQUENTIAL);
       default:
         throw new IllegalArgumentException("Unsupported kind: " + s3ObjectKind);
     }

@@ -17,13 +17,7 @@ package software.amazon.s3.analyticsaccelerator.benchmarks.data.generation;
 
 import java.io.File;
 import lombok.NonNull;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
-import software.amazon.awssdk.transfer.s3.model.CompletedFileUpload;
-import software.amazon.awssdk.transfer.s3.model.UploadFileRequest;
 import software.amazon.s3.analyticsaccelerator.access.S3ExecutionContext;
 import software.amazon.s3.analyticsaccelerator.access.S3ObjectKind;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
@@ -47,66 +41,19 @@ public class ParquetObjectGenerator extends BenchmarkObjectGenerator {
   @Override
   public void generate(S3URI s3URI, long size) {
     String fileName = s3URI.getKey().substring(s3URI.getKey().lastIndexOf('/') + 1);
-    File file = new File("input-stream/src/jmh/resources/" + fileName);
-    String progressPrefix = "[" + s3URI + "] ";
-    System.out.println(progressPrefix + "Starting upload from: " + file.getAbsolutePath());
+    File sourceFile = new File("input-stream/src/jmh/resources/" + fileName);
+    String progressPrefix = createProgressPrefix(s3URI);
+    System.out.println(progressPrefix + "Starting upload from: " + sourceFile.getAbsolutePath());
 
-    try (S3TransferManager s3TransferManager =
-        S3TransferManager.builder().s3Client(this.getContext().getS3CrtClient()).build()) {
-
-      PutObjectRequest.Builder requestBuilder =
-          PutObjectRequest.builder()
-              .bucket(s3URI.getBucket())
-              .key(s3URI.getKey())
-              .contentType("application/x-parquet");
-
-      if (getKind().equals(S3ObjectKind.RANDOM_PARQUET_ENCRYPTED) && CUSTOMER_KEY != null) {
-        requestBuilder
-            .sseCustomerAlgorithm(ServerSideEncryption.AES256.name())
-            .sseCustomerKey(CUSTOMER_KEY)
-            .sseCustomerKeyMD5(calculateBase64MD5());
-      }
-
-      // Use uploadFile instead of upload with InputStream
-      UploadFileRequest uploadFileRequest =
-          UploadFileRequest.builder()
-              .putObjectRequest(requestBuilder.build())
-              .source(file.toPath())
-              .build();
-
-      System.out.println(progressPrefix + "Uploading");
-      CompletedFileUpload completedUpload =
-          s3TransferManager.uploadFile(uploadFileRequest).completionFuture().join();
-      System.out.println(progressPrefix + "Done");
-
-      // Verify the upload
-      System.out.println(progressPrefix + "Verifying data...");
-
-      HeadObjectRequest.Builder headRequestBuilder =
-          HeadObjectRequest.builder().bucket(s3URI.getBucket()).key(s3URI.getKey());
-
-      if (getKind().equals(S3ObjectKind.RANDOM_PARQUET_ENCRYPTED) && CUSTOMER_KEY != null) {
-        headRequestBuilder
-            .sseCustomerAlgorithm(ServerSideEncryption.AES256.name())
-            .sseCustomerKey(CUSTOMER_KEY)
-            .sseCustomerKeyMD5(calculateBase64MD5());
-      }
-
-      HeadObjectResponse headObjectResponse =
-          this.getContext().getS3CrtClient().headObject(headRequestBuilder.build()).join();
-
-      if (!completedUpload.response().eTag().equals(headObjectResponse.eTag())) {
-        throw new IllegalStateException(
-            progressPrefix
-                + "Expected eTag: "
-                + completedUpload.response().eTag()
-                + "; actual eTag: "
-                + headObjectResponse.eTag());
-      }
-      System.out.println(progressPrefix + "Done");
-
+    try {
+      performFileUpload(s3URI, sourceFile.toPath(), "application/x-parquet", sourceFile.length());
     } catch (RuntimeException e) {
       throw new RuntimeException("Failed to upload file", e);
     }
+  }
+
+  @Override
+  protected S3ObjectKind getEncryptedKind() {
+    return S3ObjectKind.RANDOM_PARQUET_ENCRYPTED;
   }
 }
