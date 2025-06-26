@@ -118,7 +118,7 @@ jobs:
 
       - name: Build Iceberg jar
         run: |
-          ./gradlew build -x test -x integrationTest
+          ./gradlew build -x test -x integrationTest -DsparkVersions=3.5
           ./gradlew :iceberg-aws:test
         working-directory: iceberg
 
