@@ -25,6 +25,6 @@ public enum S3InputStreamKind {
   // SDK backed
   S3_SDK_GET("SDK"),
   // Ours
-  S3_DAT_GET("DAT");
+  S3_AAL_GET("AAL");
   private final String value;
 }

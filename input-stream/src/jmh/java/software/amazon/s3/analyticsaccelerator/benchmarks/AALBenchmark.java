@@ -22,7 +22,7 @@ import software.amazon.s3.analyticsaccelerator.access.S3Object;
 import software.amazon.s3.analyticsaccelerator.access.StreamReadPatternKind;
 
 /**
- * Benchmarks that measure performance of DAT via CRT by replaying all patterns against multiple
+ * Benchmarks that measure performance of AAL via CRT by replaying all patterns against multiple
  * object sizes
  */
 public class AALBenchmark extends BenchmarkBase {
@@ -36,7 +36,7 @@ public class AALBenchmark extends BenchmarkBase {
    */
   @Override
   protected void executeBenchmark() throws IOException {
-    executeReadPatternOnDAT();
+    executeReadPatternOnAAL();
   }
 
   /**

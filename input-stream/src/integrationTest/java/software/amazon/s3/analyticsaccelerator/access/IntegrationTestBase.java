@@ -77,7 +77,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
   }
 
   /**
-   * Applies the same read stream pattern to both S3 based and DAT based streams Calculates the
+   * Applies the same read stream pattern to both S3 based and AAL based streams Calculates the
    * CRC32-C checksum on all bytes read and compares them at the end to verify the results are the
    * same
    *
@@ -136,7 +136,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     int bufferSize = (int) s3Object.getSize();
     byte[] buffer = new byte[bufferSize];
 
-    // Create the s3DATClientStreamReader - that creates the shared state
+    // Create the s3AALClientStreamReader - that creates the shared state
     try (S3AALClientStreamReader s3AALClientStreamReader =
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
@@ -214,7 +214,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
       @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind)
       throws IOException {
     int bufferSize = (int) s3Object.getSize();
-    // Create the s3DATClientStreamReader - that creates the shared state
+    // Create the s3AALClientStreamReader - that creates the shared state
     try (S3AALClientStreamReader s3AALClientStreamReader =
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
       S3SeekableInputStream stream =
@@ -303,7 +303,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
         Optional.of(directChecksum),
         OpenStreamInformation.DEFAULT);
 
-    // Create the s3DATClientStreamReader - that creates the shared state
+    // Create the s3AALClientStreamReader - that creates the shared state
     try (S3AALClientStreamReader s3AALClientStreamReader =
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
       // Create the thread pool
@@ -317,7 +317,7 @@ public abstract class IntegrationTestBase extends ExecutionBase {
                   try {
                     // Run multiple iterations
                     for (int j = 0; j < iterations; j++) {
-                      // Run DAT on the thread
+                      // Run AAL on the thread
                       // This will create a new stream every time, but all streams will share state
                       Crc32CChecksum datChecksum = new Crc32CChecksum();
                       executeReadPatternOnAAL(

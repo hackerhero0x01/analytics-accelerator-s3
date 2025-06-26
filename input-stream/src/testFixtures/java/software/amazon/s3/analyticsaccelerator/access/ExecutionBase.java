@@ -118,7 +118,7 @@ public abstract class ExecutionBase {
    *
    * @param s3ClientKind S3 client kind to use
    * @param s3Object {@link S3Object} S3 Object to run the pattern on
-   * @param AALInputStreamConfigurationKind DAT configuration
+   * @param AALInputStreamConfigurationKind AAL configuration
    * @param streamReadPattern the read pattern
    * @param checksum checksum to update, if specified
    * @param openStreamInformation contains the open stream information
@@ -143,7 +143,7 @@ public abstract class ExecutionBase {
    * Executes a pattern on AAL
    *
    * @param s3Object {@link S3Object} S3 Object to run the pattern on
-   * @param s3AALClientStreamReader DAT stream reader
+   * @param s3AALClientStreamReader AAL stream reader
    * @param streamReadPattern the read pattern
    * @param checksum checksum to update, if specified
    * @param openStreamInformation contains the open stream information

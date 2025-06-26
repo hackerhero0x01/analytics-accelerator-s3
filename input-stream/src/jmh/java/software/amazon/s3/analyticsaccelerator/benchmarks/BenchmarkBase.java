@@ -100,7 +100,7 @@ public abstract class BenchmarkBase extends ExecutionBase {
    *
    * @return {@link AALInputStreamConfigurationKind}
    */
-  protected AALInputStreamConfigurationKind getDATInputStreamConfigurationKind() {
+  protected AALInputStreamConfigurationKind getAALInputStreamConfigurationKind() {
     return AALInputStreamConfigurationKind.DEFAULT;
   }
 
@@ -117,18 +117,18 @@ public abstract class BenchmarkBase extends ExecutionBase {
   protected abstract void executeBenchmark() throws Exception;
 
   /**
-   * Executes the pattern on DAT based on the contextual parameters.
+   * Executes the pattern on AAL based on the contextual parameters.
    *
    * @throws IOException if IO error is thrown
    */
-  protected void executeReadPatternOnDAT() throws IOException {
+  protected void executeReadPatternOnAAL() throws IOException {
     S3Object s3Object = this.getObject();
     executeReadPatternOnAAL(
         this.getClientKind(),
         s3Object,
         this.getReadPatternKind().getStreamReadPattern(s3Object),
         // Use default configuration
-        this.getDATInputStreamConfigurationKind(),
+        this.getAALInputStreamConfigurationKind(),
         Optional.empty(),
         OpenStreamInformation.DEFAULT);
   }

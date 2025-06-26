@@ -28,7 +28,7 @@ import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
-/** Client stream reader based on DAT */
+/** Client stream reader based on AAL */
 public class S3AALClientStreamReader extends S3StreamReaderBase {
   @NonNull @Getter private final S3SdkObjectClient sdkObjectClient;
   @NonNull @Getter private final S3SeekableInputStreamFactory s3SeekableInputStreamFactory;
