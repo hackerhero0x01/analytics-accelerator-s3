@@ -1,5 +1,7 @@
 ## v1.2.0 (Jun 25, 2025)
 
+* Replace DAT with AAL https://github.com/awslabs/analytics-accelerator-s3/pull/300
+* Add support for readFully at the S3SeekableInputStream level https://github.com/awslabs/analytics-accelerator-s3/pull/293
 * Adds test cases for readVectored() https://github.com/awslabs/analytics-accelerator-s3/pull/284
 * Update-integration-tests-worflow https://github.com/awslabs/analytics-accelerator-s3/pull/291
 * SSE_C changes https://github.com/awslabs/analytics-accelerator-s3/pull/281
