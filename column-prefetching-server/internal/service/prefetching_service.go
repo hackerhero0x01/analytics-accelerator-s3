@@ -7,6 +7,7 @@ import (
 	"github.com/apache/arrow-go/v18/parquet/metadata"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -133,5 +134,65 @@ func getRequestedColumns(footerData *metadata.FileMetaData, columnSet map[string
 		}
 	}
 
-	return requestedColumns, nil
+	// Merge consecutive ranges to avoid making multiple small requests
+	mergedRanges := mergeRanges(requestedColumns)
+	
+	// Combine original and merged ranges, avoiding duplicates
+	allRanges := append(requestedColumns, mergedRanges...)
+	return removeDuplicateRanges(allRanges), nil
+}
+
+// mergeRanges merges consecutive ranges to avoid making multiple small requests. For example, if there are
+// ranges [100-200, 500-600, 601-800, 801-900, 1000-1200], this list will be merged into [100-200,
+// 500-900, 1000-1200].
+func mergeRanges(ranges []requestedColumn) []requestedColumn {
+	if len(ranges) == 0 {
+		return ranges
+	}
+
+	sort.Slice(ranges, func(i, j int) bool {
+		return ranges[i].start < ranges[j].start
+	})
+
+	var mergedRanges []requestedColumn
+	i := 0
+	for i < len(ranges) {
+		k := i
+
+		// while there are consecutive ranges, keep iterating
+		for k < len(ranges)-1 && ranges[k].end+1 == ranges[k+1].start {
+			k++
+		}
+
+		mergedRanges = append(mergedRanges, requestedColumn{
+			columnName: ranges[i].columnName,
+			start:      ranges[i].start,
+			end:        ranges[k].end,
+		})
+
+		i = k + 1
+	}
+
+	if len(ranges) != len(mergedRanges) {
+		fmt.Printf("Original ranges (%d): %v\n", len(ranges), ranges)
+		fmt.Printf("Merged ranges (%d): %v\n", len(mergedRanges), mergedRanges)
+	}
+
+	return mergedRanges
+}
+
+// removeDuplicateRanges removes duplicate ranges based on start and end positions
+func removeDuplicateRanges(ranges []requestedColumn) []requestedColumn {
+	seen := make(map[string]bool)
+	var result []requestedColumn
+	
+	for _, r := range ranges {
+		key := fmt.Sprintf("%d-%d", r.start, r.end)
+		if !seen[key] {
+			seen[key] = true
+			result = append(result, r)
+		}
+	}
+	
+	return result
 }

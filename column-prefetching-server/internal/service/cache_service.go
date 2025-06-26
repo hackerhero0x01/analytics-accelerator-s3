@@ -35,6 +35,8 @@ func NewCacheService(cfg projectconfig.CacheConfig) (*CacheService, error) {
 
   ctx, cancel := context.WithCancel(context.Background())
 
+  keyLogger, _ := NewKeyLogger("elasticache_keys.json")
+
   service := &CacheService{
     elastiCacheClients: clients,
     config:             cfg,
@@ -42,6 +44,7 @@ func NewCacheService(cfg projectconfig.CacheConfig) (*CacheService, error) {
     ctx:                ctx,
     cancel:             cancel,
     batcherStarted:     false,
+    keyLogger:          keyLogger,
   }
 
   service.startBatching()
@@ -126,6 +129,9 @@ func (service *CacheService) batchProcessor(clientID int) {
       setOptions := options.NewSetOptions().
         SetExpiry(options.NewExpiryIn(service.config.TimeToLive))
       currentBatch.SetWithOptions(req.Key, req.Value, *setOptions)
+      
+      // Log the key being set
+      service.keyLogger.LogKey(req.Key)
 
 	  // check if the batch is full, process it if so
       if len(setBatch) >= service.config.BatchSize {

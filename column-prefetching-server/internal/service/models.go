@@ -50,6 +50,7 @@ type CacheService struct {
 	batcherStarted     bool
 	mu                 sync.Mutex
 	clientIndex		   int
+	keyLogger          *KeyLogger
 }
 
 // Request / Response types
