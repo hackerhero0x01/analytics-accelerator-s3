@@ -30,7 +30,7 @@ To get started, import the library dependency from Maven into your project:
     <dependency>
       <groupId>software.amazon.s3.analyticsaccelerator</groupId>
       <artifactId>analyticsaccelerator-s3</artifactId>
-      <version>1.0.0</version>
+      <version>1.2.0</version>
       <scope>compile</scope>
     </dependency>
 ```
