@@ -39,6 +39,8 @@ func (api *API) HandlePrefetchColumns(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// fmt.Println(apiReq)
+
 	newColumns := api.getNewColumnsToFetch(apiReq)
 
 	// return response if there are no new columns to fetch
@@ -85,4 +87,12 @@ func (api *API) getNewColumnsToFetch(apiReq ColumnPrefetchRequest) []string {
 
 	api.prefetchCache.Store(cacheKey, prefetchedColumnsSet)
 	return newColumns
+}
+
+func (api *API) HandleClearCache(w http.ResponseWriter, r *http.Request) {
+	api.prefetchCache.Range(func(key, value interface{}) bool {
+		api.prefetchCache.Delete(key)
+		return true
+	})
+	w.WriteHeader(http.StatusOK)
 }

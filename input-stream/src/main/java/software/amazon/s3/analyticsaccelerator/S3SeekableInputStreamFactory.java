@@ -218,12 +218,9 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.telemetry.close();
   }
 
-  private void handleCacheClosure(Cache cache, boolean shouldFlushCache) {
+  private void handleCacheClosure(Cache cache, boolean shouldFlushCache) throws IOException {
     if (cache != null) {
       if (shouldFlushCache) {
-        LOG.info("Cache is being closed");
-        LOG.info("Starting to clear cache");
-
         long cacheClearStartTime = System.nanoTime();
 
         cache.clearCache();
@@ -231,8 +228,9 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
         long cacheClearDuration = System.nanoTime() - cacheClearStartTime;
         double cacheClearMsDuration = cacheClearDuration / 1_000_000.0;
 
-        LOG.info("Cache has been cleared");
         LOG.info("Cache clear took: {}ms", String.format("%.2f", cacheClearMsDuration));
+
+        columnPrefetchingServerClient.clearCPSCache();
       }
 
       cache.close();

@@ -36,8 +36,6 @@ public class ColumnPrefetchingServerClient {
   public Response prefetchColumns(String bucket, String prefix, Set<String> columns)
       throws IOException {
 
-    LOG.info("Now prefetching columns......");
-
     JSONObject json = new JSONObject();
     json.put("bucket", bucket);
     json.put("prefix", prefix.substring(0, prefix.lastIndexOf("/")));
@@ -48,15 +46,13 @@ public class ColumnPrefetchingServerClient {
     RequestBody body =
             RequestBody.create(MediaType.parse("application/json"), json.toString());
 
-
-    LOG.info("The request body to CPS is: {}", json.toString());
-    LOG.info("The cps endpoint is: {}", serverUrl);
-
-
-
     Request request = new Request.Builder().url(serverUrl + "/prefetch").post(body).build();
 
-
     return client.newCall(request).execute();
+  }
+
+  public void clearCPSCache() throws IOException {
+    Request request = new Request.Builder().url(serverUrl + "/cache").delete().build();
+    client.newCall(request).execute();
   }
 }

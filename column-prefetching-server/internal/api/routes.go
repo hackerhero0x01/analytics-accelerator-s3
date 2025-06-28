@@ -23,6 +23,7 @@ func (api *API) SetupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /api/prefetch", api.HandlePrefetchColumns)
+	mux.HandleFunc("DELETE /api/cache", api.HandleClearCache)
 
 	return mux
 }

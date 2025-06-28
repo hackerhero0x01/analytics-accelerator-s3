@@ -233,7 +233,6 @@ public class ParquetPredictivePrefetchingTask {
 
                 LOG.info("The response from CPS is: {}", response.message());
               } catch (IOException e) {
-                LOG.info("theres an error... {}", e.toString());
                 throw new IOException("Error prefetching", e);
               }
             }

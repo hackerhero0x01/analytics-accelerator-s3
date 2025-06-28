@@ -139,10 +139,13 @@ func getRequestedColumns(footerData *metadata.FileMetaData, columnSet map[string
 	
 	// Combine original and merged ranges, avoiding duplicates
 	allRanges := append(requestedColumns, mergedRanges...)
-	return removeDuplicateRanges(allRanges), nil
+	deduplicatedRanges := removeDuplicateRanges(allRanges)
+	
+	// split ranges larger than 8MB
+	return splitRanges(deduplicatedRanges), nil
 }
 
-// mergeRanges merges consecutive ranges to avoid making multiple small requests. For example, if there are
+// mergeRanges merges consecutive or overlapping ranges to avoid making multiple small requests. For example, if there are
 // ranges [100-200, 500-600, 601-800, 801-900, 1000-1200], this list will be merged into [100-200,
 // 500-900, 1000-1200].
 func mergeRanges(ranges []requestedColumn) []requestedColumn {
@@ -173,10 +176,7 @@ func mergeRanges(ranges []requestedColumn) []requestedColumn {
 		i = k + 1
 	}
 
-	if len(ranges) != len(mergedRanges) {
-		fmt.Printf("Original ranges (%d): %v\n", len(ranges), ranges)
-		fmt.Printf("Merged ranges (%d): %v\n", len(mergedRanges), mergedRanges)
-	}
+	// fmt.Println(mergedRanges)
 
 	return mergedRanges
 }
@@ -192,6 +192,46 @@ func removeDuplicateRanges(ranges []requestedColumn) []requestedColumn {
 			seen[key] = true
 			result = append(result, r)
 		}
+	}
+	
+	return result
+}
+
+// splitRanges splits ranges larger than 8MB into smaller chunks
+func splitRanges(ranges []requestedColumn) []requestedColumn {
+	const maxRangeSize = 8 * 1024 * 1024
+	var result []requestedColumn
+	
+	for _, r := range ranges {
+		if r.end-r.start+1 > maxRangeSize {
+			result = append(result, splitRange(r)...)
+		} else {
+			result = append(result, r)
+		}
+	}
+	
+	return result
+}
+
+// splitRange splits a single range into multiple 8MB chunks
+func splitRange(r requestedColumn) []requestedColumn {
+	const maxRangeSize = 8 * 1024 * 1024
+	var result []requestedColumn
+	
+	start := r.start
+	for start <= r.end {
+		end := start + maxRangeSize - 1
+		if end > r.end {
+			end = r.end
+		}
+		
+		result = append(result, requestedColumn{
+			columnName: r.columnName,
+			start:      start,
+			end:        end,
+		})
+		
+		start = end + 1
 	}
 	
 	return result
