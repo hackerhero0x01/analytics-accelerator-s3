@@ -42,6 +42,7 @@ public class OpenStreamInformation {
   private final StreamAuditContext streamAuditContext;
   private final ObjectMetadata objectMetadata;
   private final InputPolicy inputPolicy;
+  @Builder.Default private final RequestCallback requestCallback = RequestCallback.NO_OP;
   private final EncryptionSecrets encryptionSecrets;
 
   /** Default set of settings for {@link OpenStreamInformation} */

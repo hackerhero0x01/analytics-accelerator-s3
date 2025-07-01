@@ -127,6 +127,8 @@ public class Block implements Closeable {
                 .referrer(referrer)
                 .build();
 
+        openStreamInformation.getRequestCallback().onGetRequest();
+
         this.source =
             this.telemetry.measureCritical(
                 () ->

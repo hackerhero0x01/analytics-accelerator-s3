@@ -102,7 +102,7 @@ public class S3SeekableInputStreamFactoryTest {
 
     inputStream =
         s3SeekableInputStreamFactory.createStream(
-            S3URI.of("bucket", "key"), mock(OpenStreamInformation.class));
+            S3URI.of("bucket", "key"), OpenStreamInformation.DEFAULT);
     assertNotNull(inputStream);
   }
 
@@ -165,8 +165,7 @@ public class S3SeekableInputStreamFactoryTest {
     S3SeekableInputStream inputStream = s3SeekableInputStreamFactory.createStream(s3URI);
     assertNotNull(inputStream);
 
-    inputStream =
-        s3SeekableInputStreamFactory.createStream(s3URI, mock(OpenStreamInformation.class));
+    inputStream = s3SeekableInputStreamFactory.createStream(s3URI, OpenStreamInformation.DEFAULT);
     assertNotNull(inputStream);
   }
 
@@ -184,7 +183,7 @@ public class S3SeekableInputStreamFactoryTest {
     assertThrows(
         NullPointerException.class,
         () -> {
-          s3SeekableInputStreamFactory.createStream(null, mock(OpenStreamInformation.class));
+          s3SeekableInputStreamFactory.createStream(null, OpenStreamInformation.DEFAULT);
         });
   }
 
@@ -215,19 +214,17 @@ public class S3SeekableInputStreamFactoryTest {
         .storeObjectMetadata(testURITXT, objectMetadata);
 
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                testURIParquet, mock(OpenStreamInformation.class))
+        s3SeekableInputStreamFactory.createLogicalIO(testURIParquet, OpenStreamInformation.DEFAULT)
             instanceof ParquetLogicalIOImpl);
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(
-                testURIKEYPAR, mock(OpenStreamInformation.class))
+        s3SeekableInputStreamFactory.createLogicalIO(testURIKEYPAR, OpenStreamInformation.DEFAULT)
             instanceof ParquetLogicalIOImpl);
 
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(testURIJAVA, mock(OpenStreamInformation.class))
+        s3SeekableInputStreamFactory.createLogicalIO(testURIJAVA, OpenStreamInformation.DEFAULT)
             instanceof DefaultLogicalIOImpl);
     assertTrue(
-        s3SeekableInputStreamFactory.createLogicalIO(testURITXT, mock(OpenStreamInformation.class))
+        s3SeekableInputStreamFactory.createLogicalIO(testURITXT, OpenStreamInformation.DEFAULT)
             instanceof SequentialLogicalIOImpl);
   }
 
@@ -307,7 +304,7 @@ public class S3SeekableInputStreamFactoryTest {
         new S3SeekableInputStreamFactory(
             new S3SdkObjectClient(mockS3AsyncClient), S3SeekableInputStreamConfiguration.DEFAULT);
     S3SeekableInputStream inputStream =
-        factory.createStream(TEST_URI, mock(OpenStreamInformation.class));
+        factory.createStream(TEST_URI, OpenStreamInformation.DEFAULT);
     Exception thrownException = assertThrows(Exception.class, inputStream::read);
     assertInstanceOf(IOException.class, thrownException);
     Optional.ofNullable(thrownException.getCause())
@@ -323,8 +320,7 @@ public class S3SeekableInputStreamFactoryTest {
             new S3SdkObjectClient(mockS3AsyncClient), S3SeekableInputStreamConfiguration.DEFAULT);
     Exception thrownException =
         assertThrows(
-            Exception.class,
-            () -> factory.createStream(TEST_URI, mock(OpenStreamInformation.class)));
+            Exception.class, () -> factory.createStream(TEST_URI, OpenStreamInformation.DEFAULT));
     assertInstanceOf(IOException.class, thrownException);
     Optional.ofNullable(thrownException.getCause())
         .ifPresent(

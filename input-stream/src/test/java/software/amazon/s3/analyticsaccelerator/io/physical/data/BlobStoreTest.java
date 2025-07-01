@@ -151,7 +151,7 @@ public class BlobStoreTest {
   @Test
   public void testGetReturnsReadableBlob() throws IOException {
     // When: a Blob is asked for
-    Blob blob = blobStore.get(objectKey, objectMetadata, mock(OpenStreamInformation.class));
+    Blob blob = blobStore.get(objectKey, objectMetadata, OpenStreamInformation.DEFAULT);
 
     // Then:
     byte[] b = new byte[TEST_DATA.length()];
@@ -163,7 +163,7 @@ public class BlobStoreTest {
   @Test
   void testEvictKey_ExistingKey() {
     // Setup
-    blobStore.get(objectKey, objectMetadata, mock(OpenStreamInformation.class));
+    blobStore.get(objectKey, objectMetadata, OpenStreamInformation.DEFAULT);
 
     // Test
     boolean result = blobStore.evictKey(objectKey);
@@ -189,7 +189,7 @@ public class BlobStoreTest {
     assertEquals(0, blobStore.getMetrics().get(MetricKey.MEMORY_USAGE));
 
     // When: Reading data which causes memory allocation
-    Blob blob = blobStore.get(objectKey, objectMetadata, mock(OpenStreamInformation.class));
+    Blob blob = blobStore.get(objectKey, objectMetadata, OpenStreamInformation.DEFAULT);
     byte[] b = new byte[TEST_DATA.length()];
     blob.read(b, 0, b.length, 0);
 
@@ -204,7 +204,7 @@ public class BlobStoreTest {
     assertEquals(0, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
     assertEquals(0, blobStore.getMetrics().get(MetricKey.CACHE_MISS));
 
-    Blob blob = blobStore.get(objectKey, objectMetadata, mock(OpenStreamInformation.class));
+    Blob blob = blobStore.get(objectKey, objectMetadata, OpenStreamInformation.DEFAULT);
     byte[] b = new byte[TEST_DATA.length()];
     blob.read(b, 0, b.length, 0);
 
@@ -234,8 +234,8 @@ public class BlobStoreTest {
     ObjectKey key3 = ObjectKey.builder().s3URI(S3URI.of("test", "test3")).etag(ETAG).build();
 
     // When: Add blobs up to capacity
-    Blob blob1 = blobStore.get(key1, objectMetadata, mock(OpenStreamInformation.class));
-    Blob blob2 = blobStore.get(key2, objectMetadata, mock(OpenStreamInformation.class));
+    Blob blob1 = blobStore.get(key1, objectMetadata, OpenStreamInformation.DEFAULT);
+    Blob blob2 = blobStore.get(key2, objectMetadata, OpenStreamInformation.DEFAULT);
 
     // Force data loading
     byte[] data = new byte[TEST_DATA.length()];
@@ -246,7 +246,7 @@ public class BlobStoreTest {
     long initialMemoryUsage = blobStore.getMetrics().get(MetricKey.MEMORY_USAGE);
 
     // Then: Adding one more blob should trigger eviction
-    Blob blob3 = blobStore.get(key3, objectMetadata, mock(OpenStreamInformation.class));
+    Blob blob3 = blobStore.get(key3, objectMetadata, OpenStreamInformation.DEFAULT);
     blob3.read(data, 0, data.length, 0);
 
     Thread.sleep(10);
@@ -282,7 +282,7 @@ public class BlobStoreTest {
                       ObjectMetadata.builder().contentLength(bytesPerThread).etag(ETAG).build();
 
                   Blob blob =
-                      blobStore.get(threadKey, threadMetadata, mock(OpenStreamInformation.class));
+                      blobStore.get(threadKey, threadMetadata, OpenStreamInformation.DEFAULT);
                   byte[] b = new byte[bytesPerThread];
                   blob.read(b, 0, b.length, 0);
                 } catch (IOException e) {
@@ -305,8 +305,8 @@ public class BlobStoreTest {
     ObjectKey key1 = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
     ObjectKey key2 = ObjectKey.builder().s3URI(S3URI.of("test", "test2")).etag(ETAG).build();
 
-    Blob blob1 = blobStore.get(key1, objectMetadata, mock(OpenStreamInformation.class));
-    Blob blob2 = blobStore.get(key2, objectMetadata, mock(OpenStreamInformation.class));
+    Blob blob1 = blobStore.get(key1, objectMetadata, OpenStreamInformation.DEFAULT);
+    Blob blob2 = blobStore.get(key2, objectMetadata, OpenStreamInformation.DEFAULT);
 
     byte[] data = new byte[TEST_DATA.length()];
     try {
@@ -343,10 +343,10 @@ public class BlobStoreTest {
     ObjectKey key2 = ObjectKey.builder().s3URI(S3URI.of("test", "test2")).etag(ETAG).build();
 
     // Get blobs (which adds them to the map)
-    blobStore.get(key1, objectMetadata, mock(OpenStreamInformation.class));
+    blobStore.get(key1, objectMetadata, OpenStreamInformation.DEFAULT);
     assertEquals(1, blobStore.blobCount(), "Blob count should be 1 after adding first blob");
 
-    blobStore.get(key2, objectMetadata, mock(OpenStreamInformation.class));
+    blobStore.get(key2, objectMetadata, OpenStreamInformation.DEFAULT);
     assertEquals(2, blobStore.blobCount(), "Blob count should be 2 after adding second blob");
 
     // Test count after eviction
@@ -366,7 +366,7 @@ public class BlobStoreTest {
 
     // Create a blob to potentially clean
     ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
-    mockBlobStore.get(key, objectMetadata, mock(OpenStreamInformation.class));
+    mockBlobStore.get(key, objectMetadata, OpenStreamInformation.DEFAULT);
 
     // Attempt cleanup
     mockBlobStore.scheduleCleanupIfNotRunning();
@@ -384,7 +384,7 @@ public class BlobStoreTest {
 
     // Create and load a blob
     ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
-    mockBlobStore.get(key, objectMetadata, mock(OpenStreamInformation.class));
+    mockBlobStore.get(key, objectMetadata, OpenStreamInformation.DEFAULT);
 
     // Trigger cleanup
     mockBlobStore.scheduleCleanupIfNotRunning();
@@ -468,7 +468,7 @@ public class BlobStoreTest {
     doThrow(new RuntimeException("Cleanup failed")).when(mockBlob).asyncCleanup();
 
     // Add mock blob to store
-    mockBlobStore.get(key, objectMetadata, mock(OpenStreamInformation.class));
+    mockBlobStore.get(key, objectMetadata, OpenStreamInformation.DEFAULT);
 
     // Attempt cleanup - should handle exception gracefully
     assertDoesNotThrow(() -> mockBlobStore.scheduleCleanupIfNotRunning());
@@ -517,7 +517,7 @@ public class BlobStoreTest {
 
                     // Perform operations while cleanup might be running
                     Blob blob =
-                        blobStore.get(threadKey, objectMetadata, mock(OpenStreamInformation.class));
+                        blobStore.get(threadKey, objectMetadata, OpenStreamInformation.DEFAULT);
                     byte[] data = new byte[TEST_DATA.length()];
                     blob.read(data, 0, data.length, 0);
 
@@ -556,7 +556,7 @@ public class BlobStoreTest {
     for (int i = 0; i < 10000; i++) {
       ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test" + i)).etag(ETAG).build();
       keys.add(key);
-      blobs.add(blobStore.get(key, objectMetadata, mock(OpenStreamInformation.class)));
+      blobs.add(blobStore.get(key, objectMetadata, OpenStreamInformation.DEFAULT));
     }
 
     // Force data loading for all blobs
@@ -568,7 +568,7 @@ public class BlobStoreTest {
     // Evict keys while simultaneously retrieving them
     for (int i = 0; i < keys.size(); i++) {
       blobStore.evictKey(keys.get(i));
-      Blob newBlob = blobStore.get(keys.get(i), objectMetadata, mock(OpenStreamInformation.class));
+      Blob newBlob = blobStore.get(keys.get(i), objectMetadata, OpenStreamInformation.DEFAULT);
       byte[] newData = new byte[TEST_DATA.length()];
       newBlob.read(newData, 0, newData.length, 0);
       assertEquals(TEST_DATA, new String(newData, StandardCharsets.UTF_8));
@@ -583,7 +583,7 @@ public class BlobStoreTest {
     // Create enough blobs to exceed the configured capacity
     for (int i = 0; i < 10000; i++) {
       ObjectKey key = ObjectKey.builder().s3URI(S3URI.of("test", "test" + i)).etag(ETAG).build();
-      blobs.add(blobStore.get(key, objectMetadata, mock(OpenStreamInformation.class)));
+      blobs.add(blobStore.get(key, objectMetadata, OpenStreamInformation.DEFAULT));
     }
 
     // Force data loading to trigger memory pressure
@@ -629,8 +629,7 @@ public class BlobStoreTest {
                     // Perform multiple get operations
                     for (int j = 0; j < 5; j++) {
                       Blob blob =
-                          blobStore.get(
-                              threadKey, objectMetadata, mock(OpenStreamInformation.class));
+                          blobStore.get(threadKey, objectMetadata, OpenStreamInformation.DEFAULT);
                       byte[] data = new byte[TEST_DATA.length()];
                       blob.read(data, 0, data.length, 0);
 
@@ -680,7 +679,7 @@ public class BlobStoreTest {
                 ObjectKey key =
                     ObjectKey.builder().s3URI(S3URI.of("test", "testLongRead")).etag(ETAG).build();
 
-                Blob blob = blobStore.get(key, objectMetadata, mock(OpenStreamInformation.class));
+                Blob blob = blobStore.get(key, objectMetadata, OpenStreamInformation.DEFAULT);
                 byte[] data = new byte[TEST_DATA.length()];
 
                 // Signal that read has started
