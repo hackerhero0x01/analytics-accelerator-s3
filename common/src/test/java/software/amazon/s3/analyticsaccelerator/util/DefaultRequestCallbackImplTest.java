@@ -14,13 +14,18 @@
  * limitations under the License.
  */
 package software.amazon.s3.analyticsaccelerator.util;
-/**
- * Callback interface for S3 operations in Analytics Accelerator Library. Provides methods to track
- * GET and HEAD requests.
- */
-public interface RequestCallback {
-  /** Called when a GET request is made. */
-  void onGetRequest();
-  /** Called when a HEAD request is made. */
-  void onHeadRequest();
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+import org.junit.jupiter.api.Test;
+
+public class DefaultRequestCallbackImplTest {
+  @Test
+  public void testCallbackMethodsDoNotThrow() {
+    DefaultRequestCallbackImpl callback = new DefaultRequestCallbackImpl();
+
+    // No exceptions
+    assertDoesNotThrow(() -> callback.onGetRequest());
+    assertDoesNotThrow(() -> callback.onHeadRequest());
+  }
 }

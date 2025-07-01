@@ -379,6 +379,31 @@ public class BlockTest {
   }
 
   @Test
+  public void testGetRequestCallbackCalled() throws IOException {
+    final String TEST_DATA = "test-data";
+    RequestCallback mockCallback = mock(RequestCallback.class);
+    OpenStreamInformation openStreamInfo =
+        OpenStreamInformation.builder().requestCallback(mockCallback).build();
+
+    ObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, TEST_DATA.length()));
+
+    new Block(
+        blockKey,
+        fakeObjectClient,
+        TestTelemetry.DEFAULT,
+        0,
+        ReadMode.SYNC,
+        DEFAULT_READ_TIMEOUT,
+        DEFAULT_READ_RETRY_COUNT,
+        mock(Metrics.class),
+        mock(BlobStoreIndexCache.class),
+        openStreamInfo);
+
+    verify(mockCallback, times(1)).onGetRequest();
+  }
+
+  @Test
   void testReadTimeoutAndRetry() throws IOException {
     final String TEST_DATA = "test-data";
     ObjectKey stuckObjectKey =

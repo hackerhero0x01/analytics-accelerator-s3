@@ -118,17 +118,20 @@ public class MetadataStore implements Closeable {
       S3URI s3URI, OpenStreamInformation openStreamInformation) {
     return this.cache.computeIfAbsent(
         s3URI,
-        uri -> {
-          openStreamInformation.getRequestCallback().onHeadRequest();
-          return telemetry.measureCritical(
-              () ->
-                  Operation.builder()
-                      .name(OPERATION_METADATA_HEAD_ASYNC)
-                      .attribute(StreamAttributes.uri(s3URI))
-                      .build(),
-              objectClient.headObject(
-                  HeadRequest.builder().s3Uri(s3URI).build(), openStreamInformation));
-        });
+        uri ->
+            telemetry.measureCritical(
+                () ->
+                    Operation.builder()
+                        .name(OPERATION_METADATA_HEAD_ASYNC)
+                        .attribute(StreamAttributes.uri(s3URI))
+                        .build(),
+                () -> {
+                  CompletableFuture<ObjectMetadata> result =
+                      objectClient.headObject(
+                          HeadRequest.builder().s3Uri(s3URI).build(), openStreamInformation);
+                  openStreamInformation.getRequestCallback().onHeadRequest();
+                  return result;
+                }));
   }
 
   /**

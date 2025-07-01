@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 package software.amazon.s3.analyticsaccelerator.util;
-/**
- * Callback interface for S3 operations in Analytics Accelerator Library. Provides methods to track
- * GET and HEAD requests.
- */
-public interface RequestCallback {
-  /** Called when a GET request is made. */
-  void onGetRequest();
-  /** Called when a HEAD request is made. */
-  void onHeadRequest();
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/** Default implementation of {@link RequestCallback} that logs requests at debug level. */
+public class DefaultRequestCallbackImpl implements RequestCallback {
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultRequestCallbackImpl.class);
+
+  @Override
+  public void onGetRequest() {
+    LOG.debug("GET request made");
+  }
+
+  @Override
+  public void onHeadRequest() {
+    LOG.debug("HEAD request made");
+  }
 }

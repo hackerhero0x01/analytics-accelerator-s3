@@ -34,6 +34,7 @@ import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
+import software.amazon.s3.analyticsaccelerator.util.RequestCallback;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 public class MetadataStoreTest {
@@ -113,5 +114,24 @@ public class MetadataStoreTest {
     assertTrue(result, "Evicting existing key should return true");
     result = metadataStore.evictKey(key);
     assertFalse(result, "Evicting existing key should return false");
+  }
+
+  @Test
+  public void testHeadRequestCallbackCalled() throws IOException {
+    ObjectClient objectClient = mock(ObjectClient.class);
+    ObjectMetadata objectMetadata = ObjectMetadata.builder().etag("random").build();
+    when(objectClient.headObject(any(), any()))
+        .thenReturn(CompletableFuture.completedFuture(objectMetadata));
+    MetadataStore metadataStore =
+        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+
+    RequestCallback mockCallback = mock(RequestCallback.class);
+    OpenStreamInformation openStreamInfo =
+        OpenStreamInformation.builder().requestCallback(mockCallback).build();
+
+    S3URI s3URI = S3URI.of("bucket", "key");
+
+    metadataStore.get(s3URI, openStreamInfo);
+    verify(mockCallback, times(1)).onHeadRequest();
   }
 }
