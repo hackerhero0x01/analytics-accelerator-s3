@@ -15,15 +15,8 @@
  */
 package software.amazon.s3.analyticsaccelerator.access;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static software.amazon.s3.analyticsaccelerator.access.ChecksumAssertions.assertChecksums;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
-import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,13 +31,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.provider.Arguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.checksums.Crc32CChecksum;
-import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
-import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Base class for the integration tests */
 public abstract class IntegrationTestBase extends ExecutionBase {
@@ -80,7 +69,6 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     return this.s3ExecutionContext.get();
   }
 
-
   /**
    * Applies the same read stream pattern to both S3 based and AAL based streams Calculates the
    * CRC32-C checksum on all bytes read and compares them at the end to verify the results are the
@@ -92,29 +80,29 @@ public abstract class IntegrationTestBase extends ExecutionBase {
    * @param s3AALClientStreamReader reader to use
    */
   protected void testAndCompareStreamReadPattern(
-          @NonNull S3ClientKind s3ClientKind,
-          @NonNull S3Object s3Object,
-          @NonNull StreamReadPattern streamReadPattern,
-          @NonNull S3AALClientStreamReader s3AALClientStreamReader)
-          throws IOException {
+      @NonNull S3ClientKind s3ClientKind,
+      @NonNull S3Object s3Object,
+      @NonNull StreamReadPattern streamReadPattern,
+      @NonNull S3AALClientStreamReader s3AALClientStreamReader)
+      throws IOException {
 
     // Read using the standard S3 async client
     Crc32CChecksum directChecksum = new Crc32CChecksum();
     executeReadPatternDirectly(
-            s3ClientKind,
-            s3Object,
-            streamReadPattern,
-            Optional.of(directChecksum),
-            OpenStreamInformation.DEFAULT);
+        s3ClientKind,
+        s3Object,
+        streamReadPattern,
+        Optional.of(directChecksum),
+        OpenStreamInformation.DEFAULT);
 
     // Read using the AAL S3
     Crc32CChecksum aalChecksum = new Crc32CChecksum();
     executeReadPatternOnAAL(
-            s3Object,
-            s3AALClientStreamReader,
-            streamReadPattern,
-            Optional.of(aalChecksum),
-            OpenStreamInformation.DEFAULT);
+        s3Object,
+        s3AALClientStreamReader,
+        streamReadPattern,
+        Optional.of(aalChecksum),
+        OpenStreamInformation.DEFAULT);
 
     // Assert checksums
     assertChecksums(directChecksum, aalChecksum);
@@ -160,7 +148,6 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     // Assert checksums
     assertChecksums(directChecksum, aalChecksum);
   }
-
 
   /**
    * Generates a byte array filled with random bytes.
