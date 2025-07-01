@@ -165,7 +165,7 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
   static Stream<Arguments> sequentialReads() {
     return argumentsFor(
         getS3ClientKinds(),
-        Arrays.asList(S3Object.RANDOM_256MB, S3Object.CSV_20MB),
+        Arrays.asList(S3Object.RANDOM_256MB, S3Object.CSV_20MB, S3Object.RANDOM_4MB),
         sequentialPatterns(),
         concurrencyCorrectnessConfigurationKind());
   }
