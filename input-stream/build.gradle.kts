@@ -138,6 +138,10 @@ val shadowJar = tasks.withType<ShadowJar> {
         exclude(dependency("org.apache.httpcomponents:"))
         exclude(dependency("commons-codec:"))
         exclude(dependency("commons-logging:"))
+        exclude(dependency("com.google.errorprone:"))
+        exclude(dependency("org.checkerframework:"))
+        exclude(dependency("com.google.guava:"))
+
         exclude {
             it.moduleGroup.startsWith("software.amazon.awssdk", 0) ||
                     it.moduleGroup.startsWith("software.amazon.eventstream", 0)
@@ -147,6 +151,9 @@ val shadowJar = tasks.withType<ShadowJar> {
     relocate("org.apache.parquet.format", "software.amazon.s3.shaded.apache.parquet.format")
     relocate("shaded.parquet.org.apache.thrift", "software.amazon.s3.shaded.parquet.org.apache.thrift")
     relocate("com.github.benmanes.caffeine", "software.amazon.s3.shaded.com.github.benmanes.caffeine")
+    relocate("org.checkerframework", "software.amazon.s3.shaded.org.checkerframework")
+    relocate("com.google.errorprone", "software.amazon.s3.shaded.com.google.errorprone")
+    relocate("com.google.guava", "software.amazon.s3.shaded.com.google.guava")
 }
 
 val refTest = task<Test>("referenceTest") {
