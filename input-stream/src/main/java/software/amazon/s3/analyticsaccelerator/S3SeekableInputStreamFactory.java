@@ -80,7 +80,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.parquetColumnPrefetchStore =
         new ParquetColumnPrefetchStore(configuration.getLogicalIOConfiguration());
     this.objectMetadataStore =
-        new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
+        new MetadataStore(
+            objectClient, telemetry, configuration.getPhysicalIOConfiguration(), metrics);
     this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
     this.objectBlobStore =
         new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration(), metrics);

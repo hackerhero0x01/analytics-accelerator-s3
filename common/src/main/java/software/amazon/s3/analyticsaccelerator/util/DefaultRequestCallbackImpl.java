@@ -24,11 +24,11 @@ public class DefaultRequestCallbackImpl implements RequestCallback {
 
   @Override
   public void onGetRequest() {
-    LOG.debug("GET request made");
+    LOG.trace("GET request made");
   }
 
   @Override
   public void onHeadRequest() {
-    LOG.debug("HEAD request made");
+    LOG.trace("HEAD request made");
   }
 }

@@ -178,7 +178,11 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "abcdef0123456789";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     BlobStore blobStore =
         new BlobStore(
             fakeObjectClient,
@@ -209,7 +213,11 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "x";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     BlobStore blobStore =
         new BlobStore(
             fakeObjectClient,
@@ -235,7 +243,11 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "abcdef0123456789";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     BlobStore blobStore =
         new BlobStore(
             fakeObjectClient,
@@ -260,7 +272,11 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "abcdef0123456789";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     BlobStore blobStore =
         new BlobStore(
             fakeObjectClient,
@@ -306,7 +322,8 @@ public class PhysicalIOImplTest {
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
 
     MetadataStore metadataStore =
-        new MetadataStore(client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT, mock(Metrics.class));
     ObjectMetadata objectMetadata = ObjectMetadata.builder().contentLength(100).etag(etag).build();
     metadataStore.storeObjectMetadata(s3URI, objectMetadata);
     BlobStore blobStore =
@@ -341,7 +358,8 @@ public class PhysicalIOImplTest {
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
 
     MetadataStore metadataStore =
-        new MetadataStore(client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT, mock(Metrics.class));
     ObjectMetadata objectMetadata = ObjectMetadata.builder().contentLength(100).etag(etag).build();
     metadataStore.storeObjectMetadata(s3URI, objectMetadata);
     BlobStore blobStore =
@@ -367,7 +385,11 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "test";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     Metrics metrics = new Metrics();
     BlobStore blobStore =
         new BlobStore(
@@ -409,7 +431,11 @@ public class PhysicalIOImplTest {
 
     BlobStore mockBlobStore = mock(BlobStore.class);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
 
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(
@@ -432,7 +458,11 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "test data longer than buffer";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     Metrics metrics = new Metrics();
     BlobStore blobStore =
         new BlobStore(
@@ -469,7 +499,11 @@ public class PhysicalIOImplTest {
     final String TEST_DATA = "test data for read vectored";
     FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     Metrics metrics = new Metrics();
     BlobStore blobStore =
         new BlobStore(

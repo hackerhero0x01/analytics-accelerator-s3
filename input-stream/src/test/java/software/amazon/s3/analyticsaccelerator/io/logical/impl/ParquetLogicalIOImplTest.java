@@ -139,7 +139,11 @@ public class ParquetLogicalIOImplTest {
                 ObjectMetadata.builder().contentLength(0).etag("random").build()));
     S3URI s3URI = S3URI.of("test", "test");
     MetadataStore metadataStore =
-        new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            mockClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     BlobStore blobStore =
         new BlobStore(
             mockClient,

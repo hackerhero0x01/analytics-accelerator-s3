@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
@@ -47,7 +48,11 @@ public class MetadataStoreTest {
     when(objectClient.headObject(any(), any()))
         .thenReturn(CompletableFuture.completedFuture(objectMetadata));
     MetadataStore metadataStore =
-        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            objectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     S3URI key = S3URI.of("foo", "bar");
 
     // When: get(..) is called multiple times
@@ -85,7 +90,11 @@ public class MetadataStoreTest {
         .thenReturn(objectMetadataCompletableFuture);
 
     MetadataStore metadataStore =
-        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            objectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
 
     // When: MetadataStore is closed
     metadataStore.get(S3URI.of("b", "key1"), openStreamInformation);
@@ -103,7 +112,11 @@ public class MetadataStoreTest {
     when(objectClient.headObject(any(), any()))
         .thenReturn(CompletableFuture.completedFuture(mock(ObjectMetadata.class)));
     MetadataStore metadataStore =
-        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            objectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     S3URI key = S3URI.of("foo", "bar");
     metadataStore.storeObjectMetadata(key, ObjectMetadata.builder().etag("random").build());
 
@@ -123,7 +136,11 @@ public class MetadataStoreTest {
     when(objectClient.headObject(any(), any()))
         .thenReturn(CompletableFuture.completedFuture(objectMetadata));
     MetadataStore metadataStore =
-        new MetadataStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            objectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
 
     RequestCallback mockCallback = mock(RequestCallback.class);
     OpenStreamInformation openStreamInfo =
