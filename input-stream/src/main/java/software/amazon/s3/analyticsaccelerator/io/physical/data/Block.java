@@ -122,6 +122,8 @@ public class Block implements Closeable {
             .referrer(referrer)
             .build();
 
+    openStreamInformation.getRequestCallback().onGetRequest();
+
     this.source =
         this.telemetry.measureCritical(
             () ->
@@ -132,9 +134,10 @@ public class Block implements Closeable {
                     .attribute(StreamAttributes.range(this.blockKey.getRange()))
                     .attribute(StreamAttributes.generation(generation))
                     .build(),
-            objectClient.getObject(getRequest, openStreamInformation));
-
-    openStreamInformation.getRequestCallback().onGetRequest();
+            () -> {
+              this.aggregatingMetrics.add(MetricKey.GET_REQUEST_COUNT, 1);
+              return objectClient.getObject(getRequest, openStreamInformation);
+            });
 
     // Handle IOExceptions when converting stream to byte array
     this.data =
