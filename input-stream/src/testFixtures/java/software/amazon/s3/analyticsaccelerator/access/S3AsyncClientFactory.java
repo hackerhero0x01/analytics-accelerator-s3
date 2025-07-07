@@ -44,7 +44,6 @@ public class S3AsyncClientFactory {
         .minimumPartSizeInBytes(configuration.getCrtPartSizeInBytes())
         .maxNativeMemoryLimitInBytes(configuration.getCrtNativeMemoryLimitInBytes())
         .maxConcurrency(configuration.getCrtMaxConcurrency())
-        .checksumValidationEnabled(configuration.isCrtChecksumValidationEnabled())
         .targetThroughputInGbps((double) configuration.getCrtTargetThroughputGbps())
         .build();
   }

@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.NonNull;
-import software.amazon.awssdk.core.checksums.Crc32CChecksum;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 

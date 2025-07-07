@@ -39,7 +39,7 @@ public final class UserAgent {
    * @param userAgentPrefix to prepend the default user-agent string
    */
   public void prepend(String userAgentPrefix) {
-    if (Objects.nonNull(userAgentPrefix))
+    if (Objects.nonNull(userAgentPrefix) && !userAgentPrefix.isEmpty())
       this.userAgent = sanitizeInput(userAgentPrefix) + " " + this.userAgent;
   }
 

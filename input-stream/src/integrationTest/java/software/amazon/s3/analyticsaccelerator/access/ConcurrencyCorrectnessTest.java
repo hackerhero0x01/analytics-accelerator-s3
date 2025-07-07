@@ -28,7 +28,6 @@ import lombok.NonNull;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import software.amazon.awssdk.core.checksums.Crc32CChecksum;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 
 /**

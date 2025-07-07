@@ -18,7 +18,6 @@ package software.amazon.s3.analyticsaccelerator.access;
 import java.io.IOException;
 import java.util.Optional;
 import lombok.NonNull;
-import software.amazon.awssdk.core.checksums.Crc32CChecksum;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 
