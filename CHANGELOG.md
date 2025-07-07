@@ -1,3 +1,10 @@
+## v1.2.1 (July 07, 2025)
+
+* fix: shading dependency on google error prone https://github.com/awslabs/analytics-accelerator-s3/pull/305
+* IoStats-CallBack-AAL https://github.com/awslabs/analytics-accelerator-s3/pull/298
+* Improves integration test cases https://github.com/awslabs/analytics-accelerator-s3/pull/297
+* Generate encrypted objects for benchmark https://github.com/awslabs/analytics-accelerator-s3/pull/296
+
 ## v1.2.0 (Jun 25, 2025)
 
 * Replace DAT with AAL https://github.com/awslabs/analytics-accelerator-s3/pull/300
