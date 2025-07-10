@@ -44,8 +44,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
 import software.amazon.awssdk.http.async.AbortableInputStreamSubscriber;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3ServiceClientConfiguration;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
@@ -73,6 +76,8 @@ public class S3SdkObjectClientTest {
   private static final S3URI TEST_URI = S3URI.of("test-bucket", "test-key");
 
   private static final String ETAG = "RandomString";
+  private static final String USER_AGENT_HEADER = "User-Agent";
+  private static final String AAL_USER_AGENT = "s3analyticsaccelerator";
 
   @Test
   void testForNullsInConstructor() {
@@ -646,5 +651,105 @@ public class S3SdkObjectClientTest {
     assertNull(capturedRequest.sseCustomerAlgorithm());
     assertNull(capturedRequest.sseCustomerKey());
     assertNull(capturedRequest.sseCustomerKeyMD5());
+  }
+
+  @Test
+  void testCustomUserAgentWithNullServiceConfiguration() {
+    S3AsyncClient s3AsyncClient = createMockClientForUserAgent(null);
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+
+    client
+        .headObject(HeadRequest.builder().s3Uri(TEST_URI).build(), OpenStreamInformation.DEFAULT)
+        .join();
+
+    ArgumentCaptor<HeadObjectRequest> captor = ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3AsyncClient).headObject(captor.capture());
+    assertTrue(captor.getValue().overrideConfiguration().isPresent());
+    String userAgent =
+        captor.getValue().overrideConfiguration().get().headers().get(USER_AGENT_HEADER).get(0);
+    assertTrue(userAgent.contains(AAL_USER_AGENT));
+  }
+
+  @Test
+  void testCustomUserAgentWithNullOverrideConfiguration() {
+    S3ServiceClientConfiguration serviceConfig = S3ServiceClientConfiguration.builder().build();
+
+    S3AsyncClient s3AsyncClient = createMockClientForUserAgent(serviceConfig);
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+
+    client
+        .headObject(HeadRequest.builder().s3Uri(TEST_URI).build(), OpenStreamInformation.DEFAULT)
+        .join();
+
+    ArgumentCaptor<HeadObjectRequest> captor = ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3AsyncClient).headObject(captor.capture());
+    assertTrue(captor.getValue().overrideConfiguration().isPresent());
+    String userAgent =
+        captor.getValue().overrideConfiguration().get().headers().get(USER_AGENT_HEADER).get(0);
+    assertTrue(userAgent.contains(AAL_USER_AGENT));
+  }
+
+  @Test
+  void testCustomUserAgentWithEmptyUserAgent() {
+    ClientOverrideConfiguration clientOverrideConfig =
+        ClientOverrideConfiguration.builder()
+            .putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, "")
+            .build();
+
+    S3ServiceClientConfiguration serviceConfig =
+        S3ServiceClientConfiguration.builder().overrideConfiguration(clientOverrideConfig).build();
+
+    S3AsyncClient s3AsyncClient = createMockClientForUserAgent(serviceConfig);
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+
+    client
+        .headObject(HeadRequest.builder().s3Uri(TEST_URI).build(), OpenStreamInformation.DEFAULT)
+        .join();
+
+    ArgumentCaptor<HeadObjectRequest> captor = ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3AsyncClient).headObject(captor.capture());
+    assertTrue(captor.getValue().overrideConfiguration().isPresent());
+    String userAgent =
+        captor.getValue().overrideConfiguration().get().headers().get(USER_AGENT_HEADER).get(0);
+    assertTrue(userAgent.contains(AAL_USER_AGENT));
+  }
+
+  @Test
+  void testCustomUserAgentWithCustomValue() {
+
+    ClientOverrideConfiguration clientOverrideConfig =
+        ClientOverrideConfiguration.builder()
+            .putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, "custom-agent")
+            .build();
+
+    S3ServiceClientConfiguration serviceConfig =
+        S3ServiceClientConfiguration.builder().overrideConfiguration(clientOverrideConfig).build();
+
+    S3AsyncClient s3AsyncClient = createMockClientForUserAgent(serviceConfig);
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+
+    client
+        .headObject(HeadRequest.builder().s3Uri(TEST_URI).build(), OpenStreamInformation.DEFAULT)
+        .join();
+
+    ArgumentCaptor<HeadObjectRequest> captor = ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3AsyncClient).headObject(captor.capture());
+    assertTrue(captor.getValue().overrideConfiguration().isPresent());
+    String userAgent =
+        captor.getValue().overrideConfiguration().get().headers().get(USER_AGENT_HEADER).get(0);
+    assertTrue(userAgent.contains("custom-agent"));
+    assertTrue(userAgent.contains(AAL_USER_AGENT));
+  }
+
+  private S3AsyncClient createMockClientForUserAgent(S3ServiceClientConfiguration serviceConfig) {
+    S3AsyncClient s3AsyncClient = mock(S3AsyncClient.class);
+    when(s3AsyncClient.serviceClientConfiguration()).thenReturn(serviceConfig);
+
+    HeadObjectResponse response =
+        HeadObjectResponse.builder().contentLength(42L).eTag(ETAG).build();
+    when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+        .thenReturn(CompletableFuture.completedFuture(response));
+
+    return s3AsyncClient;
   }
 }
