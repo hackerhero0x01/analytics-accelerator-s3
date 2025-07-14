@@ -17,10 +17,13 @@ package software.amazon.s3.analyticsaccelerator.util;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 
 public class FakeStuckObjectClient extends FakeObjectClient {
+
+  AtomicInteger getCallCount;
 
   /**
    * Instantiate a fake Object Client backed by some string as data.
@@ -28,12 +31,24 @@ public class FakeStuckObjectClient extends FakeObjectClient {
    * @param data the data making up the object
    */
   public FakeStuckObjectClient(String data) {
+    this(data, new AtomicInteger(0));
+  }
+
+  /**
+   * Instantiate a fake Object Client backed by some string as data.
+   *
+   * @param data the data making up the object
+   * @param getCallCount to keep track of number of get calls
+   */
+  public FakeStuckObjectClient(String data, AtomicInteger getCallCount) {
     super(data);
+    this.getCallCount = getCallCount;
   }
 
   @Override
   public CompletableFuture<ObjectContent> getObject(
       GetRequest getRequest, OpenStreamInformation openStreamInformation) {
+    getCallCount.incrementAndGet();
     CompletableFuture<ObjectContent> failedFuture = new CompletableFuture<>();
     failedFuture.completeExceptionally(new TimeoutException("Request timed out"));
     return failedFuture;

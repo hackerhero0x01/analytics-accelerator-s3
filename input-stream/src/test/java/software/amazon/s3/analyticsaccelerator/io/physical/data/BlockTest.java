@@ -22,6 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -408,7 +409,8 @@ public class BlockTest {
     final String TEST_DATA = "test-data";
     ObjectKey stuckObjectKey =
         ObjectKey.builder().s3URI(S3URI.of("stuck-client", "bar")).etag(ETAG).build();
-    ObjectClient fakeStuckObjectClient = new FakeStuckObjectClient(TEST_DATA);
+    AtomicInteger getCallCount = new AtomicInteger(0);
+    ObjectClient fakeStuckObjectClient = new FakeStuckObjectClient(TEST_DATA, getCallCount);
     BlockKey blockKey = new BlockKey(stuckObjectKey, new Range(0, TEST_DATA.length()));
     Block block =
         new Block(
@@ -423,6 +425,31 @@ public class BlockTest {
             mock(BlobStoreIndexCache.class),
             OpenStreamInformation.DEFAULT);
     assertThrows(IOException.class, () -> block.read(4));
+    assertEquals(DEFAULT_READ_RETRY_COUNT + 1, getCallCount.get());
+  }
+
+  @Test
+  void testZeroRetryStillCallsGet() throws IOException {
+    final String TEST_DATA = "test-data";
+    ObjectKey stuckObjectKey =
+        ObjectKey.builder().s3URI(S3URI.of("stuck-client", "bar")).etag(ETAG).build();
+    AtomicInteger getCallCount = new AtomicInteger(0);
+    ObjectClient fakeStuckObjectClient = new FakeStuckObjectClient(TEST_DATA, getCallCount);
+    BlockKey blockKey = new BlockKey(stuckObjectKey, new Range(0, TEST_DATA.length()));
+    Block block =
+        new Block(
+            blockKey,
+            fakeStuckObjectClient,
+            TestTelemetry.DEFAULT,
+            0,
+            ReadMode.SYNC,
+            DEFAULT_READ_TIMEOUT,
+            0,
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class),
+            OpenStreamInformation.DEFAULT);
+    assertThrows(IOException.class, () -> block.read(4));
+    assertEquals(1, getCallCount.get());
   }
 
   @SneakyThrows

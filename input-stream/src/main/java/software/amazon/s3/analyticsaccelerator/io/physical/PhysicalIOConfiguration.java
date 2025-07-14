@@ -250,7 +250,8 @@ public class PhysicalIOConfiguration {
     Preconditions.checkArgument(
         sequentialPrefetchSpeed > 0, "`sequentialPrefetchSpeed` must be positive");
     Preconditions.checkArgument(blockReadTimeout > 0, "`blockReadTimeout` must be positive");
-    Preconditions.checkArgument(blockReadRetryCount > 0, "`blockReadRetryCount` must be positive");
+    Preconditions.checkArgument(
+        blockReadRetryCount >= 0, "`blockReadRetryCount` must be non-negative");
     Preconditions.checkArgument(
         smallObjectSizeThreshold > 0, "`smallObjectSizeThreshold` must be positive");
     Preconditions.checkNotNull(threadPoolSize > 0, "`threadPoolSize` must be positive");

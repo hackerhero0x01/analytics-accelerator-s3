@@ -99,7 +99,7 @@ public class Block implements Closeable {
     Preconditions.checkArgument(
         0 < readTimeout, "`readTimeout` must be greater than 0; was %s", readTimeout);
     Preconditions.checkArgument(
-        0 < readRetryCount, "`readRetryCount` must be greater than 0; was %s", readRetryCount);
+        0 <= readRetryCount, "`readRetryCount` must be greater than -1; was %s", readRetryCount);
 
     this.generation = generation;
     this.telemetry = telemetry;
@@ -125,13 +125,13 @@ public class Block implements Closeable {
   @SuppressWarnings("unchecked")
   private RetryStrategy<byte[]> createRetryStrategy() {
     if (this.readTimeout > 0) {
-      RetryPolicy<byte[]> timeout =
+      RetryPolicy<byte[]> timeoutRetries =
           RetryPolicy.<byte[]>builder()
               .handle(IOException.class, TimeoutException.class)
               .withMaxRetries(this.readRetryCount)
               .onRetry(this::generateSourceAndData)
               .build();
-      return new SeekableInputStreamRetryStrategy<>(timeout);
+      return new SeekableInputStreamRetryStrategy<>(timeoutRetries);
     }
     return new SeekableInputStreamRetryStrategy<>();
   }

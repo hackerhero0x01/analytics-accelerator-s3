@@ -52,7 +52,7 @@ public enum AALInputStreamConfigurationKind {
     String configurationPrefix = "noRetry";
     Map<String, String> customConfiguration = new HashMap<>();
     customConfiguration.put(configurationPrefix + ".physicalio.blockreadtimeout", "2000");
-    customConfiguration.put(configurationPrefix + ".physicalio.blockreadretrycount", "1");
+    customConfiguration.put(configurationPrefix + ".physicalio.blockreadretrycount", "0");
     ConnectorConfiguration config =
         new ConnectorConfiguration(customConfiguration, configurationPrefix);
     return S3SeekableInputStreamConfiguration.fromConfiguration(config);
