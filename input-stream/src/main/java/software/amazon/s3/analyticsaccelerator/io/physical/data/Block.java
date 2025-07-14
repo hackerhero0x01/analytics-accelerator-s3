@@ -23,19 +23,18 @@ import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
-import software.amazon.s3.analyticsaccelerator.retry.RetryExecutor;
-import software.amazon.s3.analyticsaccelerator.retry.SeekableInputStreamRetryExecutor;
+import software.amazon.s3.analyticsaccelerator.retry.RetryPolicy;
+import software.amazon.s3.analyticsaccelerator.retry.RetryStrategy;
+import software.amazon.s3.analyticsaccelerator.retry.SeekableInputStreamRetryStrategy;
 import software.amazon.s3.analyticsaccelerator.util.*;
 
 /**
@@ -51,14 +50,14 @@ public class Block implements Closeable {
   private final OpenStreamInformation openStreamInformation;
   private final ReadMode readMode;
   private final Referrer referrer;
-  @Getter private final long generation;
-  @Getter private final PhysicalIOConfiguration configuration;
-  private final int readRetryCount;
   private final long readTimeout;
+  private final int readRetryCount;
+  @Getter private final long generation;
   private final Metrics aggregatingMetrics;
   private final BlobStoreIndexCache indexCache;
   private static final String OPERATION_BLOCK_GET_ASYNC = "block.get.async";
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
+  private final RetryStrategy<byte[]> retryStrategy;
 
   private static final Logger LOG = LoggerFactory.getLogger(Block.class);
 
@@ -70,7 +69,8 @@ public class Block implements Closeable {
    * @param telemetry an instance of {@link Telemetry} to use
    * @param generation generation of the block in a sequential read pattern (should be 0 by default)
    * @param readMode read mode describing whether this is a sync or async fetch
-   * @param configuration PhysicalIO Configuration to learn timeout and retry count
+   * @param readTimeout Timeout duration (in milliseconds) for reading a block object from S3
+   * @param readRetryCount Number of retries for block read failure
    * @param aggregatingMetrics blobstore metrics
    * @param indexCache blobstore index cache
    * @param openStreamInformation contains stream information
@@ -81,7 +81,8 @@ public class Block implements Closeable {
       @NonNull Telemetry telemetry,
       long generation,
       @NonNull ReadMode readMode,
-      @NonNull PhysicalIOConfiguration configuration,
+      long readTimeout,
+      int readRetryCount,
       @NonNull Metrics aggregatingMetrics,
       @NonNull BlobStoreIndexCache indexCache,
       @NonNull OpenStreamInformation openStreamInformation)
@@ -95,6 +96,10 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= end, "`end` must be non-negative; was: %s", end);
     Preconditions.checkArgument(
         start <= end, "`start` must be less than `end`; %s is not less than %s", start, end);
+    Preconditions.checkArgument(
+        0 < readTimeout, "`readTimeout` must be greater than 0; was %s", readTimeout);
+    Preconditions.checkArgument(
+        0 < readRetryCount, "`readRetryCount` must be greater than 0; was %s", readRetryCount);
 
     this.generation = generation;
     this.telemetry = telemetry;
@@ -103,17 +108,40 @@ public class Block implements Closeable {
     this.openStreamInformation = openStreamInformation;
     this.readMode = readMode;
     this.referrer = new Referrer(this.blockKey.getRange().toHttpString(), readMode);
+    this.readTimeout = readTimeout;
+    this.readRetryCount = readRetryCount;
     this.aggregatingMetrics = aggregatingMetrics;
     this.indexCache = indexCache;
-    this.configuration = configuration;
-    this.readRetryCount = configuration.getBlockReadRetryCount();
-    this.readTimeout = configuration.getBlockReadTimeout();
-    RetryExecutor<Void> retryStrategy = new SeekableInputStreamRetryExecutor<>(this.configuration);
-    retryStrategy.executeWithRetry(this::generateSourceAndData);
+    this.retryStrategy = createRetryStrategy();
+    this.generateSourceAndData();
   }
 
-  /** Method to help construct source and data */
-  private void generateSourceAndData() throws IOException {
+  /**
+   * Helper to construct retryStrategy
+   *
+   * @return a {@link RetryStrategy} to retry when timeouts are set
+   * @throws RuntimeException if all retries fails and an error occurs
+   */
+  @SuppressWarnings("unchecked")
+  private RetryStrategy<byte[]> createRetryStrategy() {
+    if (this.readTimeout > 0) {
+      RetryPolicy<byte[]> timeout =
+          RetryPolicy.<byte[]>builder()
+              .handle(IOException.class, TimeoutException.class)
+              .withMaxRetries(this.readRetryCount)
+              .onRetry(this::generateSourceAndData)
+              .build();
+      return new SeekableInputStreamRetryStrategy<>(timeout);
+    }
+    return new SeekableInputStreamRetryStrategy<>();
+  }
+
+  /**
+   * Helper to construct source and data
+   *
+   * @throws RuntimeException if all retries fails and an error occurs
+   */
+  private void generateSourceAndData() {
     GetRequest getRequest =
         GetRequest.builder()
             .s3Uri(this.blockKey.getObjectKey().getS3URI())
@@ -174,8 +202,7 @@ public class Block implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
-
-    byte[] content = this.getDataWithRetries();
+    byte[] content = this.retryStrategy.get(this::getData);
     indexCache.recordAccess(blockKey);
     return Byte.toUnsignedInt(content[posToOffset(pos)]);
   }
@@ -196,7 +223,7 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    byte[] content = this.getDataWithRetries();
+    byte[] content = this.retryStrategy.get(this::getData);
     indexCache.recordAccess(blockKey);
     int contentOffset = posToOffset(pos);
     int available = content.length - contentOffset;
@@ -228,34 +255,6 @@ public class Block implements Closeable {
    */
   private int posToOffset(long pos) {
     return (int) (pos - this.blockKey.getRange().getStart());
-  }
-
-  /**
-   * Returns the bytes fetched by the issued {@link GetRequest}. If it receives an IOException from
-   * {@link S3SdkObjectClient}, retries for MAX_RETRIES count.
-   *
-   * @return the bytes fetched by the issued {@link GetRequest}.
-   * @throws IOException if an I/O error occurs after maximum retry counts
-   */
-  private byte[] getDataWithRetries() throws IOException {
-    for (int i = 0; i < this.readRetryCount; i++) {
-      try {
-        return this.getData();
-      } catch (IOException ex) {
-        if (ex.getClass() == IOException.class) {
-          if (i < this.readRetryCount - 1) {
-            LOG.debug("Get data failed. Retrying. Retry Count {}", i);
-            generateSourceAndData();
-          } else {
-            LOG.error("Cannot read block file. Retry reached the limit");
-            throw new IOException("Cannot read block file", ex.getCause());
-          }
-        } else {
-          throw ex;
-        }
-      }
-    }
-    throw new IOException("Cannot read block file", new IOException("Error while getting block"));
   }
 
   /**

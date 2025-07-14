@@ -15,8 +15,6 @@
  */
 package software.amazon.s3.analyticsaccelerator.retry;
 
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
-
 /**
  * Interface for retry policies that delegate to Failsafe retry policies.
  *
@@ -50,18 +48,6 @@ public interface RetryPolicy<R> {
    */
   static <R> RetryPolicyBuilder<R> builder() {
     return new RetryPolicyBuilder<>();
-  }
-
-  /**
-   * Creates a new RetryPolicyBuilder configured based on the provided PhysicalIOConfiguration.
-   *
-   * @param configuration the physical IO configuration containing retry settings
-   * @param <R> the result type
-   * @return a new RetryPolicyBuilder instance configured from the provided settings
-   * @throws NullPointerException if configuration is null
-   */
-  static <R> RetryPolicyBuilder<R> builder(PhysicalIOConfiguration configuration) {
-    return new RetryPolicyBuilder<>(configuration);
   }
 
   /**

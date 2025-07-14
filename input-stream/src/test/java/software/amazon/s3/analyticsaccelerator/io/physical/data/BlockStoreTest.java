@@ -30,7 +30,6 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
@@ -68,7 +67,8 @@ public class BlockStoreTest {
             TestTelemetry.DEFAULT,
             0,
             ReadMode.SYNC,
-            PhysicalIOConfiguration.DEFAULT,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
             mock(Metrics.class),
             mock(BlobStoreIndexCache.class),
             OpenStreamInformation.DEFAULT));
@@ -104,7 +104,8 @@ public class BlockStoreTest {
             TestTelemetry.DEFAULT,
             0,
             ReadMode.SYNC,
-            PhysicalIOConfiguration.DEFAULT,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
             mock(Metrics.class),
             mock(BlobStoreIndexCache.class),
             OpenStreamInformation.DEFAULT));
@@ -116,7 +117,8 @@ public class BlockStoreTest {
             TestTelemetry.DEFAULT,
             0,
             ReadMode.SYNC,
-            PhysicalIOConfiguration.DEFAULT,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
             mock(Metrics.class),
             mock(BlobStoreIndexCache.class),
             OpenStreamInformation.DEFAULT));
@@ -128,7 +130,8 @@ public class BlockStoreTest {
             TestTelemetry.DEFAULT,
             0,
             ReadMode.SYNC,
-            PhysicalIOConfiguration.DEFAULT,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
             mock(Metrics.class),
             mock(BlobStoreIndexCache.class),
             OpenStreamInformation.DEFAULT));
@@ -167,7 +170,8 @@ public class BlockStoreTest {
             TestTelemetry.DEFAULT,
             0,
             ReadMode.SYNC,
-            PhysicalIOConfiguration.DEFAULT,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
             mock(Metrics.class),
             mock(BlobStoreIndexCache.class),
             OpenStreamInformation.DEFAULT));
@@ -179,7 +183,8 @@ public class BlockStoreTest {
             TestTelemetry.DEFAULT,
             0,
             ReadMode.SYNC,
-            PhysicalIOConfiguration.DEFAULT,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
             mock(Metrics.class),
             mock(BlobStoreIndexCache.class),
             OpenStreamInformation.DEFAULT));
@@ -191,7 +196,8 @@ public class BlockStoreTest {
             TestTelemetry.DEFAULT,
             0,
             ReadMode.SYNC,
-            PhysicalIOConfiguration.DEFAULT,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_READ_RETRY_COUNT,
             mock(Metrics.class),
             mock(BlobStoreIndexCache.class),
             OpenStreamInformation.DEFAULT));

@@ -16,7 +16,6 @@
 package software.amazon.s3.analyticsaccelerator.retry;
 
 import java.time.Duration;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 
 /**
  * Builder for creating RetryPolicy instances that delegate to Failsafe retry policies.
@@ -46,13 +45,7 @@ public class RetryPolicyBuilder<R> {
   private final dev.failsafe.RetryPolicyBuilder<R> delegateBuilder;
 
   protected RetryPolicyBuilder() {
-    this(PhysicalIOConfiguration.DEFAULT);
-  }
-
-  protected RetryPolicyBuilder(PhysicalIOConfiguration configuration) {
     this.delegateBuilder = dev.failsafe.RetryPolicy.builder();
-    delegateBuilder.withMaxDuration(Duration.ofMillis(configuration.getBlockReadTimeout()));
-    delegateBuilder.withMaxRetries(configuration.getBlockReadRetryCount());
   }
 
   /**
@@ -78,22 +71,6 @@ public class RetryPolicyBuilder<R> {
   }
 
   /**
-   * Sets the maximum duration for all retry attempts.
-   *
-   * <p>This sets an overall timeout for the entire retry operation, including all retry attempts
-   * and delays. If this duration is exceeded, no further retries will be attempted regardless of
-   * the maximum retry count.
-   *
-   * @param timeout the maximum duration for all retry attempts
-   * @return this builder for method chaining
-   * @throws NullPointerException if timeout is null
-   */
-  public RetryPolicyBuilder<R> withMaxDuration(Duration timeout) {
-    delegateBuilder.withMaxDuration(timeout);
-    return this;
-  }
-
-  /**
    * Specifies which exceptions should trigger a retry.
    *
    * @param exception the exception class
@@ -114,6 +91,17 @@ public class RetryPolicyBuilder<R> {
   @SuppressWarnings("varargs")
   public final RetryPolicyBuilder<R> handle(Class<? extends Throwable>... exceptions) {
     delegateBuilder.handle(exceptions);
+    return this;
+  }
+
+  /**
+   * Specifies a function to call when a retry occurs.
+   *
+   * @param onRetry the function to call on retry
+   * @return this builder
+   */
+  public RetryPolicyBuilder<R> onRetry(Runnable onRetry) {
+    delegateBuilder.onRetry(event -> onRetry.run());
     return this;
   }
 

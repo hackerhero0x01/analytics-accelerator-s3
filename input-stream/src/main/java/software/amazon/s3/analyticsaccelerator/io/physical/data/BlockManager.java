@@ -215,7 +215,8 @@ public class BlockManager implements Closeable {
                     telemetry,
                     generation,
                     readMode,
-                    this.configuration,
+                    this.configuration.getBlockReadTimeout(),
+                    this.configuration.getBlockReadRetryCount(),
                     aggregatingMetrics,
                     indexCache,
                     openStreamInformation);

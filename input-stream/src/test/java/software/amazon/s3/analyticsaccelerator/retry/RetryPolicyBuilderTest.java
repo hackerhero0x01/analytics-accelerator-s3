@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 
 class RetryPolicyBuilderTest {
 
@@ -53,16 +52,6 @@ class RetryPolicyBuilderTest {
   }
 
   @Test
-  void testWithMaxDuration() {
-    RetryPolicyBuilder<String> builder = new RetryPolicyBuilder<>();
-    Duration timeout = Duration.ofSeconds(10);
-    RetryPolicyBuilder<String> result = builder.withMaxDuration(timeout);
-
-    assertSame(builder, result);
-    assertNotNull(builder.build());
-  }
-
-  @Test
   void testHandleSingleException() {
     RetryPolicyBuilder<String> builder = new RetryPolicyBuilder<>();
     RetryPolicyBuilder<String> result = builder.handle(IOException.class);
@@ -78,16 +67,6 @@ class RetryPolicyBuilderTest {
 
     assertSame(builder, result);
     assertNotNull(builder.build());
-  }
-
-  @Test
-  void testBuilderWithConfiguration() {
-    PhysicalIOConfiguration config = PhysicalIOConfiguration.DEFAULT;
-    RetryPolicyBuilder<String> builder = new RetryPolicyBuilder<>(config);
-    RetryPolicy<String> policy = builder.build();
-
-    assertNotNull(policy);
-    assertNotNull(policy.getDelegate());
   }
 
   @Test

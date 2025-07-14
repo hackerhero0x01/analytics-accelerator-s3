@@ -16,18 +16,19 @@
 package software.amazon.s3.analyticsaccelerator.retry;
 
 import dev.failsafe.Failsafe;
+import dev.failsafe.FailsafeException;
 import dev.failsafe.FailsafeExecutor;
+import dev.failsafe.Policy;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 
 /**
- * Implementation of RetryExecutor that uses Failsafe library internally.
+ * Implementation of Strategy that uses Failsafe library. A strategy is a collection of policies.
  *
  * <p>This class encapsulates all Failsafe-specific code to hide the dependency from AAL users. It
  * supports multiple retry policies that are applied in sequence, allowing for complex retry
@@ -38,7 +39,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfigurati
  *
  * @param <R> the result type of operations executed by this retry executor
  */
-public class SeekableInputStreamRetryExecutor<R> implements RetryExecutor<R> {
+public class SeekableInputStreamRetryStrategy<R> implements RetryStrategy<R> {
   private final List<RetryPolicy<R>> retryPolicies;
   FailsafeExecutor<R> failsafeExecutor;
 
@@ -48,23 +49,9 @@ public class SeekableInputStreamRetryExecutor<R> implements RetryExecutor<R> {
    * <p>Operations executed with this executor will not be retried on failure. This constructor is
    * primarily used for testing or scenarios where retry behavior is not desired.
    */
-  public SeekableInputStreamRetryExecutor() {
+  public SeekableInputStreamRetryStrategy() {
     this.retryPolicies = new ArrayList<>();
     this.failsafeExecutor = Failsafe.none();
-  }
-
-  /**
-   * Creates a retry executor with a single retry policy based on the provided configuration.
-   *
-   * <p>The retry policy is configured using settings from the PhysicalIOConfiguration, including
-   * retry count and timeout values.
-   *
-   * @param configuration the physical IO configuration containing retry settings
-   * @throws NullPointerException if configuration is null
-   */
-  public SeekableInputStreamRetryExecutor(PhysicalIOConfiguration configuration) {
-    this.retryPolicies = Collections.singletonList(RetryPolicy.<R>builder(configuration).build());
-    this.failsafeExecutor = Failsafe.with(getDelegates());
   }
 
   /**
@@ -80,7 +67,7 @@ public class SeekableInputStreamRetryExecutor<R> implements RetryExecutor<R> {
    */
   @SafeVarargs
   @SuppressWarnings("varargs")
-  public SeekableInputStreamRetryExecutor(RetryPolicy<R> outerPolicy, RetryPolicy<R>... policies) {
+  public SeekableInputStreamRetryStrategy(RetryPolicy<R> outerPolicy, RetryPolicy<R>... policies) {
     Preconditions.checkNotNull(outerPolicy);
     this.retryPolicies = new ArrayList<>();
     this.retryPolicies.add(outerPolicy);
@@ -97,20 +84,20 @@ public class SeekableInputStreamRetryExecutor<R> implements RetryExecutor<R> {
    * @throws IOException if the operation fails after all retries
    */
   @Override
-  public void executeWithRetry(IORunnable runnable) throws IOException {
+  public void execute(IORunnable runnable) throws IOException {
     try {
       this.failsafeExecutor.run(runnable::run);
-    } catch (Exception e) {
-      throw new IOException("Failed to execute operation with retries", e);
+    } catch (Exception ex) {
+      throw handleExceptionAfterRetry(ex);
     }
   }
 
   @Override
-  public R getWithRetry(IOSupplier<R> supplier) throws IOException {
+  public R get(IOSupplier<R> supplier) throws IOException {
     try {
       return this.failsafeExecutor.get(supplier::get);
-    } catch (Exception e) {
-      throw new IOException("Failed to execute operation with retries", e);
+    } catch (Exception ex) {
+      throw handleExceptionAfterRetry(ex);
     }
   }
 
@@ -122,7 +109,32 @@ public class SeekableInputStreamRetryExecutor<R> implements RetryExecutor<R> {
    *
    * @return a list of Failsafe RetryPolicy instances
    */
-  private List<dev.failsafe.RetryPolicy<R>> getDelegates() {
+  private List<Policy<R>> getDelegates() {
     return this.retryPolicies.stream().map(RetryPolicy::getDelegate).collect(Collectors.toList());
+  }
+
+  /**
+   * If functional interface throws a checked exception, failsafe will wrap it around a
+   * FailsafeException. This method unwraps the cause and throws the original exception. If
+   * functional interface throws an unchecked exception, this method will catch it and throw an
+   * IOException instead.
+   *
+   * @param e Exception thrown by functional interface
+   * @return IOException
+   */
+  private IOException handleExceptionAfterRetry(Exception e) {
+    IOException toThrow = new IOException("Failed to execute operation with retries", e);
+
+    if (e instanceof FailsafeException) {
+      Optional<Throwable> cause = Optional.ofNullable(e.getCause());
+      if (cause.isPresent()) {
+        if (cause.get() instanceof IOException) {
+          return (IOException) cause.get();
+        } else {
+          toThrow = new IOException("Failed to execute operation with retries", cause.get());
+        }
+      }
+    }
+    return toThrow;
   }
 }

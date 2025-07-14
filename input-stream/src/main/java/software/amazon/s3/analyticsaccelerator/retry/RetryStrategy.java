@@ -18,8 +18,7 @@ package software.amazon.s3.analyticsaccelerator.retry;
 import java.io.IOException;
 
 /**
- * Interface for executing operations with retry logic. We do not expect consumers of AAL to
- * instantiate an implementation of this interface themselves. This is for AAL's internal use only.
+ * Interface for executing operations with a collection of retry policies.
  *
  * <p>This interface provides a contract for executing operations that may fail and need to be
  * retried according to a configured retry policy. Implementations should handle the retry logic
@@ -27,9 +26,9 @@ import java.io.IOException;
  *
  * @param <R> the result type of operations executed by this retry executor
  */
-public interface RetryExecutor<R> {
+public interface RetryStrategy<R> {
   /**
-   * Executes a runnable with retry logic according to the configured retry policy.
+   * Executes a runnable with retry logic according to the configured retry policy(ies).
    *
    * <p>The operation will be retried according to the retry policy configuration, including maximum
    * retry attempts, delays between retries, and which exceptions should trigger retries. If all
@@ -39,7 +38,7 @@ public interface RetryExecutor<R> {
    * @throws IOException if the operation fails after all retry attempts are exhausted
    * @throws NullPointerException if runnable is null
    */
-  void executeWithRetry(IORunnable runnable) throws IOException;
+  void execute(IORunnable runnable) throws IOException;
 
   /**
    * Executes a supplier with retry logic according to the configured retry policy.
@@ -52,7 +51,7 @@ public interface RetryExecutor<R> {
    * @return R result of the supplier.
    * @throws IOException if the operation fails due to an I/O error
    */
-  R getWithRetry(IOSupplier<R> supplier) throws IOException;
+  R get(IOSupplier<R> supplier) throws IOException;
 
   /** Functional interface for operations that can throw IOException. */
   @FunctionalInterface
@@ -68,7 +67,7 @@ public interface RetryExecutor<R> {
     void run() throws IOException;
   }
 
-  /** Functional interface for operations that can throw IOException. */
+  /** Functional interface for operations that can throw IOException and returns type R. */
   @FunctionalInterface
   interface IOSupplier<R> {
     /**
