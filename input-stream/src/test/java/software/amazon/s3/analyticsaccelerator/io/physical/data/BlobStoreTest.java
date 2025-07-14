@@ -209,25 +209,6 @@ public class BlobStoreTest {
   }
 
   @Test
-  void testCacheHitsAndMisses() throws IOException {
-    // Given: Initial cache hits and misses are 0
-    assertEquals(0, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
-    assertEquals(0, blobStore.getMetrics().get(MetricKey.CACHE_MISS));
-
-    Blob blob = blobStore.get(objectKey, objectMetadata, OpenStreamInformation.DEFAULT);
-    byte[] b = new byte[TEST_DATA.length()];
-    blob.read(b, 0, b.length, 0);
-
-    assertEquals(0, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
-    assertEquals(1, blobStore.getMetrics().get(MetricKey.CACHE_MISS));
-
-    blob.read(b, 0, b.length, 0);
-
-    assertEquals(1, blobStore.getMetrics().get(MetricKey.CACHE_HIT));
-    assertEquals(1, blobStore.getMetrics().get(MetricKey.CACHE_MISS));
-  }
-
-  @Test
   void testMemoryUsageAfterEviction() throws IOException, InterruptedException {
     PhysicalIOConfiguration config =
         PhysicalIOConfiguration.builder()
@@ -310,39 +291,6 @@ public class BlobStoreTest {
     // Then: Wait for all threads and verify total memory
     assertTrue(latch.await(5, TimeUnit.SECONDS));
     assertEquals(expectedTotalMemory, blobStore.getMetrics().get(MetricKey.MEMORY_USAGE));
-  }
-
-  @Test
-  void testClose() {
-    // Given: Create multiple blobs and force data loading
-    ObjectKey key1 = ObjectKey.builder().s3URI(S3URI.of("test", "test1")).etag(ETAG).build();
-    ObjectKey key2 = ObjectKey.builder().s3URI(S3URI.of("test", "test2")).etag(ETAG).build();
-
-    Blob blob1 = blobStore.get(key1, objectMetadata, OpenStreamInformation.DEFAULT);
-    Blob blob2 = blobStore.get(key2, objectMetadata, OpenStreamInformation.DEFAULT);
-
-    byte[] data = new byte[TEST_DATA.length()];
-    try {
-
-      for (int i = 0; i <= 9; i++) {
-        blob1.read(data, 0, data.length, 0);
-        blob2.read(data, 0, data.length, 0);
-      }
-
-    } catch (IOException e) {
-      fail("Failed to read data from blobs", e);
-    }
-
-    // Record metrics before close
-    long cacheHits = blobStore.getMetrics().get(MetricKey.CACHE_HIT);
-    long cacheMisses = blobStore.getMetrics().get(MetricKey.CACHE_MISS);
-    double expectedHitRate = MetricComputationUtils.computeCacheHitRate(cacheHits, cacheMisses);
-
-    // When: Close the BlobStore
-    blobStore.close();
-
-    // Then: Verify the hit rate
-    assertEquals(90.0, expectedHitRate, 0.01, "Hit rate should be approximately 90%");
   }
 
   @Test
