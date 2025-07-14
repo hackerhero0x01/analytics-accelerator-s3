@@ -39,6 +39,7 @@ import software.amazon.s3.analyticsaccelerator.util.BlockKey;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
+import software.amazon.s3.analyticsaccelerator.util.RequestCallback;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -64,6 +65,9 @@ public class StreamReaderTest {
     mockRemoveBlocksFunc = mock(Consumer.class);
     mockMetrics = mock(Metrics.class);
     mockOpenStreamInfo = mock(OpenStreamInformation.class);
+
+    RequestCallback mockRequestCallback = mock(RequestCallback.class);
+    when(mockOpenStreamInfo.getRequestCallback()).thenReturn(mockRequestCallback);
 
     streamReader =
         new StreamReader(
@@ -193,6 +197,7 @@ public class StreamReaderTest {
     verify(mockMetrics).add(MetricKey.GET_REQUEST_COUNT, 1);
     verifyNoMoreInteractions(mockMetrics);
     verify(block).setData(testData);
+    verify(mockOpenStreamInfo.getRequestCallback(), times(1)).onGetRequest();
   }
 
   @Test

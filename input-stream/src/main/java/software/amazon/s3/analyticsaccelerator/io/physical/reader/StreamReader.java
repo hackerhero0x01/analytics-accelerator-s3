@@ -120,6 +120,8 @@ public class StreamReader implements Closeable {
               .referrer(new Referrer(requestRange.toHttpString(), readMode))
               .build();
 
+      openStreamInformation.getRequestCallback().onGetRequest();
+
       // Fetch the object content from S3
       ObjectContent objectContent = fetchObjectContent(getRequest);
 
