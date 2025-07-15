@@ -39,6 +39,7 @@ import software.amazon.s3.analyticsaccelerator.util.BlockKey;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
+import software.amazon.s3.analyticsaccelerator.util.RequestCallback;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -50,7 +51,8 @@ public class StreamReaderTest {
   private ObjectKey mockObjectKey;
   private ExecutorService mockExecutorService;
   private Consumer<List<Block>> mockRemoveBlocksFunc;
-  private OpenStreamInformation mockOpenStreamInfo;
+  private OpenStreamInformation openStreamInfo;
+  private RequestCallback mockRequestCallback;
   private Metrics mockMetrics;
 
   private StreamReader streamReader;
@@ -63,7 +65,9 @@ public class StreamReaderTest {
     mockExecutorService = mock(ExecutorService.class);
     mockRemoveBlocksFunc = mock(Consumer.class);
     mockMetrics = mock(Metrics.class);
-    mockOpenStreamInfo = mock(OpenStreamInformation.class);
+    mockRequestCallback = mock(RequestCallback.class);
+
+    openStreamInfo = OpenStreamInformation.builder().requestCallback(mockRequestCallback).build();
 
     streamReader =
         new StreamReader(
@@ -72,7 +76,7 @@ public class StreamReaderTest {
             mockExecutorService,
             mockRemoveBlocksFunc,
             mockMetrics,
-            mockOpenStreamInfo);
+            openStreamInfo);
   }
 
   @Test
@@ -86,7 +90,7 @@ public class StreamReaderTest {
                 mockExecutorService,
                 mockRemoveBlocksFunc,
                 mockMetrics,
-                mockOpenStreamInfo));
+                openStreamInfo));
 
     assertThrows(
         NullPointerException.class,
@@ -97,7 +101,7 @@ public class StreamReaderTest {
                 mockExecutorService,
                 mockRemoveBlocksFunc,
                 mockMetrics,
-                mockOpenStreamInfo));
+                openStreamInfo));
 
     assertThrows(
         NullPointerException.class,
@@ -108,7 +112,7 @@ public class StreamReaderTest {
                 null,
                 mockRemoveBlocksFunc,
                 mockMetrics,
-                mockOpenStreamInfo));
+                openStreamInfo));
 
     assertThrows(
         NullPointerException.class,
@@ -119,7 +123,7 @@ public class StreamReaderTest {
                 mockExecutorService,
                 null,
                 mockMetrics,
-                mockOpenStreamInfo));
+                openStreamInfo));
 
     assertThrows(
         NullPointerException.class,
@@ -130,7 +134,7 @@ public class StreamReaderTest {
                 mockExecutorService,
                 mockRemoveBlocksFunc,
                 null,
-                mockOpenStreamInfo));
+                openStreamInfo));
 
     assertThrows(
         NullPointerException.class,
@@ -181,18 +185,19 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(testStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
     readTask.run();
 
     verify(mockRemoveBlocksFunc, never()).accept(any());
-    verify(mockObjectClient).getObject(any(GetRequest.class), eq(mockOpenStreamInfo));
+    verify(mockObjectClient).getObject(any(GetRequest.class), eq(openStreamInfo));
     verifyNoMoreInteractions(mockObjectClient);
     verify(mockMetrics).add(MetricKey.GET_REQUEST_COUNT, 1);
     verifyNoMoreInteractions(mockMetrics);
     verify(block).setData(testData);
+    verify(mockRequestCallback, times(1)).onGetRequest();
   }
 
   @Test
@@ -200,7 +205,7 @@ public class StreamReaderTest {
     Block block = createMockBlock(0, 4);
     List<Block> blocks = Collections.singletonList(block);
 
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenThrow(new RuntimeException("fail"));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
@@ -220,7 +225,7 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(throwingStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
@@ -240,7 +245,7 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(throwingStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
@@ -260,7 +265,7 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(testStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
@@ -282,7 +287,7 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(testStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
@@ -303,7 +308,7 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(testStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
@@ -322,7 +327,7 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(testStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
@@ -341,7 +346,7 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(testStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
@@ -360,7 +365,7 @@ public class StreamReaderTest {
 
     ObjectContent mockContent = mock(ObjectContent.class);
     when(mockContent.getStream()).thenReturn(testStream);
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(mockContent));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.ASYNC);
@@ -373,7 +378,7 @@ public class StreamReaderTest {
                   Referrer referrer = request.getReferrer();
                   return referrer.getReadMode() == ReadMode.ASYNC;
                 }),
-            eq(mockOpenStreamInfo));
+            eq(openStreamInfo));
   }
 
   @Test
@@ -386,7 +391,7 @@ public class StreamReaderTest {
     List<Block> blocks = Arrays.asList(filledBlock, unfilledBlock);
 
     // Simulate failure scenario
-    when(mockObjectClient.getObject(any(GetRequest.class), eq(mockOpenStreamInfo)))
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
         .thenReturn(completedFuture(null));
 
     Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
