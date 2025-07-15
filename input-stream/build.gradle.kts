@@ -300,19 +300,20 @@ tasks.register<Jar>("customJavadocJar") {
 
 
 tasks.javadoc {
-
+    dependsOn(tasks.delombok)
     // Include sources from subprojects
     val includedProjects = listOf(":common", ":object-client")
     includedProjects.forEach { projectPath ->
         val subproject = project(projectPath)
-        source(subproject.sourceSets.main.get().allJava)
+        dependsOn("$projectPath:delombok")
+        source += fileTree(subproject.layout.buildDirectory.dir("generated/sources/delombok"))
         classpath += subproject.sourceSets.main.get().compileClasspath
         classpath += subproject.sourceSets.main.get().output
     }
 
     // Include only specific classes from common module
-    include("**/ObjectMetadata.java")
-    include("**/ObjectContent.java")
+    include("**/ObjectClient.java")
+    include("**/ObjectMetadata*.java")
 
     include("**/ConnectorConfiguration.java")
     include("**/S3URI.java")
@@ -332,7 +333,9 @@ tasks.javadoc {
     include("**/S3SeekableInputStreamConfiguration.java")
     include("**/S3SeekableInputStreamFactory.java")
     include("**/PrefetchMode.java")
-
+    include("**/retry/SeekableInputStreamRetryStrategy.java")
+    include("**/retry/RetryPolicy.java")
+    include("**/retry/RetryPolicyBuilder.java")
     options {
         (this as StandardJavadocDocletOptions).apply {
             addStringOption("Xdoclint:none", "-quiet")
