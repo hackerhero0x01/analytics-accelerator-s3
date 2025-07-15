@@ -60,7 +60,7 @@ public class StreamReader implements Closeable {
   private final OpenStreamInformation openStreamInformation;
   private final Telemetry telemetry;
 
-  private static final String OPERATION_STREAM_READ = "stream.read";
+  private static final String OPERATION_STREAM_READ = "s3.stream.read";
 
   private static final Logger LOG = LoggerFactory.getLogger(StreamReader.class);
 
