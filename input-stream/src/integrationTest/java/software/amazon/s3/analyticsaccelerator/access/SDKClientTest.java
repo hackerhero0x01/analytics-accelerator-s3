@@ -18,7 +18,11 @@ package software.amazon.s3.analyticsaccelerator.access;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import software.amazon.s3.analyticsaccelerator.ObjectClientConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
@@ -32,30 +36,7 @@ public class SDKClientTest extends IntegrationTestBase {
 
   @ParameterizedTest
   @MethodSource("clientKinds")
-  void testSettingUserAgent(S3ClientKind clientKind) throws IOException {
-    ObjectClientConfiguration objectClientConfiguration =
-        ObjectClientConfiguration.builder().userAgentPrefix("DummyUserAgent").build();
-    S3SdkObjectClient client =
-        new S3SdkObjectClient(
-            clientKind.getS3Client(getS3ExecutionContext()), objectClientConfiguration);
-    assertNotNull(client);
-    assertDoesNotThrow(() -> readWithCustomClient(client));
-  }
-
-  @ParameterizedTest
-  @MethodSource("clientKinds")
-  void testNullUserAgent(S3ClientKind clientKind) {
-    ObjectClientConfiguration objectClientConfiguration =
-        ObjectClientConfiguration.builder().build();
-    S3SdkObjectClient client =
-        new S3SdkObjectClient(
-            clientKind.getS3Client(getS3ExecutionContext()), objectClientConfiguration);
-    assertDoesNotThrow(() -> readWithCustomClient(client));
-  }
-
-  @ParameterizedTest
-  @MethodSource("clientKinds")
-  void testExistingClientWithUserAgent(S3ClientKind clientKind) {
+  void testUserAgentWithDefaultConfiguration(S3ClientKind clientKind) {
     ObjectClientConfiguration objectClientConfiguration =
         ObjectClientConfiguration.builder().build();
     S3SdkObjectClient client =
@@ -65,6 +46,24 @@ public class SDKClientTest extends IntegrationTestBase {
     assertDoesNotThrow(() -> readWithCustomClient(client));
   }
 
+  @ParameterizedTest
+  @MethodSource("clientKindsAndAgentStrings")
+  void testSettingUserAgent(S3ClientKind clientKind, String userAgent) {
+    ObjectClientConfiguration objectClientConfiguration =
+        ObjectClientConfiguration.builder().userAgentPrefix(userAgent).build();
+    S3SdkObjectClient client =
+        new S3SdkObjectClient(
+            clientKind.getS3Client(getS3ExecutionContext()), objectClientConfiguration);
+    assertNotNull(client);
+    assertDoesNotThrow(() -> readWithCustomClient(client));
+  }
+
+  /**
+   * Confirm String will successfully hit storage when user-agent is set
+   *
+   * @param client
+   * @throws IOException
+   */
   private void readWithCustomClient(S3SdkObjectClient client) throws IOException {
     S3Object object = S3Object.RANDOM_16MB;
     S3URI s3URI = object.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());
@@ -74,5 +73,41 @@ public class SDKClientTest extends IntegrationTestBase {
     byte[] singleByte = new byte[1];
     int read = stream.read(singleByte, 0, 1);
     assertEquals(1, read);
+  }
+
+  /**
+   * Get arguments for all user-agent values with each client.
+   *
+   * @return A {@link Stream} of {@link Arguments} with the cartesian set
+   */
+  static Stream<Arguments> clientKindsAndAgentStrings() {
+    return argumentsFor(S3ClientKind.trustedClients(), userAgents());
+  }
+
+  /**
+   * Generates the cartesian set of the supplies argument lists
+   *
+   * @param clients clients
+   * @param userAgents Strings of user-agent
+   * @return A {@link Stream} of {@link Arguments} with the cartesian set
+   */
+  static Stream<Arguments> argumentsFor(List<S3ClientKind> clients, List<String> userAgents) {
+    ArrayList<Arguments> results = new ArrayList<>();
+    for (S3ClientKind client : clients) {
+      for (String userAgent : userAgents) {
+        results.add(Arguments.of(client, userAgent));
+      }
+    }
+    return results.stream();
+  }
+
+  static List<String> userAgents() {
+    List<String> agents = new ArrayList<>();
+    agents.add(null);
+    agents.add("");
+    agents.add(" ");
+    agents.add("\t");
+    agents.add("DummyUserAgent");
+    return agents;
   }
 }

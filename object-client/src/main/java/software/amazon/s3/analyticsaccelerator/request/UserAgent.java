@@ -39,11 +39,13 @@ public final class UserAgent {
    * @param userAgentPrefix to prepend the default user-agent string
    */
   public void prepend(String userAgentPrefix) {
-    if (Objects.nonNull(userAgentPrefix) && !userAgentPrefix.isEmpty())
+    if (Objects.nonNull(userAgentPrefix) && !userAgentPrefix.trim().isEmpty()) {
       this.userAgent = sanitizeInput(userAgentPrefix) + " " + this.userAgent;
+    }
   }
 
   private static String sanitizeInput(String input) {
-    return input == null ? "unknown" : input.replaceAll(UA_DENYLIST_REGEX, "_");
+    if (Objects.isNull(input)) return "unknown";
+    return input.trim().replaceAll(UA_DENYLIST_REGEX, "_");
   }
 }
