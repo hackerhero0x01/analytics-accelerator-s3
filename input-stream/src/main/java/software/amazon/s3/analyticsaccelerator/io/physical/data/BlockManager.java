@@ -100,7 +100,8 @@ public class BlockManager implements Closeable {
             this::removeBlocks,
             aggregatingMetrics,
             openStreamInformation,
-            telemetry);
+            telemetry,
+            configuration);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.rangeOptimiser = new RangeOptimiser(configuration);
 

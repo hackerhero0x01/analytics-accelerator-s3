@@ -21,7 +21,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.NonNull;
@@ -31,6 +33,7 @@ import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
+import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.Block;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
@@ -38,6 +41,9 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
+import software.amazon.s3.analyticsaccelerator.retry.RetryPolicy;
+import software.amazon.s3.analyticsaccelerator.retry.RetryStrategy;
+import software.amazon.s3.analyticsaccelerator.retry.SeekableInputStreamRetryStrategy;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
@@ -59,7 +65,11 @@ public class StreamReader implements Closeable {
   private final Metrics aggregatingMetrics;
   private final OpenStreamInformation openStreamInformation;
   private final Telemetry telemetry;
+  private final PhysicalIOConfiguration physicalIOConfiguration;
 
+  private final RetryStrategy<ObjectContent> retryStrategy;
+
+  private static final String OPERATION_GET_OBJECT = "s3.stream.get";
   private static final String OPERATION_STREAM_READ = "s3.stream.read";
 
   private static final Logger LOG = LoggerFactory.getLogger(StreamReader.class);
@@ -74,6 +84,7 @@ public class StreamReader implements Closeable {
    * @param aggregatingMetrics the metrics aggregator for performance or usage monitoring
    * @param openStreamInformation contains stream information
    * @param telemetry an instance of {@link Telemetry} to use
+   * @param physicalIOConfiguration an instance of {@link PhysicalIOConfiguration} to use
    */
   public StreamReader(
       @NonNull ObjectClient objectClient,
@@ -82,7 +93,8 @@ public class StreamReader implements Closeable {
       @NonNull Consumer<List<Block>> removeBlocksFunc,
       @NonNull Metrics aggregatingMetrics,
       @NonNull OpenStreamInformation openStreamInformation,
-      @NonNull Telemetry telemetry) {
+      @NonNull Telemetry telemetry,
+      @NonNull PhysicalIOConfiguration physicalIOConfiguration) {
     this.objectClient = objectClient;
     this.objectKey = objectKey;
     this.threadPool = threadPool;
@@ -90,6 +102,27 @@ public class StreamReader implements Closeable {
     this.aggregatingMetrics = aggregatingMetrics;
     this.openStreamInformation = openStreamInformation;
     this.telemetry = telemetry;
+    this.physicalIOConfiguration = physicalIOConfiguration;
+    this.retryStrategy = createRetryStrategy();
+  }
+
+  /**
+   * Helper to construct retryStrategy
+   *
+   * @return a {@link RetryStrategy} to retry when timeouts are set
+   * @throws RuntimeException if all retries fails and an error occurs
+   */
+  @SuppressWarnings("unchecked")
+  private RetryStrategy<ObjectContent> createRetryStrategy() {
+    if (this.physicalIOConfiguration.getBlockReadTimeout() > 0) {
+      RetryPolicy<ObjectContent> timeoutRetries =
+          RetryPolicy.<ObjectContent>builder()
+              .handle(InterruptedException.class, TimeoutException.class, ExecutionException.class)
+              .withMaxRetries(this.physicalIOConfiguration.getBlockReadRetryCount())
+              .build();
+      return new SeekableInputStreamRetryStrategy<>(timeoutRetries);
+    }
+    return new SeekableInputStreamRetryStrategy<>();
   }
 
   /**
@@ -121,58 +154,69 @@ public class StreamReader implements Closeable {
    * @return a Runnable that executes the read operation asynchronously
    */
   private Runnable processReadTask(final List<Block> blocks, ReadMode readMode) {
-    return () -> {
-      this.telemetry.measureCritical(
-          () ->
-              Operation.builder()
-                  .name(OPERATION_STREAM_READ)
-                  .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
-                  .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
-                  .attribute(
-                      StreamAttributes.effectiveRange(
-                          blocks.get(0).getBlockKey().getRange().getStart(),
-                          blocks.get(blocks.size() - 1).getBlockKey().getRange().getEnd()))
-                  .build(),
-          () -> {
-            // Calculate the byte range needed to cover all blocks
-            Range requestRange = computeRange(blocks);
+    return () ->
+        this.telemetry.measureCritical(
+            () ->
+                Operation.builder()
+                    .name(OPERATION_STREAM_READ)
+                    .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
+                    .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
+                    .attribute(
+                        StreamAttributes.effectiveRange(
+                            blocks.get(0).getBlockKey().getRange().getStart(),
+                            blocks.get(blocks.size() - 1).getBlockKey().getRange().getEnd()))
+                    .build(),
+            () -> {
+              // Calculate the byte range needed to cover all blocks
+              Range requestRange = computeRange(blocks);
 
-            // Build S3 GET request with range, ETag validation, and referrer info
-            GetRequest getRequest =
-                GetRequest.builder()
-                    .s3Uri(objectKey.getS3URI())
-                    .range(requestRange)
-                    .etag(objectKey.getEtag())
-                    .referrer(new Referrer(requestRange.toHttpString(), readMode))
-                    .build();
+              // Build S3 GET request with range, ETag validation, and referrer info
+              GetRequest getRequest =
+                  GetRequest.builder()
+                      .s3Uri(objectKey.getS3URI())
+                      .range(requestRange)
+                      .etag(objectKey.getEtag())
+                      .referrer(new Referrer(requestRange.toHttpString(), readMode))
+                      .build();
 
-            openStreamInformation.getRequestCallback().onGetRequest();
+              openStreamInformation.getRequestCallback().onGetRequest();
 
-            // Fetch the object content from S3
-            ObjectContent objectContent = fetchObjectContent(getRequest);
+              // Fetch the object content from S3
+              ObjectContent objectContent;
+              try {
+                this.aggregatingMetrics.add(MetricKey.GET_REQUEST_COUNT, 1);
+                objectContent = fetchObjectContent(getRequest);
+              } catch (IOException e) {
+                LOG.error("IOException while fetching object content", e);
+                removeNonFilledBlocksFromStore(blocks);
+                return;
+              }
 
-            if (objectContent == null) {
-              // Couldn't successfully get the response from S3.
-              // Remove blocks from store and complete async operation
-              removeNonFilledBlocksFromStore(blocks);
-              return;
-            }
+              if (objectContent == null) {
+                // Couldn't successfully get the response from S3.
+                // Remove blocks from store and complete async operation
+                removeNonFilledBlocksFromStore(blocks);
+                return;
+              }
 
-            // Process the input stream and populate data blocks
-            try (InputStream inputStream = objectContent.getStream()) {
-              boolean success = readBlocksFromStream(inputStream, blocks, requestRange.getStart());
-              if (!success) {
+              // Process the input stream and populate data blocks
+              try (InputStream inputStream = objectContent.getStream()) {
+                boolean success =
+                    readBlocksFromStream(inputStream, blocks, requestRange.getStart());
+                if (!success) {
+                  removeNonFilledBlocksFromStore(blocks);
+                }
+              } catch (EOFException e) {
+                LOG.error("EOFException while reading blocks", e);
+                removeNonFilledBlocksFromStore(blocks);
+              } catch (IOException e) {
+                LOG.error("IOException while reading blocks", e);
+                removeNonFilledBlocksFromStore(blocks);
+              } catch (Exception e) {
+                LOG.error("Unexpected exception while reading blocks", e);
                 removeNonFilledBlocksFromStore(blocks);
               }
-            } catch (EOFException e) {
-              LOG.error("EOFException while reading blocks", e);
-              removeNonFilledBlocksFromStore(blocks);
-            } catch (IOException e) {
-              LOG.error("IOException while reading blocks", e);
-              removeNonFilledBlocksFromStore(blocks);
-            }
-          });
-    };
+            });
   }
 
   /**
@@ -220,16 +264,20 @@ public class StreamReader implements Closeable {
    * @param getRequest the S3 GET request containing object URI, range, and ETag
    * @return the ObjectContent containing the S3 object data stream, or null if request fails
    */
-  private ObjectContent fetchObjectContent(GetRequest getRequest) {
-    try {
-
-      this.aggregatingMetrics.add(MetricKey.GET_REQUEST_COUNT, 1);
-      // Block on the async S3 request and return the result
-      return this.objectClient.getObject(getRequest, this.openStreamInformation).join();
-    } catch (Exception e) {
-      LOG.error("Error while fetching object content", e);
-      return null;
-    }
+  private ObjectContent fetchObjectContent(GetRequest getRequest) throws IOException {
+    return this.retryStrategy.get(
+        () ->
+            telemetry.measureJoinCritical(
+                () ->
+                    Operation.builder()
+                        .name(OPERATION_GET_OBJECT)
+                        .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
+                        .attribute(StreamAttributes.uri(getRequest.getS3Uri()))
+                        .attribute(StreamAttributes.rangeLength(getRequest.getRange().getLength()))
+                        .attribute(StreamAttributes.range(getRequest.getRange()))
+                        .build(),
+                this.objectClient.getObject(getRequest, this.openStreamInformation),
+                this.physicalIOConfiguration.getBlockReadTimeout()));
   }
 
   /**
