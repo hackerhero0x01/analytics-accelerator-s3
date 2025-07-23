@@ -19,11 +19,15 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
+import software.amazon.s3.analyticsaccelerator.retry.RetryPolicy;
+import software.amazon.s3.analyticsaccelerator.retry.RetryStrategy;
+import software.amazon.s3.analyticsaccelerator.retry.SeekableInputStreamRetryStrategy;
 import software.amazon.s3.analyticsaccelerator.util.BlockKey;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 
@@ -49,6 +53,9 @@ public class Block implements Closeable {
   private final BlobStoreIndexCache indexCache;
   private final Metrics aggregatingMetrics;
   private final long readTimeout;
+  private final int retryCount;
+  private final RetryStrategy<Void> retryStrategy;
+
   /**
    * A synchronization aid that allows threads to wait until the block's data is available.
    *
@@ -75,13 +82,15 @@ public class Block implements Closeable {
    * @param indexCache blobstore index cache
    * @param aggregatingMetrics blobstore metrics
    * @param readTimeout read timeout in milliseconds
+   * @param retryCount number of retries
    */
   public Block(
       @NonNull BlockKey blockKey,
       long generation,
       @NonNull BlobStoreIndexCache indexCache,
       @NonNull Metrics aggregatingMetrics,
-      long readTimeout) {
+      long readTimeout,
+      int retryCount) {
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
 
@@ -90,6 +99,27 @@ public class Block implements Closeable {
     this.indexCache = indexCache;
     this.aggregatingMetrics = aggregatingMetrics;
     this.readTimeout = readTimeout;
+    this.retryCount = retryCount;
+    this.retryStrategy = createRetryStrategy();
+  }
+
+  /**
+   * Helper to construct retryStrategy
+   *
+   * @return a {@link RetryStrategy} to retry when timeouts are set
+   * @throws RuntimeException if all retries fails and an error occurs
+   */
+  @SuppressWarnings("unchecked")
+  private RetryStrategy<Void> createRetryStrategy() {
+    if (this.readTimeout > 0) {
+      RetryPolicy<Void> timeoutRetries =
+          RetryPolicy.<Void>builder()
+              .handle(InterruptedException.class, TimeoutException.class, IOException.class)
+              .withMaxRetries(this.retryCount)
+              .build();
+      return new SeekableInputStreamRetryStrategy<>(timeoutRetries);
+    }
+    return new SeekableInputStreamRetryStrategy<>();
   }
 
   /**
@@ -101,7 +131,7 @@ public class Block implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
-    awaitData();
+    awaitDataWithRetry();
     indexCache.recordAccess(this.blockKey);
     int contentOffset = posToOffset(pos);
     return Byte.toUnsignedInt(this.data[contentOffset]);
@@ -124,7 +154,7 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    awaitData();
+    awaitDataWithRetry();
 
     indexCache.recordAccess(this.blockKey);
     int contentOffset = posToOffset(pos);
@@ -168,6 +198,14 @@ public class Block implements Closeable {
     dataReadyLatch.countDown();
   }
 
+  private void awaitDataWithRetry() throws IOException {
+    this.retryStrategy.get(
+        () -> {
+          awaitData();
+          return null;
+        });
+  }
+
   /**
    * Waits for the block's data to become available. This method blocks until {@link
    * #setData(byte[])} is called.
@@ -178,13 +216,14 @@ public class Block implements Closeable {
     try {
       if (!dataReadyLatch.await(readTimeout, TimeUnit.MILLISECONDS)) {
         throw new IOException(
-            "Failed to read data", new IOException("Request timed out to fill the block"));
+            "Read timed out", new IOException("Request timed out to fill the block"));
       }
     } catch (InterruptedException e) {
-      throw new IOException("Failed to read data", e);
+      throw new IOException("Read interrupted while waiting for data", e);
     }
 
-    if (data == null) throw new IOException("Failed to read data");
+    if (data == null)
+      throw new IOException("Read timed out", new IOException("Failed to read data"));
   }
 
   /**

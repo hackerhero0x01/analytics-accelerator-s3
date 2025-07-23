@@ -302,7 +302,7 @@ public class PhysicalIOImplTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void test_FailureEvictsObjectsAsExpected() throws IOException {
+  public void test_FailureEvictsObjectsAsExpected() throws IOException, InterruptedException {
     AwsServiceException s3Exception =
         S3Exception.builder()
             .message("At least one of the pre-conditions you specified did not hold")
@@ -325,7 +325,7 @@ public class PhysicalIOImplTest {
         .thenReturn(failedFuture);
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
     PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blockReadTimeout(2_000).build();
+        PhysicalIOConfiguration.builder().blockReadTimeout(200).blockReadRetryCount(2).build();
 
     MetadataStore metadataStore =
         new MetadataStore(client, TestTelemetry.DEFAULT, configuration, mock(Metrics.class));
@@ -362,7 +362,7 @@ public class PhysicalIOImplTest {
         .thenReturn(failedFuture);
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
     PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blockReadTimeout(2_000).build();
+        PhysicalIOConfiguration.builder().blockReadTimeout(200).build();
 
     MetadataStore metadataStore =
         new MetadataStore(client, TestTelemetry.DEFAULT, configuration, mock(Metrics.class));

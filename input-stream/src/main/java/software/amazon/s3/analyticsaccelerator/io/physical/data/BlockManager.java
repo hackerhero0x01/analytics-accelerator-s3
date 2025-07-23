@@ -214,7 +214,8 @@ public class BlockManager implements Closeable {
                       generation,
                       this.indexCache,
                       this.aggregatingMetrics,
-                      this.configuration.getBlockReadTimeout());
+                      this.configuration.getBlockReadTimeout(),
+                      this.configuration.getBlockReadRetryCount());
               // Add block to the store for future reference
               blockStore.add(block);
               blocksToFill.add(block);
