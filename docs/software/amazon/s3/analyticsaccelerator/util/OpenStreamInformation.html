@@ -17,7 +17,7 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":9,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10};
+var methods = {"i0":9,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10};
 var tabs = {65535:["t0","All Methods"],1:["t1","Static Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -200,6 +200,10 @@ extends java.lang.Object</pre>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../software/amazon/s3/analyticsaccelerator/util/OpenStreamInformation.html#getRequestCallback--">getRequestCallback</a></span>()</code>&nbsp;</td>
 </tr>
 <tr id="i5" class="rowColor">
+<td class="colFirst"><code>software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../software/amazon/s3/analyticsaccelerator/util/OpenStreamInformation.html#getRetryStrategy--">getRetryStrategy</a></span>()</code>&nbsp;</td>
+</tr>
+<tr id="i6" class="altColor">
 <td class="colFirst"><code>software.amazon.s3.analyticsaccelerator.request.StreamAuditContext</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../../software/amazon/s3/analyticsaccelerator/util/OpenStreamInformation.html#getStreamAuditContext--">getStreamAuditContext</a></span>()</code>&nbsp;</td>
 </tr>
@@ -291,10 +295,19 @@ extends java.lang.Object</pre>
 <a name="getEncryptionSecrets--">
 <!--   -->
 </a>
-<ul class="blockListLast">
+<ul class="blockList">
 <li class="blockList">
 <h4>getEncryptionSecrets</h4>
 <pre>public&nbsp;software.amazon.s3.analyticsaccelerator.request.EncryptionSecrets&nbsp;getEncryptionSecrets()</pre>
+</li>
+</ul>
+<a name="getRetryStrategy--">
+<!--   -->
+</a>
+<ul class="blockListLast">
+<li class="blockList">
+<h4>getRetryStrategy</h4>
+<pre>public&nbsp;software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy&nbsp;getRetryStrategy()</pre>
 </li>
 </ul>
 </li>

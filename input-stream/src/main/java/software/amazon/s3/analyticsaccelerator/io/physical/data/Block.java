@@ -32,10 +32,10 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
-import software.amazon.s3.analyticsaccelerator.retry.RetryPolicy;
-import software.amazon.s3.analyticsaccelerator.retry.RetryStrategy;
-import software.amazon.s3.analyticsaccelerator.retry.SeekableInputStreamRetryStrategy;
 import software.amazon.s3.analyticsaccelerator.util.*;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
+import software.amazon.s3.analyticsaccelerator.util.retry.SeekableInputStreamRetryStrategy;
 
 /**
  * A Block holding part of an object's data and owning its own async process for fetching part of
@@ -57,7 +57,7 @@ public class Block implements Closeable {
   private final BlobStoreIndexCache indexCache;
   private static final String OPERATION_BLOCK_GET_ASYNC = "block.get.async";
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
-  private final RetryStrategy<byte[]> retryStrategy;
+  private final RetryStrategy retryStrategy;
 
   private static final Logger LOG = LoggerFactory.getLogger(Block.class);
 
@@ -122,24 +122,29 @@ public class Block implements Closeable {
    * @return a {@link RetryStrategy} to retry when timeouts are set
    * @throws RuntimeException if all retries fails and an error occurs
    */
-  @SuppressWarnings("unchecked")
-  private RetryStrategy<byte[]> createRetryStrategy() {
+  private RetryStrategy createRetryStrategy() throws IOException {
+    RetryStrategy base = new SeekableInputStreamRetryStrategy();
+    RetryStrategy provided = this.openStreamInformation.getRetryStrategy();
+
+    if (provided != null) {
+      base = base.merge(provided);
+    }
     if (this.readTimeout > 0) {
-      RetryPolicy<byte[]> timeoutRetries =
-          RetryPolicy.<byte[]>builder()
+      RetryPolicy timeoutPolicy =
+          RetryPolicy.builder()
               .handle(IOException.class, TimeoutException.class)
               .withMaxRetries(this.readRetryCount)
               .onRetry(this::generateSourceAndData)
               .build();
-      return new SeekableInputStreamRetryStrategy<>(timeoutRetries);
+      base = base.amend(timeoutPolicy);
     }
-    return new SeekableInputStreamRetryStrategy<>();
+    return base;
   }
 
   /**
    * Helper to construct source and data
    *
-   * @throws RuntimeException if all retries fails and an error occurs
+   * @throws IOException if all retries fails and an error occurs
    */
   private void generateSourceAndData() {
     GetRequest getRequest =

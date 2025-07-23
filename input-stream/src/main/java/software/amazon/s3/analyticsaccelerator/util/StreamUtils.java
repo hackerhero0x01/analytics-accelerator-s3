@@ -72,7 +72,12 @@ public class StreamUtils {
                     range.getEnd());
                 return null;
               } finally {
-                inStream.close();
+                if (inStream != null)
+                  try {
+                    inStream.close();
+                  } catch (Exception e) {
+                    LOG.warn("Cannot close non-null stream", e);
+                  }
               }
             });
 

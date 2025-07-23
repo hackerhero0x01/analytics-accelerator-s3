@@ -73,7 +73,6 @@ dependencies {
     implementation(libs.parquet.format)
     implementation(libs.slf4j.api)
     implementation(libs.caffeine)
-    implementation(libs.failsafe)
 
     jmhImplementation(libs.s3)
     jmhImplementation(libs.s3.transfer.manager)
@@ -155,6 +154,7 @@ val shadowJar = tasks.withType<ShadowJar> {
     relocate("org.checkerframework", "software.amazon.s3.shaded.org.checkerframework")
     relocate("com.google.errorprone", "software.amazon.s3.shaded.com.google.errorprone")
     relocate("com.google.guava", "software.amazon.s3.shaded.com.google.guava")
+    relocate("dev.failsafe", "software.amazon.s3.shaded.dev.failsafe" )
 }
 
 val refTest = task<Test>("referenceTest") {

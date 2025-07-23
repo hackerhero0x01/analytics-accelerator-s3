@@ -10,6 +10,7 @@ plugins {
 
 dependencies {
     implementation(libs.slf4j.api)
+    implementation(libs.failsafe)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)

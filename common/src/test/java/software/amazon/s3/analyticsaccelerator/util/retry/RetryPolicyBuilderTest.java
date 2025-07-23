@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package software.amazon.s3.analyticsaccelerator.retry;
+package software.amazon.s3.analyticsaccelerator.util.retry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,8 +25,8 @@ class RetryPolicyBuilderTest {
 
   @Test
   void testBuildCreatesRetryPolicy() {
-    RetryPolicyBuilder<String> builder = new RetryPolicyBuilder<>();
-    RetryPolicy<String> policy = builder.build();
+    RetryPolicyBuilder builder = new RetryPolicyBuilder();
+    RetryPolicy policy = builder.build();
 
     assertNotNull(policy);
     assertNotNull(policy.getDelegate());
@@ -34,8 +34,8 @@ class RetryPolicyBuilderTest {
 
   @Test
   void testWithMaxRetries() {
-    RetryPolicyBuilder<String> builder = new RetryPolicyBuilder<>();
-    RetryPolicyBuilder<String> result = builder.withMaxRetries(5);
+    RetryPolicyBuilder builder = new RetryPolicyBuilder();
+    RetryPolicyBuilder result = builder.withMaxRetries(5);
 
     assertSame(builder, result);
     assertNotNull(builder.build());
@@ -43,9 +43,9 @@ class RetryPolicyBuilderTest {
 
   @Test
   void testWithDelay() {
-    RetryPolicyBuilder<String> builder = new RetryPolicyBuilder<>();
+    RetryPolicyBuilder builder = new RetryPolicyBuilder();
     Duration delay = Duration.ofSeconds(1);
-    RetryPolicyBuilder<String> result = builder.withDelay(delay);
+    RetryPolicyBuilder result = builder.withDelay(delay);
 
     assertSame(builder, result);
     assertNotNull(builder.build());
@@ -53,8 +53,8 @@ class RetryPolicyBuilderTest {
 
   @Test
   void testHandleSingleException() {
-    RetryPolicyBuilder<String> builder = new RetryPolicyBuilder<>();
-    RetryPolicyBuilder<String> result = builder.handle(IOException.class);
+    RetryPolicyBuilder builder = new RetryPolicyBuilder();
+    RetryPolicyBuilder result = builder.handle(IOException.class);
 
     assertSame(builder, result);
     assertNotNull(builder.build());
@@ -62,8 +62,8 @@ class RetryPolicyBuilderTest {
 
   @Test
   void testHandleMultipleExceptions() {
-    RetryPolicyBuilder<String> builder = new RetryPolicyBuilder<>();
-    RetryPolicyBuilder<String> result = builder.handle(IOException.class, RuntimeException.class);
+    RetryPolicyBuilder builder = new RetryPolicyBuilder();
+    RetryPolicyBuilder result = builder.handle(IOException.class, RuntimeException.class);
 
     assertSame(builder, result);
     assertNotNull(builder.build());
@@ -71,8 +71,8 @@ class RetryPolicyBuilderTest {
 
   @Test
   void testChainedConfiguration() {
-    RetryPolicy<String> policy =
-        new RetryPolicyBuilder<String>()
+    RetryPolicy policy =
+        new RetryPolicyBuilder()
             .withMaxRetries(3)
             .withDelay(Duration.ofMillis(500))
             .handle(IOException.class)
