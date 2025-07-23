@@ -342,7 +342,7 @@ public class BlockTest {
     Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, RETRY_COUNT); // 100 ms
 
     IOException ex = assertThrows(IOException.class, () -> block.read(0));
-    assertTrue(ex.getCause().getMessage().contains("Request timed out to fill the block"));
+    assertTrue(ex.getMessage().contains("Error while reading data."));
   }
 
   @Test

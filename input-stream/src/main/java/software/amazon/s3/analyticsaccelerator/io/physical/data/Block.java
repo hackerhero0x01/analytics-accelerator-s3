@@ -216,14 +216,16 @@ public class Block implements Closeable {
     try {
       if (!dataReadyLatch.await(readTimeout, TimeUnit.MILLISECONDS)) {
         throw new IOException(
-            "Read timed out", new IOException("Request timed out to fill the block"));
+            "Error while reading data. Request timed out after "
+                + readTimeout
+                + "ms while waiting for block data");
       }
     } catch (InterruptedException e) {
-      throw new IOException("Read interrupted while waiting for data", e);
+      throw new IOException("Error while reading data. Read interrupted while waiting for data", e);
     }
 
     if (data == null)
-      throw new IOException("Read timed out", new IOException("Failed to read data"));
+      throw new IOException("Error while reading data. Block data is null after successful await");
   }
 
   /**
