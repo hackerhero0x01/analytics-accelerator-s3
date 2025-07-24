@@ -110,7 +110,7 @@ public class ConcurrentStreamPerformanceBenchmark {
     }
 
     private void execute(BenchmarkState state, String bucket) throws Exception {
-        System.out.println("\nReading parquet files with: " + state.clientKind + "from bucket: " + bucket);
+        System.out.println("\nReading parquet files with: " + state.clientKind + " from bucket: " + bucket);
 
         for (int i = 0; i < state.s3Objects.size() - 1; i = i + state.maxConcurrency) {
             List<Future<Integer>> futures = new ArrayList<>();
