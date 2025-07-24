@@ -13,19 +13,26 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.endpoints.internal.Value;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
+import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
+import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
+import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
 import software.amazon.s3.analyticsaccelerator.access.S3ClientKind;
 import software.amazon.s3.analyticsaccelerator.access.S3ExecutionConfiguration;
 import software.amazon.s3.analyticsaccelerator.access.S3ExecutionContext;
+import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
+import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
+import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
@@ -38,10 +45,11 @@ public class ConcurrentStreamPerformanceBenchmark {
         List<S3Object> s3Objects;
         ExecutorService executor;
         S3ExecutionContext s3ExecutionContext;
+        S3SeekableInputStreamFactory s3SeekableInputStreamFactory;
         String bucketName;
         int maxConcurrency;
 
-        @Param({"ASYNC_JAVA", "SYNC_JAVA"})
+        @Param({"ASYNC_JAVA", "SYNC_JAVA", "AAL_READ_VECTORED"})
         public String clientKind;
 
 
@@ -61,6 +69,7 @@ public class ConcurrentStreamPerformanceBenchmark {
             this.s3ExecutionContext = new S3ExecutionContext(S3ExecutionConfiguration.fromEnvironment());
             this.bucketName = s3ExecutionContext.getConfiguration().getParquetBucket();
             this.s3Objects = getKeys(s3Client, bucketName, s3ExecutionContext.getConfiguration().getPrefix());
+            this.s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(new S3SdkObjectClient(this.s3AsyncClient), S3SeekableInputStreamConfiguration.DEFAULT);
         }
 
         @TearDown
@@ -71,7 +80,7 @@ public class ConcurrentStreamPerformanceBenchmark {
         private List<S3Object> getKeys(S3Client s3Client, String bucket, String prefix) {
             ListObjectsV2Request.Builder requestBuilder = ListObjectsV2Request.builder()
                     .bucket(bucket).prefix(prefix)
-                    .maxKeys(1000);
+                    .maxKeys(500);
 
             ListObjectsV2Response response = s3Client.listObjectsV2(requestBuilder.build());
 
@@ -82,11 +91,11 @@ public class ConcurrentStreamPerformanceBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 5)
+    @Measurement(iterations = 3)
     @Fork(1)
     @BenchmarkMode(Mode.SingleShotTime)
     public void runBenchmark(BenchmarkState state) throws Exception {
-            execute(state);
+        execute(state);
     }
 
     private void execute(BenchmarkState state) throws Exception {
@@ -99,10 +108,12 @@ public class ConcurrentStreamPerformanceBenchmark {
                 final int k = j;
                     Future<Integer> f = state.executor.submit(() -> {
                         try {
-                            return fetchObjectChunksByRange(state.bucketName, state.s3Objects.get(k), state);
-                        } catch (ExecutionException e) {
-                            throw new RuntimeException(e);
-                        } catch (InterruptedException e) {
+                            if (Objects.equals(state.clientKind, "AAL_READ_VECTORED")) {
+                                return featchObjectsFromAAL(state.bucketName, state.s3Objects.get(k), state);
+                            } else {
+                                return fetchObjectChunksByRange(state.bucketName, state.s3Objects.get(k), state);
+                            }
+                        } catch (ExecutionException | InterruptedException e) {
                             throw new RuntimeException(e);
                         }
                     });
@@ -117,6 +128,39 @@ public class ConcurrentStreamPerformanceBenchmark {
         }
     }
 
+    private int featchObjectsFromAAL(String bucketName, S3Object s3Object, BenchmarkState state) throws InterruptedException, ExecutionException, IOException {
+        long objSize = s3Object.size();
+
+        if (objSize < 90 * ONE_MB) {
+            return -1;
+        }
+
+        List<ObjectRange> objectRanges = new ArrayList<>();
+        objectRanges.add(new ObjectRange(new CompletableFuture<>(), objSize - ONE_MB, ONE_MB));
+        objectRanges.add(new ObjectRange(new CompletableFuture<>(), 4, 4 * ONE_MB));
+        objectRanges.add(new ObjectRange(new CompletableFuture<>(), 30 * ONE_MB, 8 * ONE_MB));
+        objectRanges.add(new ObjectRange(new CompletableFuture<>(), 50 * ONE_MB, 12 * ONE_MB));
+        objectRanges.add(new ObjectRange(new CompletableFuture<>(), 70 * ONE_MB, 10 * ONE_MB));
+
+        S3SeekableInputStream inputStream = state.s3SeekableInputStreamFactory.createStream(S3URI.of(bucketName, s3Object.key()),
+                OpenStreamInformation.builder()
+                        .objectMetadata(
+                                ObjectMetadata
+                                        .builder()
+                                        .contentLength(s3Object.size())
+                                        .etag(s3Object.eTag()).build()).build());
+
+        inputStream.readVectored(objectRanges, ByteBuffer::allocate, (buffer) -> {
+            System.out.println("Do nothing on the release!");
+        });
+
+        for (ObjectRange objectRange : objectRanges) {
+            objectRange.getByteBuffer().get();
+        }
+
+        return 0;
+    }
+
     private int fetchObjectChunksByRange(String bucket, S3Object s3Object, BenchmarkState state) throws ExecutionException, InterruptedException {
         long objSize = s3Object.size();
 
@@ -129,7 +173,7 @@ public class ConcurrentStreamPerformanceBenchmark {
         ranges.add(new Range(4, 4 + 4 * ONE_MB));
         ranges.add(new Range(30 * ONE_MB, 30 * ONE_MB + 8 * ONE_MB));
         ranges.add(new Range(50 * ONE_MB, 50 * ONE_MB + 12 * ONE_MB));
-        ranges.add(new Range(60 * ONE_MB, 60 * ONE_MB + 10 * ONE_MB));
+        ranges.add(new Range(70 * ONE_MB, 70 * ONE_MB + 10 * ONE_MB));
 
         List<Future<Long>> fList = new ArrayList<>();
 
