@@ -31,11 +31,12 @@ public interface RetryStrategy {
   /**
    * Executes a supplier with retry logic.
    *
+   * @param <T> return type of the supplier
    * @param supplier the operation to execute
    * @return result of the supplier
    * @throws IOException if the operation fails after all retry attempts
    */
-  byte[] get(IOSupplier supplier) throws IOException;
+  <T> T get(IOSupplier<T> supplier) throws IOException;
 
   /**
    * Adds a retry policy to the strategy. This will be policy first to execute as it is appended to

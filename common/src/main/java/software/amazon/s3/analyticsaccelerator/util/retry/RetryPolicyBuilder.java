@@ -23,7 +23,7 @@ import java.util.List;
  * RetryPolicyBuilder to provide a simplified interface.
  */
 public class RetryPolicyBuilder {
-  private final dev.failsafe.RetryPolicyBuilder<byte[]> delegateBuilder;
+  private final dev.failsafe.RetryPolicyBuilder<Object> delegateBuilder;
 
   /** Creates a new RetryPolicyBuilder instance. */
   protected RetryPolicyBuilder() {
@@ -105,20 +105,20 @@ public class RetryPolicyBuilder {
    * @return a new RetryPolicy instance
    */
   public RetryPolicy build() {
-    dev.failsafe.RetryPolicy<byte[]> delegate = delegateBuilder.build();
+    dev.failsafe.RetryPolicy<Object> delegate = delegateBuilder.build();
 
     return new RetryPolicyImpl(delegate);
   }
 
   private static class RetryPolicyImpl implements RetryPolicy {
-    private final dev.failsafe.RetryPolicy<byte[]> delegate;
+    private final dev.failsafe.RetryPolicy<Object> delegate;
 
-    RetryPolicyImpl(dev.failsafe.RetryPolicy<byte[]> delegate) {
+    RetryPolicyImpl(dev.failsafe.RetryPolicy<Object> delegate) {
       this.delegate = delegate;
     }
 
     @Override
-    public dev.failsafe.RetryPolicy<byte[]> getDelegate() {
+    public dev.failsafe.RetryPolicy<Object> getDelegate() {
       return delegate;
     }
   }

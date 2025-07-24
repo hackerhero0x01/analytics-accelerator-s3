@@ -19,17 +19,17 @@ import java.io.IOException;
 
 /**
  * A function that mimics {@link java.util.function.Supplier}, but allows IOException to be thrown
- * and returns byte [] as it will only represent IO operations
+ * and returns T.
  */
 @FunctionalInterface
-public interface IOSupplier {
+public interface IOSupplier<T> {
 
   /**
    * Functional representation of the code that takes no parameters and returns a value of type
-   * {@link byte[]}. The code is allowed to throw any exception.
+   * {@link T}. The code is allowed to throw any exception.
    *
-   * @return a value of type {@link byte[]}.
+   * @return a value of type {@link T}.
    * @throws IOException on error condition.
    */
-  byte[] apply() throws IOException;
+  T apply() throws IOException;
 }

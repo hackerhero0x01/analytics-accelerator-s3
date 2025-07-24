@@ -32,7 +32,7 @@ import software.amazon.s3.analyticsaccelerator.common.Preconditions;
  */
 public class SeekableInputStreamRetryStrategy implements RetryStrategy {
   private final List<RetryPolicy> retryPolicies;
-  FailsafeExecutor<byte[]> failsafeExecutor;
+  FailsafeExecutor<Object> failsafeExecutor;
 
   /** Creates a retry strategy with no retry policies (no retries). */
   public SeekableInputStreamRetryStrategy() {
@@ -87,12 +87,13 @@ public class SeekableInputStreamRetryStrategy implements RetryStrategy {
   /**
    * Executes a supplier operation with retry logic.
    *
+   * @param <T> return type of the supplier
    * @param supplier the operation that returns a byte array
    * @return the result of the supplier operation
    * @throws IOException if the operation fails after all retries
    */
   @Override
-  public byte[] get(IOSupplier supplier) throws IOException {
+  public <T> T get(IOSupplier<T> supplier) throws IOException {
     try {
       return this.failsafeExecutor.get(supplier::apply);
     } catch (Exception ex) {
@@ -126,7 +127,7 @@ public class SeekableInputStreamRetryStrategy implements RetryStrategy {
    *
    * @return list of Failsafe policies
    */
-  private List<dev.failsafe.Policy<byte[]>> getDelegates() {
+  private List<dev.failsafe.Policy<Object>> getDelegates() {
     return this.retryPolicies.stream().map(RetryPolicy::getDelegate).collect(Collectors.toList());
   }
 

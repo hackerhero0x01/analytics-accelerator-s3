@@ -44,5 +44,5 @@ public interface RetryPolicy {
    *
    * @return the Failsafe RetryPolicy for byte arrays
    */
-  dev.failsafe.RetryPolicy<byte[]> getDelegate();
+  dev.failsafe.RetryPolicy<Object> getDelegate();
 }
