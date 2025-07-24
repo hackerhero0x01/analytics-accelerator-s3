@@ -29,15 +29,16 @@ import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 /**
  * Retry strategy implementation for seekable input stream operations. Uses Failsafe library to
  * execute operations with configurable retry policies.
-
- * This strategy will be additive to readTimeout and readRetryCount set on PhysicalIO configuration.
+ *
+ * <p>This strategy will be additive to readTimeout and readRetryCount set on PhysicalIO
+ * configuration.
  */
-public class SeekableInputStreamRetryStrategy implements RetryStrategy {
+public class DefaultRetryStrategyImpl implements RetryStrategy {
   private final List<RetryPolicy> retryPolicies;
   FailsafeExecutor<Object> failsafeExecutor;
 
   /** Creates a retry strategy with no retry policies (no retries). */
-  public SeekableInputStreamRetryStrategy() {
+  public DefaultRetryStrategyImpl() {
     this.retryPolicies = new ArrayList<>();
     this.failsafeExecutor = Failsafe.none();
   }
@@ -49,7 +50,7 @@ public class SeekableInputStreamRetryStrategy implements RetryStrategy {
    * @param policies additional retry policies (optional)
    */
   @SuppressWarnings("varargs")
-  public SeekableInputStreamRetryStrategy(RetryPolicy outerPolicy, RetryPolicy... policies) {
+  public DefaultRetryStrategyImpl(RetryPolicy outerPolicy, RetryPolicy... policies) {
     Preconditions.checkNotNull(outerPolicy);
     this.retryPolicies = new ArrayList<>();
     this.retryPolicies.add(outerPolicy);
@@ -64,7 +65,7 @@ public class SeekableInputStreamRetryStrategy implements RetryStrategy {
    *
    * @param policies the list of retry policies to apply
    */
-  public SeekableInputStreamRetryStrategy(List<RetryPolicy> policies) {
+  public DefaultRetryStrategyImpl(List<RetryPolicy> policies) {
     Preconditions.checkNotNull(policies);
     this.retryPolicies = new ArrayList<>();
     this.retryPolicies.addAll(policies);

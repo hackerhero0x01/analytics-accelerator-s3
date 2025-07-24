@@ -33,9 +33,9 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
 import software.amazon.s3.analyticsaccelerator.util.*;
+import software.amazon.s3.analyticsaccelerator.util.retry.DefaultRetryStrategyImpl;
 import software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy;
 import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
-import software.amazon.s3.analyticsaccelerator.util.retry.SeekableInputStreamRetryStrategy;
 
 /**
  * A Block holding part of an object's data and owning its own async process for fetching part of
@@ -123,7 +123,7 @@ public class Block implements Closeable {
    * @throws RuntimeException if all retries fails and an error occurs
    */
   private RetryStrategy createRetryStrategy() throws IOException {
-    RetryStrategy base = new SeekableInputStreamRetryStrategy();
+    RetryStrategy base = new DefaultRetryStrategyImpl();
     RetryStrategy provided = this.openStreamInformation.getRetryStrategy();
 
     if (provided != null) {

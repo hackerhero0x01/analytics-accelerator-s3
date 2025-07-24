@@ -21,8 +21,8 @@ import lombok.Getter;
 import software.amazon.s3.analyticsaccelerator.request.EncryptionSecrets;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.StreamAuditContext;
+import software.amazon.s3.analyticsaccelerator.util.retry.DefaultRetryStrategyImpl;
 import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
-import software.amazon.s3.analyticsaccelerator.util.retry.SeekableInputStreamRetryStrategy;
 
 /**
  * Open stream information, useful for allowing the stream opening application to pass down known
@@ -47,8 +47,7 @@ public class OpenStreamInformation {
   @Builder.Default private RequestCallback requestCallback = new DefaultRequestCallbackImpl();
   private final EncryptionSecrets encryptionSecrets;
 
-  @Builder.Default
-  private final RetryStrategy retryStrategy = new SeekableInputStreamRetryStrategy();
+  @Builder.Default private final RetryStrategy retryStrategy = new DefaultRetryStrategyImpl();
 
   /** Default set of settings for {@link OpenStreamInformation} */
   public static final OpenStreamInformation DEFAULT = OpenStreamInformation.builder().build();

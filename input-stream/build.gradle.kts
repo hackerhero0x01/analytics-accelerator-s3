@@ -315,6 +315,11 @@ tasks.javadoc {
     include("**/ObjectClient.java")
     include("**/ObjectMetadata*.java")
 
+    include("**/retry/DefaultRetryStrategyImpl.java")
+    include("**/retry/RetryPolicy.java")
+    include("**/retry/RetryPolicyBuilder.java")
+    include("**/retry/RetryStrategy.java")
+
     include("**/ConnectorConfiguration.java")
     include("**/S3URI.java")
     include("**/OpenStreamInformation*")
@@ -333,9 +338,6 @@ tasks.javadoc {
     include("**/S3SeekableInputStreamConfiguration.java")
     include("**/S3SeekableInputStreamFactory.java")
     include("**/PrefetchMode.java")
-    include("**/retry/SeekableInputStreamRetryStrategy.java")
-    include("**/retry/RetryPolicy.java")
-    include("**/retry/RetryPolicyBuilder.java")
     options {
         (this as StandardJavadocDocletOptions).apply {
             addStringOption("Xdoclint:none", "-quiet")

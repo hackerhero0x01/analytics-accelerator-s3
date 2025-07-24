@@ -72,8 +72,12 @@
 </a>
 <h2 class="title">A</h2>
 <dl>
-<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#amend-software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy-">amend(RetryPolicy)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">SeekableInputStreamRetryStrategy</a></dt>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html#amend-software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy-">amend(RetryPolicy)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">DefaultRetryStrategyImpl</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html#amend-software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy-">amend(RetryPolicy)</a></span> - Method in interface software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html" title="interface in software.amazon.s3.analyticsaccelerator.util.retry">RetryStrategy</a></dt>
+<dd>
+<div class="block">Adds a retry policy to the strategy.</div>
+</dd>
 </dl>
 <a name="I:B">
 <!--   -->
@@ -165,6 +169,22 @@
 <dd>
 <div class="block">Default set of settings for <a href="software/amazon/s3/analyticsaccelerator/util/OpenStreamInformation.html" title="class in software.amazon.s3.analyticsaccelerator.util"><code>OpenStreamInformation</code></a></div>
 </dd>
+<dt><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry"><span class="typeNameLink">DefaultRetryStrategyImpl</span></a> - Class in <a href="software/amazon/s3/analyticsaccelerator/util/retry/package-summary.html">software.amazon.s3.analyticsaccelerator.util.retry</a></dt>
+<dd>
+<div class="block">Retry strategy implementation for seekable input stream operations.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html#DefaultRetryStrategyImpl--">DefaultRetryStrategyImpl()</a></span> - Constructor for class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">DefaultRetryStrategyImpl</a></dt>
+<dd>
+<div class="block">Creates a retry strategy with no retry policies (no retries).</div>
+</dd>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html#DefaultRetryStrategyImpl-software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy-software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy...-">DefaultRetryStrategyImpl(RetryPolicy, RetryPolicy...)</a></span> - Constructor for class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">DefaultRetryStrategyImpl</a></dt>
+<dd>
+<div class="block">Creates a retry strategy with one or more retry policies.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html#DefaultRetryStrategyImpl-java.util.List-">DefaultRetryStrategyImpl(List&lt;RetryPolicy&gt;)</a></span> - Constructor for class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">DefaultRetryStrategyImpl</a></dt>
+<dd>
+<div class="block">Creates a retry strategy with a list of retry policies.</div>
+</dd>
 </dl>
 <a name="I:E">
 <!--   -->
@@ -183,9 +203,13 @@
 <dd>
 <div class="block">The entity tag of the object.</div>
 </dd>
-<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#execute-software.amazon.s3.analyticsaccelerator.util.retry.IORunnable-">execute(IORunnable)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">SeekableInputStreamRetryStrategy</a></dt>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html#execute-software.amazon.s3.analyticsaccelerator.util.retry.IORunnable-">execute(IORunnable)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">DefaultRetryStrategyImpl</a></dt>
 <dd>
 <div class="block">Executes a runnable operation with retry logic.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html#execute-software.amazon.s3.analyticsaccelerator.util.retry.IORunnable-">execute(IORunnable)</a></span> - Method in interface software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html" title="interface in software.amazon.s3.analyticsaccelerator.util.retry">RetryStrategy</a></dt>
+<dd>
+<div class="block">Executes a runnable with retry logic.</div>
 </dd>
 </dl>
 <a name="I:F">
@@ -207,9 +231,13 @@
 </a>
 <h2 class="title">G</h2>
 <dl>
-<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#get-software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier-">get(IOSupplier&lt;T&gt;)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">SeekableInputStreamRetryStrategy</a></dt>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html#get-software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier-">get(IOSupplier&lt;T&gt;)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">DefaultRetryStrategyImpl</a></dt>
 <dd>
 <div class="block">Executes a supplier operation with retry logic.</div>
+</dd>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html#get-software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier-">get(IOSupplier&lt;T&gt;)</a></span> - Method in interface software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html" title="interface in software.amazon.s3.analyticsaccelerator.util.retry">RetryStrategy</a></dt>
+<dd>
+<div class="block">Executes a supplier with retry logic.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/common/ConnectorConfiguration.html#getBoolean-java.lang.String-boolean-">getBoolean(String, boolean)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.common.<a href="software/amazon/s3/analyticsaccelerator/common/ConnectorConfiguration.html" title="class in software.amazon.s3.analyticsaccelerator.common">ConnectorConfiguration</a></dt>
 <dd>
@@ -291,8 +319,12 @@
 <dd>
 <div class="block">Get String value for a given key.</div>
 </dd>
-<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#getRetryPolicies--">getRetryPolicies()</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">SeekableInputStreamRetryStrategy</a></dt>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html#getRetryPolicies--">getRetryPolicies()</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">DefaultRetryStrategyImpl</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html#getRetryPolicies--">getRetryPolicies()</a></span> - Method in interface software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html" title="interface in software.amazon.s3.analyticsaccelerator.util.retry">RetryStrategy</a></dt>
+<dd>
+<div class="block">Get retry policies associated with a <a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html" title="interface in software.amazon.s3.analyticsaccelerator.util.retry"><code>RetryStrategy</code></a></div>
+</dd>
 <dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/OpenStreamInformation.html#getRetryStrategy--">getRetryStrategy()</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.<a href="software/amazon/s3/analyticsaccelerator/util/OpenStreamInformation.html" title="class in software.amazon.s3.analyticsaccelerator.util">OpenStreamInformation</a></dt>
 <dd>&nbsp;</dd>
 <dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/S3SdkObjectClient.html#getS3AsyncClient--">getS3AsyncClient()</a></span> - Method in class software.amazon.s3.analyticsaccelerator.<a href="software/amazon/s3/analyticsaccelerator/S3SdkObjectClient.html" title="class in software.amazon.s3.analyticsaccelerator">S3SdkObjectClient</a></dt>
@@ -356,8 +388,12 @@
 <div class="block">Return a new <a href="software/amazon/s3/analyticsaccelerator/common/ConnectorConfiguration.html" title="class in software.amazon.s3.analyticsaccelerator.common"><code>ConnectorConfiguration</code></a> where for common prefix for keys is updated to
  this.getPrefix() + "." + appendPrefix</div>
 </dd>
-<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#merge-software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy-">merge(RetryStrategy)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">SeekableInputStreamRetryStrategy</a></dt>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html#merge-software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy-">merge(RetryStrategy)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/DefaultRetryStrategyImpl.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">DefaultRetryStrategyImpl</a></dt>
 <dd>&nbsp;</dd>
+<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html#merge-software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy-">merge(RetryStrategy)</a></span> - Method in interface software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html" title="interface in software.amazon.s3.analyticsaccelerator.util.retry">RetryStrategy</a></dt>
+<dd>
+<div class="block">Merge two retry strategies and return a new <a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html" title="interface in software.amazon.s3.analyticsaccelerator.util.retry"><code>RetryStrategy</code></a>.</div>
+</dd>
 </dl>
 <a name="I:O">
 <!--   -->
@@ -444,6 +480,10 @@
 </dd>
 <dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/OpenStreamInformation.OpenStreamInformationBuilder.html#retryStrategy-software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy-">retryStrategy(RetryStrategy)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.util.<a href="software/amazon/s3/analyticsaccelerator/util/OpenStreamInformation.OpenStreamInformationBuilder.html" title="class in software.amazon.s3.analyticsaccelerator.util">OpenStreamInformation.OpenStreamInformationBuilder</a></dt>
 <dd>&nbsp;</dd>
+<dt><a href="software/amazon/s3/analyticsaccelerator/util/retry/RetryStrategy.html" title="interface in software.amazon.s3.analyticsaccelerator.util.retry"><span class="typeNameLink">RetryStrategy</span></a> - Interface in <a href="software/amazon/s3/analyticsaccelerator/util/retry/package-summary.html">software.amazon.s3.analyticsaccelerator.util.retry</a></dt>
+<dd>
+<div class="block">Interface for executing operations with retry logic.</div>
+</dd>
 </dl>
 <a name="I:S">
 <!--   -->
@@ -495,22 +535,6 @@
 <dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/S3SeekableInputStream.html#seek-long-">seek(long)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.<a href="software/amazon/s3/analyticsaccelerator/S3SeekableInputStream.html" title="class in software.amazon.s3.analyticsaccelerator">S3SeekableInputStream</a></dt>
 <dd>
 <div class="block">Sets the offset, measured from the beginning of this stream, at which the next read occurs.</div>
-</dd>
-<dt><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry"><span class="typeNameLink">SeekableInputStreamRetryStrategy</span></a> - Class in <a href="software/amazon/s3/analyticsaccelerator/util/retry/package-summary.html">software.amazon.s3.analyticsaccelerator.util.retry</a></dt>
-<dd>
-<div class="block">Retry strategy implementation for seekable input stream operations.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#SeekableInputStreamRetryStrategy--">SeekableInputStreamRetryStrategy()</a></span> - Constructor for class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">SeekableInputStreamRetryStrategy</a></dt>
-<dd>
-<div class="block">Creates a retry strategy with no retry policies (no retries).</div>
-</dd>
-<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#SeekableInputStreamRetryStrategy-software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy-software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy...-">SeekableInputStreamRetryStrategy(RetryPolicy, RetryPolicy...)</a></span> - Constructor for class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">SeekableInputStreamRetryStrategy</a></dt>
-<dd>
-<div class="block">Creates a retry strategy with one or more retry policies.</div>
-</dd>
-<dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#SeekableInputStreamRetryStrategy-java.util.List-">SeekableInputStreamRetryStrategy(List&lt;RetryPolicy&gt;)</a></span> - Constructor for class software.amazon.s3.analyticsaccelerator.util.retry.<a href="software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html" title="class in software.amazon.s3.analyticsaccelerator.util.retry">SeekableInputStreamRetryStrategy</a></dt>
-<dd>
-<div class="block">Creates a retry strategy with a list of retry policies.</div>
 </dd>
 <dt><span class="memberNameLink"><a href="software/amazon/s3/analyticsaccelerator/request/ObjectMetadata.html#setContentLength-long-">setContentLength(long)</a></span> - Method in class software.amazon.s3.analyticsaccelerator.request.<a href="software/amazon/s3/analyticsaccelerator/request/ObjectMetadata.html" title="class in software.amazon.s3.analyticsaccelerator.request">ObjectMetadata</a></dt>
 <dd>
