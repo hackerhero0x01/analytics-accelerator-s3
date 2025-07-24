@@ -175,8 +175,8 @@ implements software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy</pre
 </td>
 </tr>
 <tr id="i2" class="altColor">
-<td class="colFirst"><code>byte[]</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../../software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#get-software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier-">get</a></span>(software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier&nbsp;supplier)</code>
+<td class="colFirst"><code>&lt;T&gt;&nbsp;T</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../../../../software/amazon/s3/analyticsaccelerator/util/retry/SeekableInputStreamRetryStrategy.html#get-software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier-">get</a></span>(software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier&lt;T&gt;&nbsp;supplier)</code>
 <div class="block">Executes a supplier operation with retry logic.</div>
 </td>
 </tr>
@@ -283,12 +283,14 @@ implements software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy</pre
 <ul class="blockList">
 <li class="blockList">
 <h4>get</h4>
-<pre>public&nbsp;byte[]&nbsp;get(software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier&nbsp;supplier)
-           throws java.io.IOException</pre>
+<pre>public&nbsp;&lt;T&gt;&nbsp;T&nbsp;get(software.amazon.s3.analyticsaccelerator.util.retry.IOSupplier&lt;T&gt;&nbsp;supplier)
+          throws java.io.IOException</pre>
 <div class="block">Executes a supplier operation with retry logic.</div>
 <dl>
 <dt><span class="overrideSpecifyLabel">Specified by:</span></dt>
 <dd><code>get</code>&nbsp;in interface&nbsp;<code>software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy</code></dd>
+<dt><span class="paramLabel">Type Parameters:</span></dt>
+<dd><code>T</code> - return type of the supplier</dd>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>supplier</code> - the operation that returns a byte array</dd>
 <dt><span class="returnLabel">Returns:</span></dt>
