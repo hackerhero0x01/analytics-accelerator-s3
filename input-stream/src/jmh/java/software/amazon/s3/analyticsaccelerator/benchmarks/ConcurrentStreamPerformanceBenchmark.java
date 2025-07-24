@@ -67,7 +67,7 @@ public class ConcurrentStreamPerformanceBenchmark {
             this.maxConcurrency = Runtime.getRuntime().availableProcessors();
             this.executor = Executors.newFixedThreadPool(100);
             this.s3ExecutionContext = new S3ExecutionContext(S3ExecutionConfiguration.fromEnvironment());
-            this.bucketName = s3ExecutionContext.getConfiguration().getParquetBucket();
+            this.bucketName = s3ExecutionContext.getConfiguration().getAsyncBucket();
             this.s3Objects = getKeys(s3Client, bucketName, s3ExecutionContext.getConfiguration().getPrefix());
             this.s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(new S3SdkObjectClient(this.s3AsyncClient), S3SeekableInputStreamConfiguration.DEFAULT);
         }
@@ -95,10 +95,21 @@ public class ConcurrentStreamPerformanceBenchmark {
     @Fork(1)
     @BenchmarkMode(Mode.SingleShotTime)
     public void runBenchmark(BenchmarkState state) throws Exception {
-        execute(state);
+        switch(state.clientKind) {
+            case "ASYNC_JAVA":
+                execute(state, state.s3ExecutionContext.getConfiguration().getAsyncBucket());
+                break;
+            case "SYNC_JAVA":
+                execute(state, state.s3ExecutionContext.getConfiguration().getSyncBucket());
+                break;
+            case "AAL_READ_VECTORED":
+                execute(state, state.s3ExecutionContext.getConfiguration().getVectoredBucket());
+                break;
+        }
+
     }
 
-    private void execute(BenchmarkState state) throws Exception {
+    private void execute(BenchmarkState state, String bucket) throws Exception {
         System.out.println("\nReading parquet files with: " + state.clientKind);
 
         for (int i = 0; i < state.s3Objects.size() - 1; i = i + state.maxConcurrency) {
@@ -109,9 +120,9 @@ public class ConcurrentStreamPerformanceBenchmark {
                     Future<Integer> f = state.executor.submit(() -> {
                         try {
                             if (Objects.equals(state.clientKind, "AAL_READ_VECTORED")) {
-                                return featchObjectsFromAAL(state.bucketName, state.s3Objects.get(k), state);
+                                return featchObjectsFromAAL(bucket, state.s3Objects.get(k), state);
                             } else {
-                                return fetchObjectChunksByRange(state.bucketName, state.s3Objects.get(k), state);
+                                return fetchObjectChunksByRange(bucket, state.s3Objects.get(k), state);
                             }
                         } catch (ExecutionException | InterruptedException e) {
                             throw new RuntimeException(e);
