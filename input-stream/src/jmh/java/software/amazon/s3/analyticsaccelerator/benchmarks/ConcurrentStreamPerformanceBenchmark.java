@@ -124,7 +124,7 @@ public class ConcurrentStreamPerformanceBenchmark {
                 f.get();
             }
 
-            System.out.printf("DONE READING FOR ITERATION <<<< " + i);
+          //  System.out.printf("DONE READING FOR ITERATION <<<< " + i);
         }
     }
 
@@ -184,7 +184,7 @@ public class ConcurrentStreamPerformanceBenchmark {
                     .key(s3Object.key())
                     .range("bytes="+range.getStart() + "-" + range.getEnd()).build();
 
-            System.out.println("\nMaking a GET request for: " + s3Object.key() + " start: " + range.getStart() + " end: " + range.getEnd());
+          //  System.out.println("\nMaking a GET request for: " + s3Object.key() + " start: " + range.getStart() + " end: " + range.getEnd());
 
             ResponseInputStream<GetObjectResponse> dataStream;
 
@@ -213,7 +213,7 @@ public class ConcurrentStreamPerformanceBenchmark {
         long read = 0;
         try {
             read = inputStream.read(buffer);
-            System.out.printf("\nDone reading for: " + key + " start: " + range.getStart() + " end: " + range.getEnd());
+           // System.out.printf("\nDone reading for: " + key + " start: " + range.getStart() + " end: " + range.getEnd());
             inputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
