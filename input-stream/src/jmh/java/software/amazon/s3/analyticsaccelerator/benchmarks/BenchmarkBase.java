@@ -104,10 +104,10 @@ public abstract class BenchmarkBase extends ExecutionBase {
     return AALInputStreamConfigurationKind.DEFAULT;
   }
 
-  @Benchmark
-  public void execute() throws Exception {
-    this.executeBenchmark();
-  }
+//  @Benchmark
+//  public void execute() throws Exception {
+//    this.executeBenchmark();
+//  }
 
   /**
    * Benchmark specific execution

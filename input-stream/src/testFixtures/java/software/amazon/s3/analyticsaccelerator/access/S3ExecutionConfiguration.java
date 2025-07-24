@@ -31,9 +31,11 @@ public class S3ExecutionConfiguration {
   public static final String PREFIX_KEY = "S3_TEST_PREFIX";
   public static final String READ_BUFFER_SIZE_MB_KEY = "S3_TEST_READ_BUFFER_SIZE_MB";
   public static final int DEFAULT_READ_BUFFER_SIZE_MB_KEY = 8;
+  public static final String PARQUET_BENCHMARK_KEY = "S3_TEST_PARQUET_BENCHMARK_BUCKET";
 
   @NonNull String bucket;
   @NonNull String prefix;
+  @NonNull String parquetBucket;
   int bufferSizeMb;
   @NonNull S3AsyncClientFactoryConfiguration clientFactoryConfiguration;
 
@@ -46,6 +48,7 @@ public class S3ExecutionConfiguration {
   public static S3ExecutionConfiguration fromConfiguration(ConnectorConfiguration configuration) {
     return S3ExecutionConfiguration.builder()
         .bucket(configuration.getRequiredString(BUCKET_KEY))
+        .parquetBucket(configuration.getRequiredString(PARQUET_BENCHMARK_KEY))
         .prefix(configuration.getRequiredString(PREFIX_KEY))
         .bufferSizeMb(
             configuration.getInt(READ_BUFFER_SIZE_MB_KEY, DEFAULT_READ_BUFFER_SIZE_MB_KEY))
