@@ -29,6 +29,8 @@ import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 /**
  * Retry strategy implementation for seekable input stream operations. Uses Failsafe library to
  * execute operations with configurable retry policies.
+
+ * This strategy will be additive to readTimeout and readRetryCount set on PhysicalIO configuration.
  */
 public class SeekableInputStreamRetryStrategy implements RetryStrategy {
   private final List<RetryPolicy> retryPolicies;

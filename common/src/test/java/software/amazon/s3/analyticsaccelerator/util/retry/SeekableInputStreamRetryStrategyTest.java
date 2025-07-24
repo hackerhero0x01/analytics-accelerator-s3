@@ -64,7 +64,7 @@ class SeekableInputStreamRetryStrategyTest {
     AtomicInteger attempt = new AtomicInteger(0);
     assertNotNull(executor);
     assertThrows(
-        IOException.class, () -> executor.get(() -> failTwiceThenSucceed(attempt, expected)));
+        IOException.class, () -> executor.get(() -> failXTimesThenSucceed(attempt, 2, expected)));
 
     assertEquals(1, attempt.get());
 
@@ -76,10 +76,64 @@ class SeekableInputStreamRetryStrategyTest {
 
     byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
 
-    byte[] result = newStrategy.get(() -> failTwiceThenSucceed(attempt, expected));
+    byte[] result = newStrategy.get(() -> failXTimesThenSucceed(attempt, 2,  expected));
 
     assertEquals(expectedBytes.length, result.length);
     assertEquals(3, attempt.get());
+  }
+
+  @Test
+  void testAmendTheSameException() throws IOException {
+    RetryPolicy policy = RetryPolicy.builder().handle(IOException.class).withMaxRetries(3).build();
+    SeekableInputStreamRetryStrategy executor = new SeekableInputStreamRetryStrategy(policy);
+    String expected = "test result";
+
+    AtomicInteger attempt = new AtomicInteger(0);
+    assertNotNull(executor);
+    executor.get(() -> failXTimesThenSucceed(attempt, 2,  expected));
+
+    assertEquals(3, attempt.get());
+
+    // Reset attempt
+    attempt.set(0);
+
+    RetryPolicy policy2 = RetryPolicy.builder().handle(IOException.class).withMaxRetries(10).build();
+    RetryStrategy newStrategy = executor.amend(policy2);
+
+    byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
+
+    byte[] result = newStrategy.get(() -> failXTimesThenSucceed(attempt, 13,  expected));
+
+    assertEquals(expectedBytes.length, result.length);
+    assertEquals(14, attempt.get());
+  }
+
+
+  @Test
+  void testAmendDifferentException() throws IOException {
+    RetryPolicy policy = RetryPolicy.builder().handle(TimeoutException.class).withMaxRetries(3).build();
+    SeekableInputStreamRetryStrategy executor = new SeekableInputStreamRetryStrategy(policy);
+    String expected = "test result";
+
+    AtomicInteger attempt = new AtomicInteger(0);
+    assertNotNull(executor);
+    assertThrows(
+        IOException.class, () -> executor.get(() -> failXTimesThenSucceed(attempt, 2, expected)));
+
+    assertEquals(1, attempt.get());
+
+    // Reset attempt
+    attempt.set(0);
+
+    RetryPolicy policy2 = RetryPolicy.builder().handle(IOException.class).withMaxRetries(10).build();
+    RetryStrategy newStrategy = executor.amend(policy2);
+
+    byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
+
+    byte[] result = newStrategy.get(() -> failXTimesThenSucceed(attempt, 9,  expected));
+
+    assertEquals(expectedBytes.length, result.length);
+    assertEquals(10, attempt.get());
   }
 
   @Test
@@ -90,7 +144,7 @@ class SeekableInputStreamRetryStrategyTest {
     AtomicInteger attempt = new AtomicInteger(0);
     assertNotNull(executor);
     assertThrows(
-        IOException.class, () -> executor.get(() -> failTwiceThenSucceed(attempt, expected)));
+        IOException.class, () -> executor.get(() -> failXTimesThenSucceed(attempt, 2, expected)));
 
     assertEquals(1, attempt.get());
 
@@ -104,7 +158,7 @@ class SeekableInputStreamRetryStrategyTest {
 
     byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
 
-    byte[] result = newStrategy.get(() -> failTwiceThenSucceed(attempt, expected));
+    byte[] result = newStrategy.get(() -> failXTimesThenSucceed(attempt, 2, expected));
 
     assertEquals(expectedBytes.length, result.length);
     assertEquals(3, attempt.get());
@@ -203,14 +257,14 @@ class SeekableInputStreamRetryStrategyTest {
   }
 
   @Test
-  void testNoRetryOnDifferentHandle() throws IOException {
+  void testNoRetryOnDifferentHandle() {
     String expected = "test result";
     RetryPolicy policy =
         RetryPolicy.builder().handle(TimeoutException.class).withMaxRetries(3).build();
     SeekableInputStreamRetryStrategy executor = new SeekableInputStreamRetryStrategy(policy);
     AtomicInteger retryCount = new AtomicInteger(0);
     assertThrows(
-        IOException.class, () -> executor.get(() -> failTwiceThenSucceed(retryCount, expected)));
+        IOException.class, () -> executor.get(() -> failXTimesThenSucceed(retryCount, 2, expected)));
 
     assertEquals(1, retryCount.get());
   }
@@ -225,17 +279,18 @@ class SeekableInputStreamRetryStrategyTest {
     SeekableInputStreamRetryStrategy executor = new SeekableInputStreamRetryStrategy(policy);
     AtomicInteger attemptCounter = new AtomicInteger(0);
 
-    byte[] result = executor.get(() -> failTwiceThenSucceed(attemptCounter, expected));
+    byte[] result = executor.get(() -> failXTimesThenSucceed(attemptCounter,2, expected));
 
     assertEquals(expectedBytes.length, result.length);
     assertEquals(3, attemptCounter.get());
     assertEquals(2, retryCounter.get());
   }
 
-  private byte[] failTwiceThenSucceed(AtomicInteger counter, String toByteArray)
+
+  private byte[] failXTimesThenSucceed(AtomicInteger counter, int failCount, String toByteArray)
       throws IOException {
     int attempt = counter.incrementAndGet();
-    if (attempt <= 2) {
+    if (attempt <= failCount) {
       throw new IOException("Attempt " + attempt + " failed");
     }
     return toByteArray.getBytes(StandardCharsets.UTF_8);
