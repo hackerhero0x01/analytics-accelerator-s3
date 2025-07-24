@@ -71,7 +71,7 @@ public class ConcurrentStreamPerformanceBenchmark {
         private List<S3Object> getKeys(S3Client s3Client, String bucket, String prefix) {
             ListObjectsV2Request.Builder requestBuilder = ListObjectsV2Request.builder()
                     .bucket(bucket).prefix(prefix)
-                    .maxKeys(50);
+                    .maxKeys(1000);
 
             ListObjectsV2Response response = s3Client.listObjectsV2(requestBuilder.build());
 
@@ -82,7 +82,7 @@ public class ConcurrentStreamPerformanceBenchmark {
     }
 
     @Benchmark
-    @Measurement(iterations = 2)
+    @Measurement(iterations = 5)
     @Fork(1)
     @BenchmarkMode(Mode.SingleShotTime)
     public void runBenchmark(BenchmarkState state) throws Exception {
