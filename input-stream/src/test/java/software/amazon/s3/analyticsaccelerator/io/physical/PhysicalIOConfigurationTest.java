@@ -76,7 +76,7 @@ public class PhysicalIOConfigurationTest {
             + "\tsmallObjectsPrefetchingEnabled: true\n"
             + "\tsmallObjectSizeThreshold: 8388608\n"
             + "\tthreadPoolSize: 96\n"
-            + "\treadBufferSize: 8192\n"
+            + "\treadBufferSize: 131072\n"
             + "\ttargetRequestSize: 20\n"
             + "\trequestToleranceRatio: 1.4\n");
   }

@@ -45,7 +45,7 @@ public class PhysicalIOConfiguration {
   private static final boolean DEFAULT_SMALL_OBJECTS_PREFETCHING_ENABLED = true;
   private static final long DEFAULT_SMALL_OBJECT_SIZE_THRESHOLD = 8 * ONE_MB;
   private static final int DEFAULT_THREAD_POOL_SIZE = 96;
-  private static final long DEFAULT_READ_BUFFER_SIZE = 8 * ONE_KB;
+  private static final long DEFAULT_READ_BUFFER_SIZE = 128 * ONE_KB;
   private static final long DEFAULT_TARGET_REQUEST_SIZE = 8 * ONE_MB;
   private static final double DEFAULT_REQUEST_TOLERANCE_RATIO = 1.4;
 
