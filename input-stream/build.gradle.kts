@@ -63,8 +63,9 @@ val integrationTestImplementation by configurations.getting {
     extendsFrom(configurations.testImplementation.get())
 }
 
-val integrationTestRuntimeOnly by configurations.getting
-configurations["referenceTestRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+val integrationTestRuntimeOnly by configurations.getting {
+    extendsFrom(configurations.runtimeOnly.get())
+}
 
 dependencies {
     api(project(":object-client"))
@@ -99,6 +100,8 @@ dependencies {
     referenceTestImplementation(libs.jqwik.testcontainers)
     referenceTestImplementation(libs.testcontainers)
     referenceTestRuntimeOnly(libs.junit.jupiter.launcher)
+
+    integrationTestRuntimeOnly(libs.junit.jupiter.launcher)
 }
 
 tasks.withType<JavaCompile>().configureEach {
