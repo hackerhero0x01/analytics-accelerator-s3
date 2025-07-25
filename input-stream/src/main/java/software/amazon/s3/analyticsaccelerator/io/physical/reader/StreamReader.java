@@ -278,7 +278,6 @@ public class StreamReader implements Closeable {
                 () ->
                     Operation.builder()
                         .name(OPERATION_GET_OBJECT)
-                        .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
                         .attribute(StreamAttributes.uri(getRequest.getS3Uri()))
                         .attribute(StreamAttributes.rangeLength(getRequest.getRange().getLength()))
                         .attribute(StreamAttributes.range(getRequest.getRange()))
