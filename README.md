@@ -140,7 +140,7 @@ You can use `S3SeekableInputStreamFactory` to initialize streams for all file ty
 These optimizations are:
 
 * Sequential prefetching - The library detects sequential read patterns to prefetch data and reduce latency, and reads the full object when the object is small to minimize the number of read operations.
-* Small object prefetching - The library will prefetch the object if the object size is less than 3MB.
+* Small object prefetching - The library will prefetch the object if the object size is less than 8MB.
 * Closed Range requests - The library exclusively uses closed range requests when accessing S3, which is the recommended best practice for making requests to S3.
 * Read Vectored support - The library provides built-in implementation of Read Vectored functionality, enabling efficient reading of multiple non-contiguous ranges of data in a single operation.
 
@@ -154,7 +154,7 @@ These optimizations are:
 
 When the object key ends with the file extension `.csv`, `.json`, or `.txt`, we use the following sequential format optimizations:
 
-Partition-aligned prefetching - The library implements aggressive prefetching up to the configured partition size. The default partition size is 128MB, which can be modified by setting the `partition.size` configuration parameter. This optimization reduces the number of GET requests by fetching larger chunks of data in advance, resulting in improved read throughput for sequential access patterns.
+Partition-aligned prefetching - The library implements proactive prefetching up to the configured partition size. The default partition size is 128MB, which can be modified by setting the `partition.size` configuration parameter. This optimization reduces the number of GET requests by fetching larger chunks of data in advance, resulting in improved read throughput for sequential access patterns. To disable prefetching, set `use.format.specific.io` to false. 
 
 ## Memory Used by Library
 Analytics Accelerator Library for Amazon S3 implements a best-effort memory limiting mechanism. The library fetches data from S3 in blocks of bytes and keeps them in memory. Memory management is achieved through a dual strategy combining Time-to-Live (TTL) and maximum memory threshold.
