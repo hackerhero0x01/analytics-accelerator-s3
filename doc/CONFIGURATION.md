@@ -39,8 +39,6 @@ spark.sql.catalog.spark_catalog.s3.analytics-accelerator.useragentprefix=my-appl
 
 ## Logical IO Configuration
 Options under `<CONNECTOR_PREFIX>.logicalio.`
-
-
 | Option                                   | Default               | Description                                                                           |
 |------------------------------------------|-----------------------|---------------------------------------------------------------------------------------|
 | `prefetch.footer.enabled`                | `true`                | Controls whether footer prefetching is enabled                                        |
@@ -59,7 +57,6 @@ Options under `<CONNECTOR_PREFIX>.logicalio.`
 | `json.format.selector.regex`             | `^.*\\.(json\|JSON)$` | Regex pattern to identify json files                                                  |
 | `txt.format.selector.regex`              | `^.*\\.(txt\|TXT)$`   | Regex pattern to identify txt files                                                   |
 | `prefetching.mode`                       | `ROW_GROUP`           | Prefetching mode (valid values: `OFF`, `ALL`, `ROW_GROUP`, `COLUMN_BOUND`)            |
-
 
 ## Physical IO Configuration
 Options under `<CONNECTOR_PREFIX>.physicalio.`
