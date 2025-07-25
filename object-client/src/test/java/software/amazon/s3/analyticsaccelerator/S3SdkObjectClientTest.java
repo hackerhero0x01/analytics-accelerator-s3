@@ -22,10 +22,14 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.OPERATION_NAME;
+import static software.amazon.s3.analyticsaccelerator.request.Constants.SPAN_ID;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -40,13 +44,17 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
 import software.amazon.awssdk.http.async.AbortableInputStreamSubscriber;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3ServiceClientConfiguration;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 import software.amazon.s3.analyticsaccelerator.exceptions.ExceptionHandler;
 import software.amazon.s3.analyticsaccelerator.request.*;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
@@ -55,6 +63,7 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -67,6 +76,8 @@ public class S3SdkObjectClientTest {
   private static final S3URI TEST_URI = S3URI.of("test-bucket", "test-key");
 
   private static final String ETAG = "RandomString";
+  private static final String USER_AGENT_HEADER = "User-Agent";
+  private static final String AAL_USER_AGENT = "s3analyticsaccelerator";
 
   @Test
   void testForNullsInConstructor() {
@@ -165,7 +176,11 @@ public class S3SdkObjectClientTest {
     try (S3AsyncClient s3AsyncClient = createMockClient()) {
       S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
       ObjectMetadata metadata =
-          client.headObject(HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build()).join();
+          client
+              .headObject(
+                  HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build(),
+                  OpenStreamInformation.DEFAULT)
+              .join();
       assertEquals(metadata, ObjectMetadata.builder().contentLength(42).etag(ETAG).build());
     }
   }
@@ -182,7 +197,8 @@ public class S3SdkObjectClientTest {
                   .range(new Range(0, 20))
                   .etag(ETAG)
                   .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
-                  .build()));
+                  .build(),
+              OpenStreamInformation.DEFAULT));
       assertThrows(
           S3Exception.class,
           () ->
@@ -193,7 +209,8 @@ public class S3SdkObjectClientTest {
                           .range(new Range(0, 20))
                           .etag("ANOTHER ONE")
                           .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
-                          .build())
+                          .build(),
+                      OpenStreamInformation.DEFAULT)
                   .get());
     }
   }
@@ -210,18 +227,34 @@ public class S3SdkObjectClientTest {
                   .range(new Range(0, 20))
                   .etag(ETAG)
                   .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
-                  .build()));
+                  .build(),
+              OpenStreamInformation.DEFAULT));
     }
   }
 
   @Test
-  void testGetObjectWithAuditHeaders() {
+  void testObjectClientClose() {
+    try (S3AsyncClient s3AsyncClient = createMockClient()) {
+      try (S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient)) {
+        client.headObject(
+            HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build(),
+            OpenStreamInformation.DEFAULT);
+      }
+      verify(s3AsyncClient, times(1)).close();
+    }
+  }
+
+  @Test
+  void testGetObjectAttachesExecutionAttributes() {
     S3AsyncClient mockS3AsyncClient = createMockClient();
 
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
 
-    StreamContext mockStreamContext = mock(StreamContext.class);
-    when(mockStreamContext.modifyAndBuildReferrerHeader(any())).thenReturn("audit-referrer-value");
+    OpenStreamInformation openStreamInformation =
+        OpenStreamInformation.builder()
+            .streamAuditContext(
+                StreamAuditContext.builder().spanId("12345").operationName("op_open").build())
+            .build();
 
     GetRequest getRequest =
         GetRequest.builder()
@@ -231,7 +264,7 @@ public class S3SdkObjectClientTest {
             .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
             .build();
 
-    client.getObject(getRequest, mockStreamContext);
+    client.getObject(getRequest, openStreamInformation);
 
     ArgumentCaptor<GetObjectRequest> requestCaptor =
         ArgumentCaptor.forClass(GetObjectRequest.class);
@@ -245,26 +278,40 @@ public class S3SdkObjectClientTest {
 
     GetObjectRequest capturedRequest = requestCaptor.getValue();
     assertEquals(
-        "audit-referrer-value",
-        capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
-    assertEquals(ETAG, capturedRequest.ifMatch());
+        "12345",
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(SPAN_ID));
+    assertEquals(
+        "op_open",
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(OPERATION_NAME));
   }
 
   @Test
-  void testGetObjectWithoutAuditHeaders() {
+  void testGetObjectDoesNotAttachExecutionAttributesWhenNotSet() {
     S3AsyncClient mockS3AsyncClient = createMockClient();
 
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    OpenStreamInformation openStreamInformation = OpenStreamInformation.DEFAULT;
 
     GetRequest getRequest =
         GetRequest.builder()
             .s3Uri(S3URI.of("bucket", "key"))
             .range(new Range(0, 20))
             .etag(ETAG)
-            .referrer(new Referrer("original-referrer", ReadMode.SYNC))
+            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
             .build();
 
-    client.getObject(getRequest, null);
+    client.getObject(getRequest, openStreamInformation);
 
     ArgumentCaptor<GetObjectRequest> requestCaptor =
         ArgumentCaptor.forClass(GetObjectRequest.class);
@@ -278,20 +325,95 @@ public class S3SdkObjectClientTest {
 
     GetObjectRequest capturedRequest = requestCaptor.getValue();
     assertEquals(
-        "original-referrer,readMode=SYNC",
-        capturedRequest.overrideConfiguration().get().headers().get(HEADER_REFERER).get(0));
-
-    assertEquals(ETAG, capturedRequest.ifMatch());
+        null,
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(SPAN_ID));
+    assertEquals(
+        null,
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(OPERATION_NAME));
   }
 
   @Test
-  void testObjectClientClose() {
-    try (S3AsyncClient s3AsyncClient = createMockClient()) {
-      try (S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient)) {
-        client.headObject(HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build());
-      }
-      verify(s3AsyncClient, times(1)).close();
-    }
+  void testHeadObjectAttachesExecutionAttributes() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    OpenStreamInformation openStreamInformation =
+        OpenStreamInformation.builder()
+            .streamAuditContext(
+                StreamAuditContext.builder().spanId("12345").operationName("op_open").build())
+            .build();
+
+    HeadRequest headRequest = HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build();
+
+    client.headObject(headRequest, openStreamInformation);
+
+    ArgumentCaptor<HeadObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(mockS3AsyncClient).headObject(requestCaptor.capture());
+
+    HeadObjectRequest capturedRequest = requestCaptor.getValue();
+    assertEquals(
+        "12345",
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(SPAN_ID));
+    assertEquals(
+        "op_open",
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(OPERATION_NAME));
+  }
+
+  @Test
+  void testHeadObjectDoesNotAttachExecutionAttributesWhenNotSet() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    OpenStreamInformation openStreamInformation = OpenStreamInformation.DEFAULT;
+
+    HeadRequest headRequest = HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build();
+
+    client.headObject(headRequest, openStreamInformation);
+
+    ArgumentCaptor<HeadObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(mockS3AsyncClient).headObject(requestCaptor.capture());
+
+    HeadObjectRequest capturedRequest = requestCaptor.getValue();
+    assertEquals(
+        null,
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(SPAN_ID));
+    assertEquals(
+        null,
+        capturedRequest
+            .overrideConfiguration()
+            .get()
+            .executionAttributes()
+            .getAttributes()
+            .get(OPERATION_NAME));
   }
 
   @SuppressWarnings("unchecked")
@@ -305,7 +427,8 @@ public class S3SdkObjectClientTest {
     S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
 
     HeadRequest headRequest = HeadRequest.builder().s3Uri(TEST_URI).build();
-    CompletableFuture<ObjectMetadata> future = client.headObject(headRequest);
+    CompletableFuture<ObjectMetadata> future =
+        client.headObject(headRequest, OpenStreamInformation.DEFAULT);
     assertObjectClientExceptions(exception, future);
   }
 
@@ -329,7 +452,8 @@ public class S3SdkObjectClientTest {
             .range(new Range(0, 20))
             .referrer(new Referrer("original-referrer", ReadMode.SYNC))
             .build();
-    CompletableFuture<ObjectContent> future = client.getObject(getRequest);
+    CompletableFuture<ObjectContent> future =
+        client.getObject(getRequest, OpenStreamInformation.DEFAULT);
     assertObjectClientExceptions(exception, future);
   }
 
@@ -399,5 +523,233 @@ public class S3SdkObjectClientTest {
 
   private static Exception[] exceptions() {
     return ExceptionHandler.getSampleExceptions();
+  }
+
+  @Test
+  void testGetObjectWithEncryption() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    // Create encryption secrets
+    String base64Key =
+        Base64.getEncoder()
+            .encodeToString("32-bytes-long-key-for-testing-123".getBytes(StandardCharsets.UTF_8));
+    EncryptionSecrets secrets =
+        EncryptionSecrets.builder().sseCustomerKey(Optional.of(base64Key)).build();
+
+    // Create OpenStreamInformation with encryption
+    OpenStreamInformation openStreamInformation =
+        OpenStreamInformation.builder().encryptionSecrets(secrets).build();
+
+    GetRequest getRequest =
+        GetRequest.builder()
+            .s3Uri(S3URI.of("bucket", "key"))
+            .range(new Range(0, 20))
+            .etag(ETAG)
+            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
+            .build();
+
+    client.getObject(getRequest, openStreamInformation);
+
+    // Verify the encryption parameters
+    ArgumentCaptor<GetObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(GetObjectRequest.class);
+    verify(mockS3AsyncClient)
+        .getObject(
+            requestCaptor.capture(),
+            ArgumentMatchers
+                .<AsyncResponseTransformer<
+                        GetObjectResponse, ResponseInputStream<GetObjectResponse>>>
+                    any());
+
+    GetObjectRequest capturedRequest = requestCaptor.getValue();
+    assertEquals(ServerSideEncryption.AES256.name(), capturedRequest.sseCustomerAlgorithm());
+    assertEquals(base64Key, capturedRequest.sseCustomerKey());
+    assertNotNull(capturedRequest.sseCustomerKeyMD5());
+  }
+
+  @Test
+  void testHeadObjectWithEncryption() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    // Create encryption secrets
+    String base64Key =
+        Base64.getEncoder()
+            .encodeToString("32-bytes-long-key-for-testing-123".getBytes(StandardCharsets.UTF_8));
+    EncryptionSecrets secrets =
+        EncryptionSecrets.builder().sseCustomerKey(Optional.of(base64Key)).build();
+
+    // Create OpenStreamInformation with encryption
+    OpenStreamInformation openStreamInformation =
+        OpenStreamInformation.builder().encryptionSecrets(secrets).build();
+
+    HeadRequest headRequest = HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build();
+
+    client.headObject(headRequest, openStreamInformation);
+
+    // Verify the encryption parameters
+    ArgumentCaptor<HeadObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(mockS3AsyncClient).headObject(requestCaptor.capture());
+
+    HeadObjectRequest capturedRequest = requestCaptor.getValue();
+    assertEquals(ServerSideEncryption.AES256.name(), capturedRequest.sseCustomerAlgorithm());
+    assertEquals(base64Key, capturedRequest.sseCustomerKey());
+    assertNotNull(capturedRequest.sseCustomerKeyMD5());
+  }
+
+  @Test
+  void testGetObjectWithoutEncryption() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    OpenStreamInformation openStreamInformation = OpenStreamInformation.builder().build();
+
+    GetRequest getRequest =
+        GetRequest.builder()
+            .s3Uri(S3URI.of("bucket", "key"))
+            .range(new Range(0, 20))
+            .etag(ETAG)
+            .referrer(new Referrer("bytes=0-20", ReadMode.SYNC))
+            .build();
+
+    client.getObject(getRequest, openStreamInformation);
+
+    ArgumentCaptor<GetObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(GetObjectRequest.class);
+    verify(mockS3AsyncClient)
+        .getObject(
+            requestCaptor.capture(),
+            ArgumentMatchers
+                .<AsyncResponseTransformer<
+                        GetObjectResponse, ResponseInputStream<GetObjectResponse>>>
+                    any());
+
+    GetObjectRequest capturedRequest = requestCaptor.getValue();
+    assertNull(capturedRequest.sseCustomerAlgorithm());
+    assertNull(capturedRequest.sseCustomerKey());
+    assertNull(capturedRequest.sseCustomerKeyMD5());
+  }
+
+  @Test
+  void testHeadObjectWithoutEncryption() {
+    S3AsyncClient mockS3AsyncClient = createMockClient();
+    S3SdkObjectClient client = new S3SdkObjectClient(mockS3AsyncClient);
+
+    OpenStreamInformation openStreamInformation = OpenStreamInformation.builder().build();
+
+    HeadRequest headRequest = HeadRequest.builder().s3Uri(S3URI.of("bucket", "key")).build();
+
+    client.headObject(headRequest, openStreamInformation);
+
+    ArgumentCaptor<HeadObjectRequest> requestCaptor =
+        ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(mockS3AsyncClient).headObject(requestCaptor.capture());
+
+    HeadObjectRequest capturedRequest = requestCaptor.getValue();
+    assertNull(capturedRequest.sseCustomerAlgorithm());
+    assertNull(capturedRequest.sseCustomerKey());
+    assertNull(capturedRequest.sseCustomerKeyMD5());
+  }
+
+  @Test
+  void testCustomUserAgentWithNullServiceConfiguration() {
+    S3AsyncClient s3AsyncClient = createMockClientForUserAgent(null);
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+
+    client
+        .headObject(HeadRequest.builder().s3Uri(TEST_URI).build(), OpenStreamInformation.DEFAULT)
+        .join();
+
+    ArgumentCaptor<HeadObjectRequest> captor = ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3AsyncClient).headObject(captor.capture());
+    assertTrue(captor.getValue().overrideConfiguration().isPresent());
+    String userAgent =
+        captor.getValue().overrideConfiguration().get().headers().get(USER_AGENT_HEADER).get(0);
+    assertTrue(userAgent.contains(AAL_USER_AGENT));
+  }
+
+  @Test
+  void testCustomUserAgentWithNullOverrideConfiguration() {
+    S3ServiceClientConfiguration serviceConfig = S3ServiceClientConfiguration.builder().build();
+
+    S3AsyncClient s3AsyncClient = createMockClientForUserAgent(serviceConfig);
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+
+    client
+        .headObject(HeadRequest.builder().s3Uri(TEST_URI).build(), OpenStreamInformation.DEFAULT)
+        .join();
+
+    ArgumentCaptor<HeadObjectRequest> captor = ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3AsyncClient).headObject(captor.capture());
+    assertTrue(captor.getValue().overrideConfiguration().isPresent());
+    String userAgent =
+        captor.getValue().overrideConfiguration().get().headers().get(USER_AGENT_HEADER).get(0);
+    assertTrue(userAgent.contains(AAL_USER_AGENT));
+  }
+
+  @Test
+  void testCustomUserAgentWithEmptyUserAgent() {
+    ClientOverrideConfiguration clientOverrideConfig =
+        ClientOverrideConfiguration.builder()
+            .putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, "")
+            .build();
+
+    S3ServiceClientConfiguration serviceConfig =
+        S3ServiceClientConfiguration.builder().overrideConfiguration(clientOverrideConfig).build();
+
+    S3AsyncClient s3AsyncClient = createMockClientForUserAgent(serviceConfig);
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+
+    client
+        .headObject(HeadRequest.builder().s3Uri(TEST_URI).build(), OpenStreamInformation.DEFAULT)
+        .join();
+
+    ArgumentCaptor<HeadObjectRequest> captor = ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3AsyncClient).headObject(captor.capture());
+    assertTrue(captor.getValue().overrideConfiguration().isPresent());
+    String userAgent =
+        captor.getValue().overrideConfiguration().get().headers().get(USER_AGENT_HEADER).get(0);
+    assertTrue(userAgent.contains(AAL_USER_AGENT));
+  }
+
+  @Test
+  void testCustomUserAgentWithCustomValue() {
+
+    ClientOverrideConfiguration clientOverrideConfig =
+        ClientOverrideConfiguration.builder()
+            .putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, "custom-agent")
+            .build();
+
+    S3ServiceClientConfiguration serviceConfig =
+        S3ServiceClientConfiguration.builder().overrideConfiguration(clientOverrideConfig).build();
+
+    S3AsyncClient s3AsyncClient = createMockClientForUserAgent(serviceConfig);
+    S3SdkObjectClient client = new S3SdkObjectClient(s3AsyncClient);
+
+    client
+        .headObject(HeadRequest.builder().s3Uri(TEST_URI).build(), OpenStreamInformation.DEFAULT)
+        .join();
+
+    ArgumentCaptor<HeadObjectRequest> captor = ArgumentCaptor.forClass(HeadObjectRequest.class);
+    verify(s3AsyncClient).headObject(captor.capture());
+    assertTrue(captor.getValue().overrideConfiguration().isPresent());
+    String userAgent =
+        captor.getValue().overrideConfiguration().get().headers().get(USER_AGENT_HEADER).get(0);
+    assertTrue(userAgent.contains("custom-agent"));
+    assertTrue(userAgent.contains(AAL_USER_AGENT));
+  }
+
+  private S3AsyncClient createMockClientForUserAgent(S3ServiceClientConfiguration serviceConfig) {
+    S3AsyncClient s3AsyncClient = mock(S3AsyncClient.class);
+    when(s3AsyncClient.serviceClientConfiguration()).thenReturn(serviceConfig);
+
+    HeadObjectResponse response =
+        HeadObjectResponse.builder().contentLength(42L).eTag(ETAG).build();
+    when(s3AsyncClient.headObject(any(HeadObjectRequest.class)))
+        .thenReturn(CompletableFuture.completedFuture(response));
+
+    return s3AsyncClient;
   }
 }

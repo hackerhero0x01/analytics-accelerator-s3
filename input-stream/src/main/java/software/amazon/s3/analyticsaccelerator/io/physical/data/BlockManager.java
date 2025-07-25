@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
@@ -32,11 +34,7 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
-import software.amazon.s3.analyticsaccelerator.util.BlockMetricsHandler;
-import software.amazon.s3.analyticsaccelerator.util.MetricKey;
-import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
-import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
+import software.amazon.s3.analyticsaccelerator.util.*;
 
 /** Implements a Block Manager responsible for planning and scheduling reads on a key. */
 public class BlockManager implements Closeable {
@@ -50,30 +48,12 @@ public class BlockManager implements Closeable {
   private final IOPlanner ioPlanner;
   private final PhysicalIOConfiguration configuration;
   private final RangeOptimiser rangeOptimiser;
-  private StreamContext streamContext;
-  private final Metrics blobMetrics;
-  private final BlockMetricsHandler metricsHandler;
+  private OpenStreamInformation openStreamInformation;
+  private final Metrics aggregatingMetrics;
+  private final BlobStoreIndexCache indexCache;
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
-  /**
-   * Constructs a new BlockManager.
-   *
-   * @param objectKey the etag and S3 URI of the object
-   * @param objectClient object client capable of interacting with the underlying object store
-   * @param telemetry an instance of {@link Telemetry} to use
-   * @param metadata the metadata for the object we are reading
-   * @param aggregatingMetrics factory metrics
-   * @param configuration the physicalIO configuration
-   */
-  public BlockManager(
-      @NonNull ObjectKey objectKey,
-      @NonNull ObjectClient objectClient,
-      @NonNull ObjectMetadata metadata,
-      @NonNull Telemetry telemetry,
-      @NonNull PhysicalIOConfiguration configuration,
-      @NonNull Metrics aggregatingMetrics) {
-    this(objectKey, objectClient, metadata, telemetry, configuration, aggregatingMetrics, null);
-  }
+  private static final Logger LOG = LoggerFactory.getLogger(BlockManager.class);
 
   /**
    * Constructs a new BlockManager.
@@ -84,7 +64,8 @@ public class BlockManager implements Closeable {
    * @param metadata the metadata for the object
    * @param configuration the physicalIO configuration
    * @param aggregatingMetrics factory metrics
-   * @param streamContext contains audit headers to be attached in the request header
+   * @param indexCache blobstore index cache
+   * @param openStreamInformation contains stream information
    */
   public BlockManager(
       @NonNull ObjectKey objectKey,
@@ -93,29 +74,42 @@ public class BlockManager implements Closeable {
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
       @NonNull Metrics aggregatingMetrics,
-      StreamContext streamContext) {
+      @NonNull BlobStoreIndexCache indexCache,
+      @NonNull OpenStreamInformation openStreamInformation) {
     this.objectKey = objectKey;
     this.objectClient = objectClient;
     this.metadata = metadata;
     this.telemetry = telemetry;
     this.configuration = configuration;
-    this.blobMetrics = new Metrics();
-    this.metricsHandler = new BlockMetricsHandler(blobMetrics, aggregatingMetrics);
-    this.blockStore = new BlockStore(objectKey, metadata, metricsHandler);
+    this.aggregatingMetrics = aggregatingMetrics;
+    this.indexCache = indexCache;
+    this.blockStore = new BlockStore(objectKey, metadata, aggregatingMetrics, indexCache);
     this.patternDetector = new SequentialPatternDetector(blockStore);
     this.sequentialReadProgression = new SequentialReadProgression(configuration);
     this.ioPlanner = new IOPlanner(blockStore);
     this.rangeOptimiser = new RangeOptimiser(configuration);
-    this.streamContext = streamContext;
+    this.openStreamInformation = openStreamInformation;
+
+    prefetchSmallObject();
   }
 
   /**
-   * Returns the memory used by the blob.
-   *
-   * @return the memory used by the blob
+   * Initializes the BlockManager with small object prefetching if applicable. This is done
+   * asynchronously to avoid blocking the constructor.
    */
-  public long getMemoryUsageOfBlob() {
-    return blobMetrics.get(MetricKey.MEMORY_USAGE);
+  private void prefetchSmallObject() {
+    if (AnalyticsAcceleratorUtils.isSmallObject(configuration, metadata.getContentLength())) {
+      try {
+        makeRangeAvailable(0, metadata.getContentLength(), ReadMode.SMALL_OBJECT_PREFETCH);
+      } catch (IOException e) {
+        LOG.debug("Failed to prefetch small object for key: {}", objectKey.getS3URI().getKey(), e);
+      }
+    }
+  }
+
+  /** @return true if blockstore is empty */
+  public boolean isBlockStoreEmpty() {
+    return blockStore.isBlockStoreEmpty();
   }
 
   /**
@@ -184,12 +178,8 @@ public class BlockManager implements Closeable {
     // effectiveEnd of the requested range
     long effectiveEnd = pos + Math.max(len, configuration.getReadAheadBytes()) - 1;
 
-    // Check sequential prefetching. If read mode is ASYNC, that is the request is from the parquet
-    // prefetch path, then do not extend the request.
-    // TODO: Improve readModes, as tracked in
-    // https://github.com/awslabs/analytics-accelerator-s3/issues/195
     final long generation;
-    if (readMode != ReadMode.ASYNC && patternDetector.isSequentialRead(pos)) {
+    if (readMode.allowRequestExtension() && patternDetector.isSequentialRead(pos)) {
       generation = patternDetector.getGeneration(pos);
       effectiveEnd =
           Math.max(
@@ -217,22 +207,27 @@ public class BlockManager implements Closeable {
               ioPlanner.planRead(pos, effectiveEndFinal, getLastObjectByte());
           List<Range> splits = rangeOptimiser.splitRanges(missingRanges);
           for (Range r : splits) {
+            BlockKey blockKey = new BlockKey(objectKey, r);
             Block block =
                 new Block(
-                    objectKey,
+                    blockKey,
                     objectClient,
                     telemetry,
-                    r.getStart(),
-                    r.getEnd(),
                     generation,
                     readMode,
                     this.configuration.getBlockReadTimeout(),
                     this.configuration.getBlockReadRetryCount(),
-                    metricsHandler,
-                    streamContext);
-            blockStore.add(block);
+                    aggregatingMetrics,
+                    indexCache,
+                    openStreamInformation);
+            blockStore.add(blockKey, block);
           }
         });
+  }
+
+  /** cleans data from memory */
+  public void cleanUp() {
+    blockStore.cleanUp();
   }
 
   private long getLastObjectByte() {

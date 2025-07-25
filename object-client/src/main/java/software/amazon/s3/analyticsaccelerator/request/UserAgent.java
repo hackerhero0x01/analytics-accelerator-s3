@@ -24,7 +24,7 @@ public final class UserAgent {
   // Hard-coded user-agent string
   private static final String UA_STRING = "s3analyticsaccelerator";
 
-  private static final String VERSION_INFO = "1.0.0";
+  private static final String VERSION_INFO = "1.2.1";
   /**
    * Disallowed characters in the user agent token: @see <a
    * href="https://tools.ietf.org/html/rfc7230#section-3.2.6">RFC 7230</a>
@@ -39,11 +39,13 @@ public final class UserAgent {
    * @param userAgentPrefix to prepend the default user-agent string
    */
   public void prepend(String userAgentPrefix) {
-    if (Objects.nonNull(userAgentPrefix))
+    if (Objects.nonNull(userAgentPrefix) && !userAgentPrefix.trim().isEmpty()) {
       this.userAgent = sanitizeInput(userAgentPrefix) + " " + this.userAgent;
+    }
   }
 
   private static String sanitizeInput(String input) {
-    return input == null ? "unknown" : input.replaceAll(UA_DENYLIST_REGEX, "_");
+    if (Objects.isNull(input)) return "unknown";
+    return input.trim().replaceAll(UA_DENYLIST_REGEX, "_");
   }
 }

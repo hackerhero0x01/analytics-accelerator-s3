@@ -41,6 +41,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 @SuppressFBWarnings(
@@ -198,6 +199,19 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
   }
 
   @Test
+  void testNullRangeList() throws IOException {
+    try (S3SeekableInputStream stream = getTestStream()) {
+      assertThrows(
+          NullPointerException.class,
+          () -> stream.readVectored(null, ByteBuffer::allocate, (buffer) -> {}));
+
+      assertThrows(
+          NullPointerException.class,
+          () -> stream.readVectored(new ArrayList<>(), null, (buffer) -> {}));
+    }
+  }
+
+  @Test
   void testReadWithBuffer() throws IOException {
     try (S3SeekableInputStream stream = getTestStream()) {
 
@@ -350,7 +364,11 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
     FakeObjectClient fakeObjectClient = new FakeObjectClient(sb.toString());
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     BlobStore blobStore =
         new BlobStore(
             fakeObjectClient,
@@ -368,7 +386,13 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
               () -> {
                 try {
                   PhysicalIO physicalIO =
-                      new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+                      new PhysicalIOImpl(
+                          s3URI,
+                          metadataStore,
+                          blobStore,
+                          TestTelemetry.DEFAULT,
+                          OpenStreamInformation.DEFAULT,
+                          executorService);
                   LogicalIO logicalIO =
                       new ParquetLogicalIOImpl(
                           TEST_OBJECT,
@@ -441,6 +465,99 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
         IndexOutOfBoundsException.class, () -> seekableInputStream.readTail(new byte[0], 0, 8), -1);
     SpotBugsLambdaWorkaround.assertReadResult(
         IndexOutOfBoundsException.class, () -> seekableInputStream.readTail(new byte[0], 0, 8), -1);
+    assertThrows(
+        IndexOutOfBoundsException.class, () -> seekableInputStream.readFully(0, new byte[0], 0, 8));
+  }
+
+  @Test
+  void testReadFullyWithInvalidArgument() throws IOException {
+    // Given: seekable stream
+    try (S3SeekableInputStream stream = getTestStream()) {
+      // When & Then: reading with invalid arguments, exception is thrown
+      // -1 is invalid position
+      assertThrows(IllegalArgumentException.class, () -> stream.readFully(-1, new byte[10], 0, 5));
+      // -1 is invalid length
+      assertThrows(IllegalArgumentException.class, () -> stream.readFully(0, new byte[10], 0, -1));
+      // Requesting more data than byte buffer size
+      assertThrows(IndexOutOfBoundsException.class, () -> stream.readFully(0, new byte[5], 0, 10));
+    }
+  }
+
+  @Test
+  void testReadFullyHappyCase() throws IOException {
+    // Given: seekable stream
+    try (S3SeekableInputStream stream = getTestStream()) {
+      // When: reading 5 bytes from position 3
+      byte[] buf = new byte[5];
+      stream.readFully(3, buf, 0, 5);
+
+      // Then: buffer contains the expected 5 bytes from position 3
+      byte[] expected = TEST_DATA.substring(3, 8).getBytes(StandardCharsets.UTF_8);
+      assertArrayEquals(expected, buf);
+
+      // Position should remain unchanged after readFully
+      assertEquals(0, stream.getPos());
+    }
+  }
+
+  @Test
+  void testReadFullyDoesNotAlterPosition() throws IOException {
+    // Given: seekable stream with data "test-data12345678910"
+    try (S3SeekableInputStream stream = getTestStream()) {
+      // When:
+      // 1) Reading first 5 bytes from position 0 (should be "test-")
+      // 2) Reading 5 bytes from position 10 using readFully (should be "23456")
+      // 3) Reading next 5 bytes from current position (should be "data1")
+      byte[] one = new byte[5];
+      byte[] two = new byte[5];
+      byte[] three = new byte[5];
+
+      int numBytesRead1 = stream.read(one, 0, one.length);
+      stream.readFully(10, two, 0, two.length);
+      int numBytesRead3 = stream.read(three, 0, three.length);
+
+      // Then: readFully did not alter the position and reads #1 and #3 return subsequent bytes
+      // First read should return 5 bytes
+      assertEquals(5, numBytesRead1);
+      // Third read should also return 5 bytes, continuing from where first read left off
+      assertEquals(5, numBytesRead3);
+
+      // Verify the actual content of each buffer
+      assertEquals("test-", new String(one, StandardCharsets.UTF_8));
+      assertEquals("data1", new String(three, StandardCharsets.UTF_8));
+      assertEquals("23456", new String(two, StandardCharsets.UTF_8));
+
+      // Verify the stream position is at 10 (5 + 5) after all reads
+      assertEquals(10, stream.getPos());
+    }
+  }
+
+  @Test
+  public void testReadFullyOnClosedStream() throws IOException {
+    S3SeekableInputStream seekableInputStream = getTestStream();
+    seekableInputStream.close();
+    assertThrows(IOException.class, () -> seekableInputStream.readFully(0, new byte[8], 0, 8));
+  }
+
+  @Test
+  public void testZeroLengthReadFully() throws IOException {
+    S3SeekableInputStream seekableInputStream = getTestStream();
+    assertDoesNotThrow(() -> seekableInputStream.readFully(0, new byte[0], 0, 0));
+  }
+
+  @Test
+  void testReadFullyThrowsWhenInsufficientBytes() throws IOException {
+    // Given: seekable stream with TEST_DATA (20 bytes)
+    try (S3SeekableInputStream stream = getTestStream()) {
+      // When & Then: trying to read beyond available data should throw IOException
+      byte[] buffer = new byte[10];
+
+      // Try to read 10 bytes starting at position 15 (only 5 bytes available)
+      assertThrows(IOException.class, () -> stream.readFully(15, buffer, 0, 10));
+
+      // Verify stream position remains unchanged after failed readFully
+      assertEquals(0, stream.getPos());
+    }
   }
 
   private S3SeekableInputStream getTestStream() {
@@ -451,7 +568,11 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
       throws IOException {
     FakeObjectClient fakeObjectClient = new FakeObjectClient(content);
     MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     BlobStore blobStore =
         new BlobStore(
             fakeObjectClient,
@@ -463,7 +584,13 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
         s3URI,
         new ParquetLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT),
+            new PhysicalIOImpl(
+                s3URI,
+                metadataStore,
+                blobStore,
+                TestTelemetry.DEFAULT,
+                OpenStreamInformation.DEFAULT,
+                executorService),
             TestTelemetry.DEFAULT,
             LogicalIOConfiguration.DEFAULT,
             new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)),

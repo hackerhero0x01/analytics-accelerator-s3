@@ -10,14 +10,14 @@ import com.github.jk1.license.render.TextReportRenderer
 
 val group = "software.amazon.s3.analyticsaccelerator"
 val artefact = "analyticsaccelerator-s3"
-val currentVersionNumber = "1.0.0"
+val currentVersionNumber = "1.2.1"
 
 val isSnapshot = findProperty("snapshotBuild") == "true"
 val currentVersion = if (isSnapshot) "SNAPSHOT" else currentVersionNumber;
 
 plugins {
     id("buildlogic.java-library-conventions")
-    id("io.freefair.lombok") version "8.10.2"
+    id("io.freefair.lombok") version "8.14"
     id("me.champeau.jmh") version "0.7.2"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("io.morethan.jmhreport") version "0.9.6"
@@ -63,8 +63,9 @@ val integrationTestImplementation by configurations.getting {
     extendsFrom(configurations.testImplementation.get())
 }
 
-val integrationTestRuntimeOnly by configurations.getting
-configurations["referenceTestRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
+val integrationTestRuntimeOnly by configurations.getting {
+    extendsFrom(configurations.runtimeOnly.get())
+}
 
 dependencies {
     api(project(":object-client"))
@@ -72,6 +73,7 @@ dependencies {
     implementation(project(":common"))
     implementation(libs.parquet.format)
     implementation(libs.slf4j.api)
+    implementation(libs.caffeine)
 
     jmhImplementation(libs.s3)
     jmhImplementation(libs.s3.transfer.manager)
@@ -97,6 +99,8 @@ dependencies {
     referenceTestImplementation(libs.jqwik.testcontainers)
     referenceTestImplementation(libs.testcontainers)
     referenceTestRuntimeOnly(libs.junit.jupiter.launcher)
+
+    integrationTestRuntimeOnly(libs.junit.jupiter.launcher)
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -137,6 +141,10 @@ val shadowJar = tasks.withType<ShadowJar> {
         exclude(dependency("org.apache.httpcomponents:"))
         exclude(dependency("commons-codec:"))
         exclude(dependency("commons-logging:"))
+        exclude(dependency("com.google.errorprone:"))
+        exclude(dependency("org.checkerframework:"))
+        exclude(dependency("com.google.guava:"))
+
         exclude {
             it.moduleGroup.startsWith("software.amazon.awssdk", 0) ||
                     it.moduleGroup.startsWith("software.amazon.eventstream", 0)
@@ -145,6 +153,11 @@ val shadowJar = tasks.withType<ShadowJar> {
 
     relocate("org.apache.parquet.format", "software.amazon.s3.shaded.apache.parquet.format")
     relocate("shaded.parquet.org.apache.thrift", "software.amazon.s3.shaded.parquet.org.apache.thrift")
+    relocate("com.github.benmanes.caffeine", "software.amazon.s3.shaded.com.github.benmanes.caffeine")
+    relocate("org.checkerframework", "software.amazon.s3.shaded.org.checkerframework")
+    relocate("com.google.errorprone", "software.amazon.s3.shaded.com.google.errorprone")
+    relocate("com.google.guava", "software.amazon.s3.shaded.com.google.guava")
+    relocate("dev.failsafe", "software.amazon.s3.shaded.dev.failsafe" )
 }
 
 val refTest = task<Test>("referenceTest") {
@@ -290,19 +303,25 @@ tasks.register<Jar>("customJavadocJar") {
 
 
 tasks.javadoc {
-
+    dependsOn(tasks.delombok)
     // Include sources from subprojects
     val includedProjects = listOf(":common", ":object-client")
     includedProjects.forEach { projectPath ->
         val subproject = project(projectPath)
-        source(subproject.sourceSets.main.get().allJava)
+        dependsOn("$projectPath:delombok")
+        source += fileTree(subproject.layout.buildDirectory.dir("generated/sources/delombok"))
         classpath += subproject.sourceSets.main.get().compileClasspath
         classpath += subproject.sourceSets.main.get().output
     }
 
     // Include only specific classes from common module
-    include("**/ObjectMetadata.java")
-    include("**/ObjectContent.java")
+    include("**/ObjectClient.java")
+    include("**/ObjectMetadata*.java")
+
+    include("**/retry/DefaultRetryStrategyImpl.java")
+    include("**/retry/RetryPolicy.java")
+    include("**/retry/RetryPolicyBuilder.java")
+    include("**/retry/RetryStrategy.java")
 
     include("**/ConnectorConfiguration.java")
     include("**/S3URI.java")
@@ -322,7 +341,6 @@ tasks.javadoc {
     include("**/S3SeekableInputStreamConfiguration.java")
     include("**/S3SeekableInputStreamFactory.java")
     include("**/PrefetchMode.java")
-
     options {
         (this as StandardJavadocDocletOptions).apply {
             addStringOption("Xdoclint:none", "-quiet")
@@ -374,7 +392,7 @@ publishing {
     repositories {
         maven {
             name = "sonatype"
-            url = uri("https://aws.oss.sonatype.org/service/local/staging/deploy/maven2/")
+            url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
            credentials {
                username = findProperty("mavenUsername") as String? ?: ""
                password = findProperty("mavenPassword") as String? ?: ""

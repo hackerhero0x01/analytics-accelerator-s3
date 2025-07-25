@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,24 @@ public class Blob implements Closeable {
   private final BlockManager blockManager;
   private final ObjectMetadata metadata;
   private final Telemetry telemetry;
+
+  /**
+   * The ReentrantReadWriteLock manages concurrent access between read operations and eviction:<br>
+   *
+   * <p>Read Lock (used in read() and read(byte[], int, int, long) methods):<br>
+   * - Prevents block eviction while reading is in progress<br>
+   * - Multiple threads can concurrently read data<br>
+   * - Ensures blocks being read cannot be evicted<br>
+   *
+   * <p>Write Lock (used in asyncCleanup()):<br>
+   * - Exclusive lock used during block eviction/cleanup<br>
+   * - Blocks any ongoing reads during cleanup<br>
+   * - Ensures no threads are reading blocks while they're being evicted<br>
+   *
+   * <p>This locking strategy ensures that blocks aren't evicted while being read, while still
+   * allowing new blocks to be read concurrently.
+   */
+  private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
   /**
    * Construct a new Blob.
@@ -71,18 +90,14 @@ public class Blob implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(pos >= 0, "`pos` must be non-negative");
-    blockManager.makePositionAvailable(pos, ReadMode.SYNC);
-    return blockManager.getBlock(pos).get().read(pos);
-  }
 
-  /**
-   * Returns the memory used by the blob
-   *
-   * @return the memory used by the blob
-   */
-  public long getMemoryUsageOfBlob() {
-
-    return blockManager.getMemoryUsageOfBlob();
+    try {
+      lock.readLock().lock();
+      blockManager.makePositionAvailable(pos, ReadMode.SYNC);
+      return blockManager.getBlock(pos).get().read(pos);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   /**
@@ -102,43 +117,48 @@ public class Blob implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
+    try {
+      lock.readLock().lock();
+      blockManager.makeRangeAvailable(pos, len, ReadMode.SYNC);
 
-    long nextPosition = pos;
-    int numBytesRead = 0;
+      long nextPosition = pos;
+      int numBytesRead = 0;
 
-    while (numBytesRead < len && nextPosition < contentLength()) {
-      final long nextPositionFinal = nextPosition;
-      Block nextBlock =
-          blockManager
-              .getBlock(nextPosition)
-              .orElseThrow(
-                  () ->
-                      new IllegalStateException(
-                          String.format(
-                              "This block (for position %s) should have been available.",
-                              nextPositionFinal)));
+      while (numBytesRead < len && nextPosition < contentLength()) {
+        final long nextPositionFinal = nextPosition;
+        Block nextBlock =
+            blockManager
+                .getBlock(nextPosition)
+                .orElseThrow(
+                    () ->
+                        new IllegalStateException(
+                            String.format(
+                                "This block object key %s (for position %s) should have been available.",
+                                objectKey.getS3URI().toString(), nextPositionFinal)));
 
-      int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
+        int bytesRead = nextBlock.read(buf, off + numBytesRead, len - numBytesRead, nextPosition);
 
-      if (bytesRead == -1) {
-        return numBytesRead;
+        if (bytesRead == -1) {
+          return numBytesRead;
+        }
+        numBytesRead = numBytesRead + bytesRead;
+        nextPosition += bytesRead;
       }
 
-      numBytesRead = numBytesRead + bytesRead;
-      nextPosition += bytesRead;
+      return numBytesRead;
+    } finally {
+      lock.readLock().unlock();
     }
-
-    return numBytesRead;
   }
 
   /**
    * Execute an IOPlan.
    *
    * @param plan the IOPlan to execute
+   * @param readMode the readMode for which this IoPlan is being executed
    * @return the status of execution
    */
-  public IOPlanExecution execute(IOPlan plan) {
+  public IOPlanExecution execute(IOPlan plan, ReadMode readMode) throws IOException {
     return telemetry.measureStandard(
         () ->
             Operation.builder()
@@ -150,8 +170,7 @@ public class Blob implements Closeable {
         () -> {
           try {
             for (Range range : plan.getPrefetchRanges()) {
-              this.blockManager.makeRangeAvailable(
-                  range.getStart(), range.getLength(), ReadMode.ASYNC);
+              this.blockManager.makeRangeAvailable(range.getStart(), range.getLength(), readMode);
             }
 
             return IOPlanExecution.builder().state(IOPlanState.SUBMITTED).build();
@@ -160,6 +179,19 @@ public class Blob implements Closeable {
             return IOPlanExecution.builder().state(IOPlanState.FAILED).build();
           }
         });
+  }
+
+  /** clean up blob */
+  public final void asyncCleanup() {
+    if (blockManager.isBlockStoreEmpty()) {
+      return;
+    }
+    try {
+      lock.writeLock().lock();
+      blockManager.cleanUp();
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
   private long contentLength() {

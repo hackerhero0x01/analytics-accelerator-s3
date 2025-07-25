@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import net.jqwik.api.Example;
@@ -47,6 +49,7 @@ import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
 import software.amazon.s3.analyticsaccelerator.arbitraries.StreamArbitraries;
+import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
 import software.amazon.s3.analyticsaccelerator.model.InMemorySeekableStream;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -72,14 +75,31 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
   static void setup() {
     s3Client = createS3ClientV2(S3_MOCK.getHttpsEndpoint());
     // Initialise streams
+    Map<String, String> configMap = new HashMap<>();
+
+    configMap.put("physicalio.max.memory.limit", getMemoryCapacity());
+    configMap.put("physicalio.memory.cleanup.frequency", "1");
+
+    ConnectorConfiguration connectorConfig = new ConnectorConfiguration(configMap);
+    S3SeekableInputStreamConfiguration config =
+        S3SeekableInputStreamConfiguration.fromConfiguration(connectorConfig);
+
     s3SeekableInputStreamFactory =
-        new S3SeekableInputStreamFactory(
-            new S3SdkObjectClient(s3Client), S3SeekableInputStreamConfiguration.DEFAULT);
+        new S3SeekableInputStreamFactory(new S3SdkObjectClient(s3Client), config);
   }
 
   @AfterContainer
   static void teardown() throws IOException {
-    s3SeekableInputStreamFactory.close();
+    if (s3SeekableInputStreamFactory != null) {
+      s3SeekableInputStreamFactory.close();
+    }
+  }
+
+  private static String getMemoryCapacity() {
+    long maxHeapBytes = Runtime.getRuntime().maxMemory();
+    double percentage = 0.01;
+    long capacityBytes = (long) (maxHeapBytes * percentage);
+    return String.valueOf(capacityBytes);
   }
 
   void setupStreams(int size) throws IOException {

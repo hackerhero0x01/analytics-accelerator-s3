@@ -20,6 +20,10 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -29,10 +33,10 @@ import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.MetricComputationUtils;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 
 /** A BlobStore is a container for Blobs and functions as a data cache. */
 @SuppressFBWarnings(
@@ -41,12 +45,15 @@ import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
         "Inner class is created very infrequently, and fluency justifies the extra pointer")
 public class BlobStore implements Closeable {
   private final Map<ObjectKey, Blob> blobMap;
-  private static final Logger LOG = LoggerFactory.getLogger(BlobStore.class);
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
   private final PhysicalIOConfiguration configuration;
 
   @Getter private final Metrics metrics;
+  final BlobStoreIndexCache indexCache;
+  private final ScheduledExecutorService maintenanceExecutor;
+  private static final Logger LOG = LoggerFactory.getLogger(BlobStore.class);
+  final AtomicBoolean cleanupInProgress = new AtomicBoolean(false);
 
   /**
    * Construct an instance of BlobStore.
@@ -64,26 +71,48 @@ public class BlobStore implements Closeable {
     this.objectClient = objectClient;
     this.telemetry = telemetry;
     this.metrics = metrics;
-    this.blobMap =
-        Collections.synchronizedMap(
-            new LinkedHashMap<ObjectKey, Blob>() {
-              @Override
-              protected boolean removeEldestEntry(final Map.Entry<ObjectKey, Blob> eldest) {
-                boolean shouldRemove = this.size() > configuration.getBlobStoreCapacity();
-                if (shouldRemove) {
-                  LOG.debug(
-                      "Current memory usage of blobMap in bytes before eviction is: {}",
-                      metrics.get(MetricKey.MEMORY_USAGE));
-                  Blob blobToRemove = eldest.getValue();
-                  metrics.reduce(MetricKey.MEMORY_USAGE, blobToRemove.getMemoryUsageOfBlob());
-                  LOG.debug(
-                      "Current memory usage of blobMap in bytes after eviction is: {}",
-                      metrics.get(MetricKey.MEMORY_USAGE));
-                }
-                return shouldRemove;
-              }
+    this.blobMap = Collections.synchronizedMap(new LinkedHashMap<ObjectKey, Blob>());
+    this.indexCache = new BlobStoreIndexCache(configuration);
+    this.maintenanceExecutor =
+        Executors.newSingleThreadScheduledExecutor(
+            cleanupTask -> {
+              Thread cleanupThread = new Thread(cleanupTask);
+              cleanupThread.setDaemon(true);
+              cleanupThread.setPriority(Thread.MIN_PRIORITY);
+              return cleanupThread;
             });
     this.configuration = configuration;
+  }
+
+  /** Schedules a periodic cleanup task to sync the blop map with the index cache */
+  public void schedulePeriodicCleanup() {
+    maintenanceExecutor.scheduleAtFixedRate(
+        this::scheduleCleanupIfNotRunning,
+        configuration.getMemoryCleanupFrequencyMilliseconds(),
+        configuration.getMemoryCleanupFrequencyMilliseconds(),
+        TimeUnit.MILLISECONDS);
+  }
+
+  void scheduleCleanupIfNotRunning() {
+    if (metrics.get(MetricKey.MEMORY_USAGE) > 0 && cleanupInProgress.compareAndSet(false, true)) {
+      try {
+        asyncCleanup();
+      } catch (Exception ex) {
+        LOG.debug("Error during cleanup", ex);
+      } finally {
+        cleanupInProgress.set(false);
+      }
+    }
+  }
+
+  void asyncCleanup() {
+    LOG.debug(
+        "Current memory usage of blobMap in bytes before eviction is: {}",
+        metrics.get(MetricKey.MEMORY_USAGE));
+    blobMap.forEach((k, v) -> v.asyncCleanup());
+    LOG.debug(
+        "Current memory usage of blobMap in bytes after eviction is: {}",
+        metrics.get(MetricKey.MEMORY_USAGE));
   }
 
   /**
@@ -91,10 +120,11 @@ public class BlobStore implements Closeable {
    *
    * @param objectKey the etag and S3 URI of the object
    * @param metadata the metadata for the object we are computing
-   * @param streamContext contains audit headers to be attached in the request header
+   * @param openStreamInformation contains stream information
    * @return the blob representing the object from the BlobStore
    */
-  public Blob get(ObjectKey objectKey, ObjectMetadata metadata, StreamContext streamContext) {
+  public Blob get(
+      ObjectKey objectKey, ObjectMetadata metadata, OpenStreamInformation openStreamInformation) {
     return blobMap.computeIfAbsent(
         objectKey,
         uri ->
@@ -102,7 +132,14 @@ public class BlobStore implements Closeable {
                 uri,
                 metadata,
                 new BlockManager(
-                    uri, objectClient, metadata, telemetry, configuration, metrics, streamContext),
+                    uri,
+                    objectClient,
+                    metadata,
+                    telemetry,
+                    configuration,
+                    metrics,
+                    indexCache,
+                    openStreamInformation),
                 telemetry));
   }
 
@@ -115,7 +152,6 @@ public class BlobStore implements Closeable {
   public boolean evictKey(ObjectKey objectKey) {
     return this.blobMap.remove(objectKey) != null;
   }
-
   /**
    * Returns the number of objects currently cached in the blobstore.
    *
@@ -124,15 +160,22 @@ public class BlobStore implements Closeable {
   public int blobCount() {
     return this.blobMap.size();
   }
-
   /** Closes the {@link BlobStore} and frees up all resources it holds. */
   @Override
   public void close() {
-    long hits = metrics.get(MetricKey.CACHE_HIT);
-    long miss = metrics.get(MetricKey.CACHE_MISS);
-    LOG.debug(
-        "Cache Hits: {}, Misses: {}, Hit Rate: {}%",
-        hits, miss, MetricComputationUtils.computeCacheHitRate(hits, miss));
-    blobMap.forEach((k, v) -> v.close());
+    try {
+      if (maintenanceExecutor != null) {
+        maintenanceExecutor.shutdownNow();
+      }
+      blobMap.forEach((k, v) -> v.close());
+      indexCache.cleanUp();
+      long hits = metrics.get(MetricKey.CACHE_HIT);
+      long miss = metrics.get(MetricKey.CACHE_MISS);
+      LOG.debug(
+          "Cache Hits: {}, Misses: {}, Hit Rate: {}%",
+          hits, miss, MetricComputationUtils.computeCacheHitRate(hits, miss));
+    } catch (Exception e) {
+      LOG.error("Error while closing BlobStore", e);
+    }
   }
 }

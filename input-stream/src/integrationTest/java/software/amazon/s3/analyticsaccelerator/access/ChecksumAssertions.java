@@ -17,8 +17,6 @@ package software.amazon.s3.analyticsaccelerator.access;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import software.amazon.awssdk.core.checksums.SdkChecksum;
-
 public class ChecksumAssertions {
   /**
    * Checksum assertion
@@ -26,7 +24,7 @@ public class ChecksumAssertions {
    * @param expected expected checksum
    * @param actual actual checksum
    */
-  public static void assertChecksums(SdkChecksum expected, SdkChecksum actual) {
+  public static void assertChecksums(Crc32CChecksum expected, Crc32CChecksum actual) {
     assertEquals(
         expected.getValue(),
         actual.getValue(),

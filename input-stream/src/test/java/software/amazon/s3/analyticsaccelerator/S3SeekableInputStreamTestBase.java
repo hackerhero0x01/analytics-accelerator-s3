@@ -18,6 +18,8 @@ package software.amazon.s3.analyticsaccelerator;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
@@ -28,6 +30,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 public class S3SeekableInputStreamTestBase {
@@ -38,7 +41,11 @@ public class S3SeekableInputStreamTestBase {
   protected final PhysicalIOConfiguration physicalIOConfiguration = PhysicalIOConfiguration.DEFAULT;
   protected final FakeObjectClient fakeObjectClient = new FakeObjectClient(TEST_DATA);
   protected final MetadataStore metadataStore =
-      new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+      new MetadataStore(
+          fakeObjectClient,
+          TestTelemetry.DEFAULT,
+          PhysicalIOConfiguration.DEFAULT,
+          mock(Metrics.class));
   protected final BlobStore blobStore =
       new BlobStore(
           fakeObjectClient, TestTelemetry.DEFAULT, physicalIOConfiguration, mock(Metrics.class));
@@ -46,12 +53,21 @@ public class S3SeekableInputStreamTestBase {
 
   protected final LogicalIO fakeLogicalIO;
 
+  protected final ExecutorService executorService =
+      Executors.newFixedThreadPool(physicalIOConfiguration.getThreadPoolSize());
+
   {
     try {
       fakeLogicalIO =
           new ParquetLogicalIOImpl(
               TEST_OBJECT,
-              new PhysicalIOImpl(TEST_OBJECT, metadataStore, blobStore, TestTelemetry.DEFAULT),
+              new PhysicalIOImpl(
+                  TEST_OBJECT,
+                  metadataStore,
+                  blobStore,
+                  TestTelemetry.DEFAULT,
+                  OpenStreamInformation.DEFAULT,
+                  executorService),
               TestTelemetry.DEFAULT,
               logicalIOConfiguration,
               new ParquetColumnPrefetchStore(logicalIOConfiguration));

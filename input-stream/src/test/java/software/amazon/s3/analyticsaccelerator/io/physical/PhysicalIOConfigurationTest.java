@@ -33,8 +33,8 @@ public class PhysicalIOConfigurationTest {
   @Test
   void testNonDefaults() {
     PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blobStoreCapacity(10).partSizeBytes(20).build();
-    assertEquals(10, configuration.getBlobStoreCapacity());
+        PhysicalIOConfiguration.builder().memoryCapacityBytes(10).partSizeBytes(20).build();
+    assertEquals(10, configuration.getMemoryCapacityBytes());
     assertEquals(20, configuration.getPartSizeBytes());
   }
 
@@ -51,19 +51,21 @@ public class PhysicalIOConfigurationTest {
     assertEquals(20, physicalIOConfiguration.getBlockSizeBytes());
     // This should be equal to default since Property Prefix is not s3.connector.
     assertEquals(
-        PhysicalIOConfiguration.DEFAULT.getBlobStoreCapacity(),
-        physicalIOConfiguration.getBlobStoreCapacity());
+        PhysicalIOConfiguration.DEFAULT.getMemoryCapacityBytes(),
+        physicalIOConfiguration.getMemoryCapacityBytes());
   }
 
   @Test
   void testToString() {
     PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blobStoreCapacity(10).partSizeBytes(20).build();
+        PhysicalIOConfiguration.builder().memoryCapacityBytes(10).partSizeBytes(20).build();
 
     assertEquals(
         configuration.toString(),
         "PhysicalIO configuration:\n"
-            + "\tblobStoreCapacity: 10\n"
+            + "\tmemoryCapacityBytes: 10\n"
+            + "\tmemoryCleanupFrequencyMilliseconds: 5000\n"
+            + "\tcacheDataTimeoutMilliseconds: 1000\n"
             + "\tmetadataStoreCapacity: 50\n"
             + "\tblockSizeBytes: 8388608\n"
             + "\treadAheadBytes: 65536\n"
@@ -72,6 +74,9 @@ public class PhysicalIOConfigurationTest {
             + "\tsequentialPrefetchBase: 2.0\n"
             + "\tsequentialPrefetchSpeed: 1.0\n"
             + "\tblockReadTimeout: 30000\n"
-            + "\tblockReadRetryCount: 20\n");
+            + "\tblockReadRetryCount: 20\n"
+            + "\tsmallObjectsPrefetchingEnabled: true\n"
+            + "\tsmallObjectSizeThreshold: 8388608\n"
+            + "\tthreadPoolSize: 96\n");
   }
 }

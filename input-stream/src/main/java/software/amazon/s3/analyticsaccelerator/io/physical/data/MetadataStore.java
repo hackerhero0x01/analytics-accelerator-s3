@@ -25,12 +25,15 @@ import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.util.MetricKey;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
@@ -44,6 +47,7 @@ public class MetadataStore implements Closeable {
   private final Telemetry telemetry;
   private final Map<S3URI, CompletableFuture<ObjectMetadata>> cache;
   private final PhysicalIOConfiguration configuration;
+  private final Metrics aggregatingMetrics;
 
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStore.class);
   private static final String OPERATION_METADATA_HEAD_ASYNC = "metadata.store.head.async";
@@ -54,14 +58,17 @@ public class MetadataStore implements Closeable {
    *
    * @param objectClient the object client to use for object store interactions.
    * @param telemetry The {@link Telemetry} to use to report measurements.
+   * @param aggregatingMetrics blobstore metrics
    * @param configuration a configuration of PhysicalIO.
    */
   public MetadataStore(
       @NonNull ObjectClient objectClient,
       @NonNull Telemetry telemetry,
-      @NonNull PhysicalIOConfiguration configuration) {
+      @NonNull PhysicalIOConfiguration configuration,
+      @NonNull Metrics aggregatingMetrics) {
     this.objectClient = objectClient;
     this.telemetry = telemetry;
+    this.aggregatingMetrics = aggregatingMetrics;
     this.cache =
         Collections.synchronizedMap(
             new LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>>() {
@@ -79,17 +86,19 @@ public class MetadataStore implements Closeable {
    * store).
    *
    * @param s3URI the object to fetch the metadata for
+   * @param openStreamInformation contains the open stream information
    * @return returns the {@link ObjectMetadata}.
    * @throws IOException if an I/O error occurs
    */
-  public ObjectMetadata get(S3URI s3URI) throws IOException {
+  public ObjectMetadata get(S3URI s3URI, OpenStreamInformation openStreamInformation)
+      throws IOException {
     return telemetry.measureJoinCritical(
         () ->
             Operation.builder()
                 .name(OPERATION_METADATA_HEAD_JOIN)
                 .attribute(StreamAttributes.uri(s3URI))
                 .build(),
-        this.asyncGet(s3URI),
+        this.asyncGet(s3URI, openStreamInformation),
         this.configuration.getBlockReadTimeout());
   }
 
@@ -108,9 +117,11 @@ public class MetadataStore implements Closeable {
    * store).
    *
    * @param s3URI the object to fetch the metadata for
+   * @param openStreamInformation contains the open stream information
    * @return returns the {@link CompletableFuture} that holds object's metadata.
    */
-  public synchronized CompletableFuture<ObjectMetadata> asyncGet(S3URI s3URI) {
+  public synchronized CompletableFuture<ObjectMetadata> asyncGet(
+      S3URI s3URI, OpenStreamInformation openStreamInformation) {
     return this.cache.computeIfAbsent(
         s3URI,
         uri ->
@@ -120,7 +131,14 @@ public class MetadataStore implements Closeable {
                         .name(OPERATION_METADATA_HEAD_ASYNC)
                         .attribute(StreamAttributes.uri(s3URI))
                         .build(),
-                objectClient.headObject(HeadRequest.builder().s3Uri(s3URI).build())));
+                () -> {
+                  CompletableFuture<ObjectMetadata> result =
+                      objectClient.headObject(
+                          HeadRequest.builder().s3Uri(s3URI).build(), openStreamInformation);
+                  openStreamInformation.getRequestCallback().onHeadRequest();
+                  this.aggregatingMetrics.add(MetricKey.HEAD_REQUEST_COUNT, 1);
+                  return result;
+                }));
   }
 
   /**

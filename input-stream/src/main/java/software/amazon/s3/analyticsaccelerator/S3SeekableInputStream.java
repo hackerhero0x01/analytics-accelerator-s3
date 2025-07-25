@@ -15,8 +15,14 @@
  */
 package software.amazon.s3.analyticsaccelerator;
 
+import java.io.EOFException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.IntFunction;
 import lombok.NonNull;
+import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -217,6 +223,51 @@ public class S3SeekableInputStream extends SeekableInputStream {
                     StreamAttributes.range(getContentLength() - length, getContentLength() - 1))
                 .build(),
         () -> logicalIO.readTail(buffer, offset, length));
+  }
+
+  @Override
+  public void readVectored(
+      List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate, Consumer<ByteBuffer> release)
+      throws IOException {
+    Preconditions.checkNotNull(ranges, "ranges must not be null");
+    Preconditions.checkNotNull(allocate, "allocate must not be null");
+
+    logicalIO.readVectored(ranges, allocate);
+  }
+
+  /**
+   * Fill the provided buffer with the contents of the input source starting at {@code position} for
+   * the given {@code offset} and {@code length}.
+   *
+   * @param position start position of the read
+   * @param buffer target buffer to copy data
+   * @param offset offset in the buffer to copy the data
+   * @param length size of the read
+   * @throws IOException if an I/O error occurs
+   */
+  public void readFully(long position, byte[] buffer, int offset, int length) throws IOException {
+    throwIfClosed("cannot read from closed stream");
+    validatePositionedReadArgs(position, buffer, offset, length);
+
+    if (length == 0) {
+      return;
+    }
+
+    this.telemetry.measureVerbose(
+        () ->
+            Operation.builder()
+                .name(OPERATION_READ)
+                .attribute(StreamAttributes.uri(this.s3URI))
+                .attribute(StreamAttributes.etag(this.logicalIO.metadata().getEtag()))
+                .attribute(StreamAttributes.range(position, position + length - 1))
+                .build(),
+        () -> {
+          int bytesRead = this.logicalIO.read(buffer, offset, length, position);
+          if (bytesRead < length) {
+            throw new EOFException(
+                "Reached the end of stream with " + (length - bytesRead) + " bytes left to read");
+          }
+        });
   }
 
   /**

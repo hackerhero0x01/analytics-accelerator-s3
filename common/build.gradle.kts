@@ -4,12 +4,13 @@
 
 plugins {
     id("buildlogic.java-library-conventions")
-    id("io.freefair.lombok") version "8.10.2"
+    id("io.freefair.lombok") version "8.14"
     `maven-publish`
 }
 
 dependencies {
     implementation(libs.slf4j.api)
+    implementation(libs.failsafe)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockito.core)

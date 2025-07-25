@@ -15,19 +15,31 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.function.IntFunction;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
+import software.amazon.s3.analyticsaccelerator.io.physical.data.Blob;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlan;
 import software.amazon.s3.analyticsaccelerator.io.physical.plan.IOPlanExecution;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
+import software.amazon.s3.analyticsaccelerator.request.Range;
+import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
@@ -36,9 +48,10 @@ public class PhysicalIOImpl implements PhysicalIO {
   private MetadataStore metadataStore;
   private BlobStore blobStore;
   private final Telemetry telemetry;
-  private final StreamContext streamContext;
+  private final OpenStreamInformation openStreamInformation;
   private ObjectKey objectKey;
   private final ObjectMetadata metadata;
+  private final ExecutorService threadPool;
 
   private final long physicalIOBirth = System.nanoTime();
 
@@ -46,6 +59,9 @@ public class PhysicalIOImpl implements PhysicalIO {
   private static final String OPERATION_EXECUTE = "physical.io.execute";
   private static final String FLAVOR_TAIL = "tail";
   private static final String FLAVOR_BYTE = "byte";
+  private static final int TMP_BUFFER_MAX_SIZE = 64 * 1024;
+
+  private static final Logger LOG = LoggerFactory.getLogger(PhysicalIOImpl.class);
 
   /**
    * Construct a new instance of PhysicalIOV2.
@@ -54,38 +70,24 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @param metadataStore a metadata cache
    * @param blobStore a data cache
    * @param telemetry The {@link Telemetry} to use to report measurements.
-   */
-  public PhysicalIOImpl(
-      @NonNull S3URI s3URI,
-      @NonNull MetadataStore metadataStore,
-      @NonNull BlobStore blobStore,
-      @NonNull Telemetry telemetry)
-      throws IOException {
-    this(s3URI, metadataStore, blobStore, telemetry, null);
-  }
-
-  /**
-   * Construct a new instance of PhysicalIOV2.
-   *
-   * @param s3URI the S3 URI of the object
-   * @param metadataStore a metadata cache
-   * @param blobStore a data cache
-   * @param telemetry The {@link Telemetry} to use to report measurements.
-   * @param streamContext contains audit headers to be attached in the request header
+   * @param openStreamInformation contains stream information
+   * @param threadPool Thread pool for async operations
    */
   public PhysicalIOImpl(
       @NonNull S3URI s3URI,
       @NonNull MetadataStore metadataStore,
       @NonNull BlobStore blobStore,
       @NonNull Telemetry telemetry,
-      StreamContext streamContext)
+      @NonNull OpenStreamInformation openStreamInformation,
+      @NonNull ExecutorService threadPool)
       throws IOException {
     this.metadataStore = metadataStore;
     this.blobStore = blobStore;
     this.telemetry = telemetry;
-    this.streamContext = streamContext;
-    this.metadata = this.metadataStore.get(s3URI);
+    this.openStreamInformation = openStreamInformation;
+    this.metadata = this.metadataStore.get(s3URI, openStreamInformation);
     this.objectKey = ObjectKey.builder().s3URI(s3URI).etag(metadata.getEtag()).build();
+    this.threadPool = threadPool;
   }
 
   /**
@@ -122,7 +124,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () -> blobStore.get(this.objectKey, this.metadata, streamContext).read(pos));
+          () -> blobStore.get(this.objectKey, this.metadata, openStreamInformation).read(pos));
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -159,7 +161,10 @@ public class PhysicalIOImpl implements PhysicalIO {
                       StreamAttributes.physicalIORelativeTimestamp(
                           System.nanoTime() - physicalIOBirth))
                   .build(),
-          () -> blobStore.get(objectKey, this.metadata, streamContext).read(buf, off, len, pos));
+          () ->
+              blobStore
+                  .get(objectKey, this.metadata, openStreamInformation)
+                  .read(buf, off, len, pos));
     } catch (Exception e) {
       handleOperationExceptions(e);
       throw e;
@@ -195,7 +200,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                   .build(),
           () ->
               blobStore
-                  .get(objectKey, this.metadata, streamContext)
+                  .get(objectKey, this.metadata, openStreamInformation)
                   .read(buf, off, len, contentLength - len));
     } catch (Exception e) {
       handleOperationExceptions(e);
@@ -210,7 +215,7 @@ public class PhysicalIOImpl implements PhysicalIO {
    * @return an IOPlanExecution object tracking the execution of the submitted plan
    */
   @Override
-  public IOPlanExecution execute(IOPlan ioPlan) {
+  public IOPlanExecution execute(IOPlan ioPlan, ReadMode readMode) {
     return telemetry.measureVerbose(
         () ->
             Operation.builder()
@@ -222,7 +227,91 @@ public class PhysicalIOImpl implements PhysicalIO {
                     StreamAttributes.physicalIORelativeTimestamp(
                         System.nanoTime() - physicalIOBirth))
                 .build(),
-        () -> blobStore.get(objectKey, this.metadata, streamContext).execute(ioPlan));
+        () ->
+            blobStore
+                .get(objectKey, this.metadata, openStreamInformation)
+                .execute(ioPlan, readMode));
+  }
+
+  @SuppressFBWarnings(
+      value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+      justification =
+          "This is complaining about `executor.submit`. In this case we do not have any use for this Future")
+  @Override
+  public void readVectored(List<ObjectRange> objectRanges, IntFunction<ByteBuffer> allocate)
+      throws IOException {
+    Blob blob = blobStore.get(objectKey, this.metadata, openStreamInformation);
+
+    makeReadVectoredRangesAvailable(objectRanges);
+
+    for (ObjectRange objectRange : objectRanges) {
+      ByteBuffer buffer = allocate.apply(objectRange.getLength());
+      threadPool.submit(
+          () -> {
+            try {
+              LOG.debug(
+                  "Starting readVectored for key: {}, range: {} - {}",
+                  objectKey.getS3URI(),
+                  objectRange.getOffset(),
+                  objectRange.getOffset() + objectRange.getLength() - 1);
+
+              if (buffer.isDirect()) {
+                // Direct buffers do not support the buffer.array() method, so we need to read into
+                // them using a temp buffer.
+                readIntoDirectBuffer(buffer, blob, objectRange);
+                buffer.flip();
+              } else {
+                // there is no use of a temp byte buffer, or buffer.put() calls,
+                // so flip() is not needed.
+                blob.read(buffer.array(), 0, objectRange.getLength(), objectRange.getOffset());
+              }
+              objectRange.getByteBuffer().complete(buffer);
+            } catch (Exception e) {
+              objectRange.getByteBuffer().completeExceptionally(e);
+            }
+          });
+    }
+  }
+
+  private void readIntoDirectBuffer(ByteBuffer buffer, Blob blob, ObjectRange range)
+      throws IOException {
+    int length = range.getLength();
+    if (length == 0) {
+      // no-op
+      return;
+    }
+
+    int readBytes = 0;
+    long position = range.getOffset();
+    int tmpBufferMaxSize = Math.min(TMP_BUFFER_MAX_SIZE, length);
+    byte[] tmp = new byte[tmpBufferMaxSize];
+    while (readBytes < length) {
+      int currentLength =
+          (readBytes + tmpBufferMaxSize) < length ? tmpBufferMaxSize : (length - readBytes);
+      LOG.debug(
+          "Reading {} bytes from position {} (bytes read={}", currentLength, position, readBytes);
+      blob.read(tmp, 0, currentLength, position);
+      buffer.put(tmp, 0, currentLength);
+      position = position + currentLength;
+      readBytes = readBytes + currentLength;
+    }
+  }
+
+  /**
+   * Does the block creation for the read vectored ranges.
+   *
+   * @param objectRanges Vectored ranges to fetch
+   */
+  private void makeReadVectoredRangesAvailable(List<ObjectRange> objectRanges) {
+    List<Range> ranges = new ArrayList<>();
+
+    for (ObjectRange objectRange : objectRanges) {
+      ranges.add(
+          new Range(
+              objectRange.getOffset(), objectRange.getOffset() + objectRange.getLength() - 1));
+    }
+
+    execute(new IOPlan(ranges), ReadMode.READ_VECTORED);
   }
 
   private void handleOperationExceptions(Exception e) {

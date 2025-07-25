@@ -23,18 +23,19 @@ import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.request.GetRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
-import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.*;
+import software.amazon.s3.analyticsaccelerator.util.retry.DefaultRetryStrategyImpl;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
 
 /**
  * A Block holding part of an object's data and owning its own async process for fetching part of
@@ -43,95 +44,52 @@ import software.amazon.s3.analyticsaccelerator.util.*;
 public class Block implements Closeable {
   private CompletableFuture<ObjectContent> source;
   private CompletableFuture<byte[]> data;
-  private final ObjectKey objectKey;
-  @Getter private final Range range;
+  @Getter private final BlockKey blockKey;
   private final Telemetry telemetry;
   private final ObjectClient objectClient;
-  private final StreamContext streamContext;
+  private final OpenStreamInformation openStreamInformation;
   private final ReadMode readMode;
   private final Referrer referrer;
   private final long readTimeout;
   private final int readRetryCount;
-
-  @Getter private final long start;
-  @Getter private final long end;
   @Getter private final long generation;
-  private final BlockMetricsHandler metricsHandler;
+  private final Metrics aggregatingMetrics;
+  private final BlobStoreIndexCache indexCache;
   private static final String OPERATION_BLOCK_GET_ASYNC = "block.get.async";
   private static final String OPERATION_BLOCK_GET_JOIN = "block.get.join";
+  private final RetryStrategy retryStrategy;
 
   private static final Logger LOG = LoggerFactory.getLogger(Block.class);
 
   /**
    * Constructs a Block data.
    *
-   * @param objectKey the etag and S3 URI of the object
+   * @param blockKey the objectkey and range of the object
    * @param objectClient the object client to use to interact with the object store
    * @param telemetry an instance of {@link Telemetry} to use
-   * @param start start of the block
-   * @param end end of the block
    * @param generation generation of the block in a sequential read pattern (should be 0 by default)
    * @param readMode read mode describing whether this is a sync or async fetch
    * @param readTimeout Timeout duration (in milliseconds) for reading a block object from S3
    * @param readRetryCount Number of retries for block read failure
-   * @param metricsHandler metrics callback
+   * @param aggregatingMetrics blobstore metrics
+   * @param indexCache blobstore index cache
+   * @param openStreamInformation contains stream information
    */
   public Block(
-      @NonNull ObjectKey objectKey,
+      @NonNull BlockKey blockKey,
       @NonNull ObjectClient objectClient,
       @NonNull Telemetry telemetry,
-      long start,
-      long end,
       long generation,
       @NonNull ReadMode readMode,
       long readTimeout,
       int readRetryCount,
-      @NonNull BlockMetricsHandler metricsHandler)
+      @NonNull Metrics aggregatingMetrics,
+      @NonNull BlobStoreIndexCache indexCache,
+      @NonNull OpenStreamInformation openStreamInformation)
       throws IOException {
 
-    this(
-        objectKey,
-        objectClient,
-        telemetry,
-        start,
-        end,
-        generation,
-        readMode,
-        readTimeout,
-        readRetryCount,
-        metricsHandler,
-        null);
-  }
-
-  /**
-   * Constructs a Block data.
-   *
-   * @param objectKey the etag and S3 URI of the object
-   * @param objectClient the object client to use to interact with the object store
-   * @param telemetry an instance of {@link Telemetry} to use
-   * @param start start of the block
-   * @param end end of the block
-   * @param generation generation of the block in a sequential read pattern (should be 0 by default)
-   * @param readMode read mode describing whether this is a sync or async fetch
-   * @param readTimeout Timeout duration (in milliseconds) for reading a block object from S3
-   * @param readRetryCount Number of retries for block read failure
-   * @param metricsHandler metrics callback
-   * @param streamContext contains audit headers to be attached in the request header
-   */
-  public Block(
-      @NonNull ObjectKey objectKey,
-      @NonNull ObjectClient objectClient,
-      @NonNull Telemetry telemetry,
-      long start,
-      long end,
-      long generation,
-      @NonNull ReadMode readMode,
-      long readTimeout,
-      int readRetryCount,
-      @NonNull BlockMetricsHandler metricsHandler,
-      StreamContext streamContext)
-      throws IOException {
-
+    long start = blockKey.getRange().getStart();
+    long end = blockKey.getRange().getEnd();
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
     Preconditions.checkArgument(0 <= start, "`start` must be non-negative; was: %s", start);
@@ -141,80 +99,103 @@ public class Block implements Closeable {
     Preconditions.checkArgument(
         0 < readTimeout, "`readTimeout` must be greater than 0; was %s", readTimeout);
     Preconditions.checkArgument(
-        0 < readRetryCount, "`readRetryCount` must be greater than 0; was %s", readRetryCount);
+        0 <= readRetryCount, "`readRetryCount` must be greater than -1; was %s", readRetryCount);
 
-    this.start = start;
-    this.end = end;
     this.generation = generation;
     this.telemetry = telemetry;
-    this.objectKey = objectKey;
-    this.range = new Range(start, end);
+    this.blockKey = blockKey;
     this.objectClient = objectClient;
-    this.streamContext = streamContext;
+    this.openStreamInformation = openStreamInformation;
     this.readMode = readMode;
-    this.referrer = new Referrer(range.toHttpString(), readMode);
+    this.referrer = new Referrer(this.blockKey.getRange().toHttpString(), readMode);
     this.readTimeout = readTimeout;
     this.readRetryCount = readRetryCount;
-    this.metricsHandler = metricsHandler;
-
-    generateSourceAndData();
+    this.aggregatingMetrics = aggregatingMetrics;
+    this.indexCache = indexCache;
+    this.retryStrategy = createRetryStrategy();
+    this.generateSourceAndData();
   }
 
-  /** Method to help construct source and data */
-  private void generateSourceAndData() throws IOException {
+  /**
+   * Helper to construct retryStrategy
+   *
+   * @return a {@link RetryStrategy} to retry when timeouts are set
+   * @throws RuntimeException if all retries fails and an error occurs
+   */
+  private RetryStrategy createRetryStrategy() throws IOException {
+    RetryStrategy base = new DefaultRetryStrategyImpl();
+    RetryStrategy provided = this.openStreamInformation.getRetryStrategy();
 
-    int retries = 0;
-    while (retries < this.readRetryCount) {
-      try {
-        GetRequest getRequest =
-            GetRequest.builder()
-                .s3Uri(this.objectKey.getS3URI())
-                .range(this.range)
-                .etag(this.objectKey.getEtag())
-                .referrer(referrer)
-                .build();
-
-        this.source =
-            this.telemetry.measureCritical(
-                () ->
-                    Operation.builder()
-                        .name(OPERATION_BLOCK_GET_ASYNC)
-                        .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
-                        .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
-                        .attribute(StreamAttributes.range(this.range))
-                        .attribute(StreamAttributes.generation(generation))
-                        .build(),
-                objectClient.getObject(getRequest, streamContext));
-
-        // Handle IOExceptions when converting stream to byte array
-        this.data =
-            this.source.thenApply(
-                objectContent -> {
-                  try {
-                    this.metricsHandler.updateMetrics(MetricKey.MEMORY_USAGE, range.getLength());
-                    return StreamUtils.toByteArray(
-                        objectContent, this.objectKey, this.range, this.readTimeout);
-                  } catch (IOException | TimeoutException e) {
-                    throw new RuntimeException(
-                        "Error while converting InputStream to byte array", e);
-                  }
-                });
-
-        return; // Successfully generated source and data, exit loop
-      } catch (RuntimeException e) {
-        retries++;
-        LOG.debug(
-            "Retry {}/{} - Failed to fetch block data due to: {}",
-            retries,
-            this.readRetryCount,
-            e.getMessage());
-
-        if (retries >= this.readRetryCount) {
-          LOG.error("Max retries reached. Unable to fetch block data.");
-          throw new IOException("Failed to fetch block data after retries", e);
-        }
-      }
+    if (provided != null) {
+      base = base.merge(provided);
     }
+    if (this.readTimeout > 0) {
+      RetryPolicy timeoutPolicy =
+          RetryPolicy.builder()
+              .handle(IOException.class, TimeoutException.class)
+              .withMaxRetries(this.readRetryCount)
+              .onRetry(this::generateSourceAndData)
+              .build();
+      base = base.amend(timeoutPolicy);
+    }
+    return base;
+  }
+
+  /**
+   * Helper to construct source and data
+   *
+   * @throws IOException if all retries fails and an error occurs
+   */
+  private void generateSourceAndData() {
+    GetRequest getRequest =
+        GetRequest.builder()
+            .s3Uri(this.blockKey.getObjectKey().getS3URI())
+            .range(this.blockKey.getRange())
+            .etag(this.blockKey.getObjectKey().getEtag())
+            .referrer(referrer)
+            .build();
+
+    openStreamInformation.getRequestCallback().onGetRequest();
+
+    this.source =
+        this.telemetry.measureCritical(
+            () ->
+                Operation.builder()
+                    .name(OPERATION_BLOCK_GET_ASYNC)
+                    .attribute(StreamAttributes.uri(this.blockKey.getObjectKey().getS3URI()))
+                    .attribute(StreamAttributes.etag(this.blockKey.getObjectKey().getEtag()))
+                    .attribute(StreamAttributes.range(this.blockKey.getRange()))
+                    .attribute(StreamAttributes.generation(generation))
+                    .build(),
+            () -> {
+              this.aggregatingMetrics.add(MetricKey.GET_REQUEST_COUNT, 1);
+              return objectClient.getObject(getRequest, openStreamInformation);
+            });
+
+    // Handle IOExceptions when converting stream to byte array
+    this.data =
+        this.source.thenApply(
+            objectContent -> {
+              try {
+                byte[] bytes =
+                    StreamUtils.toByteArray(
+                        objectContent,
+                        this.blockKey.getObjectKey(),
+                        this.blockKey.getRange(),
+                        this.readTimeout);
+                int blockRange = blockKey.getRange().getLength();
+                this.aggregatingMetrics.add(MetricKey.MEMORY_USAGE, blockRange);
+                this.indexCache.put(blockKey, blockRange);
+                return bytes;
+              } catch (IOException | TimeoutException e) {
+                throw new RuntimeException("Error while converting InputStream to byte array", e);
+              }
+            });
+  }
+
+  /** @return if data is loaded */
+  public boolean isDataLoaded() {
+    return data.isDone();
   }
 
   /**
@@ -226,8 +207,8 @@ public class Block implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
-
-    byte[] content = this.getDataWithRetries();
+    byte[] content = this.retryStrategy.get(this::getData);
+    indexCache.recordAccess(blockKey);
     return Byte.toUnsignedInt(content[posToOffset(pos)]);
   }
 
@@ -247,7 +228,8 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    byte[] content = this.getDataWithRetries();
+    byte[] content = this.retryStrategy.get(this::getData);
+    indexCache.recordAccess(blockKey);
     int contentOffset = posToOffset(pos);
     int available = content.length - contentOffset;
     int bytesToCopy = Math.min(len, available);
@@ -267,8 +249,7 @@ public class Block implements Closeable {
    */
   public boolean contains(long pos) {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
-
-    return start <= pos && pos <= end;
+    return this.blockKey.getRange().contains(pos);
   }
 
   /**
@@ -278,35 +259,7 @@ public class Block implements Closeable {
    * @return the offset in the byte buffer underlying this Block
    */
   private int posToOffset(long pos) {
-    return (int) (pos - start);
-  }
-
-  /**
-   * Returns the bytes fetched by the issued {@link GetRequest}. If it receives an IOException from
-   * {@link S3SdkObjectClient}, retries for MAX_RETRIES count.
-   *
-   * @return the bytes fetched by the issued {@link GetRequest}.
-   * @throws IOException if an I/O error occurs after maximum retry counts
-   */
-  private byte[] getDataWithRetries() throws IOException {
-    for (int i = 0; i < this.readRetryCount; i++) {
-      try {
-        return this.getData();
-      } catch (IOException ex) {
-        if (ex.getClass() == IOException.class) {
-          if (i < this.readRetryCount - 1) {
-            LOG.debug("Get data failed. Retrying. Retry Count {}", i);
-            generateSourceAndData();
-          } else {
-            LOG.error("Cannot read block file. Retry reached the limit");
-            throw new IOException("Cannot read block file", ex.getCause());
-          }
-        } else {
-          throw ex;
-        }
-      }
-    }
-    throw new IOException("Cannot read block file", new IOException("Error while getting block"));
+    return (int) (pos - this.blockKey.getRange().getStart());
   }
 
   /**
@@ -321,10 +274,10 @@ public class Block implements Closeable {
         () ->
             Operation.builder()
                 .name(OPERATION_BLOCK_GET_JOIN)
-                .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
-                .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
-                .attribute(StreamAttributes.range(this.range))
-                .attribute(StreamAttributes.rangeLength(this.range.getLength()))
+                .attribute(StreamAttributes.uri(this.blockKey.getObjectKey().getS3URI()))
+                .attribute(StreamAttributes.etag(this.blockKey.getObjectKey().getEtag()))
+                .attribute(StreamAttributes.range(this.blockKey.getRange()))
+                .attribute(StreamAttributes.rangeLength(this.blockKey.getRange().getLength()))
                 .build(),
         this.data,
         this.readTimeout);

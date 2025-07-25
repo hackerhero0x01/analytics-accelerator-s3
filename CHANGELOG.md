@@ -1,3 +1,43 @@
+## v1.2.1 (July 07, 2025)
+
+* fix: shading dependency on google error prone https://github.com/awslabs/analytics-accelerator-s3/pull/305
+* IoStats-CallBack-AAL https://github.com/awslabs/analytics-accelerator-s3/pull/298
+* Improves integration test cases https://github.com/awslabs/analytics-accelerator-s3/pull/297
+* Generate encrypted objects for benchmark https://github.com/awslabs/analytics-accelerator-s3/pull/296
+
+## v1.2.0 (Jun 25, 2025)
+
+* Replace DAT with AAL https://github.com/awslabs/analytics-accelerator-s3/pull/300
+* Add support for readFully at the S3SeekableInputStream level https://github.com/awslabs/analytics-accelerator-s3/pull/293
+* Adds test cases for readVectored() https://github.com/awslabs/analytics-accelerator-s3/pull/284
+* Update-integration-tests-worflow https://github.com/awslabs/analytics-accelerator-s3/pull/291
+* SSE_C changes https://github.com/awslabs/analytics-accelerator-s3/pull/281
+* Adds in support for S3A's auditing
+* Pass down OpenStreamInformation to objectClient https://github.com/awslabs/analytics-accelerator-s3/pull/283
+* Migration to Central Portal for Maven https://github.com/awslabs/analytics-accelerator-s3/pull/282
+* Implements readVectored() in AAL https://github.com/awslabs/analytics-accelerator-s3/pull/270
+* Fix bug in small object prefetching https://github.com/awslabs/analytics-accelerator-s3/pull/279
+* Modify gradle setup step to reduce time https://github.com/awslabs/analytics-accelerator-s3/pull/278
+* Run integration tests on self hosted runner https://github.com/awslabs/analytics-accelerator-s3/pull/277
+* Introduces common executor pool https://github.com/awslabs/analytics-accelerator-s3/pull/275
+* Fix fleaky unit tests on BlobStore https://github.com/awslabs/analytics-accelerator-s3/pull/273
+* Move small object prefetching to physicalIO https://github.com/awslabs/analytics-accelerator-s3/pull/258
+* Updated release.yml to fix signing issue https://github.com/awslabs/analytics-accelerator-s3/pull/269
+
+## v1.1.0 (May 09, 2025)
+
+* feat: Memory Manager https://github.com/awslabs/analytics-accelerator-s3/pull/251
+* feat: Added new metrics like memory usage and cache hit/miss https://github.com/awslabs/analytics-accelerator-s3/pull/257
+* feat: Read optimisations for sequential file formats https://github.com/awslabs/analytics-accelerator-s3/pull/238
+* Improved integration test documentation https://github.com/awslabs/analytics-accelerator-s3/pull/260
+* Added config to use format-specific LogicalIO implementations https://github.com/awslabs/analytics-accelerator-s3/pull/259
+* Reduced waiting time and retry on GrayTest https://github.com/awslabs/analytics-accelerator-s3/pull/256
+* fix: Failing ref tests https://github.com/awslabs/analytics-accelerator-s3/pull/255
+* fix: Setting log path for telemetry https://github.com/awslabs/analytics-accelerator-s3/pull/252
+* Added some debug logs https://github.com/awslabs/analytics-accelerator-s3/pull/250
+* Reduced default block read timeout to 30 seconds https://github.com/awslabs/analytics-accelerator-s3/pull/249
+* Enabled Iceberg unit-tests https://github.com/awslabs/analytics-accelerator-s3/pull/245
+
 ## v1.0.0 (March 04, 2025)
 
 * Adds retrying of block reads https://github.com/awslabs/analytics-accelerator-s3/pull/229

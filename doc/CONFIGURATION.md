@@ -40,6 +40,7 @@ spark.sql.catalog.spark_catalog.s3.analytics-accelerator.useragentprefix=my-appl
 ## Logical IO Configuration
 Options under `<CONNECTOR_PREFIX>.logicalio.`
 
+
 | Option                                   | Default               | Description                                                                           |
 |------------------------------------------|-----------------------|---------------------------------------------------------------------------------------|
 | `prefetch.footer.enabled`                | `true`                | Controls whether footer prefetching is enabled                                        |
@@ -50,8 +51,6 @@ Options under `<CONNECTOR_PREFIX>.logicalio.`
 | `prefetch.file.page.index.size`          | `1MB`                 | Size of page index to prefetch for regular files                                      |
 | `prefetch.large.file.page.index.size`    | `8MB`                 | Size of page index to prefetch for large files                                        |
 | `large.file.size`                        | `1GB`                 | Threshold to consider a file as large                                                 |
-| `small.objects.prefetching.enabled`      | `true`                | Controls prefetching for small objects                                                |
-| `small.object.size.threshold`            | `3MB`                 | Size threshold for small object prefetching                                           |
 | `parquet.metadata.store.size`            | `45`                  | Size of the parquet metadata store                                                    |
 | `max.column.access.store.size`           | `15`                  | Maximum size of column access store                                                   |
 | `partition.size`                         | `128MB`               | Size of partition for prefetching data in sequential access formats (csv, json, txt)  |
@@ -61,19 +60,24 @@ Options under `<CONNECTOR_PREFIX>.logicalio.`
 | `txt.format.selector.regex`              | `^.*\\.(txt\|TXT)$`   | Regex pattern to identify txt files                                                   |
 | `prefetching.mode`                       | `ROW_GROUP`           | Prefetching mode (valid values: `OFF`, `ALL`, `ROW_GROUP`, `COLUMN_BOUND`)            |
 
+
 ## Physical IO Configuration
 Options under `<CONNECTOR_PREFIX>.physicalio.`
 
-| Option                     | Default | Description                                   |
-|----------------------------|---------|-----------------------------------------------|
-| `metadatastore.capacity`   | `50`    | Capacity of the metadata store                |
-| `blocksizebytes`           | `8MB`   | Size of blocks for data transfer              |
-| `readaheadbytes`           | `64KB`  | Number of bytes to read ahead                 |
-| `maxrangesizebytes`        | `8MB`   | Maximum size of range requests                |
-| `partsizebytes`            | `8MB`   | Size of individual parts for transfer         |
-| `sequentialprefetch.base`  | `2.0`   | Base factor for sequential prefetch sizing    |
-| `sequentialprefetch.speed` | `1.0`   | Speed factor for sequential prefetch growth   |
-
+| Option                              | Default | Description                                                                        |
+|-------------------------------------|---------|------------------------------------------------------------------------------------|
+| `metadatastore.capacity`            | `50`    | Capacity of the metadata store                                                     |
+| `blocksizebytes`                    | `8MB`   | Size of blocks for data transfer                                                   |
+| `readaheadbytes`                    | `64KB`  | Number of bytes to read ahead                                                      |
+| `maxrangesizebytes`                 | `8MB`   | Maximum size of range requests                                                     |
+| `partsizebytes`                     | `8MB`   | Size of individual parts for transfer                                              |
+| `sequentialprefetch.base`           | `2.0`   | Base factor for sequential prefetch sizing                                         |
+| `sequentialprefetch.speed`          | `1.0`   | Speed factor for sequential prefetch growth                                        |
+| `max.memory.limit`                  | `2GB`   | Maximum memory limit (in bytes) that BlobStore can utilize for storage             |
+| `cache.timeout`                     | `1s`    | Time duration (in milliseconds) a block remains in BlobStore after its last access |
+| `memory.cleanup.frequency`          | `5s`    | Time period (in milliseconds) between consecutive BlobStore eviction cycles        |
+| `small.objects.prefetching.enabled` | `true`  | Controls prefetching for small objects                                             |
+| `small.object.size.threshold`       | `8MB`   | Size threshold for small object prefetching                                        |
 ## Telemetry Configuration
 Options under `<CONNECTOR_PREFIX>.telemetry.`
 

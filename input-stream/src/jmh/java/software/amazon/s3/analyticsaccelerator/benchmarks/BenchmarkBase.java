@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.NonNull;
 import org.openjdk.jmh.annotations.*;
 import software.amazon.s3.analyticsaccelerator.access.*;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 
 /**
  * Base class for benchmarks that iterate through the client types and stream types All derived
@@ -99,7 +100,7 @@ public abstract class BenchmarkBase extends ExecutionBase {
    *
    * @return {@link AALInputStreamConfigurationKind}
    */
-  protected AALInputStreamConfigurationKind getDATInputStreamConfigurationKind() {
+  protected AALInputStreamConfigurationKind getAALInputStreamConfigurationKind() {
     return AALInputStreamConfigurationKind.DEFAULT;
   }
 
@@ -116,19 +117,20 @@ public abstract class BenchmarkBase extends ExecutionBase {
   protected abstract void executeBenchmark() throws Exception;
 
   /**
-   * Executes the pattern on DAT based on the contextual parameters.
+   * Executes the pattern on AAL based on the contextual parameters.
    *
    * @throws IOException if IO error is thrown
    */
-  protected void executeReadPatternOnDAT() throws IOException {
+  protected void executeReadPatternOnAAL() throws IOException {
     S3Object s3Object = this.getObject();
     executeReadPatternOnAAL(
         this.getClientKind(),
         s3Object,
         this.getReadPatternKind().getStreamReadPattern(s3Object),
         // Use default configuration
-        this.getDATInputStreamConfigurationKind(),
-        Optional.empty());
+        this.getAALInputStreamConfigurationKind(),
+        Optional.empty(),
+        OpenStreamInformation.DEFAULT);
   }
 
   /**
@@ -142,6 +144,7 @@ public abstract class BenchmarkBase extends ExecutionBase {
         this.getClientKind(),
         s3Object,
         this.getReadPatternKind().getStreamReadPattern(s3Object),
-        Optional.empty());
+        Optional.empty(),
+        OpenStreamInformation.DEFAULT);
   }
 }

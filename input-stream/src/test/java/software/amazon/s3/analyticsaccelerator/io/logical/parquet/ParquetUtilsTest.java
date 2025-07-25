@@ -40,25 +40,6 @@ public class ParquetUtilsTest {
   }
 
   @Test
-  void testGetFileTailRangeSmallFile() {
-    List<Range> ranges =
-        ParquetUtils.getFileTailPrefetchRanges(
-            LogicalIOConfiguration.builder()
-                .smallObjectsPrefetchingEnabled(true)
-                .smallObjectSizeThreshold(2 * ONE_MB)
-                .build(),
-            0,
-            2 * ONE_MB);
-
-    assertEquals(ranges.size(), 1);
-
-    Range range = ranges.get(0);
-
-    assertEquals(range.getStart(), 0);
-    assertEquals(range.getEnd(), 2 * ONE_MB - 1);
-  }
-
-  @Test
   void testGetFileTailPrefetchRanges() {
     List<Range> ranges =
         ParquetUtils.getFileTailPrefetchRanges(LogicalIOConfiguration.DEFAULT, 0, 5 * ONE_MB);
@@ -144,5 +125,51 @@ public class ParquetUtilsTest {
     expectedRanges.add(new Range(8579060, 8579080));
 
     assertTrue(expectedRanges.containsAll(ParquetUtils.mergeRanges(ranges)));
+  }
+
+  @Test
+  void testConstructRowGroupsToPrefetch() {
+    List<Integer> rowGroups = ParquetUtils.constructRowGroupsToPrefetch();
+    assertEquals(1, rowGroups.size());
+    assertEquals(0, rowGroups.get(0));
+  }
+
+  @Test
+  void testMergeRangesWithSingleRange() {
+    List<Range> ranges = new ArrayList<>();
+    ranges.add(new Range(100, 200));
+
+    List<Range> mergedRanges = ParquetUtils.mergeRanges(ranges);
+    assertEquals(1, mergedRanges.size());
+    assertEquals(100, mergedRanges.get(0).getStart());
+    assertEquals(200, mergedRanges.get(0).getEnd());
+  }
+
+  @Test
+  void testMergeRangesWithNonConsecutiveRanges() {
+    List<Range> ranges = new ArrayList<>();
+    ranges.add(new Range(100, 200));
+    ranges.add(new Range(300, 400));
+    ranges.add(new Range(600, 700));
+
+    List<Range> mergedRanges = ParquetUtils.mergeRanges(ranges);
+    assertEquals(3, mergedRanges.size());
+    assertEquals(100, mergedRanges.get(0).getStart());
+    assertEquals(200, mergedRanges.get(0).getEnd());
+    assertEquals(300, mergedRanges.get(1).getStart());
+    assertEquals(400, mergedRanges.get(1).getEnd());
+    assertEquals(600, mergedRanges.get(2).getStart());
+    assertEquals(700, mergedRanges.get(2).getEnd());
+  }
+
+  @Test
+  void testGetFileTailPrefetchRangesSmallFile() {
+    long smallFileSize = ONE_MB;
+    List<Range> ranges =
+        ParquetUtils.getFileTailPrefetchRanges(LogicalIOConfiguration.DEFAULT, 0, smallFileSize);
+
+    assertEquals(1, ranges.size());
+    assertEquals(0, ranges.get(0).getStart());
+    assertEquals(smallFileSize - 1, ranges.get(0).getEnd());
   }
 }

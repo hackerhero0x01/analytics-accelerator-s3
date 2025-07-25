@@ -29,18 +29,17 @@ import java.util.concurrent.*;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
+import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
-import software.amazon.s3.analyticsaccelerator.util.BlockMetricsHandler;
-import software.amazon.s3.analyticsaccelerator.util.FakeObjectClient;
-import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
-import software.amazon.s3.analyticsaccelerator.util.S3URI;
+import software.amazon.s3.analyticsaccelerator.util.*;
 
 @SuppressWarnings("unchecked")
 public class BlockStoreTest {
 
   private static final S3URI TEST_URI = S3URI.of("foo", "bar");
-  private static final String ETAG = "RandomString";
+  private static final String ETAG = "RANDOM";
   private static final ObjectKey objectKey = ObjectKey.builder().s3URI(TEST_URI).etag(ETAG).build();
   private static final int OBJECT_SIZE = 100;
   private static final long DEFAULT_READ_TIMEOUT = 120_000;
@@ -54,28 +53,32 @@ public class BlockStoreTest {
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
+
+    BlockKey blockKey = new BlockKey(objectKey, new Range(3, 5));
 
     // When: a new block is added
     blockStore.add(
+        blockKey,
         new Block(
-            objectKey,
+            blockKey,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            3,
-            5,
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class),
+            OpenStreamInformation.DEFAULT));
 
     // Then: getBlock can retrieve the same block
     Optional<Block> b = blockStore.getBlock(4);
 
     assertTrue(b.isPresent());
-    assertEquals(b.get().getStart(), 3);
-    assertEquals(b.get().getEnd(), 5);
+    assertEquals(b.get().getBlockKey().getRange().getStart(), 3);
+    assertEquals(b.get().getBlockKey().getRange().getEnd(), 5);
     assertEquals(b.get().getGeneration(), 0);
   }
 
@@ -88,44 +91,50 @@ public class BlockStoreTest {
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(size).etag(ETAG).build();
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsHandler.class));
-
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
+    BlockKey blockKey1 = new BlockKey(objectKey, new Range(2, 3));
+    BlockKey blockKey2 = new BlockKey(objectKey, new Range(5, 10));
+    BlockKey blockKey3 = new BlockKey(objectKey, new Range(12, 15));
     blockStore.add(
+        blockKey1,
         new Block(
-            objectKey,
+            blockKey1,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            2,
-            3,
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class),
+            OpenStreamInformation.DEFAULT));
     blockStore.add(
+        blockKey2,
         new Block(
-            objectKey,
+            blockKey2,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            5,
-            10,
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class),
+            OpenStreamInformation.DEFAULT));
     blockStore.add(
+        blockKey3,
         new Block(
-            objectKey,
+            blockKey3,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            12,
-            15,
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class),
+            OpenStreamInformation.DEFAULT));
 
     // When & Then: we query for the next missing byte, the result is correct
     assertEquals(OptionalLong.of(0), blockStore.findNextMissingByte(0));
@@ -147,44 +156,51 @@ public class BlockStoreTest {
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
 
+    BlockKey blockKey1 = new BlockKey(objectKey, new Range(2, 3));
+    BlockKey blockKey2 = new BlockKey(objectKey, new Range(5, 10));
+    BlockKey blockKey3 = new BlockKey(objectKey, new Range(12, 15));
     blockStore.add(
+        blockKey1,
         new Block(
-            objectKey,
+            blockKey1,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            2,
-            3,
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class),
+            OpenStreamInformation.DEFAULT));
     blockStore.add(
+        blockKey2,
         new Block(
-            objectKey,
+            blockKey2,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            5,
-            10,
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class),
+            OpenStreamInformation.DEFAULT));
     blockStore.add(
+        blockKey3,
         new Block(
-            objectKey,
+            blockKey3,
             fakeObjectClient,
             TestTelemetry.DEFAULT,
-            12,
-            15,
             0,
             ReadMode.SYNC,
             DEFAULT_READ_TIMEOUT,
             DEFAULT_READ_RETRY_COUNT,
-            mock(BlockMetricsHandler.class)));
+            mock(Metrics.class),
+            mock(BlobStoreIndexCache.class),
+            OpenStreamInformation.DEFAULT));
 
     // When & Then: we query for the next available byte, the result is correct
     assertEquals(OptionalLong.of(2), blockStore.findNextLoadedByte(0));
@@ -202,10 +218,12 @@ public class BlockStoreTest {
     // Given: BlockStore with a block
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockKey blockKey = new BlockKey(objectKey, new Range(0, 5));
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
     Block block = mock(Block.class);
-    blockStore.add(block);
+    blockStore.add(blockKey, block);
 
     // When: blockStore is closed
     blockStore.close();
@@ -219,12 +237,15 @@ public class BlockStoreTest {
     // Given: BlockStore with two blocks
     ObjectMetadata mockMetadataStore =
         ObjectMetadata.builder().contentLength(OBJECT_SIZE).etag(ETAG).build();
+    BlockKey blockKey1 = new BlockKey(objectKey, new Range(0, 5));
+    BlockKey blockKey2 = new BlockKey(objectKey, new Range(0, 6));
     BlockStore blockStore =
-        new BlockStore(objectKey, mockMetadataStore, mock(BlockMetricsHandler.class));
+        new BlockStore(
+            objectKey, mockMetadataStore, mock(Metrics.class), mock(BlobStoreIndexCache.class));
     Block b1 = mock(Block.class);
     Block b2 = mock(Block.class);
-    blockStore.add(b1);
-    blockStore.add(b2);
+    blockStore.add(blockKey1, b1);
+    blockStore.add(blockKey2, b2);
 
     // When: b1 throws when closed
     doThrow(new RuntimeException("something horrible")).when(b1).close();

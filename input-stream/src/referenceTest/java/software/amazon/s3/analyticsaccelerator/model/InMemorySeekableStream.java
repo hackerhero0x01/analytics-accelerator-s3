@@ -15,9 +15,14 @@
  */
 package software.amazon.s3.analyticsaccelerator.model;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.IntFunction;
 import org.junit.platform.commons.util.Preconditions;
 import software.amazon.s3.analyticsaccelerator.SeekableInputStream;
+import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
 
 /**
  * An in-memory implementation of a seekable input stream. It is used to implement reference tests.
@@ -65,6 +70,41 @@ public class InMemorySeekableStream extends SeekableInputStream {
     data.position((int) this.position);
 
     return n;
+  }
+
+  @Override
+  public void readVectored(
+      List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate, Consumer<ByteBuffer> release) {
+    for (ObjectRange range : ranges) {
+      ByteBuffer buffer = allocate.apply(range.getLength());
+      data.position((int) range.getOffset());
+      byte[] buf = new byte[range.getLength()];
+      data.get(buf, 0, range.getLength());
+      buffer.put(buf);
+      range.getByteBuffer().complete(buffer);
+    }
+  }
+
+  @Override
+  public void readFully(long position, byte[] buffer, int offset, int length) throws IOException {
+    // Save current position of stream
+    long prevPosition = this.position;
+    if (position >= this.contentLength) {
+      throw new IOException("Position is beyond end of stream");
+    }
+
+    data.position((int) position);
+    int bytesAvailable = this.contentLength - (int) position;
+    int bytesToRead = Math.min(length, bytesAvailable);
+    data.get(buffer, offset, bytesToRead);
+    if (bytesToRead < length) {
+      throw new IOException(
+          "Reached the end of stream with " + (length - bytesToRead) + " bytes left to read");
+    }
+
+    // Restore original position
+    this.position = prevPosition;
+    data.position((int) this.position);
   }
 
   @Override

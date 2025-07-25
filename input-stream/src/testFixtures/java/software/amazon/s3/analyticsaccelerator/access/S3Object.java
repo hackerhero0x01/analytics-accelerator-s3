@@ -52,11 +52,30 @@ public enum S3Object {
   CSV_20MB(
       "sequential-20mb.csv", 20 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
   TXT_16MB(
-      "sequential-16mb.txt", 16 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL);
+      "sequential-16mb.txt", 16 * SizeConstants.ONE_MB_IN_BYTES, S3ObjectKind.RANDOM_SEQUENTIAL),
+  RANDOM_SSEC_ENCRYPTED_SEQUENTIAL_1MB(
+      "random-encrypted-1mb.bin",
+      SizeConstants.ONE_MB_IN_BYTES,
+      S3ObjectKind.RANDOM_SEQUENTIAL_ENCRYPTED),
+  RANDOM_SSEC_ENCRYPTED_PARQUET_1MB(
+      "random-encrypted-1mb.parquet",
+      SizeConstants.ONE_MB_IN_BYTES,
+      S3ObjectKind.RANDOM_PARQUET_ENCRYPTED),
+  RANDOM_SSEC_ENCRYPTED_PARQUET_10MB(
+      "random-encrypted-10mb.parquet",
+      10 * SizeConstants.ONE_MB_IN_BYTES,
+      S3ObjectKind.RANDOM_PARQUET_ENCRYPTED);
 
   private final String name;
   private final long size;
   private final S3ObjectKind kind;
+
+  private static final long SMALL_BINARY_OBJECTS_LOWER_LIMIT = 8 * SizeConstants.ONE_MB_IN_BYTES;
+  private static final long MEDIUM_SIZE_THRESHOLD = 50 * SizeConstants.ONE_MB_IN_BYTES;
+  private static final long LARGE_SIZE_THRESHOLD = 500 * SizeConstants.ONE_MB_IN_BYTES;
+  private static final List<S3ObjectKind> ENCRYPTED_OBJECT_KINDS =
+      Arrays.asList(
+          S3ObjectKind.RANDOM_SEQUENTIAL_ENCRYPTED, S3ObjectKind.RANDOM_PARQUET_ENCRYPTED);
 
   /**
    * Get S3 Object Uri based on the content
@@ -92,54 +111,64 @@ public enum S3Object {
    * @return small objects
    */
   public static List<S3Object> smallObjects() {
-    return filter(o -> o.size < 50 * SizeConstants.ONE_MB_IN_BYTES);
+    return filter(
+        o -> o.size < MEDIUM_SIZE_THRESHOLD && !ENCRYPTED_OBJECT_KINDS.contains(o.getKind()));
   }
   /**
-   * Returns list of small binary objects (less than 50MB, .bin files only).
+   * Returns list of small binary objects (between 8 MB and 50MB, .bin files only).
    *
    * @return list of small binary objects
    */
   public static List<S3Object> smallBinaryObjects() {
-    return filter(o -> o.size < 50 * SizeConstants.ONE_MB_IN_BYTES && o.getName().endsWith(".bin"));
+    return filter(
+        o ->
+            o.size >= SMALL_BINARY_OBJECTS_LOWER_LIMIT
+                && o.size < MEDIUM_SIZE_THRESHOLD
+                && o.getName().endsWith(".bin")
+                && !ENCRYPTED_OBJECT_KINDS.contains(o.getKind()));
   }
 
   /**
    * Medium objects - between 50 MB and 500MB
    *
-   * @return small objects
+   * @return medium objects
    */
   public static List<S3Object> mediumObjects() {
     return filter(
         o ->
-            (o.size >= 50 * SizeConstants.ONE_MB_IN_BYTES)
-                && (o.size < 500 * SizeConstants.ONE_MB_IN_BYTES));
+            o.size >= MEDIUM_SIZE_THRESHOLD
+                && o.size < LARGE_SIZE_THRESHOLD
+                && !ENCRYPTED_OBJECT_KINDS.contains(o.getKind()));
   }
 
   /**
    * Small and medium objects - under 500MB
    *
-   * @return small objects
+   * @return small and medium objects
    */
   public static List<S3Object> smallAndMediumObjects() {
-    return filter(o -> o.size < 500 * SizeConstants.ONE_MB_IN_BYTES);
+    return filter(
+        o -> o.size < LARGE_SIZE_THRESHOLD && !ENCRYPTED_OBJECT_KINDS.contains(o.getKind()));
   }
 
   /**
    * Medium and large objects - over 50MB
    *
-   * @return small objects
+   * @return medium and large objects
    */
   public static List<S3Object> mediumAndLargeObjects() {
-    return filter(o -> o.size >= 50 * SizeConstants.ONE_MB_IN_BYTES);
+    return filter(
+        o -> o.size >= MEDIUM_SIZE_THRESHOLD && !ENCRYPTED_OBJECT_KINDS.contains(o.getKind()));
   }
 
   /**
-   * Medium objects - over 500MB
+   * Large objects - over 500MB
    *
-   * @return small objects
+   * @return large objects
    */
   public static List<S3Object> largeObjects() {
-    return filter(o -> o.size >= 500 * SizeConstants.ONE_MB_IN_BYTES);
+    return filter(
+        o -> o.size >= LARGE_SIZE_THRESHOLD && !ENCRYPTED_OBJECT_KINDS.contains(o.getKind()));
   }
 
   /**

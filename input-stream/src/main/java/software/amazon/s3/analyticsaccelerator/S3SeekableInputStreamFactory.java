@@ -16,6 +16,8 @@
 package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -28,6 +30,7 @@ import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOI
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.SequentialLogicalIOImpl;
+import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
@@ -55,7 +58,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final BlobStore objectBlobStore;
   private final Telemetry telemetry;
   private final ObjectFormatSelector objectFormatSelector;
-  private final Metrics metrics;
+  @Getter private final Metrics metrics;
+  private final ExecutorService threadPool;
 
   private static final Logger LOG = LoggerFactory.getLogger(S3SeekableInputStreamFactory.class);
 
@@ -77,10 +81,16 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.parquetColumnPrefetchStore =
         new ParquetColumnPrefetchStore(configuration.getLogicalIOConfiguration());
     this.objectMetadataStore =
-        new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
+        new MetadataStore(
+            objectClient, telemetry, configuration.getPhysicalIOConfiguration(), metrics);
     this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
     this.objectBlobStore =
         new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration(), metrics);
+    // TODO: calling applications should be able to pass in a thread pool if they so wish
+    this.threadPool =
+        Executors.newFixedThreadPool(
+            configuration.getPhysicalIOConfiguration().getThreadPoolSize());
+    objectBlobStore.schedulePeriodicCleanup();
   }
 
   /**
@@ -132,12 +142,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       case PARQUET:
         return new ParquetLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(
-                s3URI,
-                objectMetadataStore,
-                objectBlobStore,
-                telemetry,
-                openStreamInformation.getStreamContext()),
+            createPhysicalIO(s3URI, openStreamInformation),
             telemetry,
             configuration.getLogicalIOConfiguration(),
             parquetColumnPrefetchStore);
@@ -145,26 +150,20 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
       case SEQUENTIAL:
         return new SequentialLogicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(
-                s3URI,
-                objectMetadataStore,
-                objectBlobStore,
-                telemetry,
-                openStreamInformation.getStreamContext()),
+            createPhysicalIO(s3URI, openStreamInformation),
             telemetry,
             configuration.getLogicalIOConfiguration());
 
       default:
         return new DefaultLogicalIOImpl(
-            s3URI,
-            new PhysicalIOImpl(
-                s3URI,
-                objectMetadataStore,
-                objectBlobStore,
-                telemetry,
-                openStreamInformation.getStreamContext()),
-            telemetry);
+            s3URI, createPhysicalIO(s3URI, openStreamInformation), telemetry);
     }
+  }
+
+  PhysicalIO createPhysicalIO(S3URI s3URI, OpenStreamInformation openStreamInformation)
+      throws IOException {
+    return new PhysicalIOImpl(
+        s3URI, objectMetadataStore, objectBlobStore, telemetry, openStreamInformation, threadPool);
   }
 
   void storeObjectMetadata(S3URI s3URI, ObjectMetadata metadata) {
@@ -176,7 +175,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   /**
    * Closes the factory and underlying resources.
    *
-   * @throws IOException
+   * @throws IOException if any of the closures fail
    */
   @Override
   public void close() throws IOException {

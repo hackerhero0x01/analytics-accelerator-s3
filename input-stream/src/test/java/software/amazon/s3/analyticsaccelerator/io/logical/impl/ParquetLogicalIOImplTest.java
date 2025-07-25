@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
@@ -33,6 +34,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.PrefetchMode;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -131,13 +133,17 @@ public class ParquetLogicalIOImplTest {
   @Test
   void testMetadaWithZeroContentLength() throws IOException {
     ObjectClient mockClient = mock(ObjectClient.class);
-    when(mockClient.headObject(any(HeadRequest.class)))
+    when(mockClient.headObject(any(HeadRequest.class), any(OpenStreamInformation.class)))
         .thenReturn(
             CompletableFuture.completedFuture(
                 ObjectMetadata.builder().contentLength(0).etag("random").build()));
     S3URI s3URI = S3URI.of("test", "test");
     MetadataStore metadataStore =
-        new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new MetadataStore(
+            mockClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
     BlobStore blobStore =
         new BlobStore(
             mockClient,
@@ -145,7 +151,13 @@ public class ParquetLogicalIOImplTest {
             PhysicalIOConfiguration.DEFAULT,
             mock(Metrics.class));
     PhysicalIOImpl physicalIO =
-        new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
+        new PhysicalIOImpl(
+            s3URI,
+            metadataStore,
+            blobStore,
+            TestTelemetry.DEFAULT,
+            OpenStreamInformation.DEFAULT,
+            mock(ExecutorService.class));
     assertDoesNotThrow(
         () ->
             new ParquetLogicalIOImpl(
