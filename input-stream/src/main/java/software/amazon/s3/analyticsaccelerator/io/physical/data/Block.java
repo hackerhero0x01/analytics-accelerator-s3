@@ -25,11 +25,12 @@ import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
-import software.amazon.s3.analyticsaccelerator.retry.RetryPolicy;
-import software.amazon.s3.analyticsaccelerator.retry.RetryStrategy;
-import software.amazon.s3.analyticsaccelerator.retry.SeekableInputStreamRetryStrategy;
 import software.amazon.s3.analyticsaccelerator.util.BlockKey;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
+import software.amazon.s3.analyticsaccelerator.util.retry.DefaultRetryStrategyImpl;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
 
 /**
  * Represents a block of data from an object stream, identified by a {@link BlockKey} and a
@@ -54,7 +55,8 @@ public class Block implements Closeable {
   private final Metrics aggregatingMetrics;
   private final long readTimeout;
   private final int retryCount;
-  private final RetryStrategy<Void> retryStrategy;
+  private final RetryStrategy retryStrategy;
+  private final OpenStreamInformation openStreamInformation;
 
   /**
    * A synchronization aid that allows threads to wait until the block's data is available.
@@ -83,6 +85,7 @@ public class Block implements Closeable {
    * @param aggregatingMetrics blobstore metrics
    * @param readTimeout read timeout in milliseconds
    * @param retryCount number of retries
+   * @param openStreamInformation contains stream information
    */
   public Block(
       @NonNull BlockKey blockKey,
@@ -90,7 +93,8 @@ public class Block implements Closeable {
       @NonNull BlobStoreIndexCache indexCache,
       @NonNull Metrics aggregatingMetrics,
       long readTimeout,
-      int retryCount) {
+      int retryCount,
+      @NonNull OpenStreamInformation openStreamInformation) {
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
 
@@ -100,6 +104,7 @@ public class Block implements Closeable {
     this.aggregatingMetrics = aggregatingMetrics;
     this.readTimeout = readTimeout;
     this.retryCount = retryCount;
+    this.openStreamInformation = openStreamInformation;
     this.retryStrategy = createRetryStrategy();
   }
 
@@ -110,16 +115,23 @@ public class Block implements Closeable {
    * @throws RuntimeException if all retries fails and an error occurs
    */
   @SuppressWarnings("unchecked")
-  private RetryStrategy<Void> createRetryStrategy() {
+  private RetryStrategy createRetryStrategy() {
+    RetryStrategy base = new DefaultRetryStrategyImpl();
+    RetryStrategy provided = this.openStreamInformation.getRetryStrategy();
+
+    if (provided != null) {
+      base = base.merge(provided);
+    }
+
     if (this.readTimeout > 0) {
-      RetryPolicy<Void> timeoutRetries =
-          RetryPolicy.<Void>builder()
+      RetryPolicy timeoutPolicy =
+          RetryPolicy.builder()
               .handle(InterruptedException.class, TimeoutException.class, IOException.class)
               .withMaxRetries(this.retryCount)
               .build();
-      return new SeekableInputStreamRetryStrategy<>(timeoutRetries);
+      base = base.amend(timeoutPolicy);
     }
-    return new SeekableInputStreamRetryStrategy<>();
+    return base;
   }
 
   /**
