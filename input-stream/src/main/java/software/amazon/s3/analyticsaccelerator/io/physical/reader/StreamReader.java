@@ -124,7 +124,11 @@ public class StreamReader implements Closeable {
     if (this.physicalIOConfiguration.getBlockReadTimeout() > 0) {
       RetryPolicy timeoutPolicy =
           RetryPolicy.builder()
-              .handle(InterruptedException.class, TimeoutException.class, ExecutionException.class)
+              .handle(
+                  IOException.class,
+                  InterruptedException.class,
+                  TimeoutException.class,
+                  ExecutionException.class)
               .withMaxRetries(this.physicalIOConfiguration.getBlockReadRetryCount())
               .build();
       base = base.amend(timeoutPolicy);
@@ -191,8 +195,7 @@ public class StreamReader implements Closeable {
               // Fetch the object content from S3
               ObjectContent objectContent;
               try {
-                this.aggregatingMetrics.add(MetricKey.GET_REQUEST_COUNT, 1);
-                objectContent = fetchObjectContent(getRequest);
+                objectContent = this.retryStrategy.get(() -> fetchObjectContent(getRequest));
               } catch (IOException e) {
                 LOG.error("IOException while fetching object content", e);
                 removeNonFilledBlocksFromStore(blocks);
@@ -272,18 +275,17 @@ public class StreamReader implements Closeable {
    * @return the ObjectContent containing the S3 object data stream, or null if request fails
    */
   private ObjectContent fetchObjectContent(GetRequest getRequest) throws IOException {
-    return this.retryStrategy.get(
+    this.aggregatingMetrics.add(MetricKey.GET_REQUEST_COUNT, 1);
+    return telemetry.measureJoinCritical(
         () ->
-            telemetry.measureJoinCritical(
-                () ->
-                    Operation.builder()
-                        .name(OPERATION_GET_OBJECT)
-                        .attribute(StreamAttributes.uri(getRequest.getS3Uri()))
-                        .attribute(StreamAttributes.rangeLength(getRequest.getRange().getLength()))
-                        .attribute(StreamAttributes.range(getRequest.getRange()))
-                        .build(),
-                this.objectClient.getObject(getRequest, this.openStreamInformation),
-                this.physicalIOConfiguration.getBlockReadTimeout()));
+            Operation.builder()
+                .name(OPERATION_GET_OBJECT)
+                .attribute(StreamAttributes.uri(getRequest.getS3Uri()))
+                .attribute(StreamAttributes.rangeLength(getRequest.getRange().getLength()))
+                .attribute(StreamAttributes.range(getRequest.getRange()))
+                .build(),
+        this.objectClient.getObject(getRequest, this.openStreamInformation),
+        this.physicalIOConfiguration.getBlockReadTimeout());
   }
 
   /**
