@@ -41,13 +41,13 @@ import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
 import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.Referrer;
-import software.amazon.s3.analyticsaccelerator.retry.RetryPolicy;
-import software.amazon.s3.analyticsaccelerator.retry.RetryStrategy;
-import software.amazon.s3.analyticsaccelerator.retry.SeekableInputStreamRetryStrategy;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
+import software.amazon.s3.analyticsaccelerator.util.retry.DefaultRetryStrategyImpl;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
 
 /**
  * {@code StreamReader} is responsible for asynchronously reading a range of bytes from an object in
@@ -67,7 +67,7 @@ public class StreamReader implements Closeable {
   private final Telemetry telemetry;
   private final PhysicalIOConfiguration physicalIOConfiguration;
 
-  private final RetryStrategy<ObjectContent> retryStrategy;
+  private final RetryStrategy retryStrategy;
 
   private static final String OPERATION_GET_OBJECT = "s3.stream.get";
   private static final String OPERATION_STREAM_READ = "s3.stream.read";
@@ -113,16 +113,23 @@ public class StreamReader implements Closeable {
    * @throws RuntimeException if all retries fails and an error occurs
    */
   @SuppressWarnings("unchecked")
-  private RetryStrategy<ObjectContent> createRetryStrategy() {
+  private RetryStrategy createRetryStrategy() {
+    RetryStrategy base = new DefaultRetryStrategyImpl();
+    RetryStrategy provided = this.openStreamInformation.getRetryStrategy();
+
+    if (provided != null) {
+      base = base.merge(provided);
+    }
+
     if (this.physicalIOConfiguration.getBlockReadTimeout() > 0) {
-      RetryPolicy<ObjectContent> timeoutRetries =
-          RetryPolicy.<ObjectContent>builder()
+      RetryPolicy timeoutPolicy =
+          RetryPolicy.builder()
               .handle(InterruptedException.class, TimeoutException.class, ExecutionException.class)
               .withMaxRetries(this.physicalIOConfiguration.getBlockReadRetryCount())
               .build();
-      return new SeekableInputStreamRetryStrategy<>(timeoutRetries);
+      base = base.amend(timeoutPolicy);
     }
-    return new SeekableInputStreamRetryStrategy<>();
+    return base;
   }
 
   /**

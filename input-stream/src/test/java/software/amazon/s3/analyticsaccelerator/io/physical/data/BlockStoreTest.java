@@ -93,7 +93,8 @@ public class BlockStoreTest {
             mock(BlobStoreIndexCache.class),
             mock(Metrics.class),
             DEFAULT_READ_TIMEOUT,
-            DEFAULT_RETRY_COUNT));
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT));
 
     // Then: getBlock can retrieve the same block
     Optional<Block> b = blockStore.getBlock(4);
@@ -149,7 +150,13 @@ public class BlockStoreTest {
         new BlockKey(objectKey, new Range(8192, 16383)); // Assuming readBufferSize is 8KB
     Block block =
         new Block(
-            blockKey, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     blockStore.add(block);
 
     // When: getBlockByIndex is called with the correct index
@@ -187,10 +194,22 @@ public class BlockStoreTest {
     BlockKey blockKey = new BlockKey(objectKey, new Range(0, 8191));
     Block block1 =
         new Block(
-            blockKey, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     Block block2 =
         new Block(
-            blockKey, 1, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey,
+            1,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     // When: The first block is added
     blockStore.add(block1);
@@ -219,7 +238,8 @@ public class BlockStoreTest {
                 mockIndexCache,
                 mockMetrics,
                 DEFAULT_READ_TIMEOUT,
-                DEFAULT_RETRY_COUNT));
+                DEFAULT_RETRY_COUNT,
+                OpenStreamInformation.DEFAULT));
     block.setData(new byte[] {1, 2, 3, 4, 5});
     when(block.isDataReady()).thenReturn(true);
     blockStore.add(block);
@@ -245,7 +265,13 @@ public class BlockStoreTest {
     BlockKey blockKey = new BlockKey(objectKey, new Range(0, 8191));
     Block block =
         new Block(
-            blockKey, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     // When: An attempt is made to remove the block
     blockStore.remove(block);
@@ -266,7 +292,8 @@ public class BlockStoreTest {
                 mockIndexCache,
                 mockMetrics,
                 DEFAULT_READ_TIMEOUT,
-                DEFAULT_RETRY_COUNT));
+                DEFAULT_RETRY_COUNT,
+                OpenStreamInformation.DEFAULT));
     when(block.isDataReady()).thenReturn(false);
     blockStore.add(block);
 
@@ -292,10 +319,22 @@ public class BlockStoreTest {
 
     Block block1 =
         new Block(
-            blockKey1, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey1,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     Block block2 =
         new Block(
-            blockKey2, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey2,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     blockStore.add(block1);
     blockStore.add(block2);
@@ -355,7 +394,13 @@ public class BlockStoreTest {
     BlockKey blockKey = new BlockKey(objectKey, new Range(0, 8191));
     Block block =
         new Block(
-            blockKey, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     blockStore.add(block);
 
     // Then: isEmpty returns false
@@ -387,7 +432,8 @@ public class BlockStoreTest {
                     mockIndexCache,
                     mockMetrics,
                     DEFAULT_READ_TIMEOUT,
-                    DEFAULT_RETRY_COUNT);
+                    DEFAULT_RETRY_COUNT,
+                    OpenStreamInformation.DEFAULT);
             blockStore.add(block);
             blockStore.remove(block);
             latch.countDown();
@@ -406,7 +452,13 @@ public class BlockStoreTest {
     BlockKey blockKey = new BlockKey(objectKey, new Range(0, 8191));
     Block block =
         new Block(
-            blockKey, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     blockStore.add(block);
 
     // At start of range
@@ -438,7 +490,13 @@ public class BlockStoreTest {
     BlockKey blockKey = new BlockKey(objectKey, new Range(0, 8191));
     Block block =
         new Block(
-            blockKey, 0, mockIndexCache, mockMetrics, DEFAULT_READ_TIMEOUT, DEFAULT_RETRY_COUNT);
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            DEFAULT_READ_TIMEOUT,
+            DEFAULT_RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     blockStore.add(block);
 
     Optional<Block> outsideBlock = blockStore.getBlock(100_000);

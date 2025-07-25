@@ -57,7 +57,15 @@ public class BlockTest {
 
   @Test
   void testConstructorWithValidParameters() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     assertNotNull(block);
     assertEquals(blockKey, block.getBlockKey());
@@ -69,28 +77,60 @@ public class BlockTest {
   void testConstructorWithNullBlockKey() {
     assertThrows(
         NullPointerException.class,
-        () -> new Block(null, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT));
+        () ->
+            new Block(
+                null,
+                0,
+                mockIndexCache,
+                mockMetrics,
+                READ_TIMEOUT,
+                RETRY_COUNT,
+                OpenStreamInformation.DEFAULT));
   }
 
   @Test
   void testConstructorWithNullIndexCache() {
     assertThrows(
         NullPointerException.class,
-        () -> new Block(blockKey, 0, null, mockMetrics, READ_TIMEOUT, RETRY_COUNT));
+        () ->
+            new Block(
+                blockKey,
+                0,
+                null,
+                mockMetrics,
+                READ_TIMEOUT,
+                RETRY_COUNT,
+                OpenStreamInformation.DEFAULT));
   }
 
   @Test
   void testConstructorWithNullMetrics() {
     assertThrows(
         NullPointerException.class,
-        () -> new Block(blockKey, 0, mockIndexCache, null, READ_TIMEOUT, RETRY_COUNT));
+        () ->
+            new Block(
+                blockKey,
+                0,
+                mockIndexCache,
+                null,
+                READ_TIMEOUT,
+                RETRY_COUNT,
+                OpenStreamInformation.DEFAULT));
   }
 
   @Test
   void testConstructorWithNegativeGeneration() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> new Block(blockKey, -1, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT));
+        () ->
+            new Block(
+                blockKey,
+                -1,
+                mockIndexCache,
+                mockMetrics,
+                READ_TIMEOUT,
+                RETRY_COUNT,
+                OpenStreamInformation.DEFAULT));
   }
 
   @Test
@@ -99,7 +139,14 @@ public class BlockTest {
         IllegalArgumentException.class,
         () -> {
           BlockKey invalidBlockKey = new BlockKey(objectKey, new Range(-1, TEST_DATA.length()));
-          new Block(invalidBlockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+          new Block(
+              invalidBlockKey,
+              0,
+              mockIndexCache,
+              mockMetrics,
+              READ_TIMEOUT,
+              RETRY_COUNT,
+              OpenStreamInformation.DEFAULT);
         });
   }
 
@@ -109,13 +156,28 @@ public class BlockTest {
         IllegalArgumentException.class,
         () -> {
           BlockKey blockKey = new BlockKey(objectKey, new Range(0, -1));
-          new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+          new Block(
+              blockKey,
+              0,
+              mockIndexCache,
+              mockMetrics,
+              READ_TIMEOUT,
+              RETRY_COUNT,
+              OpenStreamInformation.DEFAULT);
         });
   }
 
   @Test
   void testSetDataAndIsDataReady() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     assertFalse(block.isDataReady());
 
@@ -128,7 +190,15 @@ public class BlockTest {
 
   @Test
   void testReadSingleByteAfterDataSet() throws IOException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     int result = block.read(0);
@@ -139,7 +209,15 @@ public class BlockTest {
 
   @Test
   void testReadSingleByteAtDifferentPositions() throws IOException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     assertEquals(116, block.read(0)); // 't'
@@ -155,7 +233,15 @@ public class BlockTest {
 
   @Test
   void testReadSingleByteWithNegativePosition() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     assertThrows(IllegalArgumentException.class, () -> block.read(-1));
@@ -163,7 +249,15 @@ public class BlockTest {
 
   @Test
   void testReadBufferAfterDataSet() throws IOException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     byte[] buffer = new byte[4];
@@ -176,7 +270,15 @@ public class BlockTest {
 
   @Test
   void testReadBufferAtDifferentPositions() throws IOException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     byte[] buffer1 = new byte[4];
@@ -192,7 +294,15 @@ public class BlockTest {
 
   @Test
   void testReadBufferPartialRead() throws IOException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     byte[] buffer = new byte[10];
@@ -204,7 +314,15 @@ public class BlockTest {
 
   @Test
   void testReadBufferWithInvalidParameters() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     byte[] buffer = new byte[4];
@@ -218,7 +336,14 @@ public class BlockTest {
   @Test
   void testReadBeforeDataSet() {
     Block block =
-        new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, RETRY_COUNT); // Short timeout
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            100,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT); // Short timeout
 
     assertThrows(IOException.class, () -> block.read(0));
   }
@@ -226,7 +351,14 @@ public class BlockTest {
   @Test
   void testReadBufferBeforeDataSet() {
     Block block =
-        new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, RETRY_COUNT); // Short timeout
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            100,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT); // Short timeout
     byte[] buffer = new byte[4];
 
     assertThrows(IOException.class, () -> block.read(buffer, 0, 4, 0));
@@ -235,7 +367,14 @@ public class BlockTest {
   @Test
   void testReadWithTimeout() throws InterruptedException {
     Block block =
-        new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, RETRY_COUNT); // Short timeout
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            100,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT); // Short timeout
 
     CountDownLatch latch = new CountDownLatch(1);
     CompletableFuture<Void> readTask =
@@ -258,7 +397,15 @@ public class BlockTest {
 
   @Test
   void testConcurrentReadsAfterDataSet() throws InterruptedException, ExecutionException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     int numThreads = 10;
@@ -290,7 +437,15 @@ public class BlockTest {
 
   @Test
   void testCloseReleasesData() throws IOException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     assertTrue(block.isDataReady());
@@ -303,7 +458,15 @@ public class BlockTest {
 
   @Test
   void testMultipleSetDataCalls() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     block.setData(TEST_DATA_BYTES);
     assertTrue(block.isDataReady());
@@ -316,9 +479,33 @@ public class BlockTest {
 
   @Test
   void testGenerationProperty() {
-    Block block1 = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
-    Block block2 = new Block(blockKey, 5, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
-    Block block3 = new Block(blockKey, 100, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block1 =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
+    Block block2 =
+        new Block(
+            blockKey,
+            5,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
+    Block block3 =
+        new Block(
+            blockKey,
+            100,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     assertEquals(0, block1.getGeneration());
     assertEquals(5, block2.getGeneration());
@@ -327,7 +514,15 @@ public class BlockTest {
 
   @Test
   void testReadIntoBuffer() throws IOException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, READ_TIMEOUT, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
     block.setData(TEST_DATA_BYTES);
 
     byte[] buffer = new byte[20];
@@ -339,7 +534,15 @@ public class BlockTest {
 
   @Test
   void testReadTimeoutIfDataNeverSet() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, RETRY_COUNT); // 100 ms
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            100,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT); // 100 ms
 
     IOException ex = assertThrows(IOException.class, () -> block.read(0));
     assertTrue(ex.getMessage().contains("Error while reading data."));
@@ -347,7 +550,15 @@ public class BlockTest {
 
   @Test
   void testReadBlocksUntilDataIsReady() throws Exception {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, 1000, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            1000,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     ExecutorService executor = Executors.newSingleThreadExecutor();
     Future<Integer> result = executor.submit(() -> block.read(0));
@@ -362,7 +573,15 @@ public class BlockTest {
 
   @Test
   void testReadHandlesInterruptedException() throws InterruptedException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, 500, RETRY_COUNT);
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            500,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
 
     Thread testThread =
         new Thread(
@@ -392,7 +611,8 @@ public class BlockTest {
     CountDownLatch dataSetLatch = new CountDownLatch(1);
 
     // Create a block with a short timeout and 2 retries
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, 50, 2);
+    Block block =
+        new Block(blockKey, 0, mockIndexCache, mockMetrics, 50, 2, OpenStreamInformation.DEFAULT);
 
     // Start a thread that will try to read from the block
     CompletableFuture<Integer> future =
@@ -427,7 +647,8 @@ public class BlockTest {
   @Test
   void testRetryStrategyExhaustsRetries() {
     // Create a block with a short timeout and only 1 retry
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, 1);
+    Block block =
+        new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, 1, OpenStreamInformation.DEFAULT);
 
     // Don't set data, so all retries will fail with timeout
 
@@ -441,7 +662,8 @@ public class BlockTest {
     // Create a block with a short timeout and multiple retries
     CountDownLatch readStarted = new CountDownLatch(1);
 
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, 3);
+    Block block =
+        new Block(blockKey, 0, mockIndexCache, mockMetrics, 100, 3, OpenStreamInformation.DEFAULT);
 
     // Start a thread that will try to read from the block
     CompletableFuture<Integer> future =

@@ -58,6 +58,7 @@ public class BlockManager implements Closeable {
   private final BlockStore blockStore;
   private final SequentialReadProgression sequentialReadProgression;
   private final RangeOptimiser rangeOptimiser;
+  private final OpenStreamInformation openStreamInformation;
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
   private static final Logger LOG = LoggerFactory.getLogger(BlockManager.class);
@@ -92,6 +93,7 @@ public class BlockManager implements Closeable {
     this.aggregatingMetrics = aggregatingMetrics;
     this.indexCache = indexCache;
     this.blockStore = new BlockStore(indexCache, aggregatingMetrics, configuration);
+    this.openStreamInformation = openStreamInformation;
     this.streamReader =
         new StreamReader(
             objectClient,
@@ -215,7 +217,8 @@ public class BlockManager implements Closeable {
                       this.indexCache,
                       this.aggregatingMetrics,
                       this.configuration.getBlockReadTimeout(),
-                      this.configuration.getBlockReadRetryCount());
+                      this.configuration.getBlockReadRetryCount(),
+                      this.openStreamInformation);
               // Add block to the store for future reference
               blockStore.add(block);
               blocksToFill.add(block);
