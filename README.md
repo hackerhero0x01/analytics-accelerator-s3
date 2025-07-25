@@ -169,7 +169,6 @@ To learn more about how to set the configurations, read our [configuration](doc/
 ## User Agent
 We prepend user agent prefixes from both `USER_AGENT_PREFIX_KEY` set in `ObjectClientConfiguration` and `USER_AGENT_PREFIX` in s3AsyncClient configuration to `s3analyticsaccelerator` user agent. For CRT clients as of today there is no value set in `USER_AGENT_PREFIX`, so if you need to set the custom user agent pass it in the `ObjectClientConfiguration`.
 
-
 ## Benchmark Results 
 
 ### Benchmarking Results -- November 25, 2024
