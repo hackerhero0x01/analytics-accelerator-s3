@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -52,7 +53,7 @@ public class BlockStoreTest {
   public void setUp() {
     mockIndexCache = mock(BlobStoreIndexCache.class);
     mockMetrics = mock(Metrics.class);
-    configuration = PhysicalIOConfiguration.DEFAULT;
+    configuration = PhysicalIOConfiguration.builder().readBufferSize(8 * ONE_KB).build();
     blockStore = new BlockStore(mockIndexCache, mockMetrics, configuration);
   }
 

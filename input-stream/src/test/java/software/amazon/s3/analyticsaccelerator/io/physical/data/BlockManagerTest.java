@@ -229,6 +229,7 @@ public class BlockManagerTest {
         PhysicalIOConfiguration.builder()
             .smallObjectSizeThreshold(8 * ONE_MB)
             .smallObjectsPrefetchingEnabled(true)
+            .readBufferSize(8 * ONE_KB)
             .build();
 
     // Given
@@ -249,6 +250,7 @@ public class BlockManagerTest {
         PhysicalIOConfiguration.builder()
             .smallObjectSizeThreshold(8 * ONE_MB)
             .smallObjectsPrefetchingEnabled(true)
+            .readBufferSize(8 * ONE_KB)
             .build();
     BlockManager blockManager = getTestBlockManager(objectClient, 42, configuration);
 
@@ -269,6 +271,7 @@ public class BlockManagerTest {
             .smallObjectsPrefetchingEnabled(false)
             .smallObjectSizeThreshold(
                 8 * ONE_MB) // Make sure that threshold is always higher than small object size
+            .readBufferSize(8 * ONE_KB)
             .build();
 
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -305,7 +308,10 @@ public class BlockManagerTest {
   void testGetBlockReturnsAvailableBlock() {
     // Given
     PhysicalIOConfiguration config =
-        PhysicalIOConfiguration.builder().smallObjectsPrefetchingEnabled(false).build();
+        PhysicalIOConfiguration.builder()
+            .smallObjectsPrefetchingEnabled(false)
+            .readBufferSize(8 * ONE_KB)
+            .build();
     BlockManager blockManager = getTestBlockManager(mock(ObjectClient.class), 65 * ONE_KB, config);
 
     // When: have a 64KB block available from 0
@@ -320,7 +326,10 @@ public class BlockManagerTest {
     // Given
 
     PhysicalIOConfiguration config =
-        PhysicalIOConfiguration.builder().smallObjectsPrefetchingEnabled(false).build();
+        PhysicalIOConfiguration.builder()
+            .smallObjectsPrefetchingEnabled(false)
+            .readBufferSize(8 * ONE_KB)
+            .build();
 
     final int objectSize = (int) config.getReadAheadBytes() + ONE_KB;
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -368,7 +377,10 @@ public class BlockManagerTest {
         getTestBlockManager(
             objectClient,
             136 * ONE_KB,
-            PhysicalIOConfiguration.builder().smallObjectsPrefetchingEnabled(false).build());
+            PhysicalIOConfiguration.builder()
+                .smallObjectsPrefetchingEnabled(false)
+                .readBufferSize(8 * ONE_KB)
+                .build());
     blockManager.makePositionAvailable(
         0, ReadMode.SYNC); // This code will create blocks [0,1,2,3,4,5,6,7]
     blockManager.makePositionAvailable(
@@ -448,7 +460,10 @@ public class BlockManagerTest {
         getTestBlockManager(
             objectClient,
             128 * ONE_MB,
-            PhysicalIOConfiguration.builder().sequentialPrefetchBase(2.0).build());
+            PhysicalIOConfiguration.builder()
+                .readBufferSize(8 * ONE_KB)
+                .sequentialPrefetchBase(2.0)
+                .build());
     blockManager.makeRangeAvailable(20_837_974, 8_323_072, ReadMode.SYNC);
     blockManager.makeRangeAvailable(20_772_438, 65_536, ReadMode.SYNC);
     blockManager.makeRangeAvailable(29_161_046, 4_194_305, ReadMode.SYNC);
@@ -517,7 +532,11 @@ public class BlockManagerTest {
                 ObjectContent.builder().stream(new ByteArrayInputStream(new byte[1024])).build()));
 
     PhysicalIOConfiguration config =
-        PhysicalIOConfiguration.builder().readAheadBytes(512).sequentialPrefetchBase(2.0).build();
+        PhysicalIOConfiguration.builder()
+            .readAheadBytes(512)
+            .sequentialPrefetchBase(2.0)
+            .readBufferSize(8 * ONE_KB)
+            .build();
 
     BlockManager blockManager = getTestBlockManager(objectClient, 1024, config);
 
@@ -711,7 +730,9 @@ public class BlockManagerTest {
   }
 
   private BlockManager getTestBlockManager(ObjectClient objectClient, int size) {
-    return getTestBlockManager(objectClient, size, PhysicalIOConfiguration.DEFAULT);
+    PhysicalIOConfiguration configuration =
+        PhysicalIOConfiguration.builder().readBufferSize(8 * ONE_KB).build();
+    return getTestBlockManager(objectClient, size, configuration);
   }
 
   private BlockManager getTestBlockManager(
