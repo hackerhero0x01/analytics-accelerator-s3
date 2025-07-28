@@ -113,7 +113,6 @@ public class Block implements Closeable {
     this.aggregatingMetrics = aggregatingMetrics;
     this.indexCache = indexCache;
     this.retryStrategy = createRetryStrategy();
-    this.generateSourceAndData();
   }
 
   /**
@@ -187,6 +186,11 @@ public class Block implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
+
+    if (this.data == null) {
+      this.generateSourceAndData();
+    }
+
     byte[] content = this.retryStrategy.get(this::getData);
     indexCache.recordAccess(blockKey);
     return Byte.toUnsignedInt(content[posToOffset(pos)]);
@@ -207,6 +211,10 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= off, "`off` must not be negative");
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
+
+    if (this.data == null) {
+      this.generateSourceAndData();
+    }
 
     byte[] content = this.retryStrategy.get(this::getData);
     indexCache.recordAccess(blockKey);
