@@ -146,12 +146,7 @@ public class Block implements Closeable {
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     awaitDataWithRetry();
-    if (error != null) {
-      throw error;
-    }
-    if (data == null) {
-      throw new IOException("Error while reading data. Block data is null after successful await");
-    }
+
     indexCache.recordAccess(this.blockKey);
     int contentOffset = posToOffset(pos);
     return Byte.toUnsignedInt(this.data[contentOffset]);
@@ -175,12 +170,6 @@ public class Block implements Closeable {
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
     awaitDataWithRetry();
-    if (error != null) {
-      throw error;
-    }
-    if (data == null) {
-      throw new IOException("Error while reading data. Block data is null after successful await");
-    }
 
     indexCache.recordAccess(this.blockKey);
     int contentOffset = posToOffset(pos);
@@ -240,6 +229,13 @@ public class Block implements Closeable {
           awaitData();
           return null;
         });
+
+    if (this.error != null) {
+      throw error;
+    }
+    if (this.data == null) {
+      throw new IOException("Error while reading data. Block data is null after successful await");
+    }
   }
 
   /**

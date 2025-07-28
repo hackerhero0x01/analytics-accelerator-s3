@@ -96,14 +96,14 @@ public class Blob implements Closeable {
       lock.readLock().lock();
       blockManager.makePositionAvailable(pos, ReadMode.SYNC);
       Optional<Block> block = blockManager.getBlock(pos);
-      if (!block.isPresent()) {
-        throw new IllegalStateException(
-            String.format(
-                "This block object key %s (for position %s) should have been available.",
-                objectKey.getS3URI(), pos));
-      }
-
-      return block.get().read(pos);
+      return block
+          .orElseThrow(
+              () ->
+                  new IllegalStateException(
+                      String.format(
+                          "This block object key %s (for position %s) should have been available.",
+                          objectKey.getS3URI(), pos)))
+          .read(pos);
     } finally {
       lock.readLock().unlock();
     }
