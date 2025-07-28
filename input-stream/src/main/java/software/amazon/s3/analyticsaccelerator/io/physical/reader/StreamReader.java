@@ -198,7 +198,7 @@ public class StreamReader implements Closeable {
                 objectContent = this.retryStrategy.get(() -> fetchObjectContent(getRequest));
               } catch (IOException e) {
                 LOG.error("IOException while fetching object content", e);
-                removeNonFilledBlocksFromStore(blocks);
+                setErrorOnBlocksAndRemove(blocks, e);
                 return;
               }
 
@@ -218,13 +218,15 @@ public class StreamReader implements Closeable {
                 }
               } catch (EOFException e) {
                 LOG.error("EOFException while reading blocks", e);
-                removeNonFilledBlocksFromStore(blocks);
+                setErrorOnBlocksAndRemove(blocks, e);
               } catch (IOException e) {
                 LOG.error("IOException while reading blocks", e);
-                removeNonFilledBlocksFromStore(blocks);
+                setErrorOnBlocksAndRemove(blocks, e);
               } catch (Exception e) {
                 LOG.error("Unexpected exception while reading blocks", e);
-                removeNonFilledBlocksFromStore(blocks);
+                IOException ioException =
+                    new IOException("Unexpected error during block reading", e);
+                setErrorOnBlocksAndRemove(blocks, ioException);
               }
             });
   }
@@ -375,6 +377,19 @@ public class StreamReader implements Closeable {
       totalRead += bytesRead;
     }
     return buffer;
+  }
+
+  /**
+   * Sets error on blocks that are not ready and removes them from the data store.
+   *
+   * @param blocks the list of blocks to set error on and remove
+   * @param error the IOException that occurred during block reading
+   */
+  private void setErrorOnBlocksAndRemove(List<Block> blocks, IOException error) {
+    List<Block> nonReadyBlocks =
+        blocks.stream().filter(block -> !block.isDataReady()).collect(Collectors.toList());
+    nonReadyBlocks.forEach(block -> block.setError(error));
+    this.removeBlocksFunc.accept(nonReadyBlocks);
   }
 
   /**

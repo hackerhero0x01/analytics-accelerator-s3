@@ -689,4 +689,95 @@ public class BlockTest {
     // The read should eventually succeed
     assertEquals(Byte.toUnsignedInt(TEST_DATA_BYTES[0]), future.join());
   }
+
+  @Test
+  void testSetErrorAndReadSingleByte() {
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
+
+    IOException testError = new IOException("Test error message");
+    block.setError(testError);
+
+    assertTrue(block.isDataReady());
+    IOException thrown = assertThrows(IOException.class, () -> block.read(0));
+    assertEquals(testError, thrown);
+  }
+
+  @Test
+  void testSetErrorAndReadBuffer() {
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
+
+    IOException testError = new IOException("Test error message");
+    block.setError(testError);
+
+    byte[] buffer = new byte[4];
+    IOException thrown = assertThrows(IOException.class, () -> block.read(buffer, 0, 4, 0));
+    assertEquals(testError, thrown);
+  }
+
+  @Test
+  void testSetErrorWithNullThrowsException() {
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
+
+    assertThrows(NullPointerException.class, () -> block.setError(null));
+  }
+
+  @Test
+  void testConcurrentReadsWithError() throws InterruptedException {
+    Block block =
+        new Block(
+            blockKey,
+            0,
+            mockIndexCache,
+            mockMetrics,
+            READ_TIMEOUT,
+            RETRY_COUNT,
+            OpenStreamInformation.DEFAULT);
+
+    IOException testError = new IOException("Concurrent test error");
+
+    int numThreads = 5;
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+    for (int i = 0; i < numThreads; i++) {
+      CompletableFuture<Void> future =
+          CompletableFuture.runAsync(
+              () -> {
+                IOException thrown = assertThrows(IOException.class, () -> block.read(0));
+                assertEquals(testError, thrown);
+              },
+              executor);
+      futures.add(future);
+    }
+
+    Thread.sleep(50); // Let threads start waiting
+    block.setError(testError);
+
+    CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0])).join();
+    executor.shutdown();
+  }
 }

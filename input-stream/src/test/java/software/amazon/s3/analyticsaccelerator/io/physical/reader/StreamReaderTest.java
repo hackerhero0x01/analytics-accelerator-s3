@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -262,6 +263,25 @@ public class StreamReaderTest {
   }
 
   @Test
+  void processReadTask_fetchObjectContentIOException_setsErrorOnBlocks()
+      throws InterruptedException {
+    Block block = createMockBlock(0, 4);
+    List<Block> blocks = Collections.singletonList(block);
+
+    IOException testException = new IOException("S3 fetch failed");
+    CompletableFuture<ObjectContent> failedFuture = new CompletableFuture<>();
+    failedFuture.completeExceptionally(testException);
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
+        .thenReturn(failedFuture);
+
+    Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
+    readTask.run();
+
+    verify(block).setError(any(IOException.class));
+    verify(mockRemoveBlocksFunc).accept(Collections.singletonList(block));
+  }
+
+  @Test
   void processReadTask_readBlocksFromStreamThrowsEOFException_callsRemoveBlocks()
       throws IOException {
     Block block = createMockBlock(0, 4);
@@ -282,6 +302,28 @@ public class StreamReaderTest {
   }
 
   @Test
+  void processReadTask_readBlocksFromStreamThrowsEOFException_setsErrorOnBlocks()
+      throws IOException {
+    Block block = createMockBlock(0, 4);
+    List<Block> blocks = Collections.singletonList(block);
+
+    EOFException testException = new EOFException("Premature EOF");
+    InputStream throwingStream = mock(InputStream.class);
+    when(throwingStream.read(any(), anyInt(), anyInt())).thenThrow(testException);
+
+    ObjectContent mockContent = mock(ObjectContent.class);
+    when(mockContent.getStream()).thenReturn(throwingStream);
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
+        .thenReturn(completedFuture(mockContent));
+
+    Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
+    readTask.run();
+
+    verify(block).setError(testException);
+    verify(mockRemoveBlocksFunc).accept(Collections.singletonList(block));
+  }
+
+  @Test
   void processReadTask_readBlocksFromStreamThrowsIOException_callsRemoveBlocks()
       throws IOException {
     Block block = createMockBlock(0, 4);
@@ -299,6 +341,28 @@ public class StreamReaderTest {
     readTask.run();
 
     verify(mockRemoveBlocksFunc).accept(blocks);
+  }
+
+  @Test
+  void processReadTask_readBlocksFromStreamThrowsIOException_setsErrorOnBlocks()
+      throws IOException {
+    Block block = createMockBlock(0, 4);
+    List<Block> blocks = Collections.singletonList(block);
+
+    IOException testException = new IOException("Stream read error");
+    InputStream throwingStream = mock(InputStream.class);
+    when(throwingStream.read(any(), anyInt(), anyInt())).thenThrow(testException);
+
+    ObjectContent mockContent = mock(ObjectContent.class);
+    when(mockContent.getStream()).thenReturn(throwingStream);
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
+        .thenReturn(completedFuture(mockContent));
+
+    Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
+    readTask.run();
+
+    verify(block).setError(testException);
+    verify(mockRemoveBlocksFunc).accept(Collections.singletonList(block));
   }
 
   @Test
@@ -451,6 +515,61 @@ public class StreamReaderTest {
                     blocksToRemove.size() == 1 && blocksToRemove.contains(unfilledBlock)));
   }
 
+  @Test
+  void processReadTask_unexpectedException_wrapsInIOExceptionAndSetsErrorOnBlocks()
+      throws IOException {
+    Block block = createMockBlock(0, 4);
+    List<Block> blocks = Collections.singletonList(block);
+
+    RuntimeException testException = new RuntimeException("Unexpected error");
+    InputStream throwingStream = mock(InputStream.class);
+    when(throwingStream.read(any(), anyInt(), anyInt())).thenThrow(testException);
+
+    ObjectContent mockContent = mock(ObjectContent.class);
+    when(mockContent.getStream()).thenReturn(throwingStream);
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
+        .thenReturn(completedFuture(mockContent));
+
+    Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
+    readTask.run();
+
+    verify(block)
+        .setError(
+            argThat(
+                error ->
+                    error != null
+                        && error.getMessage().equals("Unexpected error during block reading")
+                        && error.getCause() == testException));
+    verify(mockRemoveBlocksFunc).accept(Collections.singletonList(block));
+  }
+
+  @Test
+  void processReadTask_multipleBlocksWithError_setsErrorOnlyOnNonReadyBlocks() {
+    Block readyBlock = createMockBlock(0, 2);
+    Block nonReadyBlock1 = createMockBlock(3, 5);
+    Block nonReadyBlock2 = createMockBlock(6, 8);
+
+    when(readyBlock.isDataReady()).thenReturn(true);
+    when(nonReadyBlock1.isDataReady()).thenReturn(false);
+    when(nonReadyBlock2.isDataReady()).thenReturn(false);
+
+    List<Block> blocks = Arrays.asList(readyBlock, nonReadyBlock1, nonReadyBlock2);
+
+    IOException testException = new IOException("Test error");
+    CompletableFuture<ObjectContent> failedFuture = new CompletableFuture<>();
+    failedFuture.completeExceptionally(testException);
+    when(mockObjectClient.getObject(any(GetRequest.class), eq(openStreamInfo)))
+        .thenReturn(failedFuture);
+
+    Runnable readTask = invokeProcessReadTask(blocks, ReadMode.SYNC);
+    readTask.run();
+
+    verify(readyBlock, never()).setError(any());
+    verify(nonReadyBlock1).setError(any(IOException.class));
+    verify(nonReadyBlock2).setError(any(IOException.class));
+    verify(mockRemoveBlocksFunc).accept(Arrays.asList(nonReadyBlock1, nonReadyBlock2));
+  }
+
   // Helper to call private processReadTask using reflection for testing
   private Runnable invokeProcessReadTask(List<Block> blocks, ReadMode readMode) {
     try {
@@ -489,6 +608,16 @@ public class StreamReaderTest {
             })
         .when(mockBlock)
         .setData(any(byte[].class));
+
+    doAnswer(
+            invocation -> {
+              IOException error = invocation.getArgument(0);
+              // simulate error set by returning true on isDataReady
+              when(mockBlock.isDataReady()).thenReturn(true);
+              return null;
+            })
+        .when(mockBlock)
+        .setError(any(IOException.class));
 
     return mockBlock;
   }
