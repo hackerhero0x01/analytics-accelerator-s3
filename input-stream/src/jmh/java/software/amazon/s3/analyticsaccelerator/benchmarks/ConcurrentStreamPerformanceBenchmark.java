@@ -49,7 +49,7 @@ public class ConcurrentStreamPerformanceBenchmark {
         String bucketName;
         int maxConcurrency;
 
-        @Param({"AAL_READ_VECTORED"})
+        @Param({"ASYNC_JAVA", "SYNC_JAVA", "AAL_READ_VECTORED"})
         public String clientKind;
 
 
