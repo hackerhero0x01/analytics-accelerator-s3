@@ -51,7 +51,7 @@ public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
     this.parquetPrefetcher =
         new ParquetPrefetcher(
             s3Uri, physicalIO, telemetry, logicalIOConfiguration, parquetColumnPrefetchStore);
-    this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
+   // this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
   }
 
   /**
