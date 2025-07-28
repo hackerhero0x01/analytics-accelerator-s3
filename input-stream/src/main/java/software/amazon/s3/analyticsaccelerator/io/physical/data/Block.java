@@ -42,8 +42,8 @@ import software.amazon.s3.analyticsaccelerator.util.*;
  * the object.
  */
 public class Block implements Closeable {
-  private CompletableFuture<ObjectContent> source;
-  private CompletableFuture<byte[]> data;
+  private ObjectContent source;
+  private byte[] data;
   @Getter private final BlockKey blockKey;
   private final Telemetry telemetry;
   private final ObjectClient objectClient;
@@ -152,45 +152,30 @@ public class Block implements Closeable {
 
     openStreamInformation.getRequestCallback().onGetRequest();
 
-    this.source =
-        this.telemetry.measureCritical(
-            () ->
-                Operation.builder()
-                    .name(OPERATION_BLOCK_GET_ASYNC)
-                    .attribute(StreamAttributes.uri(this.blockKey.getObjectKey().getS3URI()))
-                    .attribute(StreamAttributes.etag(this.blockKey.getObjectKey().getEtag()))
-                    .attribute(StreamAttributes.range(this.blockKey.getRange()))
-                    .attribute(StreamAttributes.generation(generation))
-                    .build(),
-            () -> {
-              this.aggregatingMetrics.add(MetricKey.GET_REQUEST_COUNT, 1);
-              return objectClient.getObject(getRequest, openStreamInformation);
-            });
+    this.source = objectClient.getObjectSync(getRequest, openStreamInformation);
+    this.aggregatingMetrics.add(MetricKey.GET_REQUEST_COUNT, 1);
 
-    // Handle IOExceptions when converting stream to byte array
-    this.data =
-        this.source.thenApply(
-            objectContent -> {
-              try {
-                byte[] bytes =
-                    StreamUtils.toByteArray(
-                        objectContent,
-                        this.blockKey.getObjectKey(),
-                        this.blockKey.getRange(),
-                        this.readTimeout);
-                int blockRange = blockKey.getRange().getLength();
-                this.aggregatingMetrics.add(MetricKey.MEMORY_USAGE, blockRange);
-                this.indexCache.put(blockKey, blockRange);
-                return bytes;
-              } catch (IOException | TimeoutException e) {
-                throw new RuntimeException("Error while converting InputStream to byte array", e);
-              }
-            });
+    try {
+
+      this.data =
+              StreamUtils.toByteArray(
+                      this.source,
+                      this.blockKey.getObjectKey(),
+                      this.blockKey.getRange(),
+                      this.readTimeout);
+      int blockRange = blockKey.getRange().getLength();
+      this.aggregatingMetrics.add(MetricKey.MEMORY_USAGE, blockRange);
+      this.indexCache.put(blockKey, blockRange);
+    } catch (Exception e) {
+      throw new RuntimeException("Error while converting InputStream to byte array", e);
+    }
+
+
   }
 
   /** @return if data is loaded */
   public boolean isDataLoaded() {
-    return data.isDone();
+    return true;
   }
 
   /**
@@ -265,23 +250,13 @@ public class Block implements Closeable {
    * @throws IOException if an I/O error occurs
    */
   private byte[] getData() throws IOException {
-    return this.telemetry.measureJoinCritical(
-        () ->
-            Operation.builder()
-                .name(OPERATION_BLOCK_GET_JOIN)
-                .attribute(StreamAttributes.uri(this.blockKey.getObjectKey().getS3URI()))
-                .attribute(StreamAttributes.etag(this.blockKey.getObjectKey().getEtag()))
-                .attribute(StreamAttributes.range(this.blockKey.getRange()))
-                .attribute(StreamAttributes.rangeLength(this.blockKey.getRange().getLength()))
-                .build(),
-        this.data,
-        this.readTimeout);
+    return this.data;
   }
 
   /** Closes the {@link Block} and frees up all resources it holds */
   @Override
   public void close() {
     // Only the source needs to be canceled, the continuation will cancel on its own
-    this.source.cancel(false);
+   // this.source.cancel(false);
   }
 }

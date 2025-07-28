@@ -49,7 +49,7 @@ public class ConcurrentStreamPerformanceBenchmark {
         String bucketName;
         int maxConcurrency;
 
-        @Param({"ASYNC_JAVA", "SYNC_JAVA", "AAL_READ_VECTORED"})
+        @Param({"AAL_READ_VECTORED"})
         public String clientKind;
 
 
@@ -69,7 +69,7 @@ public class ConcurrentStreamPerformanceBenchmark {
             this.s3ExecutionContext = new S3ExecutionContext(S3ExecutionConfiguration.fromEnvironment());
             this.bucketName = s3ExecutionContext.getConfiguration().getAsyncBucket();
             this.s3Objects = getKeys(s3Client, bucketName, s3ExecutionContext.getConfiguration().getPrefix());
-            this.s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(new S3SdkObjectClient(this.s3AsyncClient), S3SeekableInputStreamConfiguration.DEFAULT);
+            this.s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(new S3SdkObjectClient(this.s3AsyncClient, this.s3Client), S3SeekableInputStreamConfiguration.DEFAULT);
         }
 
         @TearDown

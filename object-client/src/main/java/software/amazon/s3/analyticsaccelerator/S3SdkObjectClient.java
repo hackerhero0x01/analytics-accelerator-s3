@@ -33,6 +33,7 @@ import software.amazon.awssdk.core.SdkServiceClientConfiguration;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
@@ -52,6 +53,8 @@ public class S3SdkObjectClient implements ObjectClient {
   @NonNull private final UserAgent userAgent;
   private final boolean closeAsyncClient;
 
+  private final S3Client s3Client;
+
   /**
    * Create an instance of a S3 client, with default configuration, for interaction with Amazon S3
    * compatible object stores. This takes ownership of the passed client and will close it on its
@@ -63,6 +66,10 @@ public class S3SdkObjectClient implements ObjectClient {
     this(s3AsyncClient, ObjectClientConfiguration.DEFAULT);
   }
 
+  public S3SdkObjectClient(@NonNull S3AsyncClient s3AsyncClient, S3Client s3Client) {
+    this(s3AsyncClient, ObjectClientConfiguration.DEFAULT, true, s3Client);
+  }
+
   /**
    * Create an instance of a S3 client, with default configuration, for interaction with Amazon S3
    * compatible object stores. This takes ownership of the passed client and will close it on its
@@ -72,7 +79,7 @@ public class S3SdkObjectClient implements ObjectClient {
    * @param closeAsyncClient if true, close the passed client on close.
    */
   public S3SdkObjectClient(@NonNull S3AsyncClient s3AsyncClient, boolean closeAsyncClient) {
-    this(s3AsyncClient, ObjectClientConfiguration.DEFAULT, closeAsyncClient);
+    this(s3AsyncClient, ObjectClientConfiguration.DEFAULT, closeAsyncClient, null);
   }
 
   /**
@@ -85,7 +92,7 @@ public class S3SdkObjectClient implements ObjectClient {
   public S3SdkObjectClient(
       @NonNull S3AsyncClient s3AsyncClient,
       @NonNull ObjectClientConfiguration objectClientConfiguration) {
-    this(s3AsyncClient, objectClientConfiguration, true);
+    this(s3AsyncClient, objectClientConfiguration, true, null);
   }
 
   /**
@@ -98,7 +105,8 @@ public class S3SdkObjectClient implements ObjectClient {
   public S3SdkObjectClient(
       @NonNull S3AsyncClient s3AsyncClient,
       @NonNull ObjectClientConfiguration objectClientConfiguration,
-      boolean closeAsyncClient) {
+      boolean closeAsyncClient,
+      S3Client s3Client) {
     this.s3AsyncClient = s3AsyncClient;
     this.closeAsyncClient = closeAsyncClient;
     this.telemetry =
@@ -111,6 +119,7 @@ public class S3SdkObjectClient implements ObjectClient {
             .flatMap(override -> override.advancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX))
             .orElse("");
     this.userAgent.prepend(customUserAgent);
+    this.s3Client = s3Client;
   }
 
   /** Closes the underlying client if instructed by the constructor. */
@@ -217,6 +226,42 @@ public class S3SdkObjectClient implements ObjectClient {
             .thenApply(
                 responseInputStream -> ObjectContent.builder().stream(responseInputStream).build())
             .exceptionally(handleException(getRequest.getS3Uri())));
+  }
+
+  @Override
+  public ObjectContent getObjectSync(GetRequest getRequest, OpenStreamInformation openStreamInformation) {
+    GetObjectRequest.Builder builder =
+            GetObjectRequest.builder()
+                    .bucket(getRequest.getS3Uri().getBucket())
+                    .ifMatch(getRequest.getEtag())
+                    .key(getRequest.getS3Uri().getKey());
+
+    final String range = getRequest.getRange().toHttpString();
+    builder.range(range);
+
+    AwsRequestOverrideConfiguration.Builder requestOverrideConfigurationBuilder =
+            AwsRequestOverrideConfiguration.builder()
+                    .putHeader(HEADER_REFERER, getRequest.getReferrer().toString())
+                    .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent());
+
+    if (openStreamInformation.getStreamAuditContext() != null) {
+      attachStreamContextToExecutionAttributes(
+              requestOverrideConfigurationBuilder, openStreamInformation.getStreamAuditContext());
+    }
+
+    builder.overrideConfiguration(requestOverrideConfigurationBuilder.build());
+
+    if (openStreamInformation.getEncryptionSecrets() != null
+            && openStreamInformation.getEncryptionSecrets().getSsecCustomerKey().isPresent()) {
+      String customerKey = openStreamInformation.getEncryptionSecrets().getSsecCustomerKey().get();
+      String customerKeyMd5 = openStreamInformation.getEncryptionSecrets().getSsecCustomerKeyMd5();
+      builder
+              .sseCustomerAlgorithm(ServerSideEncryption.AES256.name())
+              .sseCustomerKey(customerKey)
+              .sseCustomerKeyMD5(customerKeyMd5);
+    }
+
+    return ObjectContent.builder().stream(s3Client.getObject(builder.build())).build();
   }
 
   private <T> Function<Throwable, T> handleException(S3URI s3Uri) {

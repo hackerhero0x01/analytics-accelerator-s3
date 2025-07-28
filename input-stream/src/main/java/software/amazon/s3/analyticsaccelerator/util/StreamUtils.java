@@ -48,50 +48,26 @@ public class StreamUtils {
     ByteArrayOutputStream outStream = new ByteArrayOutputStream();
     byte[] buffer = new byte[BUFFER_SIZE];
 
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
-    Future<Void> future =
-        executorService.submit(
-            () -> {
-              try {
-                int numBytesRead;
-                LOG.debug(
-                    "Starting to read from InputStream for Block s3URI={}, etag={}, start={}, end={}",
-                    objectKey.s3URI,
-                    objectKey.etag,
-                    range.getStart(),
-                    range.getEnd());
-                while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
-                  outStream.write(buffer, 0, numBytesRead);
-                }
-                LOG.debug(
-                    "Successfully read from InputStream for Block numBytesRead={}, s3URI={}, etag={}, start={}, end={}",
-                    numBytesRead,
-                    objectKey.s3URI,
-                    objectKey.etag,
-                    range.getStart(),
-                    range.getEnd());
-                return null;
-              } finally {
-                inStream.close();
-              }
-            });
-
     try {
-      future.get(timeoutMs, TimeUnit.MILLISECONDS);
-
-    } catch (TimeoutException e) {
-      future.cancel(true);
+      int numBytesRead;
       LOG.debug(
-          "Reading from InputStream has timed out for Block s3URI={}, etag={}, start={}, end={}",
-          objectKey.s3URI,
-          objectKey.etag,
-          range.getStart(),
-          range.getEnd());
-      throw new TimeoutException("Read operation timed out");
-    } catch (Exception e) {
-      throw new IOException("Error reading stream", e);
+              "Starting to read from InputStream for Block s3URI={}, etag={}, start={}, end={}",
+              objectKey.s3URI,
+              objectKey.etag,
+              range.getStart(),
+              range.getEnd());
+      while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
+        outStream.write(buffer, 0, numBytesRead);
+      }
+      LOG.debug(
+              "Successfully read from InputStream for Block numBytesRead={}, s3URI={}, etag={}, start={}, end={}",
+              numBytesRead,
+              objectKey.s3URI,
+              objectKey.etag,
+              range.getStart(),
+              range.getEnd());
     } finally {
-      executorService.shutdown();
+      inStream.close();
     }
 
     return outStream.toByteArray();

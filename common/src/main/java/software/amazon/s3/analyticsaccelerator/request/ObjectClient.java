@@ -41,4 +41,7 @@ public interface ObjectClient extends Closeable {
    */
   CompletableFuture<ObjectContent> getObject(
       GetRequest getRequest, OpenStreamInformation openStreamInformation);
+
+  ObjectContent getObjectSync(
+      GetRequest getRequest, OpenStreamInformation openStreamInformation);
 }
