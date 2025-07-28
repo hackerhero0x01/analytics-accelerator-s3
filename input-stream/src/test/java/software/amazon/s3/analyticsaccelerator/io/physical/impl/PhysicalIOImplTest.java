@@ -351,7 +351,12 @@ public class PhysicalIOImplTest {
   @SuppressWarnings("unchecked")
   @Test
   public void test_FailureEvictsObjectsAsExpected_WhenSDKClientGetsStuck() throws IOException {
-    IOException ioException = new IOException(new IOException("Error while getting block"));
+    AwsServiceException sdkException =
+        S3Exception.builder()
+            .message(
+                "software.amazon.awssdk.services.s3.model.S3Exception: At least one of the pre-conditions you specified did not hold (Service: S3, Status Code: 412, Request ID")
+            .build();
+    IOException ioException = new IOException(sdkException);
 
     S3AsyncClient mockS3AsyncClient = mock(S3AsyncClient.class);
     CompletableFuture<ResponseInputStream<GetObjectResponse>> failedFuture =

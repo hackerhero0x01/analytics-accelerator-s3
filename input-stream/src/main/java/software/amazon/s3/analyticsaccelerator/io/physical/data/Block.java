@@ -48,6 +48,8 @@ public class Block implements Closeable {
    */
   @Nullable private byte[] data;
 
+  @Nullable private IOException error;
+
   @Getter private final BlockKey blockKey;
   @Getter private final long generation;
 
@@ -144,6 +146,12 @@ public class Block implements Closeable {
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
     awaitDataWithRetry();
+    if (error != null) {
+      throw error;
+    }
+    if (data == null) {
+      throw new IOException("Error while reading data. Block data is null after successful await");
+    }
     indexCache.recordAccess(this.blockKey);
     int contentOffset = posToOffset(pos);
     return Byte.toUnsignedInt(this.data[contentOffset]);
@@ -167,6 +175,12 @@ public class Block implements Closeable {
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
     awaitDataWithRetry();
+    if (error != null) {
+      throw error;
+    }
+    if (data == null) {
+      throw new IOException("Error while reading data. Block data is null after successful await");
+    }
 
     indexCache.recordAccess(this.blockKey);
     int contentOffset = posToOffset(pos);
@@ -210,6 +224,16 @@ public class Block implements Closeable {
     dataReadyLatch.countDown();
   }
 
+  /**
+   * Sets an error for this block and signals that the block is ready (with error).
+   *
+   * @param error the IOException that occurred while fetching block data
+   */
+  public void setError(@NonNull IOException error) {
+    this.error = error;
+    dataReadyLatch.countDown();
+  }
+
   private void awaitDataWithRetry() throws IOException {
     this.retryStrategy.get(
         () -> {
@@ -235,9 +259,6 @@ public class Block implements Closeable {
     } catch (InterruptedException e) {
       throw new IOException("Error while reading data. Read interrupted while waiting for data", e);
     }
-
-    if (data == null)
-      throw new IOException("Error while reading data. Block data is null after successful await");
   }
 
   /**

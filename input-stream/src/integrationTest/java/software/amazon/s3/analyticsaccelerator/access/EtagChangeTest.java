@@ -36,7 +36,10 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 public class EtagChangeTest extends IntegrationTestBase {
 
-  private static final int DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;
+  // This value should be Default ReadAhead bytes or read buffer size whichever
+  // is higher. Currently, default read buffer size is 128KB, this value
+  // should be 128KB
+  private static final int DEFAULT_READ_BYTES = 128 * ONE_KB;
 
   @ParameterizedTest
   @MethodSource("clientKinds")
@@ -104,7 +107,7 @@ public class EtagChangeTest extends IntegrationTestBase {
       IOException ex =
           assertThrows(
               IOException.class,
-              () -> readAndAssert(stream, buffer, 200, DEFAULT_READ_AHEAD_BYTES));
+              () -> readAndAssert(stream, buffer, 200, DEFAULT_READ_BYTES));
       S3Exception s3Exception =
           assertInstanceOf(S3Exception.class, ex.getCause(), "Cause should be S3Exception");
       assertEquals(412, s3Exception.statusCode(), "Expected Precondition Failed (412) status code");
