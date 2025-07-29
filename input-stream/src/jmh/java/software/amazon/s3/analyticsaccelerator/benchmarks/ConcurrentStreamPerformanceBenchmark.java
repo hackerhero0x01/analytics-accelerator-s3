@@ -140,33 +140,33 @@ public class ConcurrentStreamPerformanceBenchmark {
         "\nReading parquet files with: " + state.clientKind + " from bucket: " + bucket);
 
     for (int i = 0; i < state.s3Objects.size() - 1; i = i + state.maxConcurrency) {
-      List<Future<Integer>> futures = new ArrayList<>();
+      List<Future<?>> futures = new ArrayList<>();
 
       for (int j = i; j < i + state.maxConcurrency && j < state.s3Objects.size() - 1; j++) {
         final int k = j;
-        Future<Integer> f =
+        Future<?> f =
             state.executor.submit(
                 () -> {
                   try {
                     if (state.clientKind == S3ClientAndReadKind.AAL_ASYNC_READ_VECTORED) {
-                      return fetchObjectsFromAAL(bucket, state.s3Objects.get(k), state);
+                       fetchObjectsFromAAL(bucket, state.s3Objects.get(k), state);
                     } else {
-                      return fetchObjectChunksByRange(bucket, state.s3Objects.get(k), state);
+                        fetchObjectChunksByRange(bucket, state.s3Objects.get(k), state);
                     }
-                  } catch (ExecutionException | InterruptedException e) {
+                  } catch (ExecutionException | InterruptedException | IOException e) {
                     throw new RuntimeException(e);
                   }
                 });
         futures.add(f);
       }
 
-      for (Future<Integer> f : futures) {
+      for (Future<?> f : futures) {
         f.get();
       }
     }
   }
 
-  private int fetchObjectsFromAAL(String bucketName, S3Object s3Object, BenchmarkState state)
+  private void fetchObjectsFromAAL(String bucketName, S3Object s3Object, BenchmarkState state)
       throws InterruptedException, ExecutionException, IOException {
 
     StreamReadPattern streamReadPattern =
@@ -201,11 +201,9 @@ public class ConcurrentStreamPerformanceBenchmark {
     for (ObjectRange objectRange : objectRanges) {
       objectRange.getByteBuffer().get();
     }
-
-    return 0;
   }
 
-  private int fetchObjectChunksByRange(String bucket, S3Object s3Object, BenchmarkState state)
+  private void fetchObjectChunksByRange(String bucket, S3Object s3Object, BenchmarkState state)
       throws ExecutionException, InterruptedException {
 
     StreamReadPattern streamReadPattern =
@@ -223,6 +221,8 @@ public class ConcurrentStreamPerformanceBenchmark {
                       "bytes=%s-%s",
                       streamRead.getStart(), streamRead.getStart() + streamRead.getLength() - 1))
               .build();
+
+      System.out.println("MAKING GET FOR: " + streamRead.getStart() + ", " + streamRead.getLength());
 
       ResponseInputStream<GetObjectResponse> dataStream;
 
@@ -244,8 +244,6 @@ public class ConcurrentStreamPerformanceBenchmark {
     for (Future<Long> f : fList) {
       f.get();
     }
-
-    return 0;
   }
 
   private long readStream(
