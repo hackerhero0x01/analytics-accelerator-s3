@@ -182,10 +182,43 @@ public class BlockStore implements Closeable {
     }
   }
 
+  /**
+   * Calculates the block index for a given block based on its starting position.
+   *
+   * <p>Examples with 128KB block size:
+   *
+   * <ul>
+   *   <li>Block with range [0-128KB) → index 0 (0 / 128KB = 0)
+   *   <li>Block with range [128KB-256KB) → index 1 (128KB / 128KB = 1)
+   *   <li>Block with range [256KB-384KB) → index 2 (256KB / 128KB = 2)
+   *   <li>Block with range [384KB-512KB) → index 3 (384KB / 128KB = 3)
+   * </ul>
+   *
+   * @param block the block to get the index for
+   * @return the calculated block index
+   * @see #getPositionIndex(long) for the underlying calculation
+   */
   private int getBlockIndex(Block block) {
     return getPositionIndex(block.getBlockKey().getRange().getStart());
   }
 
+  /**
+   * Calculates the block index for a given byte position by dividing the position by the configured
+   * block size (readBufferSize).
+   *
+   * <p>Examples with 128KB block size:
+   *
+   * <ul>
+   *   <li>Position 0 → index 0 (0 / 128KB = 0)
+   *   <li>Position 64KB → index 0 (64KB / 128KB = 0, same block)
+   *   <li>Position 128KB → index 1 (128KB / 128KB = 1)
+   *   <li>Position 256KB → index 2 (256KB / 128KB = 2)
+   *   <li>Position 320KB → index 2 (320KB / 128KB = 2.5, truncated to 2)
+   * </ul>
+   *
+   * @param pos the byte position in the file
+   * @return the block index that contains this position
+   */
   private int getPositionIndex(long pos) {
     return (int) (pos / this.configuration.getReadBufferSize());
   }

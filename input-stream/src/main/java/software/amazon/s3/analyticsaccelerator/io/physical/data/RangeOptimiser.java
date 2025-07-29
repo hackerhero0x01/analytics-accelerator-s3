@@ -34,6 +34,10 @@ public class RangeOptimiser {
   /**
    * Optimizes read operations by grouping sequential block indexes and splitting large groups.
    *
+   * <p>Block indexes represent data chunks: index 0 = bytes 0-128KB, index 1 = bytes 128KB-256KB,
+   * etc. The goal is to create efficient S3 requests by grouping consecutive blocks while avoiding
+   * oversized requests.
+   *
    * <p>Process:
    *
    * <ol>
@@ -42,13 +46,21 @@ public class RangeOptimiser {
    *   <li>Merges small remainder chunks when possible to avoid inefficient tiny requests
    * </ol>
    *
-   * <p>Example with 3 blocks per target and 1.4 tolerance ratio (max 4 blocks before split):
+   * <p>Example with 128KB blocks, 384KB target request (3 blocks), 1.4 tolerance ratio:
    *
    * <ul>
-   *   <li>Input: [1,2,3,4,5,6,7] → Groups: [[1,2,3,4,5,6,7]]
-   *   <li>7 > 4 threshold → Split: [[1,2,3], [4,5,6], [7]]
-   *   <li>Merge if [4,5,6] + [7] ≤ 4 → Result: [[1,2,3], [4,5,6,7]]
+   *   <li>Target blocks per request: 384KB / 128KB = 3 blocks
+   *   <li>Max blocks before split: 3 × 1.4 = 4.2 → rounded to 4 blocks
+   *   <li>Input: [1,2,3,4,5,6,7] (blocks covering 128KB-1MB)
+   *   <li>Step 1 - Group sequential: [[1,2,3,4,5,6,7]] (all consecutive)
+   *   <li>Step 2 - Split large group: 7 blocks > 4 threshold → [[1,2,3], [4,5,6], [7]]
+   *   <li>Step 3 - Merge small remainder: [4,5,6] + [7] = 4 blocks ≤ 4 threshold → merge
+   *   <li>Final result: [[1,2,3], [4,5,6,7]] (two S3 requests instead of three)
    * </ul>
+   *
+   * <p>The tolerance ratio allows slightly larger requests to avoid creating tiny remainder
+   * requests. Without tolerance, we'd have 3 requests: [1,2,3], [4,5,6], [7]. With tolerance, we
+   * merge the small [7] remainder into the previous chunk, creating 2 more efficient requests.
    *
    * @param blockIndexes ordered list of block indexes to optimize
    * @return optimized groups of sequential block indexes within size limits
@@ -89,7 +101,8 @@ public class RangeOptimiser {
   /**
    * Groups consecutive block indexes into sequential lists.
    *
-   * <p>Example: [1,2,3,5,6,8,9,10] → [[1,2,3], [5,6], [8,9,10]]
+   * <p>Example with 128KB blocks: [1,2,3,5,6,8,9,10] → [[1,2,3], [5,6], [8,9,10]] (where
+   * 1=128KB-256KB, 2=256KB-384KB, etc.)
    *
    * @param blockIndexes ordered list of block indexes
    * @return list of sequential groups where each group contains consecutive indexes
@@ -157,7 +170,7 @@ public class RangeOptimiser {
    * previous chunk if the combined size stays within the tolerance threshold. This prevents
    * creating inefficiently small requests.
    *
-   * <p>Example with target=3, tolerance=4:
+   * <p>Example with 128KB blocks, target=3, tolerance=4:
    *
    * <ul>
    *   <li>Input: [1,2,3,4,5,6,7] → Normal split: [[1,2,3], [4,5,6], [7]]
