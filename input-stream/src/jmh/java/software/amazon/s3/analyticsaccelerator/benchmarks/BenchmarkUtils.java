@@ -87,17 +87,17 @@ public class BenchmarkUtils {
         .streamRead(
             StreamRead.builder()
                 .start(percent(objectSize, 40))
-                .length(percent(objectSize, 25))
+                .length(percent(objectSize, 8))
                 .build())
         .streamRead(
             StreamRead.builder()
                 .start(percent(objectSize, 60))
-                .length(percent(objectSize, 10))
+                .length(percent(objectSize, 7))
                 .build())
         .streamRead(
             StreamRead.builder()
                 .start(percent(objectSize, 80))
-                .length(percent(objectSize, 10))
+                .length(percent(objectSize, 6))
                 .build())
         .build();
   }
