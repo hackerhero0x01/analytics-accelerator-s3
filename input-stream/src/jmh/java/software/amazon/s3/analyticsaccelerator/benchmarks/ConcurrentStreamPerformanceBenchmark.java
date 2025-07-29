@@ -149,9 +149,9 @@ public class ConcurrentStreamPerformanceBenchmark {
                 () -> {
                   try {
                     if (state.clientKind == S3ClientAndReadKind.AAL_ASYNC_READ_VECTORED) {
-                       fetchObjectsFromAAL(bucket, state.s3Objects.get(k), state);
+                      fetchObjectsFromAAL(bucket, state.s3Objects.get(k), state);
                     } else {
-                        fetchObjectChunksByRange(bucket, state.s3Objects.get(k), state);
+                      fetchObjectChunksByRange(bucket, state.s3Objects.get(k), state);
                     }
                   } catch (ExecutionException | InterruptedException | IOException e) {
                     throw new RuntimeException(e);
@@ -221,8 +221,6 @@ public class ConcurrentStreamPerformanceBenchmark {
                       "bytes=%s-%s",
                       streamRead.getStart(), streamRead.getStart() + streamRead.getLength() - 1))
               .build();
-
-      System.out.println("MAKING GET FOR: " + streamRead.getStart() + ", " + streamRead.getLength());
 
       ResponseInputStream<GetObjectResponse> dataStream;
 
