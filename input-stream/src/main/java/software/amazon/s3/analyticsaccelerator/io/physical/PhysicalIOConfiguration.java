@@ -268,7 +268,7 @@ public class PhysicalIOConfiguration {
     Preconditions.checkArgument(readBufferSize > 0, "`readBufferSize` must be positive");
     Preconditions.checkArgument(targetRequestSize > 0, "`targetRequestSize` must be positive");
     Preconditions.checkArgument(
-        requestToleranceRatio >= 1, "`requestToleranceRatio` must be greater or equal than 1");
+        requestToleranceRatio >= 1, "`requestToleranceRatio` must be greater than or equal than 1");
 
     this.memoryCapacityBytes = memoryCapacityBytes;
     this.memoryCleanupFrequencyMilliseconds = memoryCleanupFrequencyMilliseconds;

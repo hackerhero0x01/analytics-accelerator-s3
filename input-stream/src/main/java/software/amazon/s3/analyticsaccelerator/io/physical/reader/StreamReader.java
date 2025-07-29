@@ -410,7 +410,10 @@ public class StreamReader implements Closeable {
         blocks.stream().filter(block -> !block.isDataReady()).collect(Collectors.toList()));
   }
 
-  /** Shuts down the StreamReader object. */
+  /**
+   * Releases any resources held by this StreamReader. Currently, no cleanup is required, but this
+   * method is provided for future extensibility.
+   */
   @Override
   public void close() {}
 }
