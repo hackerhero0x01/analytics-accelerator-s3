@@ -190,8 +190,6 @@ public class StreamReader implements Closeable {
                       .referrer(new Referrer(requestRange.toHttpString(), readMode))
                       .build();
 
-              openStreamInformation.getRequestCallback().onGetRequest();
-
               // Fetch the object content from S3
               ObjectContent objectContent;
               try {
@@ -201,6 +199,8 @@ public class StreamReader implements Closeable {
                 setErrorOnBlocksAndRemove(blocks, e);
                 return;
               }
+
+              openStreamInformation.getRequestCallback().onGetRequest();
 
               if (objectContent == null) {
                 // Couldn't successfully get the response from S3.
@@ -306,6 +306,12 @@ public class StreamReader implements Closeable {
     int blockSize = block.getLength();
 
     // Skip bytes if there's a gap between current position and block start
+    // The blocks passed to the readBlocksFromStream method don't have to be
+    // arbitrary. For example, if we have blocks [[0-128KB], [256KB-384KB]],
+    // StreamReader can read them with one Stream instead of creating two streams.
+    // After reading first block, SDK's stream position will be 128KB, but for second block
+    // we need to start to read from position 256KB. To do this, we are skipping 128KB
+    // which are between the end of the first block and beginning of the second block.
     if (!skipToBlockStart(inputStream, blockStart, currentPos)) {
       return false;
     }
@@ -332,7 +338,7 @@ public class StreamReader implements Closeable {
    *
    * @param inputStream the input stream to skip bytes from
    * @param blockStart the target start position of the block
-   * @param currentPos the current position in the stream
+   * @param currentPos the current position of the input stream returned by S3 SDK client
    * @return true if successfully skipped to the target position, false if EOF reached
    * @throws IOException if an I/O error occurs while skipping bytes
    */

@@ -143,7 +143,7 @@ public class RangeOptimiser {
         result.add(group);
       } else {
         // Split oversized group into target-sized chunks
-        result.addAll(splitGroupIntoChunks(group, blocksPerTargetRequest));
+        result.addAll(splitGroupIntoChunks(group, maxBlocksBeforeSplit, blocksPerTargetRequest));
       }
     }
 
@@ -166,12 +166,12 @@ public class RangeOptimiser {
    * </ul>
    *
    * @param group list of block indexes to split into smaller chunks
+   * @param maxBlocksBeforeSplit maximum blocks allowed before splitting is required
    * @param blocksPerTargetRequest target size for each chunk
    * @return list of optimally-sized chunks with merged remainders when beneficial
    */
   private List<List<Integer>> splitGroupIntoChunks(
-      List<Integer> group, int blocksPerTargetRequest) {
-    int maxBlocksBeforeSplit = calculateMaxBlocksBeforeSplit(blocksPerTargetRequest);
+      List<Integer> group, int maxBlocksBeforeSplit, int blocksPerTargetRequest) {
     List<List<Integer>> chunks = createInitialChunks(group, blocksPerTargetRequest);
     mergeSmallFinalChunk(chunks, maxBlocksBeforeSplit);
     return chunks;
@@ -192,8 +192,7 @@ public class RangeOptimiser {
     List<Integer> lastChunk = chunks.get(chunks.size() - 1);
     List<Integer> previousChunk = chunks.get(chunks.size() - 2);
 
-    if (lastChunk.size() < previousChunk.size()
-        && (lastChunk.size() + previousChunk.size()) <= maxBlocksBeforeSplit) {
+    if ((lastChunk.size() + previousChunk.size()) <= maxBlocksBeforeSplit) {
       previousChunk.addAll(lastChunk);
       chunks.remove(chunks.size() - 1);
     }

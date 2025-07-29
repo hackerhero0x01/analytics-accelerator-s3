@@ -44,10 +44,20 @@ public class BlockStore implements Closeable {
   private final BlobStoreIndexCache indexCache;
   private final Metrics aggregatingMetrics;
   private final PhysicalIOConfiguration configuration;
-  // It is safe to use Integer as key since maximum single file size is 5TB in S3
-  // and if we assume that block size will be 8KB, total number of blocks is within range
-  // 5 TB / 8 KB = (5 * 1024^4) / 8192 ≈ 671,088,640 blocks
-  // Max int value = 2,147,483,647
+  // Maps block index to Block instances. The block index is calculated by dividing the byte
+  // position
+  // by the configured block size (readBufferSize). This allows direct lookup of blocks by their
+  // position.
+  //
+  // Example: With a 128KB block size, blocks at different file positions map as follows:
+  // - Block at position 0-128KB     → index 0 (0/128KB = 0)
+  // - Block at position 256KB-384KB → index 2 (256KB/128KB = 2)
+  // - Block at position 512KB-640KB → index 4 (512KB/128KB = 4)
+  //
+  // Note: Blocks may not be contiguous in the map if only certain ranges are loaded.
+  //
+  // Integer key is safe since max S3 file size is 5TB. With 8KB blocks:
+  // 5TB / 8KB = ~671M blocks, well within Integer.MAX_VALUE (2.1B)
   private final Map<Integer, Block> blocks;
 
   /**
