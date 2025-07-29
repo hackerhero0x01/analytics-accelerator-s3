@@ -28,8 +28,7 @@ import software.amazon.s3.analyticsaccelerator.access.StreamReadPattern;
 /** Utils class for methods to be used in micro benchmarks. */
 public class BenchmarkUtils {
 
-  private static final int PARQUET_FOOTER_SIZE_SIZE = 4;
-  private static final int PARQUET_FOOTER_SIZE = 50 * ONE_KB;
+  private static final int PARQUET_FOOTER_SIZE = 10 * ONE_KB;
 
   /**
    * Gets a list of keys to be read from a bucket.
@@ -61,23 +60,10 @@ public class BenchmarkUtils {
    */
   public static StreamReadPattern getQuasiParquetColumnChunkPattern(long objectSize) {
     return StreamReadPattern.builder()
-        // Footer size read
-        .streamRead(
-            StreamRead.builder()
-                .start(objectSize - 1 - PARQUET_FOOTER_SIZE_SIZE)
-                .length(PARQUET_FOOTER_SIZE_SIZE)
-                .build())
-        // Footer read
-        .streamRead(
-            StreamRead.builder()
-                .start(objectSize - 1 - PARQUET_FOOTER_SIZE)
-                .length(PARQUET_FOOTER_SIZE)
-                .build())
-        // read a few contiguous chunks
         .streamRead(
             StreamRead.builder()
                 .start(percent(objectSize, 10))
-                .length(percent(objectSize, 10))
+                .length(percent(objectSize, 4))
                 .build())
         .streamRead(
             StreamRead.builder()
@@ -91,11 +77,6 @@ public class BenchmarkUtils {
                 .build())
         .streamRead(
             StreamRead.builder()
-                .start(percent(objectSize, 60))
-                .length(percent(objectSize, 7))
-                .build())
-        .streamRead(
-            StreamRead.builder()
                 .start(percent(objectSize, 80))
                 .length(percent(objectSize, 6))
                 .build())
@@ -104,5 +85,28 @@ public class BenchmarkUtils {
 
   private static long percent(long size, int percent) {
     return (size / 100) * percent;
+  }
+
+  /**
+   * Stream read for the last 8 bytes of the object.
+   *
+   * @param objectSize size of the object
+   * @return StreamRead
+   */
+  public static StreamRead getMagicBytesRead(long objectSize) {
+    return StreamRead.builder().start(objectSize - 1 - 8).length(8).build();
+  }
+
+  /**
+   * Stream for the last 10KB to replicate a typical footer read.
+   *
+   * @param objectSize size of the object
+   * @return StreamRead
+   */
+  public static StreamRead getFooterRead(long objectSize) {
+    return StreamRead.builder()
+        .start(objectSize - 1 - PARQUET_FOOTER_SIZE)
+        .length(PARQUET_FOOTER_SIZE)
+        .build();
   }
 }

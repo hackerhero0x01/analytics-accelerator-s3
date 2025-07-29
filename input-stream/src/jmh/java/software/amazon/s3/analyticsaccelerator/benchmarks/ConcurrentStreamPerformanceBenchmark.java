@@ -153,7 +153,7 @@ public class ConcurrentStreamPerformanceBenchmark {
                     } else {
                       fetchObjectChunksByRange(bucket, state.s3Objects.get(k), state);
                     }
-                  } catch (ExecutionException | InterruptedException | IOException e) {
+                  } catch (Exception e) {
                     throw new RuntimeException(e);
                   }
                 });
@@ -166,6 +166,9 @@ public class ConcurrentStreamPerformanceBenchmark {
     }
   }
 
+  @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+      value = "RR_NOT_CHECKED",
+      justification = "ok to ignore return value from the read here")
   private void fetchObjectsFromAAL(String bucketName, S3Object s3Object, BenchmarkState state)
       throws InterruptedException, ExecutionException, IOException {
 
@@ -191,6 +194,16 @@ public class ConcurrentStreamPerformanceBenchmark {
                         .build())
                 .build());
 
+    // Read last 8 bytes
+    StreamRead magicBytesRead = BenchmarkUtils.getMagicBytesRead(s3Object.size());
+    byte[] magicBytesBuffer = new byte[(int) magicBytesRead.getLength()];
+    inputStream.read(magicBytesBuffer, 0, (int) magicBytesRead.getLength());
+
+    // Read footer
+    StreamRead footerRead = BenchmarkUtils.getFooterRead(s3Object.size());
+    byte[] footerReadBuffer = new byte[(int) footerRead.getLength()];
+    inputStream.read(footerReadBuffer, 0, (int) footerRead.getLength());
+
     inputStream.readVectored(
         objectRanges,
         ByteBuffer::allocate,
@@ -204,7 +217,14 @@ public class ConcurrentStreamPerformanceBenchmark {
   }
 
   private void fetchObjectChunksByRange(String bucket, S3Object s3Object, BenchmarkState state)
-      throws ExecutionException, InterruptedException {
+      throws Exception {
+
+    StreamRead magicBytesRead = BenchmarkUtils.getMagicBytesRead(s3Object.size());
+    readStream(
+        getDataStream(bucket, s3Object, state, magicBytesRead), s3Object.key(), magicBytesRead);
+
+    StreamRead footerRead = BenchmarkUtils.getFooterRead(s3Object.size());
+    readStream(getDataStream(bucket, s3Object, state, footerRead), s3Object.key(), footerRead);
 
     StreamReadPattern streamReadPattern =
         BenchmarkUtils.getQuasiParquetColumnChunkPattern(s3Object.size());
@@ -212,36 +232,47 @@ public class ConcurrentStreamPerformanceBenchmark {
     List<Future<Long>> fList = new ArrayList<>();
 
     for (StreamRead streamRead : streamReadPattern.getStreamReads()) {
-      GetObjectRequest request =
-          GetObjectRequest.builder()
-              .bucket(bucket)
-              .key(s3Object.key())
-              .range(
-                  String.format(
-                      "bytes=%s-%s",
-                      streamRead.getStart(), streamRead.getStart() + streamRead.getLength() - 1))
-              .build();
-
-      ResponseInputStream<GetObjectResponse> dataStream;
-
-      if (state.clientKind == S3ClientAndReadKind.SDK_ASYNC_JAVA) {
-        dataStream =
-            state
-                .s3AsyncClient
-                .getObject(request, AsyncResponseTransformer.toBlockingInputStream())
-                .join();
-      } else if (state.clientKind == S3ClientAndReadKind.SDK_SYNC_JAVA) {
-        dataStream = state.s3Client.getObject(request);
-      } else {
-        dataStream = null;
-      }
-
-      fList.add(state.executor.submit(() -> readStream(dataStream, s3Object.key(), streamRead)));
+      fList.add(
+          state.executor.submit(
+              () ->
+                  readStream(
+                      getDataStream(bucket, s3Object, state, streamRead),
+                      s3Object.key(),
+                      streamRead)));
     }
 
     for (Future<Long> f : fList) {
       f.get();
     }
+  }
+
+  private ResponseInputStream<GetObjectResponse> getDataStream(
+      String bucket, S3Object s3Object, BenchmarkState state, StreamRead streamRead) {
+    GetObjectRequest request =
+        GetObjectRequest.builder()
+            .bucket(bucket)
+            .key(s3Object.key())
+            .range(
+                String.format(
+                    "bytes=%s-%s",
+                    streamRead.getStart(), streamRead.getStart() + streamRead.getLength() - 1))
+            .build();
+
+    ResponseInputStream<GetObjectResponse> dataStream;
+
+    if (state.clientKind == S3ClientAndReadKind.SDK_ASYNC_JAVA) {
+      dataStream =
+          state
+              .s3AsyncClient
+              .getObject(request, AsyncResponseTransformer.toBlockingInputStream())
+              .join();
+    } else if (state.clientKind == S3ClientAndReadKind.SDK_SYNC_JAVA) {
+      dataStream = state.s3Client.getObject(request);
+    } else {
+      dataStream = null;
+    }
+
+    return dataStream;
   }
 
   private long readStream(
