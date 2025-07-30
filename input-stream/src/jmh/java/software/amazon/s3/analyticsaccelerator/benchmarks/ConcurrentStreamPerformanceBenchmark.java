@@ -48,8 +48,6 @@ import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
-import software.amazon.s3.analyticsaccelerator.access.S3ExecutionConfiguration;
-import software.amazon.s3.analyticsaccelerator.access.S3ExecutionContext;
 import software.amazon.s3.analyticsaccelerator.access.StreamRead;
 import software.amazon.s3.analyticsaccelerator.access.StreamReadPattern;
 import software.amazon.s3.analyticsaccelerator.common.ConnectorConfiguration;
