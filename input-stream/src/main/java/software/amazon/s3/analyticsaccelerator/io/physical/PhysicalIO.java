@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import software.amazon.s3.analyticsaccelerator.RandomAccessReadable;
 import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
@@ -44,9 +45,13 @@ public interface PhysicalIO extends RandomAccessReadable {
    *
    * @param objectRanges Ranges to be fetched in parallel
    * @param allocate the function to allocate ByteBuffer
+   * @param release release the buffer back to buffer pool in case of exceptions
    * @throws IOException on any IO failure
    */
-  void readVectored(List<ObjectRange> objectRanges, IntFunction<ByteBuffer> allocate)
+  void readVectored(
+      List<ObjectRange> objectRanges,
+      IntFunction<ByteBuffer> allocate,
+      Consumer<ByteBuffer> release)
       throws IOException;
 
   /**

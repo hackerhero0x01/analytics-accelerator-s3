@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.io.logical.impl;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
@@ -117,7 +118,8 @@ public class DefaultLogicalIOImpl implements LogicalIO {
   }
 
   @Override
-  public void readVectored(List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate)
+  public void readVectored(
+      List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate, Consumer<ByteBuffer> release)
       throws IOException {
     telemetry.measureStandard(
         () ->
@@ -130,7 +132,7 @@ public class DefaultLogicalIOImpl implements LogicalIO {
                 .build(),
         () -> {
           VectoredReadUtils.validateAndSortRanges(ranges, physicalIO.metadata().getContentLength());
-          physicalIO.readVectored(ranges, allocate);
+          physicalIO.readVectored(ranges, allocate, release);
         });
   }
 

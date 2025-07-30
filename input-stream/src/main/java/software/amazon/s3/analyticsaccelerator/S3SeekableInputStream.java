@@ -231,8 +231,9 @@ public class S3SeekableInputStream extends SeekableInputStream {
       throws IOException {
     Preconditions.checkNotNull(ranges, "ranges must not be null");
     Preconditions.checkNotNull(allocate, "allocate must not be null");
+    Preconditions.checkNotNull(release, "release must not be null");
 
-    logicalIO.readVectored(ranges, allocate);
+    logicalIO.readVectored(ranges, allocate, release);
   }
 
   /**

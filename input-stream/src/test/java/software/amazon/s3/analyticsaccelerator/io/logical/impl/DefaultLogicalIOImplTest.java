@@ -128,7 +128,7 @@ public class DefaultLogicalIOImplTest {
         new DefaultLogicalIOImpl(TEST_URI, physicalIO, TestTelemetry.DEFAULT);
     List<ObjectRange> ranges = new ArrayList<>();
     IntFunction<ByteBuffer> allocate = ByteBuffer::allocate;
-    logicalIO.readVectored(ranges, allocate);
-    verify(physicalIO).readVectored(ranges, allocate);
+    logicalIO.readVectored(ranges, allocate, (buffer) -> {});
+    verify(physicalIO).readVectored(ranges, allocate, (buffer) -> {});
   }
 }

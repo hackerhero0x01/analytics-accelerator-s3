@@ -19,6 +19,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import software.amazon.s3.analyticsaccelerator.common.ObjectRange;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
@@ -73,7 +74,10 @@ public interface RandomAccessReadable extends Closeable {
    *
    * @param ranges Ranges to be fetched in parallel
    * @param allocate the function to allocate ByteBuffer
+   * @param release release the buffer back to buffer pool in case of exceptions
    * @throws IOException on any IO failure
    */
-  void readVectored(List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate) throws IOException;
+  void readVectored(
+      List<ObjectRange> ranges, IntFunction<ByteBuffer> allocate, Consumer<ByteBuffer> release)
+      throws IOException;
 }

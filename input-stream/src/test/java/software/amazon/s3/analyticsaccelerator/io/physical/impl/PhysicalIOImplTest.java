@@ -529,7 +529,7 @@ public class PhysicalIOImplTest {
     // third buffer to contain "r read"
     byte[] thirdBufferExpected = new byte[] {114, 32, 114, 101, 97, 100};
 
-    physicalIO.readVectored(objectRanges, allocate);
+    physicalIO.readVectored(objectRanges, allocate, (buffer) -> {});
 
     verifyBufferContentsEqual(objectRanges.get(0).getByteBuffer().join(), firstBufferExpected);
     verifyBufferContentsEqual(objectRanges.get(1).getByteBuffer().join(), secondBufferExpected);

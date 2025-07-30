@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -238,7 +239,10 @@ public class PhysicalIOImpl implements PhysicalIO {
       justification =
           "This is complaining about `executor.submit`. In this case we do not have any use for this Future")
   @Override
-  public void readVectored(List<ObjectRange> objectRanges, IntFunction<ByteBuffer> allocate)
+  public void readVectored(
+      List<ObjectRange> objectRanges,
+      IntFunction<ByteBuffer> allocate,
+      Consumer<ByteBuffer> release)
       throws IOException {
     Blob blob = blobStore.get(objectKey, this.metadata, openStreamInformation);
 
@@ -268,6 +272,7 @@ public class PhysicalIOImpl implements PhysicalIO {
               objectRange.getByteBuffer().complete(buffer);
             } catch (Exception e) {
               objectRange.getByteBuffer().completeExceptionally(e);
+              release.accept(buffer);
             }
           });
     }
