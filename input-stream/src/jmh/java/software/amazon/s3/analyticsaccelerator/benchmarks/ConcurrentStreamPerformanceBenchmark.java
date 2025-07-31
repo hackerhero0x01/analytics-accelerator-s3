@@ -114,8 +114,9 @@ public class ConcurrentStreamPerformanceBenchmark {
 
     /** Shut down once all micro benchmarks in this class complete. */
     @TearDown
-    public void tearDown() {
+    public void tearDown() throws IOException {
       executor.shutdownNow();
+      s3SeekableInputStreamFactory.close();
     }
   }
 
