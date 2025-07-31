@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -128,7 +129,8 @@ public class DefaultLogicalIOImplTest {
         new DefaultLogicalIOImpl(TEST_URI, physicalIO, TestTelemetry.DEFAULT);
     List<ObjectRange> ranges = new ArrayList<>();
     IntFunction<ByteBuffer> allocate = ByteBuffer::allocate;
-    logicalIO.readVectored(ranges, allocate, (buffer) -> {});
-    verify(physicalIO).readVectored(ranges, allocate, (buffer) -> {});
+    Consumer<ByteBuffer> BYTE_BUFFER_RELEASED_NOOP = (buffer) -> {};
+    logicalIO.readVectored(ranges, allocate, BYTE_BUFFER_RELEASED_NOOP);
+    verify(physicalIO).readVectored(ranges, allocate, BYTE_BUFFER_RELEASED_NOOP);
   }
 }
