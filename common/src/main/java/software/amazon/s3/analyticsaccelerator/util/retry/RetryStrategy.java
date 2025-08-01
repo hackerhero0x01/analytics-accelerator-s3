@@ -15,7 +15,6 @@
  */
 package software.amazon.s3.analyticsaccelerator.util.retry;
 
-import java.io.IOException;
 import java.util.List;
 
 /** Interface for executing operations with retry logic. */
@@ -24,9 +23,8 @@ public interface RetryStrategy {
    * Executes a runnable with retry logic.
    *
    * @param runnable the operation to execute
-   * @throws IOException if the operation fails after all retry attempts
    */
-  void execute(IORunnable runnable) throws IOException;
+  void execute(IORunnable runnable);
 
   /**
    * Executes a supplier with retry logic.
@@ -34,9 +32,8 @@ public interface RetryStrategy {
    * @param <T> return type of the supplier
    * @param supplier the operation to execute
    * @return result of the supplier
-   * @throws IOException if the operation fails after all retry attempts
    */
-  <T> T get(IOSupplier<T> supplier) throws IOException;
+  <T> T get(IOSupplier<T> supplier);
 
   /**
    * Adds a retry policy to the strategy. This will be policy first to execute as it is appended to
@@ -62,4 +59,15 @@ public interface RetryStrategy {
    * @return list of {@link RetryPolicy}
    */
   List<RetryPolicy> getRetryPolicies();
+
+  /**
+   * Create a timeout for read from storage operations and with specified retry count. This will
+   * override settings in PhysicalIOConfiguration (blockreadtimeout and blockreadretrycount) if set.
+   * If user does not set a timeout in their retry strategy, a timeout will be set based on
+   * aforementioned configuration. set blockreadtimeout = 0 to disable timeouts.
+   *
+   * @param durationInMillis Timeout duration for reading from storage
+   * @param retryCount Number of times to retry if Timeout Exceeds
+   */
+  void timeout(long durationInMillis, int retryCount);
 }

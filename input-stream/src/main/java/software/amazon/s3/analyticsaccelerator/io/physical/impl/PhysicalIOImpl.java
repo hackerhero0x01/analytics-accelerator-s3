@@ -327,13 +327,6 @@ public class PhysicalIOImpl implements PhysicalIO {
   private void handleOperationExceptions(Exception e) {
     boolean shouldEvict = false;
 
-    // Check for IO errors while reading data
-    if (e instanceof IOException
-        && e.getMessage() != null
-        && e.getMessage().contains("Error while reading data.")) {
-      shouldEvict = true;
-    }
-
     // Check for precondition failed errors (412)
     if (e.getCause() != null
         && e.getCause().getMessage() != null

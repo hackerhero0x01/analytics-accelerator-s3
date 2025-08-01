@@ -181,20 +181,19 @@ class DefaultRetryStrategyImplTest {
   }
 
   @Test
-  void testExecuteWrapsUncheckedException() {
+  void testExecuteDoesNotWrapUncheckedException() {
     DefaultRetryStrategyImpl executor = new DefaultRetryStrategyImpl();
 
-    IOException exception =
+    RuntimeException exception =
         assertThrows(
-            IOException.class,
+            RuntimeException.class,
             () ->
                 executor.execute(
                     () -> {
                       throw new RuntimeException("Test exception");
                     }));
 
-    assertEquals("Failed to execute operation with retries", exception.getMessage());
-    assertNotNull(exception.getCause());
+    assertEquals("Test exception", exception.getMessage());
   }
 
   @Test
@@ -225,20 +224,19 @@ class DefaultRetryStrategyImplTest {
   }
 
   @Test
-  void testGetWrapsException() {
+  void testGetDoesNotWrapException() {
     DefaultRetryStrategyImpl executor = new DefaultRetryStrategyImpl();
 
-    IOException exception =
+    RuntimeException exception =
         assertThrows(
-            IOException.class,
+            RuntimeException.class,
             () ->
                 executor.get(
                     () -> {
                       throw new RuntimeException("Test exception");
                     }));
 
-    assertEquals("Failed to execute operation with retries", exception.getMessage());
-    assertNotNull(exception.getCause());
+    assertEquals("Test exception", exception.getMessage());
   }
 
   @Test
@@ -286,6 +284,46 @@ class DefaultRetryStrategyImplTest {
     assertEquals(expectedBytes.length, result.length);
     assertEquals(3, attemptCounter.get());
     assertEquals(2, retryCounter.get());
+  }
+
+  @Test
+  void testTimeoutThrows() {
+    DefaultRetryStrategyImpl executor = new DefaultRetryStrategyImpl();
+    executor.timeout(1000, 0);
+    AtomicInteger attempt = new AtomicInteger(0);
+
+    assertThrows(
+        RuntimeException.class,
+        () ->
+            executor.get(
+                () -> {
+                  attempt.incrementAndGet();
+                  Thread.sleep(10000);
+                  return null;
+                }));
+
+    assertEquals(1, attempt.get()); // 1 initial
+  }
+
+  @Test
+  void testTimeoutWithSuccessAfterRetry() throws IOException {
+    DefaultRetryStrategyImpl executor = new DefaultRetryStrategyImpl();
+    executor.timeout(1000, 3);
+    AtomicInteger attempt = new AtomicInteger(0);
+    String expected = "success";
+
+    byte[] result =
+        executor.get(
+            () -> {
+              int currentAttempt = attempt.incrementAndGet();
+              if (currentAttempt <= 2) {
+                Thread.sleep(10000);
+              }
+              return expected.getBytes(StandardCharsets.UTF_8);
+            });
+
+    assertEquals(expected.getBytes(StandardCharsets.UTF_8).length, result.length);
+    assertEquals(3, attempt.get());
   }
 
   private byte[] failXTimesThenSucceed(AtomicInteger counter, int failCount, String toByteArray)

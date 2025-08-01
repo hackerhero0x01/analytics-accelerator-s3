@@ -18,24 +18,29 @@ package software.amazon.s3.analyticsaccelerator.util.retry;
 import dev.failsafe.Failsafe;
 import dev.failsafe.FailsafeException;
 import dev.failsafe.FailsafeExecutor;
-import java.io.IOException;
+import dev.failsafe.Timeout;
+import dev.failsafe.TimeoutExceededException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.SneakyThrows;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 
 /**
  * Retry strategy implementation for seekable input stream operations. Uses Failsafe library to
  * execute operations with configurable retry policies.
  *
- * <p>This strategy will be additive to readTimeout and readRetryCount set on PhysicalIO
- * configuration.
+ * <p>If provided with a timeout this strategy will overwrite readTimeout and readRetryCount set on
+ * PhysicalIOConfiguration. If not, values from PhysicalIOConfiguration will be used to manage
+ * storage read timeouts.
  */
 public class DefaultRetryStrategyImpl implements RetryStrategy {
   private final List<RetryPolicy> retryPolicies;
   FailsafeExecutor<Object> failsafeExecutor;
+  private boolean timeoutSet;
 
   /** Creates a retry strategy with no retry policies (no retries). */
   public DefaultRetryStrategyImpl() {
@@ -76,10 +81,10 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
    * Executes a runnable operation with retry logic.
    *
    * @param runnable the operation to execute
-   * @throws IOException if the operation fails after all retries
    */
   @Override
-  public void execute(IORunnable runnable) throws IOException {
+  @SneakyThrows
+  public void execute(IORunnable runnable) {
     try {
       this.failsafeExecutor.run(runnable::apply);
     } catch (Exception ex) {
@@ -93,10 +98,10 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
    * @param <T> return type of the supplier
    * @param supplier the operation that returns a byte array
    * @return the result of the supplier operation
-   * @throws IOException if the operation fails after all retries
    */
   @Override
-  public <T> T get(IOSupplier<T> supplier) throws IOException {
+  @SneakyThrows
+  public <T> T get(IOSupplier<T> supplier) {
     try {
       return this.failsafeExecutor.get(supplier::apply);
     } catch (Exception ex) {
@@ -135,24 +140,38 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
   }
 
   /**
-   * Handles exceptions after retry attempts are exhausted.
+   * Handles exceptions after retry attempts are exhausted. This is needed to unwrap Failsafe
+   * exception
    *
    * @param e the exception that occurred
    * @return an IOException to throw
    */
-  private IOException handleExceptionAfterRetry(Exception e) {
-    IOException toThrow = new IOException("Failed to execute operation with retries", e);
-
+  private Exception handleExceptionAfterRetry(Exception e) {
     if (e instanceof FailsafeException) {
       Optional<Throwable> cause = Optional.ofNullable(e.getCause());
       if (cause.isPresent()) {
-        if (cause.get() instanceof IOException) {
-          return (IOException) cause.get();
-        } else {
-          toThrow = new IOException("Failed to execute operation with retries", cause.get());
-        }
+        return (Exception) cause.get();
       }
     }
-    return toThrow;
+    return e;
+  }
+
+  /**
+   * @inheritDoc
+   * @param timeoutDurationMillis Timeout duration for reading from storage
+   * @param retryCount Number of times to retry if Timeout Exceeds
+   */
+  public void timeout(long timeoutDurationMillis, int retryCount) {
+    if (!this.timeoutSet) {
+      Timeout<Object> timeout =
+          Timeout.builder(Duration.ofMillis(timeoutDurationMillis)).withInterrupt().build();
+      dev.failsafe.RetryPolicy<Object> timeoutPolicy =
+          dev.failsafe.RetryPolicy.builder()
+              .handle(TimeoutExceededException.class)
+              .withMaxRetries(retryCount)
+              .build();
+      this.failsafeExecutor = this.failsafeExecutor.compose(timeoutPolicy).compose(timeout);
+      this.timeoutSet = true;
+    }
   }
 }

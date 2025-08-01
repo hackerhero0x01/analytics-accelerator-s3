@@ -21,9 +21,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import lombok.NonNull;
@@ -46,7 +44,6 @@ import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 import software.amazon.s3.analyticsaccelerator.util.retry.DefaultRetryStrategyImpl;
-import software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy;
 import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
 
 /**
@@ -112,28 +109,19 @@ public class StreamReader implements Closeable {
    * @return a {@link RetryStrategy} to retry when timeouts are set
    * @throws RuntimeException if all retries fails and an error occurs
    */
-  @SuppressWarnings("unchecked")
   private RetryStrategy createRetryStrategy() {
-    RetryStrategy base = new DefaultRetryStrategyImpl();
     RetryStrategy provided = this.openStreamInformation.getRetryStrategy();
 
-    if (provided != null) {
-      base = base.merge(provided);
+    if (provided == null) {
+      provided = new DefaultRetryStrategyImpl();
     }
 
     if (this.physicalIOConfiguration.getBlockReadTimeout() > 0) {
-      RetryPolicy timeoutPolicy =
-          RetryPolicy.builder()
-              .handle(
-                  IOException.class,
-                  InterruptedException.class,
-                  TimeoutException.class,
-                  ExecutionException.class)
-              .withMaxRetries(this.physicalIOConfiguration.getBlockReadRetryCount())
-              .build();
-      base = base.amend(timeoutPolicy);
+      provided.timeout(
+          physicalIOConfiguration.getBlockReadTimeout(),
+          physicalIOConfiguration.getBlockReadRetryCount());
     }
-    return base;
+    return provided;
   }
 
   /**
@@ -178,55 +166,56 @@ public class StreamReader implements Closeable {
                             blocks.get(blocks.size() - 1).getBlockKey().getRange().getEnd()))
                     .build(),
             () -> {
-              // Calculate the byte range needed to cover all blocks
-              Range requestRange = computeRange(blocks);
-
-              // Build S3 GET request with range, ETag validation, and referrer info
-              GetRequest getRequest =
-                  GetRequest.builder()
-                      .s3Uri(objectKey.getS3URI())
-                      .range(requestRange)
-                      .etag(objectKey.getEtag())
-                      .referrer(new Referrer(requestRange.toHttpString(), readMode))
-                      .build();
-
-              // Fetch the object content from S3
-              ObjectContent objectContent;
               try {
-                objectContent = this.retryStrategy.get(() -> fetchObjectContent(getRequest));
-              } catch (IOException e) {
-                LOG.error("IOException while fetching object content", e);
-                setErrorOnBlocksAndRemove(blocks, e);
-                return;
-              }
+                retryStrategy.execute(
+                    () -> {
+                      // Calculate the byte range needed to cover all blocks
+                      List<Block> nonFilledBlocks =
+                          blocks.stream()
+                              .filter(block -> !block.isDataReady())
+                              .collect(Collectors.toList());
 
-              openStreamInformation.getRequestCallback().onGetRequest();
+                      Range requestRange = computeRange(nonFilledBlocks);
 
-              if (objectContent == null) {
-                // Couldn't successfully get the response from S3.
-                // Remove blocks from store and complete async operation
-                removeNonFilledBlocksFromStore(blocks);
-                return;
-              }
+                      // Build S3 GET request with range, ETag validation, and referrer info
+                      GetRequest getRequest =
+                          GetRequest.builder()
+                              .s3Uri(objectKey.getS3URI())
+                              .range(requestRange)
+                              .etag(objectKey.getEtag())
+                              .referrer(new Referrer(requestRange.toHttpString(), readMode))
+                              .build();
 
-              // Process the input stream and populate data blocks
-              try (InputStream inputStream = objectContent.getStream()) {
-                boolean success =
-                    readBlocksFromStream(inputStream, blocks, requestRange.getStart());
-                if (!success) {
-                  removeNonFilledBlocksFromStore(blocks);
-                }
-              } catch (EOFException e) {
-                LOG.error("EOFException while reading blocks", e);
-                setErrorOnBlocksAndRemove(blocks, e);
-              } catch (IOException e) {
-                LOG.error("IOException while reading blocks", e);
-                setErrorOnBlocksAndRemove(blocks, e);
-              } catch (Exception e) {
+                      // Fetch the object content from S3
+                      ObjectContent objectContent;
+                      objectContent = fetchObjectContent(getRequest);
+
+                      openStreamInformation.getRequestCallback().onGetRequest();
+
+                      if (objectContent == null) {
+                        // Couldn't successfully get the response from S3.
+                        // Remove blocks from store and complete async operation
+                        removeNonFilledBlocksFromStore(nonFilledBlocks);
+                        return;
+                      }
+                      InputStream inputStream = objectContent.getStream();
+                      boolean success =
+                          readBlocksFromStream(
+                              inputStream, nonFilledBlocks, requestRange.getStart());
+                      if (!success) {
+                        removeNonFilledBlocksFromStore(nonFilledBlocks);
+                      }
+                    });
+              } // Process the input stream and populate data blocks
+              catch (Exception e) {
                 LOG.error("Unexpected exception while reading blocks", e);
-                IOException ioException =
-                    new IOException("Unexpected error during block reading", e);
-                setErrorOnBlocksAndRemove(blocks, ioException);
+                if (e instanceof IOException) {
+                  setErrorOnBlocksAndRemove(blocks, (IOException) e);
+                } else {
+                  IOException ioException =
+                      new IOException("Unexpected error during block reading", e);
+                  setErrorOnBlocksAndRemove(blocks, ioException);
+                }
               }
             });
   }
@@ -287,7 +276,7 @@ public class StreamReader implements Closeable {
                 .attribute(StreamAttributes.range(getRequest.getRange()))
                 .build(),
         this.objectClient.getObject(getRequest, this.openStreamInformation),
-        this.physicalIOConfiguration.getBlockReadTimeout());
+        100000000);
   }
 
   /**

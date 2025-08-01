@@ -18,8 +18,6 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.NonNull;
@@ -27,10 +25,6 @@ import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.util.BlockKey;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
-import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
-import software.amazon.s3.analyticsaccelerator.util.retry.DefaultRetryStrategyImpl;
-import software.amazon.s3.analyticsaccelerator.util.retry.RetryPolicy;
-import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
 
 /**
  * Represents a block of data from an object stream, identified by a {@link BlockKey} and a
@@ -55,10 +49,6 @@ public class Block implements Closeable {
 
   private final BlobStoreIndexCache indexCache;
   private final Metrics aggregatingMetrics;
-  private final long readTimeout;
-  private final int retryCount;
-  private final RetryStrategy retryStrategy;
-  private final OpenStreamInformation openStreamInformation;
 
   /**
    * A synchronization aid that allows threads to wait until the block's data is available.
@@ -85,18 +75,12 @@ public class Block implements Closeable {
    * @param generation the generation number of this block in a sequential read pattern
    * @param indexCache blobstore index cache
    * @param aggregatingMetrics blobstore metrics
-   * @param readTimeout read timeout in milliseconds
-   * @param retryCount number of retries
-   * @param openStreamInformation contains stream information
    */
   public Block(
       @NonNull BlockKey blockKey,
       long generation,
       @NonNull BlobStoreIndexCache indexCache,
-      @NonNull Metrics aggregatingMetrics,
-      long readTimeout,
-      int retryCount,
-      @NonNull OpenStreamInformation openStreamInformation) {
+      @NonNull Metrics aggregatingMetrics) {
     Preconditions.checkArgument(
         0 <= generation, "`generation` must be non-negative; was: %s", generation);
 
@@ -104,36 +88,6 @@ public class Block implements Closeable {
     this.generation = generation;
     this.indexCache = indexCache;
     this.aggregatingMetrics = aggregatingMetrics;
-    this.readTimeout = readTimeout;
-    this.retryCount = retryCount;
-    this.openStreamInformation = openStreamInformation;
-    this.retryStrategy = createRetryStrategy();
-  }
-
-  /**
-   * Helper to construct retryStrategy
-   *
-   * @return a {@link RetryStrategy} to retry when timeouts are set
-   * @throws RuntimeException if all retries fails and an error occurs
-   */
-  @SuppressWarnings("unchecked")
-  private RetryStrategy createRetryStrategy() {
-    RetryStrategy base = new DefaultRetryStrategyImpl();
-    RetryStrategy provided = this.openStreamInformation.getRetryStrategy();
-
-    if (provided != null) {
-      base = base.merge(provided);
-    }
-
-    if (this.readTimeout > 0) {
-      RetryPolicy timeoutPolicy =
-          RetryPolicy.builder()
-              .handle(InterruptedException.class, TimeoutException.class, IOException.class)
-              .withMaxRetries(this.retryCount)
-              .build();
-      base = base.amend(timeoutPolicy);
-    }
-    return base;
   }
 
   /**
@@ -145,8 +99,7 @@ public class Block implements Closeable {
    */
   public int read(long pos) throws IOException {
     Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
-    awaitDataWithRetry();
-
+    awaitData();
     indexCache.recordAccess(this.blockKey);
     int contentOffset = posToOffset(pos);
     return Byte.toUnsignedInt(this.data[contentOffset]);
@@ -169,7 +122,7 @@ public class Block implements Closeable {
     Preconditions.checkArgument(0 <= len, "`len` must not be negative");
     Preconditions.checkArgument(off < buf.length, "`off` must be less than size of buffer");
 
-    awaitDataWithRetry();
+    awaitData();
 
     indexCache.recordAccess(this.blockKey);
     int contentOffset = posToOffset(pos);
@@ -223,21 +176,6 @@ public class Block implements Closeable {
     dataReadyLatch.countDown();
   }
 
-  private void awaitDataWithRetry() throws IOException {
-    this.retryStrategy.get(
-        () -> {
-          awaitData();
-          return null;
-        });
-
-    if (this.error != null) {
-      throw error;
-    }
-    if (this.data == null) {
-      throw new IOException("Error while reading data. Block data is null after successful await");
-    }
-  }
-
   /**
    * Waits for the block's data to become available. This method blocks until {@link
    * #setData(byte[])} is called.
@@ -246,14 +184,15 @@ public class Block implements Closeable {
    */
   private void awaitData() throws IOException {
     try {
-      if (!dataReadyLatch.await(readTimeout, TimeUnit.MILLISECONDS)) {
-        throw new IOException(
-            "Error while reading data. Request timed out after "
-                + readTimeout
-                + "ms while waiting for block data");
-      }
+      dataReadyLatch.await();
     } catch (InterruptedException e) {
       throw new IOException("Error while reading data. Read interrupted while waiting for data", e);
+    }
+    if (this.error != null) {
+      throw error;
+    }
+    if (this.data == null) {
+      throw new IOException("Error while reading data. Block data is null after successful await");
     }
   }
 

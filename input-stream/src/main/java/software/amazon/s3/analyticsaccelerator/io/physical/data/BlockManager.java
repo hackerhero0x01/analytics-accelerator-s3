@@ -211,14 +211,7 @@ public class BlockManager implements Closeable {
             for (int blockIndex : group) {
               BlockKey blockKey = new BlockKey(objectKey, getBlockIndexRange(blockIndex));
               Block block =
-                  new Block(
-                      blockKey,
-                      generation,
-                      this.indexCache,
-                      this.aggregatingMetrics,
-                      this.configuration.getBlockReadTimeout(),
-                      this.configuration.getBlockReadRetryCount(),
-                      this.openStreamInformation);
+                  new Block(blockKey, generation, this.indexCache, this.aggregatingMetrics);
               // Add block to the store for future reference
               blockStore.add(block);
               blocksToFill.add(block);

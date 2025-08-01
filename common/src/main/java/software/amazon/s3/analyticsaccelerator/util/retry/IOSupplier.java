@@ -31,5 +31,5 @@ public interface IOSupplier<T> {
    * @return a value of type {@link T}.
    * @throws IOException on error condition.
    */
-  T apply() throws IOException;
+  T apply() throws IOException, InterruptedException;
 }
