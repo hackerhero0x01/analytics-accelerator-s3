@@ -33,7 +33,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.Sequential
 public class PhysicalIOConfiguration {
   private static final long DEFAULT_MEMORY_CAPACITY_BYTES = 2 * ONE_GB;
   private static final long DEFAULT_CACHE_DATA_TIMEOUT_MILLISECONDS = 1000;
-  private static final long DEFAULT_METADATA_CACHE_TTL_MILLISECONDS = 86_400_000; // 24 hours
+  private static final long DEFAULT_METADATA_STORE_TTL_MILLISECONDS = 86_400_000; // 24 hours
   private static final int DEFAULT_CAPACITY_METADATA_STORE = 5000;
   private static final boolean DEFAULT_USE_SINGLE_CACHE = true;
   private static final long DEFAULT_BLOCK_SIZE_BYTES = 8 * ONE_MB;
@@ -77,12 +77,12 @@ public class PhysicalIOConfiguration {
 
   /**
    * TTL for metadata cache entries, in milliseconds. {@link
-   * PhysicalIOConfiguration#DEFAULT_METADATA_CACHE_TTL_MILLISECONDS} by default.
+   * PhysicalIOConfiguration#DEFAULT_METADATA_STORE_TTL_MILLISECONDS} by default.
    */
   @Builder.Default
-  private long metadataCacheTtlMilliseconds = DEFAULT_METADATA_CACHE_TTL_MILLISECONDS;
+  private long metadataCacheTtlMilliseconds = DEFAULT_METADATA_STORE_TTL_MILLISECONDS;
 
-  private static final String METADATA_CACHE_TTL_MILLISECONDS_KEY = "metadata.cache.ttl";
+  private static final String METADATA_CACHE_TTL_MILLISECONDS_KEY = "metadatastore.ttl";
 
   /**
    * Maximum size for metadata cache entries. {@link
@@ -184,7 +184,7 @@ public class PhysicalIOConfiguration {
                 CACHE_DATA_TIMEOUT_MILLISECONDS_KEY, DEFAULT_CACHE_DATA_TIMEOUT_MILLISECONDS))
         .metadataCacheTtlMilliseconds(
             configuration.getLong(
-                METADATA_CACHE_TTL_MILLISECONDS_KEY, DEFAULT_METADATA_CACHE_TTL_MILLISECONDS))
+                METADATA_CACHE_TTL_MILLISECONDS_KEY, DEFAULT_METADATA_STORE_TTL_MILLISECONDS))
         .metadataStoreCapacity(
             configuration.getInt(METADATA_STORE_CAPACITY_KEY, DEFAULT_CAPACITY_METADATA_STORE))
         .blockSizeBytes(configuration.getLong(BLOCK_SIZE_BYTES_KEY, DEFAULT_BLOCK_SIZE_BYTES))
@@ -256,7 +256,7 @@ public class PhysicalIOConfiguration {
     Preconditions.checkArgument(
         cacheDataTimeoutMilliseconds > 0, "`cacheDataTimeoutMilliseconds` must be positive");
     Preconditions.checkArgument(
-        metadataCacheTtlMilliseconds > 0, "`metadataCacheTtlMilliseconds` must be positive");
+        metadataCacheTtlMilliseconds >= 0, "`metadataCacheTTLMilliseconds` must be positive");
     Preconditions.checkArgument(
         metadataStoreCapacity > 0, "`metadataStoreCapacity` must be positive");
     Preconditions.checkArgument(blockSizeBytes > 0, "`blockSizeBytes` must be positive");

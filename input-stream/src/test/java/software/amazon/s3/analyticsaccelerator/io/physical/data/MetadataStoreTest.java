@@ -15,6 +15,7 @@
  */
 package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -154,7 +155,6 @@ public class MetadataStoreTest {
 
   @Test
   public void testTtlBasedEviction() throws IOException, InterruptedException {
-    // MetadataStore with very short TTL (1ms)
     PhysicalIOConfiguration config =
         PhysicalIOConfiguration.builder().metadataCacheTtlMilliseconds(1).build();
 
@@ -167,12 +167,96 @@ public class MetadataStoreTest {
         new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
     S3URI key = S3URI.of("foo", "bar");
 
-    // get entry, wait for TTL expiry, then get again
+    // Get entry, wait for TTL expiry, then get again
     metadataStore.get(key, OpenStreamInformation.DEFAULT);
-    Thread.sleep(10); // Wait for TTL expiry
+    Thread.sleep(3); // Wait for TTL expiry
     metadataStore.get(key, OpenStreamInformation.DEFAULT);
 
-    // object store was accessed twice due to TTL expiry
+    // Object store was accessed twice due to TTL expiry
     verify(objectClient, times(2)).headObject(any(), any());
+  }
+
+  @Test
+  public void testEtagConsistencyWithinStream() throws IOException, InterruptedException {
+    // Test that same stream always gets same etag even if metadata TTL expires
+    PhysicalIOConfiguration config =
+        PhysicalIOConfiguration.builder().metadataCacheTtlMilliseconds(5).build();
+
+    ObjectClient objectClient = mock(ObjectClient.class);
+    ObjectMetadata metadata1 = ObjectMetadata.builder().etag("etag-v1").contentLength(100).build();
+
+    when(objectClient.headObject(any(), any()))
+        .thenReturn(CompletableFuture.completedFuture(metadata1));
+
+    MetadataStore metadataStore =
+        new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
+    S3URI key = S3URI.of("bucket", "key");
+
+    ObjectMetadata firstStreamMetadata = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    assertEquals("etag-v1", firstStreamMetadata.getEtag());
+
+    Thread.sleep(10); // Wait for TTL expiry
+
+    assertEquals("etag-v1", firstStreamMetadata.getEtag());
+
+    verify(objectClient, times(1)).headObject(any(), any());
+  }
+
+  @Test
+  public void testMetadataTtlProvidesNewVersionAfterExpiry()
+      throws IOException, InterruptedException {
+    // Test that TTL expiry allows getting updated object versions
+    PhysicalIOConfiguration config =
+        PhysicalIOConfiguration.builder().metadataCacheTtlMilliseconds(20).build();
+
+    ObjectClient objectClient = mock(ObjectClient.class);
+    ObjectMetadata oldVersion =
+        ObjectMetadata.builder().etag("old-etag").contentLength(100).build();
+    ObjectMetadata newVersion =
+        ObjectMetadata.builder().etag("new-etag").contentLength(200).build();
+
+    when(objectClient.headObject(any(), any()))
+        .thenReturn(CompletableFuture.completedFuture(oldVersion))
+        .thenReturn(CompletableFuture.completedFuture(newVersion));
+
+    MetadataStore metadataStore =
+        new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
+    S3URI key = S3URI.of("bucket", "updated-object");
+
+    // Get old version of object
+    ObjectMetadata first = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    assertEquals("old-etag", first.getEtag());
+    assertEquals(100, first.getContentLength());
+
+    Thread.sleep(30); // Wait for TTL expiry
+
+    // Get new version of object
+    ObjectMetadata second = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    assertEquals("new-etag", second.getEtag());
+    assertEquals(200, second.getContentLength());
+
+    verify(objectClient, times(2)).headObject(any(), any());
+  }
+
+  @Test
+  public void testZeroTtlDisablesMetadataCache() throws IOException {
+    PhysicalIOConfiguration config =
+        PhysicalIOConfiguration.builder().metadataCacheTtlMilliseconds(0).build();
+
+    ObjectClient objectClient = mock(ObjectClient.class);
+    ObjectMetadata objectMetadata = ObjectMetadata.builder().etag("test-etag").build();
+    when(objectClient.headObject(any(), any()))
+        .thenReturn(CompletableFuture.completedFuture(objectMetadata));
+
+    MetadataStore metadataStore =
+        new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
+    S3URI key = S3URI.of("bucket", "key");
+
+    // Create multiple streams - each should trigger HEAD request
+    metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    metadataStore.get(key, OpenStreamInformation.DEFAULT);
+
+    verify(objectClient, times(3)).headObject(any(), any());
   }
 }
