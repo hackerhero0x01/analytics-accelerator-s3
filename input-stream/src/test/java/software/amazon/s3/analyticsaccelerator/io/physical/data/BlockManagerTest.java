@@ -708,11 +708,19 @@ public class BlockManagerTest {
     verify(objectClient, timeout(1_000).times(3)).getObject(requestCaptor.capture(), any());
 
     List<GetRequest> getRequestList = requestCaptor.getAllValues();
+    int count5MBRequests = 0;
+    int count3MBRequests = 0;
+    for (GetRequest request : getRequestList) {
+      if (request.getRange().getLength() == 5 * ONE_MB) {
+        count5MBRequests++;
+      } else if (request.getRange().getLength() == 3 * ONE_MB) {
+        count3MBRequests++;
+      }
+    }
 
     // Verify that prefetch modes don't trigger sequential prefetching
-    assertEquals(getRequestList.get(0).getRange().getLength(), 5 * ONE_MB);
-    assertEquals(getRequestList.get(1).getRange().getLength(), 3 * ONE_MB);
-    assertEquals(getRequestList.get(2).getRange().getLength(), 5 * ONE_MB);
+    assertEquals(2, count5MBRequests);
+    assertEquals(1, count3MBRequests);
   }
 
   private static List<ReadMode> readModes() {
