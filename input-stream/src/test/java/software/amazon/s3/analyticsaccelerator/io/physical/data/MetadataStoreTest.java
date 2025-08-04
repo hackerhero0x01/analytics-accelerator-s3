@@ -244,18 +244,28 @@ public class MetadataStoreTest {
         PhysicalIOConfiguration.builder().metadataCacheTtlMilliseconds(0).build();
 
     ObjectClient objectClient = mock(ObjectClient.class);
-    ObjectMetadata objectMetadata = ObjectMetadata.builder().etag("test-etag").build();
+    ObjectMetadata originalMetadata = ObjectMetadata.builder().etag("original-etag").build();
+    ObjectMetadata updatedMetadata = ObjectMetadata.builder().etag("updated-etag").build();
+
     when(objectClient.headObject(any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(objectMetadata));
+        .thenReturn(CompletableFuture.completedFuture(originalMetadata))
+        .thenReturn(CompletableFuture.completedFuture(originalMetadata))
+        .thenReturn(CompletableFuture.completedFuture(updatedMetadata));
 
     MetadataStore metadataStore =
         new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
     S3URI key = S3URI.of("bucket", "key");
 
-    // Create multiple streams - each should trigger HEAD request
-    metadataStore.get(key, OpenStreamInformation.DEFAULT);
-    metadataStore.get(key, OpenStreamInformation.DEFAULT);
-    metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    // Create first 2 streams - each should get original etag
+    ObjectMetadata stream1 = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    ObjectMetadata stream2 = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+
+    assertEquals("original-etag", stream1.getEtag());
+    assertEquals("original-etag", stream2.getEtag());
+
+    // 3rd stream should get updated etag
+    ObjectMetadata stream4 = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    assertEquals("updated-etag", stream4.getEtag());
 
     verify(objectClient, times(3)).headObject(any(), any());
   }

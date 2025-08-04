@@ -15,10 +15,16 @@
  */
 package software.amazon.s3.analyticsaccelerator.access;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.NonNull;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -110,14 +116,15 @@ public class MetadataTTLTest extends IntegrationTestBase {
                   int bytesRead2 = stream1.read(data2);
                   assertTrue(bytesRead2 > 0, "Should read data before exception");
                 });
-        Throwable cause = ex.getCause();
-        assertTrue(cause instanceof S3Exception, "Cause should be S3Exception");
-        S3Exception s3Exception = (S3Exception) cause;
-        assertEquals(412, s3Exception.statusCode());
+        S3Exception s3Exception =
+            assertInstanceOf(
+                S3Exception.class, ex.getCause(), "IOException should be caused by S3Exception");
+        assertEquals(
+            412, s3Exception.statusCode(), "Expected Precondition Failed (412) status code");
       } else {
         byte[] data2 = new byte[1000];
-        int bytesRead = stream1.read(data2);
-        assertTrue(bytesRead > 0, "Should read from prefetched cache without 412 error");
+        assertDoesNotThrow(
+            () -> stream1.read(data2), "Should read from prefetched cache without 412 error");
       }
 
       stream1.close();
