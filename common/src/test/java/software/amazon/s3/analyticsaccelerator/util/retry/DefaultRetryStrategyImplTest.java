@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -50,9 +49,6 @@ class DefaultRetryStrategyImplTest {
     assertNotNull(executor);
 
     assertThrows(NullPointerException.class, () -> new DefaultRetryStrategyImpl(null));
-
-    ArrayList<RetryPolicy> emptyList = new ArrayList<RetryPolicy>();
-    assertThrows(IllegalArgumentException.class, () -> new DefaultRetryStrategyImpl(emptyList));
   }
 
   @Test

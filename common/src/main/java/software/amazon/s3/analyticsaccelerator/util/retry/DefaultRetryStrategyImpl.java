@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 
@@ -39,13 +40,12 @@ import software.amazon.s3.analyticsaccelerator.common.Preconditions;
  */
 public class DefaultRetryStrategyImpl implements RetryStrategy {
   private final List<RetryPolicy> retryPolicies;
-  FailsafeExecutor<Object> failsafeExecutor;
-  private boolean timeoutSet;
+  private Timeout<Object> timeoutPolicy;
+  @Getter private boolean timeoutSet;
 
   /** Creates a retry strategy with no retry policies (no retries). */
   public DefaultRetryStrategyImpl() {
     this.retryPolicies = new ArrayList<>();
-    this.failsafeExecutor = Failsafe.none();
   }
 
   /**
@@ -62,7 +62,6 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
     if (policies != null && policies.length > 0) {
       this.retryPolicies.addAll(Arrays.asList(policies));
     }
-    this.failsafeExecutor = Failsafe.with(getDelegates());
   }
 
   /**
@@ -74,7 +73,6 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
     Preconditions.checkNotNull(policies);
     this.retryPolicies = new ArrayList<>();
     this.retryPolicies.addAll(policies);
-    this.failsafeExecutor = Failsafe.with(getDelegates());
   }
 
   /**
@@ -86,7 +84,7 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
   @SneakyThrows
   public void execute(IORunnable runnable) {
     try {
-      this.failsafeExecutor.run(runnable::apply);
+      executor().run(runnable::apply);
     } catch (Exception ex) {
       throw handleExceptionAfterRetry(ex);
     }
@@ -103,7 +101,7 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
   @SneakyThrows
   public <T> T get(IOSupplier<T> supplier) {
     try {
-      return this.failsafeExecutor.get(supplier::apply);
+      return executor().get(supplier::apply);
     } catch (Exception ex) {
       throw handleExceptionAfterRetry(ex);
     }
@@ -112,16 +110,14 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
   @Override
   public RetryStrategy amend(RetryPolicy policy) {
     Preconditions.checkNotNull(policy);
-    this.failsafeExecutor = this.failsafeExecutor.compose(policy.getDelegate());
+    this.retryPolicies.add(policy);
     return this;
   }
 
   @Override
   public RetryStrategy merge(RetryStrategy strategy) {
     Preconditions.checkNotNull(strategy);
-    for (RetryPolicy policy : strategy.getRetryPolicies()) {
-      this.failsafeExecutor = this.failsafeExecutor.compose(policy.getDelegate());
-    }
+    this.retryPolicies.addAll(strategy.getRetryPolicies());
     return this;
   }
 
@@ -156,6 +152,17 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
     return e;
   }
 
+  private FailsafeExecutor<Object> executor() {
+    FailsafeExecutor<Object> executor;
+    if (retryPolicies.isEmpty()) {
+      executor = Failsafe.none();
+    } else {
+      executor = Failsafe.with(getDelegates());
+    }
+    if (this.timeoutSet) executor = executor.compose(timeoutPolicy);
+    return executor;
+  }
+
   /**
    * Create a timeout for read from storage operations and with specified retry count. This will
    * override settings in PhysicalIOConfiguration (blockreadtimeout and blockreadretrycount) if set.
@@ -166,16 +173,14 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
    * @param retryCount Number of times to retry if Timeout Exceeds
    */
   public void timeout(long timeoutDurationMillis, int retryCount) {
-    if (!this.timeoutSet) {
-      Timeout<Object> timeout =
-          Timeout.builder(Duration.ofMillis(timeoutDurationMillis)).withInterrupt().build();
-      dev.failsafe.RetryPolicy<Object> timeoutPolicy =
-          dev.failsafe.RetryPolicy.builder()
-              .handle(TimeoutExceededException.class)
-              .withMaxRetries(retryCount)
-              .build();
-      this.failsafeExecutor = this.failsafeExecutor.compose(timeoutPolicy).compose(timeout);
-      this.timeoutSet = true;
-    }
+    this.timeoutPolicy =
+        Timeout.builder(Duration.ofMillis(timeoutDurationMillis)).withInterrupt().build();
+    RetryPolicy timeoutRetries =
+        RetryPolicy.builder()
+            .handle(TimeoutExceededException.class)
+            .withMaxRetries(retryCount)
+            .build();
+    this.retryPolicies.add(timeoutRetries);
+    this.timeoutSet = true;
   }
 }

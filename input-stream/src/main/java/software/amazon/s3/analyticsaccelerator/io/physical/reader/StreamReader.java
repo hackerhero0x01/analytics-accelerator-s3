@@ -116,7 +116,7 @@ public class StreamReader implements Closeable {
       provided = new DefaultRetryStrategyImpl();
     }
 
-    if (this.physicalIOConfiguration.getBlockReadTimeout() > 0) {
+    if (this.physicalIOConfiguration.getBlockReadTimeout() > 0 && !provided.isTimeoutSet()) {
       provided.timeout(
           physicalIOConfiguration.getBlockReadTimeout(),
           physicalIOConfiguration.getBlockReadRetryCount());

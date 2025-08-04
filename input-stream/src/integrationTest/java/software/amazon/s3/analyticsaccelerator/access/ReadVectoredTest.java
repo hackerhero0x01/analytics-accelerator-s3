@@ -106,7 +106,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(
-              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+              S3Object.RANDOM_1GB, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
 
@@ -133,7 +133,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(
-              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+              S3Object.RANDOM_1GB, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
 
@@ -164,7 +164,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(
-              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+              S3Object.RANDOM_1GB, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 700, 500));
@@ -194,7 +194,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(
-              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+              S3Object.RANDOM_1GB, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 700, 500));
@@ -226,7 +226,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(
-              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+              S3Object.RANDOM_1GB, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 700, 500));
@@ -242,7 +242,6 @@ public class ReadVectoredTest extends IntegrationTestBase {
       } catch (Exception e) {
         assertInstanceOf(CompletionException.class, e);
       }
-
       assertEquals(
           3,
           s3AALClientStreamReader
@@ -283,7 +282,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
     try {
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(
-              S3Object.RANDOM_1GB, OpenStreamInformation.DEFAULT);
+              S3Object.RANDOM_1GB, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 700, 500));
@@ -338,7 +337,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       S3SeekableInputStream s3SeekableInputStream =
-          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 50, ONE_MB));
@@ -389,7 +388,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       S3SeekableInputStream s3SeekableInputStream =
-          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 500, 800));
@@ -424,7 +423,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
         this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       S3SeekableInputStream s3SeekableInputStream =
-          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.ofDefaults());
 
       List<ObjectRange> objectRanges = new ArrayList<>();
       objectRanges.add(new ObjectRange(new CompletableFuture<>(), 2 * ONE_MB, 8 * ONE_MB));
@@ -459,7 +458,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
       ByteBuffer byteBuffer = objectRange.getByteBuffer().join();
 
       S3SeekableInputStream verificationStream =
-          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
+          s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.ofDefaults());
       verificationStream.seek(objectRange.getOffset());
       byte[] buffer = new byte[objectRange.getLength()];
       int readBytes = verificationStream.read(buffer, 0, buffer.length);
