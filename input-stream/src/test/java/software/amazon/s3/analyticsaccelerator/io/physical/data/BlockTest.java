@@ -24,9 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.request.Range;
@@ -208,47 +206,6 @@ public class BlockTest {
   }
 
   @Test
-  @Disabled
-  void testReadBeforeDataSet() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics); // Short timeout
-
-    assertThrows(IOException.class, () -> block.read(0));
-  }
-
-  @Test
-  @Disabled
-  void testReadBufferBeforeDataSet() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics); // Short timeout
-    byte[] buffer = new byte[4];
-
-    assertThrows(IOException.class, () -> block.read(buffer, 0, 4, 0));
-  }
-
-  @Test
-  @Disabled
-  void testReadWithTimeout() throws InterruptedException {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics); // Short timeout
-
-    CountDownLatch latch = new CountDownLatch(1);
-    CompletableFuture<Void> readTask =
-        CompletableFuture.runAsync(
-            () -> {
-              try {
-                latch.countDown();
-                block.read(0);
-                fail("Expected IOException due to timeout");
-              } catch (IOException e) {
-                // Expected
-              }
-            });
-
-    latch.await(); // Wait for read to start
-    Thread.sleep(200); // Wait longer than timeout
-
-    assertDoesNotThrow(() -> readTask.get(1, TimeUnit.SECONDS));
-  }
-
-  @Test
   void testConcurrentReadsAfterDataSet() throws InterruptedException, ExecutionException {
     Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics);
     block.setData(TEST_DATA_BYTES);
@@ -330,16 +287,6 @@ public class BlockTest {
   }
 
   @Test
-  @Disabled
-  void testReadTimeoutIfDataNeverSet() {
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics); // 100 ms
-
-    IOException ex = assertThrows(IOException.class, () -> block.read(0));
-    assertTrue(ex.getMessage().contains("Error while reading data."));
-  }
-
-  @Test
-  @Disabled
   void testReadBlocksUntilDataIsReady() throws Exception {
     Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics);
 
@@ -352,6 +299,7 @@ public class BlockTest {
 
     assertEquals(Byte.toUnsignedInt(TEST_DATA_BYTES[0]), result.get(1, TimeUnit.SECONDS));
     executor.shutdown();
+    block.close();
   }
 
   @Test
@@ -374,95 +322,6 @@ public class BlockTest {
     Thread.sleep(100); // Ensure thread is waiting inside awaitData()
     testThread.interrupt();
     testThread.join();
-  }
-
-  @Test
-  @Disabled
-  void testRetryStrategyWithTimeout() throws Exception {
-    // Create a counter to track retry attempts
-    AtomicInteger attempts = new AtomicInteger(0);
-
-    // Create a custom CountDownLatch to coordinate the test
-    CountDownLatch attemptLatch = new CountDownLatch(1);
-    CountDownLatch dataSetLatch = new CountDownLatch(1);
-
-    // Create a block with a short timeout and 2 retries
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics);
-
-    // Start a thread that will try to read from the block
-    CompletableFuture<Integer> future =
-        CompletableFuture.supplyAsync(
-            () -> {
-              try {
-                // Record the attempt and notify the test thread
-                attempts.incrementAndGet();
-                attemptLatch.countDown();
-
-                // Try to read - this will trigger retries internally
-                return block.read(0);
-              } catch (IOException e) {
-                throw new CompletionException(e);
-              }
-            });
-
-    // Wait for the read attempt to start
-    assertTrue(attemptLatch.await(500, TimeUnit.MILLISECONDS));
-
-    // Wait a bit to ensure at least one retry happens (50ms timeout * 1 retry)
-    Thread.sleep(75);
-
-    // Now set the data so the next retry will succeed
-    block.setData(TEST_DATA_BYTES);
-    dataSetLatch.countDown();
-
-    // The read should eventually succeed
-    assertEquals(Byte.toUnsignedInt(TEST_DATA_BYTES[0]), future.join());
-  }
-
-  @Test
-  @Disabled
-  void testRetryStrategyExhaustsRetries() {
-    // Create a block with a short timeout and only 1 retry
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics);
-
-    // Don't set data, so all retries will fail with timeout
-
-    // This should fail after max retries
-    IOException exception = assertThrows(IOException.class, () -> block.read(0));
-    assertTrue(exception.getMessage().contains("timed out"));
-  }
-
-  @Test
-  @Disabled
-  void testRetryStrategyWithMultipleRetries() throws InterruptedException {
-    // Create a block with a short timeout and multiple retries
-    CountDownLatch readStarted = new CountDownLatch(1);
-
-    Block block = new Block(blockKey, 0, mockIndexCache, mockMetrics);
-
-    // Start a thread that will try to read from the block
-    CompletableFuture<Integer> future =
-        CompletableFuture.supplyAsync(
-            () -> {
-              try {
-                readStarted.countDown();
-                return block.read(0);
-              } catch (IOException e) {
-                throw new CompletionException(e);
-              }
-            });
-
-    // Wait for read to start
-    assertTrue(readStarted.await(500, TimeUnit.MILLISECONDS));
-
-    // Wait a bit to ensure at least one retry happens
-    Thread.sleep(250);
-
-    // Now set the data
-    block.setData(TEST_DATA_BYTES);
-
-    // The read should eventually succeed
-    assertEquals(Byte.toUnsignedInt(TEST_DATA_BYTES[0]), future.join());
   }
 
   @Test
