@@ -27,7 +27,6 @@ import software.amazon.s3.analyticsaccelerator.SpotBugsLambdaWorkaround;
     value = "NP_NONNULL_PARAM_VIOLATION",
     justification = "We mean to pass nulls to checks")
 public class TelemetryTest {
-  private static final long DEFAULT_TIMEOUT = 120_000;
 
   @Test
   void testCreateTelemetry() {
@@ -80,7 +79,7 @@ public class TelemetryTest {
 
       // This will complete the future
       completionThread.start();
-      defaultTelemetry.measureJoinCritical(() -> operation, completableFuture, DEFAULT_TIMEOUT);
+      defaultTelemetry.measureJoinCritical(() -> operation, completableFuture);
       assertTrue(completableFuture.isDone());
       assertFalse(completableFuture.isCompletedExceptionally());
       assertEquals(42, completableFuture.get());
@@ -97,8 +96,7 @@ public class TelemetryTest {
       assertEquals(Optional.empty(), operationMeasurement.getError());
 
       // Try again - nothing should be recorded
-      long result =
-          defaultTelemetry.measureJoinStandard(() -> operation, completableFuture, DEFAULT_TIMEOUT);
+      long result = defaultTelemetry.measureJoinStandard(() -> operation, completableFuture);
       assertEquals(1, reporter.getOperationCompletions().size());
       assertEquals(42, result);
     }
@@ -132,7 +130,7 @@ public class TelemetryTest {
 
       // This will complete the future
       completionThread.start();
-      defaultTelemetry.measureJoinStandard(() -> operation, completableFuture, DEFAULT_TIMEOUT);
+      defaultTelemetry.measureJoinStandard(() -> operation, completableFuture);
       assertTrue(completableFuture.isDone());
       assertFalse(completableFuture.isCompletedExceptionally());
       assertEquals(42, completableFuture.get());
@@ -149,8 +147,7 @@ public class TelemetryTest {
       assertEquals(Optional.empty(), operationMeasurement.getError());
 
       // Try again - nothing should be recorded
-      long result =
-          defaultTelemetry.measureJoinStandard(() -> operation, completableFuture, DEFAULT_TIMEOUT);
+      long result = defaultTelemetry.measureJoinStandard(() -> operation, completableFuture);
       assertEquals(1, reporter.getOperationCompletions().size());
       assertEquals(42, result);
     }
@@ -184,8 +181,7 @@ public class TelemetryTest {
 
       // This will complete the future
       completionThread.start();
-      Long result =
-          defaultTelemetry.measureJoinVerbose(() -> operation, completableFuture, DEFAULT_TIMEOUT);
+      Long result = defaultTelemetry.measureJoinVerbose(() -> operation, completableFuture);
       assertEquals(42L, result);
       assertTrue(completableFuture.isDone());
       assertFalse(completableFuture.isCompletedExceptionally());
@@ -203,8 +199,7 @@ public class TelemetryTest {
       assertEquals(Optional.empty(), operationMeasurement.getError());
 
       // Try again - nothing should be recorded
-      result =
-          defaultTelemetry.measureJoinStandard(() -> operation, completableFuture, DEFAULT_TIMEOUT);
+      result = defaultTelemetry.measureJoinStandard(() -> operation, completableFuture);
       assertEquals(1, reporter.getOperationCompletions().size());
       assertEquals(42, result);
     }
@@ -227,15 +222,14 @@ public class TelemetryTest {
 
       assertThrows(
           NullPointerException.class,
-          () -> defaultTelemetry.measureJoinStandard(null, completableFuture, DEFAULT_TIMEOUT));
+          () -> defaultTelemetry.measureJoinStandard(null, completableFuture));
 
       assertThrows(
           NullPointerException.class,
-          () ->
-              defaultTelemetry.measureJoinStandard(() -> null, completableFuture, DEFAULT_TIMEOUT));
+          () -> defaultTelemetry.measureJoinStandard(() -> null, completableFuture));
       assertThrows(
           NullPointerException.class,
-          () -> defaultTelemetry.measureJoinStandard(() -> operation, null, DEFAULT_TIMEOUT));
+          () -> defaultTelemetry.measureJoinStandard(() -> operation, null));
     }
   }
 

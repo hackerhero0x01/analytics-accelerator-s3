@@ -20,8 +20,6 @@ import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.*;
@@ -280,24 +278,19 @@ public class DefaultTelemetry implements Telemetry {
    * @param level telemetry level.
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
-   * @param operationTimeout Timeout duration (in milliseconds) for operation
    * @return an instance of {@link T} that returns the same result as the one passed in.
-   * @throws IOException if the underlying operation threw an IOException
    */
   @Override
   public <T> T measureJoin(
       @NonNull TelemetryLevel level,
       @NonNull OperationSupplier operationSupplier,
-      @NonNull CompletableFuture<T> operationCode,
-      long operationTimeout)
+      @NonNull CompletableFuture<T> operationCode)
       throws IOException {
     if (operationCode.isDone()) {
-      return handleCompletableFutureJoin(operationCode, operationTimeout);
+      return handleCompletableFutureJoin(operationCode);
     } else {
       return this.measure(
-          level,
-          operationSupplier,
-          () -> handleCompletableFutureJoin(operationCode, operationTimeout));
+          level, operationSupplier, () -> handleCompletableFutureJoin(operationCode));
     }
   }
 
@@ -306,15 +299,13 @@ public class DefaultTelemetry implements Telemetry {
    *
    * @param <T> - return type of the CompletableFuture
    * @param future the CompletableFuture to join
-   * @param operationTimeout Timeout duration (in milliseconds) for operation
    * @return the result of the CompletableFuture
    * @throws IOException if the underlying future threw an IOException
    */
-  private <T> T handleCompletableFutureJoin(CompletableFuture<T> future, long operationTimeout)
-      throws IOException {
+  private <T> T handleCompletableFutureJoin(CompletableFuture<T> future) throws IOException {
     try {
-      return future.get(operationTimeout, TimeUnit.MILLISECONDS);
-    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+      return future.get();
+    } catch (ExecutionException | InterruptedException e) {
       Throwable cause = e.getCause();
       if (cause instanceof UncheckedIOException) {
         throw ((UncheckedIOException) cause).getCause();

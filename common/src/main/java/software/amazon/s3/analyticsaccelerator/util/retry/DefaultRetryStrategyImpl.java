@@ -157,7 +157,11 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
   }
 
   /**
-   * @inheritDoc
+   * Create a timeout for read from storage operations and with specified retry count. This will
+   * override settings in PhysicalIOConfiguration (blockreadtimeout and blockreadretrycount) if set.
+   * If user does not set a timeout in their retry strategy, a timeout will be set based on
+   * aforementioned configuration. set blockreadtimeout = 0 to disable timeouts
+   *
    * @param timeoutDurationMillis Timeout duration for reading from storage
    * @param retryCount Number of times to retry if Timeout Exceeds
    */

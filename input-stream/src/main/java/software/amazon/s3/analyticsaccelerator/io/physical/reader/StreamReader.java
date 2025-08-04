@@ -206,8 +206,7 @@ public class StreamReader implements Closeable {
                         removeNonFilledBlocksFromStore(nonFilledBlocks);
                       }
                     });
-              } // Process the input stream and populate data blocks
-              catch (Exception e) {
+              } catch (Exception e) {
                 LOG.error("Unexpected exception while reading blocks", e);
                 if (e instanceof IOException) {
                   setErrorOnBlocksAndRemove(blocks, (IOException) e);
@@ -275,8 +274,7 @@ public class StreamReader implements Closeable {
                 .attribute(StreamAttributes.rangeLength(getRequest.getRange().getLength()))
                 .attribute(StreamAttributes.range(getRequest.getRange()))
                 .build(),
-        this.objectClient.getObject(getRequest, this.openStreamInformation),
-        100000000);
+        this.objectClient.getObject(getRequest, this.openStreamInformation));
   }
 
   /**
