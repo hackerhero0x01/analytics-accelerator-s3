@@ -269,4 +269,36 @@ public class MetadataStoreTest {
 
     verify(objectClient, times(3)).headObject(any(), any());
   }
+
+  @Test
+  public void testStoreObjectMetadataRefreshesTtlForExistingKey()
+      throws IOException, InterruptedException {
+    PhysicalIOConfiguration config =
+        PhysicalIOConfiguration.builder().metadataCacheTtlMilliseconds(100).build();
+
+    ObjectClient objectClient = mock(ObjectClient.class);
+    ObjectMetadata metadata = ObjectMetadata.builder().etag("test-etag").build();
+    when(objectClient.headObject(any(), any()))
+        .thenReturn(CompletableFuture.completedFuture(metadata));
+
+    MetadataStore metadataStore =
+        new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
+    S3URI key = S3URI.of("bucket", "key");
+
+    // First get to populate cache
+    metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    verify(objectClient, times(1)).headObject(any(), any());
+
+    // Wait partial TTL, then store same key(should refresh TTL)
+    Thread.sleep(60);
+    metadataStore.storeObjectMetadata(key, metadata);
+
+    // Wait remaining time, should still be cached due to TTL refresh
+    Thread.sleep(70); // Total 130ms , but TTL was expired after 100ms but got refreshed at 60ms
+    ObjectMetadata retrieved = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+
+    // Should not trigger new HEAD request, still cached due to TTL refresh
+    assertEquals("test-etag", retrieved.getEtag());
+    verify(objectClient, times(1)).headObject(any(), any());
+  }
 }
