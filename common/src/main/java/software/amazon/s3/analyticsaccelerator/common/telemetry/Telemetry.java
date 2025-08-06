@@ -82,6 +82,7 @@ public interface Telemetry extends Closeable {
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @return an instance of {@link T} that returns the same result as the one passed in.
+   * @throws IOException if the underlying operation threw an IOException
    */
   default <T> T measureJoin(
       @NonNull TelemetryLevel level,
@@ -210,6 +211,7 @@ public interface Telemetry extends Closeable {
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @return an instance of {@link T} that returns the same result as the one passed in.
+   * @throws IOException if the underlying operation threw an IOException
    */
   default <T> T measureJoinStandard(
       OperationSupplier operationSupplier, CompletableFuture<T> operationCode) throws IOException {

@@ -69,7 +69,7 @@ public interface RetryStrategy {
    * @param durationInMillis Timeout duration for reading from storage
    * @param retryCount Number of times to retry if Timeout Exceeds
    */
-  void timeout(long durationInMillis, int retryCount);
+  void setTimeoutPolicy(long durationInMillis, int retryCount);
 
   /**
    * Method to check if timeout of the strategy already set.

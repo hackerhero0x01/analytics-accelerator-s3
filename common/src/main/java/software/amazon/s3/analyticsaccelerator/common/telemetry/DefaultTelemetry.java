@@ -279,6 +279,7 @@ public class DefaultTelemetry implements Telemetry {
    * @param operationSupplier operation to record this execution as.
    * @param operationCode the future to measure the execution of.
    * @return an instance of {@link T} that returns the same result as the one passed in.
+   * @throws IOException if the underlying operation threw an IOException
    */
   @Override
   public <T> T measureJoin(

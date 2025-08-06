@@ -285,7 +285,7 @@ class DefaultRetryStrategyImplTest {
   @Test
   void testTimeoutThrows() {
     DefaultRetryStrategyImpl executor = new DefaultRetryStrategyImpl();
-    executor.timeout(1000, 0);
+    executor.setTimeoutPolicy(1000, 0);
     AtomicInteger attempt = new AtomicInteger(0);
 
     assertThrows(
@@ -304,7 +304,7 @@ class DefaultRetryStrategyImplTest {
   @Test
   void testTimeoutWithSuccessAfterRetry() throws IOException {
     DefaultRetryStrategyImpl executor = new DefaultRetryStrategyImpl();
-    executor.timeout(1000, 3);
+    executor.setTimeoutPolicy(1000, 3);
     AtomicInteger attempt = new AtomicInteger(0);
     String expected = "success";
 

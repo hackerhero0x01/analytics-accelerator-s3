@@ -172,7 +172,7 @@ public class DefaultRetryStrategyImpl implements RetryStrategy {
    * @param timeoutDurationMillis Timeout duration for reading from storage
    * @param retryCount Number of times to retry if Timeout Exceeds
    */
-  public void timeout(long timeoutDurationMillis, int retryCount) {
+  public void setTimeoutPolicy(long timeoutDurationMillis, int retryCount) {
     this.timeoutPolicy =
         Timeout.builder(Duration.ofMillis(timeoutDurationMillis)).withInterrupt().build();
     RetryPolicy timeoutRetries =
