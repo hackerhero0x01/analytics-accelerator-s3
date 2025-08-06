@@ -36,6 +36,7 @@ import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.impl.PhysicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
+import software.amazon.s3.analyticsaccelerator.util.NamedThreadFactory;
 import software.amazon.s3.analyticsaccelerator.util.ObjectFormatSelector;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
@@ -52,6 +53,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
  */
 @Getter(AccessLevel.PACKAGE)
 public class S3SeekableInputStreamFactory implements AutoCloseable {
+  private static final String THREAD_FACTORY_NAME = "s3-analytics-accelerator-";
   private final S3SeekableInputStreamConfiguration configuration;
   private final ParquetColumnPrefetchStore parquetColumnPrefetchStore;
   private final MetadataStore objectMetadataStore;
@@ -87,7 +89,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     // TODO: calling applications should be able to pass in a thread pool if they so wish
     this.threadPool =
         Executors.newFixedThreadPool(
-            configuration.getPhysicalIOConfiguration().getThreadPoolSize());
+            configuration.getPhysicalIOConfiguration().getThreadPoolSize(),
+            new NamedThreadFactory(THREAD_FACTORY_NAME, true));
     this.objectBlobStore =
         new BlobStore(
             objectClient,

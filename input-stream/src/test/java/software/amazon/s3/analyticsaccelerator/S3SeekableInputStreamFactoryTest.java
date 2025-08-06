@@ -31,6 +31,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
@@ -406,5 +407,30 @@ public class S3SeekableInputStreamFactoryTest {
 
   private static Exception[] exceptions() {
     return ExceptionHandler.getSampleExceptions();
+  }
+
+  @Test
+  void testActualRead() throws IOException {
+    String bucket = "ozkoca-aqbe-baseline-partitioned128mb-emrs3a-us-east-1";
+    String key =
+        "dataset/catalog_page/part-00000-fc7f39ec-1fdb-4421-8204-31fe00a1a43d-c000.snappy.parquet";
+    S3AsyncClient crtClient = S3AsyncClient.crtBuilder().region(Region.US_EAST_1).build();
+    S3SdkObjectClient client = new S3SdkObjectClient(crtClient);
+    S3SeekableInputStreamFactory s3SeekableInputStreamFactory =
+        new S3SeekableInputStreamFactory(client, S3SeekableInputStreamConfiguration.DEFAULT);
+
+    S3SeekableInputStream inputStream =
+        s3SeekableInputStreamFactory.createStream(S3URI.of(bucket, key));
+
+    int bytesRead = 0;
+    int i = 0;
+    do {
+      bytesRead = inputStream.read(new byte[8 * 1024]);
+      System.out.println(i++ + ": " + bytesRead);
+    } while (bytesRead != -1);
+
+    System.out.println("Completed");
+    s3SeekableInputStreamFactory.close();
+    System.out.println("Closed factory");
   }
 }
