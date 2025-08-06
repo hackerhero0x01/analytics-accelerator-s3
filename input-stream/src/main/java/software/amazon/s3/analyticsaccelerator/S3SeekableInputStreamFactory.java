@@ -53,7 +53,6 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
  */
 @Getter(AccessLevel.PACKAGE)
 public class S3SeekableInputStreamFactory implements AutoCloseable {
-  private static final String THREAD_FACTORY_NAME = "s3-analytics-accelerator-";
   private final S3SeekableInputStreamConfiguration configuration;
   private final ParquetColumnPrefetchStore parquetColumnPrefetchStore;
   private final MetadataStore objectMetadataStore;
@@ -64,6 +63,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final ExecutorService threadPool;
 
   private static final Logger LOG = LoggerFactory.getLogger(S3SeekableInputStreamFactory.class);
+  private static final String THREAD_FACTORY_NAME = "s3-analytics-accelerator-";
 
   /**
    * Creates a new instance of {@link S3SeekableInputStreamFactory}. This factory should be used to
