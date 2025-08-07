@@ -74,7 +74,6 @@ public class MetadataStore implements Closeable {
                 configuration.getMetadataCacheTtlMilliseconds(), TimeUnit.MILLISECONDS)
             .maximumSize(configuration.getMetadataStoreCapacity())
             .build();
-    this.configuration = configuration;
   }
 
   /**
