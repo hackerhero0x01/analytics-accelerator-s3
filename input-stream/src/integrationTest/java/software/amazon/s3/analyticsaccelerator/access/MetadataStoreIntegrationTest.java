@@ -51,7 +51,8 @@ public class MetadataStoreIntegrationTest extends IntegrationTestBase {
       s3AALClientStreamReader.createReadStream(S3Object.RANDOM_1MB, OpenStreamInformation.DEFAULT);
 
       if (shouldSleep) {
-        Thread.sleep(150); // Wait for TTL expiry
+        int ttlMs = Integer.parseInt(ttlValue);
+        Thread.sleep(ttlMs + 100); // Wait for TTL + overhead
       }
 
       s3AALClientStreamReader.createReadStream(S3Object.RANDOM_1MB, OpenStreamInformation.DEFAULT);
@@ -80,6 +81,9 @@ public class MetadataStoreIntegrationTest extends IntegrationTestBase {
 
       // TTL expiry - cache refresh after expiration
       testCases.add(Arguments.of(clientKind, "50", 2, true));
+
+      // TTL expiry with longer TTL - cache should also expire after TTL+overhead
+      testCases.add(Arguments.of(clientKind, "200", 2, true));
     }
 
     return testCases.stream();
