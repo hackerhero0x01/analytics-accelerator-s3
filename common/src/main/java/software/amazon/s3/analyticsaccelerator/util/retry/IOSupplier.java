@@ -15,8 +15,6 @@
  */
 package software.amazon.s3.analyticsaccelerator.util.retry;
 
-import java.io.IOException;
-
 /**
  * A function that mimics {@link java.util.function.Supplier}, but allows IOException to be thrown
  * and returns T.
@@ -29,7 +27,7 @@ public interface IOSupplier<T> {
    * {@link T}. The code is allowed to throw any exception.
    *
    * @return a value of type {@link T}.
-   * @throws IOException on error condition.
+   * @throws Exception on error condition.
    */
-  T apply() throws IOException;
+  T apply() throws Exception;
 }

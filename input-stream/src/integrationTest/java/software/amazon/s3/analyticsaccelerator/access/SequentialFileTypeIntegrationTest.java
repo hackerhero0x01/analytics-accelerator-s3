@@ -55,23 +55,20 @@ class SequentialFileTypeIntegrationTest extends IntegrationTestBase {
       testAndCompareStreamReadPattern(
           clientKind, s3Object, streamReadPattern, s3AALClientStreamReader);
 
-      // The physicalIO is reading in 8MB chunks. So the total gets should be Math.ceil(file size /
-      // 8MB).
-      // For example, for a 20MB, this will be 3, [0-8MB, 8MB - 16MB, 16MB - 20MB].
-      int expectedGETCount = (int) Math.ceil((double) s3Object.getSize() / (8 * ONE_MB));
+      // We are expecting to have 2 GET requests. After introducing DEFAULT_REQUEST_TOLERANCE_RATIO
+      // config in PhysicalIO configuration, we can exceed the request limit up to
+      // 8MB * DEFAULT_REQUEST_TOLERANCE_RATIO (1.4 default) = up to 11.2MB.
+      // For example, in this test for 20MB file, we start reading from position 1MB
+      // which means that we need to read 19MB data. So, we can split the reads into two
+      // as 8MB and 11MB.
 
       // The sequential prefetcher should download the whole file,
       assertEquals(
-          expectedGETCount,
+          2,
           s3AALClientStreamReader
               .getS3SeekableInputStreamFactory()
               .getMetrics()
               .get(MetricKey.GET_REQUEST_COUNT));
-
-      // TODO: This should be fixed with the new PhysicalIO, currently the cache hit metric is
-      // inaccurate.
-      //  assertEquals(expectedGETCount,
-      // s3AALClientStreamReader.getS3SeekableInputStreamFactory().getMetrics().get(MetricKey.CACHE_HIT));
     }
   }
 
@@ -111,11 +108,6 @@ class SequentialFileTypeIntegrationTest extends IntegrationTestBase {
               .getS3SeekableInputStreamFactory()
               .getMetrics()
               .get(MetricKey.GET_REQUEST_COUNT));
-
-      // TODO: This should be fixed with the new PhysicalIO, currently the cache hit metric is
-      // inaccurate.
-      //  assertEquals(2,
-      // s3AALClientStreamReader.getS3SeekableInputStreamFactory().getMetrics().get(MetricKey.CACHE_HIT));
     }
   }
 

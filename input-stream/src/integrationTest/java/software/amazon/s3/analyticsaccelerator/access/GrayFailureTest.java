@@ -15,14 +15,20 @@
  */
 package software.amazon.s3.analyticsaccelerator.access;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
+import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
+import software.amazon.s3.analyticsaccelerator.SeekableInputStream;
 import software.amazon.s3.analyticsaccelerator.util.MetricKey;
+import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
+import software.amazon.s3.analyticsaccelerator.util.retry.DefaultRetryStrategyImpl;
+import software.amazon.s3.analyticsaccelerator.util.retry.RetryStrategy;
 
 /** Tests read stream behaviour with untrusted S3ClientKinds on multiple sizes and read patterns */
 public class GrayFailureTest extends IntegrationTestBase {
@@ -55,6 +61,56 @@ public class GrayFailureTest extends IntegrationTestBase {
           s3AALClientStreamReader);
       assertEquals(
           7,
+          s3AALClientStreamReader
+              .getS3SeekableInputStreamFactory()
+              .getMetrics()
+              .get(MetricKey.GET_REQUEST_COUNT));
+    }
+  }
+
+  @Test
+  void testRetryStrategyOverridesPhysicalIOConfiguration() throws IOException {
+    RetryStrategy customStrategy = new DefaultRetryStrategyImpl();
+    customStrategy.setTimeoutPolicy(100, 0);
+    OpenStreamInformation openStreamInfo =
+        software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation.builder()
+            .retryStrategy(customStrategy)
+            .build();
+
+    // PhysicalIOConfiguration on GrayFailure type has 2 retries, we are passing 0
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        this.createS3AALClientStreamReader(
+            S3ClientKind.FAULTY_S3_CLIENT, AALInputStreamConfigurationKind.GRAY_FAILURE)) {
+
+      S3SeekableInputStreamFactory factory =
+          s3AALClientStreamReader.getS3SeekableInputStreamFactory();
+      SeekableInputStream defaultStream =
+          factory.createStream(
+              S3Object.RANDOM_128MB.getObjectUri(
+                  this.getS3ExecutionContext().getConfiguration().getBaseUri()),
+              OpenStreamInformation.DEFAULT);
+      assertEquals(10, defaultStream.read(new byte[10], 0, 10));
+      // Assert 2 request are made 1 failure, 1 retry.
+      assertEquals(
+          2,
+          s3AALClientStreamReader
+              .getS3SeekableInputStreamFactory()
+              .getMetrics()
+              .get(MetricKey.GET_REQUEST_COUNT));
+
+      // Create another stream to a new object
+      S3SeekableInputStream overrideStream =
+          factory.createStream(
+              S3Object.RANDOM_16MB.getObjectUri(
+                  this.getS3ExecutionContext().getConfiguration().getBaseUri()),
+              openStreamInfo);
+
+      // Asserting there is timeout
+      assertThrows(IOException.class, overrideStream::read);
+      // Assert there are no retries and only 1 additional request is made
+      // 2 requests should be made by the previous stream and only 1 from this stream.
+      assertEquals(
+          3,
           s3AALClientStreamReader
               .getS3SeekableInputStreamFactory()
               .getMetrics()

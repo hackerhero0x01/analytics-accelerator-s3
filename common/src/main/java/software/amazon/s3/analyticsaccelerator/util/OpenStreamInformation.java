@@ -46,9 +46,17 @@ public class OpenStreamInformation {
   private final InputPolicy inputPolicy;
   @Builder.Default private RequestCallback requestCallback = new DefaultRequestCallbackImpl();
   private final EncryptionSecrets encryptionSecrets;
-
   @Builder.Default private final RetryStrategy retryStrategy = new DefaultRetryStrategyImpl();
 
   /** Default set of settings for {@link OpenStreamInformation} */
   public static final OpenStreamInformation DEFAULT = OpenStreamInformation.builder().build();
+
+  /**
+   * Default set of settings for {@link OpenStreamInformation}
+   *
+   * @return new OpenStreamInformation instance
+   */
+  public static OpenStreamInformation ofDefaults() {
+    return OpenStreamInformation.builder().build();
+  }
 }

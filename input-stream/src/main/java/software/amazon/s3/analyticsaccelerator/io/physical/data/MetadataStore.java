@@ -46,7 +46,6 @@ public class MetadataStore implements Closeable {
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
   private final Cache<S3URI, CompletableFuture<ObjectMetadata>> cache;
-  private final PhysicalIOConfiguration configuration;
   private final Metrics aggregatingMetrics;
 
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStore.class);
@@ -95,8 +94,7 @@ public class MetadataStore implements Closeable {
                 .name(OPERATION_METADATA_HEAD_JOIN)
                 .attribute(StreamAttributes.uri(s3URI))
                 .build(),
-        this.asyncGet(s3URI, openStreamInformation),
-        this.configuration.getBlockReadTimeout());
+        this.asyncGet(s3URI, openStreamInformation));
   }
 
   /**

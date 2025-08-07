@@ -15,15 +15,13 @@
  */
 package software.amazon.s3.analyticsaccelerator.util.retry;
 
-import java.io.IOException;
-
 /** A functional interface that mimics {@link Runnable}, but allows IOException to be thrown. */
 public interface IORunnable {
   /**
    * Functional representation of the code that takes no parameters and returns no value. The code
    * is allowed to throw any exception.
    *
-   * @throws IOException on error condition.
+   * @throws Exception on error condition.
    */
-  void apply() throws IOException;
+  void apply() throws Exception;
 }
