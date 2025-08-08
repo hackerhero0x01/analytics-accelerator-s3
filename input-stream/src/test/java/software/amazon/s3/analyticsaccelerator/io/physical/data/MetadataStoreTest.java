@@ -264,8 +264,8 @@ public class MetadataStoreTest {
     assertEquals("original-etag", stream2.getEtag());
 
     // 3rd stream should get updated etag
-    ObjectMetadata stream4 = metadataStore.get(key, OpenStreamInformation.DEFAULT);
-    assertEquals("updated-etag", stream4.getEtag());
+    ObjectMetadata stream3 = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+    assertEquals("updated-etag", stream3.getEtag());
 
     verify(objectClient, times(3)).headObject(any(), any());
   }
