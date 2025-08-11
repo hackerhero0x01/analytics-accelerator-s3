@@ -306,6 +306,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
 
     List<S3ClientKind> s3ClientKinds = new ArrayList<>();
     s3ClientKinds.add(S3ClientKind.SDK_V2_JAVA_ASYNC);
+    s3ClientKinds.add(S3ClientKind.SDK_V2_JAVA_SYNC);
 
     return argumentsFor(
         s3ClientKinds,
@@ -333,8 +334,7 @@ public class ReadVectoredTest extends IntegrationTestBase {
       @NonNull IntFunction<ByteBuffer> allocate)
       throws IOException {
 
-    try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+    try (S3AALClientStreamReader s3AALClientStreamReader = getStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.ofDefaults());

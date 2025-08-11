@@ -17,9 +17,10 @@ package software.amazon.s3.analyticsaccelerator.access;
 
 import lombok.NonNull;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Client;
 
 /** Small factory that creates the Async client */
-public class S3AsyncClientFactory {
+public class S3ClientFactory {
   /**
    * Builds a regular async Java client
    *
@@ -30,6 +31,19 @@ public class S3AsyncClientFactory {
       @NonNull S3AsyncClientFactoryConfiguration configuration) {
     return S3AsyncClient.builder().region(configuration.getRegion()).build();
   }
+
+  /**
+   * Builds a regular sync Java client
+   *
+   * @param configuration configuration
+   * @return an instance of {@link S3AsyncClient}
+   */
+  public static S3Client createS3Client(
+          @NonNull S3AsyncClientFactoryConfiguration configuration) {
+    return S3Client.builder().region(configuration.getRegion()).build();
+  }
+
+
 
   /**
    * Builds a regular async Java client

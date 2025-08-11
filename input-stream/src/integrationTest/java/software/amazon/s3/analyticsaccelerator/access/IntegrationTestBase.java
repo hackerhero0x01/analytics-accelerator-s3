@@ -106,6 +106,15 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     assertChecksums(directChecksum, aalChecksum);
   }
 
+  public S3AALClientStreamReader getStreamReader(S3ClientKind s3ClientKind, AALInputStreamConfigurationKind aalInputStreamConfigurationKind) throws IOException {
+    if (s3ClientKind.equals(S3ClientKind.SDK_V2_JAVA_SYNC)) {
+      return this.createS3AALClientStreamReader(aalInputStreamConfigurationKind);
+    } else {
+      return this.createS3AALClientStreamReader(
+              s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS);
+    }
+  }
+
   /**
    * Applies the same read stream pattern to both S3 based and AAL based streams Calculates the
    * CRC32-C checksum on all bytes read and compares them at the end to verify the results are the

@@ -20,6 +20,7 @@ import java.io.IOException;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 
@@ -27,7 +28,8 @@ import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 @Getter
 public class S3ExecutionContext implements Closeable {
   @NonNull private final S3ExecutionConfiguration configuration;
-  @NonNull private final S3AsyncClient s3Client;
+  @NonNull private final S3AsyncClient s3AsyncClient;
+  @NonNull private final S3Client s3Client;
   @NonNull private final S3AsyncClient s3CrtClient;
   @NonNull private final S3AsyncClient faultyS3Client;
 
@@ -38,25 +40,19 @@ public class S3ExecutionContext implements Closeable {
    */
   public S3ExecutionContext(@NonNull S3ExecutionConfiguration configuration) {
     this.configuration = configuration;
-    this.s3Client =
-        S3AsyncClientFactory.createS3AsyncClient(configuration.getClientFactoryConfiguration());
+    this.s3AsyncClient =
+        S3ClientFactory.createS3AsyncClient(configuration.getClientFactoryConfiguration());
     this.s3CrtClient =
-        S3AsyncClientFactory.createS3CrtAsyncClient(configuration.getClientFactoryConfiguration());
+        S3ClientFactory.createS3CrtAsyncClient(configuration.getClientFactoryConfiguration());
     this.faultyS3Client =
-        S3AsyncClientFactory.createFaultyS3Client(configuration.getClientFactoryConfiguration());
+        S3ClientFactory.createFaultyS3Client(configuration.getClientFactoryConfiguration());
+    this.s3Client = S3ClientFactory.createS3Client(configuration.getClientFactoryConfiguration());
 
     // test connections
-    testConnection(this.s3Client, configuration);
+    testConnection(this.s3AsyncClient, configuration);
     testConnection(this.s3CrtClient, configuration);
   }
-  /**
-   * Gets an ObjectClient using the standard S3AsyncClient
-   *
-   * @return ObjectClient instance
-   */
-  public S3SdkObjectClient getObjectClient() {
-    return new S3SdkObjectClient(this.s3Client, false);
-  }
+
   /**
    * Test connection by issuing a list against the bucket and prefix
    *

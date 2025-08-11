@@ -18,6 +18,7 @@ package software.amazon.s3.analyticsaccelerator.access;
 import java.io.IOException;
 import java.util.Optional;
 import lombok.NonNull;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 
@@ -43,7 +44,7 @@ public abstract class ExecutionBase {
   protected S3AsyncClientStreamReader createS3AsyncClientStreamReader(
       @NonNull S3ClientKind s3ClientKind) {
     return new S3AsyncClientStreamReader(
-        s3ClientKind.getS3Client(this.getS3ExecutionContext()),
+        this.getS3ExecutionContext().getS3AsyncClient(),
         this.getS3ExecutionContext().getConfiguration().getBaseUri(),
         this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
   }
@@ -63,6 +64,14 @@ public abstract class ExecutionBase {
         AALInputStreamConfigurationKind.getValue(),
         this.getS3ExecutionContext().getConfiguration().getBaseUri(),
         this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
+  }
+
+  protected S3AALClientStreamReader createS3AALClientStreamReader(@NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind) {
+    return new S3AALClientStreamReader(
+            this.getS3ExecutionContext().getS3Client(),
+            AALInputStreamConfigurationKind.getValue(),
+            this.getS3ExecutionContext().getConfiguration().getBaseUri(),
+            this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
   }
 
   /**
