@@ -40,7 +40,7 @@ public class SmallObjectPrefetchingIntegrationTest extends IntegrationTestBase {
         StreamReadPattern.builder().streamReads(streamReads).build();
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind.DEFAULT)) {
+        getStreamReader(s3ClientKind, AALInputStreamConfigurationKind.DEFAULT)) {
       // Since the object is less than 8MB, all reads should be satisfied with a single GET.
       testAndCompareStreamReadPattern(
           s3ClientKind, S3Object.RANDOM_4MB, streamReadPattern, s3AALClientStreamReader);
@@ -51,11 +51,6 @@ public class SmallObjectPrefetchingIntegrationTest extends IntegrationTestBase {
               .getS3SeekableInputStreamFactory()
               .getMetrics()
               .get(MetricKey.GET_REQUEST_COUNT));
-      // TODO: This should be fixed with the new PhysicalIO, currently the cache hit metric is
-      // slightly inaccurate,
-      // and reports a value of 6.
-      //  assertEquals(3,
-      // s3AALClientStreamReader.getS3SeekableInputStreamFactory().getMetrics().get(MetricKey.CACHE_HIT));
     }
   }
 
@@ -74,7 +69,7 @@ public class SmallObjectPrefetchingIntegrationTest extends IntegrationTestBase {
         StreamReadPattern.builder().streamReads(streamReads).build();
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind.DEFAULT)) {
+        getStreamReader(s3ClientKind, AALInputStreamConfigurationKind.DEFAULT)) {
 
       // Since the object is more than 8MB, there should be no prefetching, and all blocks will have
       // their own GET.
@@ -87,15 +82,6 @@ public class SmallObjectPrefetchingIntegrationTest extends IntegrationTestBase {
               .getS3SeekableInputStreamFactory()
               .getMetrics()
               .get(MetricKey.GET_REQUEST_COUNT));
-
-      // TODO: This should be fixed with the new PhysicalIO, currently the cache hit metric is
-      // slightly inaccurate,
-      // and reports a value of 6. Expected value should be 0 as nothing is prefetched, and there is
-      // no repeated access
-      // to any blocks.
-      //       assertEquals(0,
-      //
-      // s3AALClientStreamReader.getS3SeekableInputStreamFactory().getMetrics().get(MetricKey.CACHE_HIT));
     }
   }
 }

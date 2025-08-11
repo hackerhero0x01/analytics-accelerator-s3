@@ -21,10 +21,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
+import software.amazon.s3.analyticsaccelerator.S3SyncSdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 public class ExceptionCorrectnessTest extends IntegrationTestBase {
@@ -37,14 +37,21 @@ public class ExceptionCorrectnessTest extends IntegrationTestBase {
     final S3ExecutionConfiguration config = this.getS3ExecutionContext().getConfiguration();
     final S3URI nonExistentURI =
         S3URI.of(config.getBucket(), config.getPrefix() + NON_EXISTENT_OBJECT);
-    S3AsyncClient s3AsyncClient = clientKind.getS3Client(getS3ExecutionContext());
-    S3SeekableInputStreamFactory factory = createInputStreamFactory(s3AsyncClient);
+    S3SeekableInputStreamFactory factory =
+        createInputStreamFactory(clientKind, this.getS3ExecutionContext());
     assertThrows(FileNotFoundException.class, () -> factory.createStream(nonExistentURI));
   }
 
   private static S3SeekableInputStreamFactory createInputStreamFactory(
-      S3AsyncClient s3AsyncClient) {
-    return new S3SeekableInputStreamFactory(
-        new S3SdkObjectClient(s3AsyncClient), S3SeekableInputStreamConfiguration.DEFAULT);
+      S3ClientKind clientKind, S3ExecutionContext context) {
+    if (clientKind.equals(S3ClientKind.SDK_V2_JAVA_SYNC)) {
+      return new S3SeekableInputStreamFactory(
+          new S3SyncSdkObjectClient(context.getS3Client()),
+          S3SeekableInputStreamConfiguration.DEFAULT);
+    } else {
+      return new S3SeekableInputStreamFactory(
+          new S3SdkObjectClient(clientKind.getS3Client(context)),
+          S3SeekableInputStreamConfiguration.DEFAULT);
+    }
   }
 }

@@ -50,7 +50,7 @@ class SequentialFileTypeIntegrationTest extends IntegrationTestBase {
       throws IOException {
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(clientKind, AALInputStreamConfigurationKind.DEFAULT)) {
+        getStreamReader(clientKind, AALInputStreamConfigurationKind.DEFAULT)) {
 
       testAndCompareStreamReadPattern(
           clientKind, s3Object, streamReadPattern, s3AALClientStreamReader);
@@ -93,8 +93,7 @@ class SequentialFileTypeIntegrationTest extends IntegrationTestBase {
             .build();
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(
-            clientKind, S3SeekableInputStreamConfiguration.fromConfiguration(config))) {
+        getStreamReader(clientKind, S3SeekableInputStreamConfiguration.fromConfiguration(config))) {
 
       testAndCompareStreamReadPattern(
           clientKind, S3Object.CSV_20MB, streamReadPattern, s3AALClientStreamReader);

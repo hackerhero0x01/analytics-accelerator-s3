@@ -74,6 +74,15 @@ public abstract class ExecutionBase {
         this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
   }
 
+  protected S3AALClientStreamReader createS3AALClientStreamReader(
+      @NonNull S3SeekableInputStreamConfiguration s3SeekableInputStreamConfiguration) {
+    return new S3AALClientStreamReader(
+        this.getS3ExecutionContext().getS3Client(),
+        s3SeekableInputStreamConfiguration,
+        this.getS3ExecutionContext().getConfiguration().getBaseUri(),
+        this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
+  }
+
   /**
    * Creates an instance of {@link S3AALClientStreamReader} that uses AAL to read from S3
    *

@@ -120,7 +120,7 @@ public class ConcurrencyCorrectnessTest extends IntegrationTestBase {
 
     // Create the s3AALClientStreamReader - that creates the shared state
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+        getStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
       // Create the thread pool
       ExecutorService executorService = Executors.newFixedThreadPool(concurrencyLevel);
       Future<?>[] resultFutures = new Future<?>[concurrencyLevel];

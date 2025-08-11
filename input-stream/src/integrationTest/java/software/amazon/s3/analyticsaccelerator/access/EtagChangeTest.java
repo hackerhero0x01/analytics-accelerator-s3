@@ -158,7 +158,7 @@ public class EtagChangeTest extends IntegrationTestBase {
     int bufferSize = (int) s3Object.getSize();
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(s3ClientKind, configuration)) {
+        getStreamReader(s3ClientKind, configuration)) {
       S3SeekableInputStream stream =
           s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.DEFAULT);
       Crc32CChecksum checksum = calculateCRC32C(stream, bufferSize);
