@@ -18,16 +18,21 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
+import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
@@ -58,47 +63,6 @@ public class MetadataStoreTest {
     // Then: object store was accessed only once
     verify(objectClient, times(1)).headObject(any(), any());
   }
-
-  //  @Test
-  //  @SuppressWarnings("unchecked")
-  //  public void test__close__closesAllElements()
-  //      throws IOException, ExecutionException, InterruptedException {
-  //    // Given:
-  //    // - a MetadataStore with caching turned on
-  //    // - an Object Client returning a hanging future that throws when closed
-  //    ObjectClient objectClient = mock(ObjectClient.class);
-  //
-  //    HeadRequest h1 = HeadRequest.builder().s3Uri(S3URI.of("b", "key1")).build();
-  //    HeadRequest h2 = HeadRequest.builder().s3Uri(S3URI.of("b", "key2")).build();
-  //    OpenStreamInformation openStreamInformation = OpenStreamInformation.DEFAULT;
-  //
-  //    CompletableFuture<ObjectMetadata> future = mock(CompletableFuture.class);
-  //    when(future.isDone()).thenReturn(false);
-  //    when(future.cancel(anyBoolean())).thenThrow(new RuntimeException("something horrible"));
-  //
-  //    when(objectClient.headObject(h1, openStreamInformation)).thenReturn(future);
-  //
-  //    CompletableFuture<ObjectMetadata> objectMetadataCompletableFuture =
-  //        mock(CompletableFuture.class);
-  //
-  //    when(objectClient.headObject(h2, openStreamInformation))
-  //        .thenReturn(objectMetadataCompletableFuture);
-  //
-  //    MetadataStore metadataStore =
-  //        new MetadataStore(
-  //            objectClient,
-  //            TestTelemetry.DEFAULT,
-  //            PhysicalIOConfiguration.DEFAULT,
-  //            mock(Metrics.class));
-  //
-  //    // When: MetadataStore is closed
-  //    metadataStore.get(S3URI.of("b", "key1"), openStreamInformation);
-  //    metadataStore.get(S3URI.of("b", "key2"), openStreamInformation);
-  //    metadataStore.close();
-  //
-  //    // Then: nothing has thrown, all futures were cancelled
-  //    verify(objectMetadataCompletableFuture, times(1)).cancel(false);
-  //  }
 
   @Test
   void testEvictKey_ExistingKey() throws IOException {
