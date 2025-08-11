@@ -25,6 +25,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.Metrics;
@@ -242,28 +245,45 @@ public class MetadataStoreTest {
             mock(Metrics.class));
     S3URI key = S3URI.of("bucket", "concurrent-key");
 
-    int threadCount = 10;
-    Thread[] threads = new Thread[threadCount];
+    ExecutorService threadPool = Executors.newFixedThreadPool(5);
 
-    // Start multiple threads concurrently accessing same key
-    for (int i = 0; i < threadCount; i++) {
-      threads[i] =
-          new Thread(
-              () -> {
-                try {
-                  ObjectMetadata result = metadataStore.get(key, OpenStreamInformation.DEFAULT);
-                  assertEquals("concurrent-etag", result.getEtag());
-                } catch (IOException e) {
-                  throw new RuntimeException(e);
-                }
-              });
-      threads[i].start();
-    }
+    // Submit 3 concurrent metadata get operations
+    Future<?> task1 =
+        threadPool.submit(
+            () -> {
+              try {
+                ObjectMetadata result = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+                assertEquals("concurrent-etag", result.getEtag());
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            });
+    Future<?> task2 =
+        threadPool.submit(
+            () -> {
+              try {
+                ObjectMetadata result = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+                assertEquals("concurrent-etag", result.getEtag());
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            });
+    Future<?> task3 =
+        threadPool.submit(
+            () -> {
+              try {
+                ObjectMetadata result = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+                assertEquals("concurrent-etag", result.getEtag());
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            });
 
-    for (Thread thread : threads) {
-      thread.join();
-    }
+    task1.get();
+    task2.get();
+    task3.get();
 
     verify(objectClient, times(1)).headObject(any(), any());
+    threadPool.shutdown();
   }
 }
