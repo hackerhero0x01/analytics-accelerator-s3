@@ -112,8 +112,7 @@ public class MetadataStoreTest {
 
     ObjectClient objectClient = mock(ObjectClient.class);
     ObjectMetadata objectMetadata = ObjectMetadata.builder().etag("random").build();
-    when(objectClient.headObject(any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(objectMetadata));
+    when(objectClient.headObject(any(), any())).thenReturn(objectMetadata);
 
     MetadataStore metadataStore =
         new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
@@ -141,9 +140,7 @@ public class MetadataStoreTest {
     ObjectMetadata newVersion =
         ObjectMetadata.builder().etag("new-etag").contentLength(200).build();
 
-    when(objectClient.headObject(any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(oldVersion))
-        .thenReturn(CompletableFuture.completedFuture(newVersion));
+    when(objectClient.headObject(any(), any())).thenReturn(oldVersion).thenReturn(newVersion);
 
     MetadataStore metadataStore =
         new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
@@ -174,9 +171,9 @@ public class MetadataStoreTest {
     ObjectMetadata updatedMetadata = ObjectMetadata.builder().etag("updated-etag").build();
 
     when(objectClient.headObject(any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(originalMetadata))
-        .thenReturn(CompletableFuture.completedFuture(originalMetadata))
-        .thenReturn(CompletableFuture.completedFuture(updatedMetadata));
+        .thenReturn(originalMetadata)
+        .thenReturn(originalMetadata)
+        .thenReturn(updatedMetadata);
 
     MetadataStore metadataStore =
         new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
@@ -204,8 +201,7 @@ public class MetadataStoreTest {
 
     ObjectClient objectClient = mock(ObjectClient.class);
     ObjectMetadata metadata = ObjectMetadata.builder().etag("test-etag").build();
-    when(objectClient.headObject(any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(metadata));
+    when(objectClient.headObject(any(), any())).thenReturn(metadata);
 
     MetadataStore metadataStore =
         new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
@@ -229,13 +225,14 @@ public class MetadataStoreTest {
   }
 
   @Test
-  public void testConcurrentAccessOnlyMakesOneHeadRequest() throws InterruptedException {
-    // Test that concurrent access to same key only makes one HEAD request due to Caffeine thread
-    // safety
+  public void testConcurrentAccessOnlyMakesOneRequest()
+      // Test that concurrent access to same key only makes one HEAD request due to Caffeine thread
+      // safety
+      throws Exception {
     ObjectClient objectClient = mock(ObjectClient.class);
     ObjectMetadata metadata = ObjectMetadata.builder().etag("concurrent-etag").build();
-    when(objectClient.headObject(any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(metadata));
+
+    when(objectClient.headObject(any(), any())).thenReturn(metadata);
 
     MetadataStore metadataStore =
         new MetadataStore(

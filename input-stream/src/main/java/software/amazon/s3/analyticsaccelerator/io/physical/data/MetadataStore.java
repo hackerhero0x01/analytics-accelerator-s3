@@ -45,7 +45,8 @@ import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 public class MetadataStore implements Closeable {
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
-  private final Cache<S3URI, CompletableFuture<ObjectMetadata>> cache;
+  private final Cache<S3URI, ObjectMetadata> cache;
+  private final PhysicalIOConfiguration configuration;
   private final Metrics aggregatingMetrics;
 
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStore.class);
@@ -74,6 +75,7 @@ public class MetadataStore implements Closeable {
                 configuration.getMetadataCacheTtlMilliseconds(), TimeUnit.MILLISECONDS)
             .maximumSize(configuration.getMetadataStoreCapacity())
             .build();
+    this.configuration = configuration;
   }
 
   /**
@@ -97,7 +99,7 @@ public class MetadataStore implements Closeable {
    * @return a boolean stating if the object existed or not
    */
   public boolean evictKey(S3URI s3URI) {
-    CompletableFuture<ObjectMetadata> removed = cache.asMap().remove(s3URI);
+    ObjectMetadata removed = cache.asMap().remove(s3URI);
     return removed != null;
   }
 
@@ -109,8 +111,7 @@ public class MetadataStore implements Closeable {
    * @param openStreamInformation contains the open stream information
    * @return returns the {@link CompletableFuture} that holds object's metadata.
    */
-
-  public CompletableFuture<ObjectMetadata> asyncGet(
+  public synchronized ObjectMetadata asyncGet(
       S3URI s3URI, OpenStreamInformation openStreamInformation) {
     return this.cache.get(
         s3URI,
@@ -147,8 +148,6 @@ public class MetadataStore implements Closeable {
   /** Closes the {@link MetadataStore} and frees up all resources it holds. */
   @Override
   public void close() {
-    this.cache.asMap().values().forEach(this::safeCancel);
     this.cache.invalidateAll();
-
   }
 }

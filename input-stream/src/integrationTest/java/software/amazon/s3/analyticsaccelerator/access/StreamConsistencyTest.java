@@ -85,7 +85,7 @@ public class StreamConsistencyTest extends IntegrationTestBase {
 
     S3URI s3URI =
         s3Object.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());
-    S3AsyncClient s3Client = this.getS3ExecutionContext().getS3Client();
+    S3AsyncClient s3Client = this.getS3ExecutionContext().getS3AsyncClient();
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
         this.createS3AALClientStreamReader(s3ClientKind, streamConfig)) {
@@ -232,7 +232,7 @@ public class StreamConsistencyTest extends IntegrationTestBase {
 
     S3URI s3URI =
         s3Object.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());
-    S3AsyncClient s3Client = this.getS3ExecutionContext().getS3Client();
+    S3AsyncClient s3Client = this.getS3ExecutionContext().getS3AsyncClient();
     int bufferSize = (int) s3Object.getSize();
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
