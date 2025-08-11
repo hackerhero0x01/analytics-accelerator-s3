@@ -72,19 +72,18 @@ public class MetadataStoreIntegrationTest extends IntegrationTestBase {
   static Stream<Arguments> metadataStoreTtlTests() {
     List<Arguments> testCases = new ArrayList<>();
 
-    for (S3ClientKind clientKind : getS3ClientKinds()) {
-      // Zero TTL - no caching, each stream makes HEAD request
-      testCases.add(Arguments.of(clientKind, "0", 3, false));
+    S3ClientKind clientKind = S3ClientKind.SDK_V2_JAVA_ASYNC;
+    // Zero TTL - no caching, each stream makes HEAD request
+    testCases.add(Arguments.of(clientKind, "0", 3, false));
 
-      // Non-zero TTL - caching enabled, single HEAD request
-      testCases.add(Arguments.of(clientKind, "5000", 1, false));
+    // Non-zero TTL - caching enabled, single HEAD request
+    testCases.add(Arguments.of(clientKind, "5000", 1, false));
 
-      // TTL expiry - cache refresh after expiration
-      testCases.add(Arguments.of(clientKind, "50", 2, true));
+    // TTL expiry - cache refresh after expiration
+    testCases.add(Arguments.of(clientKind, "50", 2, true));
 
-      // TTL expiry with longer TTL - cache should also expire after TTL+overhead
-      testCases.add(Arguments.of(clientKind, "200", 2, true));
-    }
+    // TTL expiry with longer TTL - cache should also expire after TTL+overhead
+    testCases.add(Arguments.of(clientKind, "200", 2, true));
 
     return testCases.stream();
   }

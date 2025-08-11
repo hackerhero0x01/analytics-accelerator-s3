@@ -290,34 +290,39 @@ public class StreamConsistencyTest extends IntegrationTestBase {
           originalChecksum.getChecksumBytes(),
           updatedChecksum.getChecksumBytes(),
           "Checksums should differ after object update");
+
+      // Verify 2 HEAD requests were made - one for each stream after TTL expiry
+      assertEquals(
+          2,
+          (int)
+              s3AALClientStreamReader
+                  .getS3SeekableInputStreamFactory()
+                  .getMetrics()
+                  .get(MetricKey.HEAD_REQUEST_COUNT),
+          "Should make 2 HEAD requests - one for each stream after TTL expiry");
     }
   }
 
   static Stream<Arguments> singleStreamMetadataExpiresTests() {
     List<Arguments> testCases = new ArrayList<>();
-    for (S3ClientKind clientKind : getS3ClientKinds()) {
-      // Test single stream behavior when metadata expires, different object sizes
-      testCases.add(Arguments.of(clientKind, S3Object.RANDOM_4MB, "100"));
-      testCases.add(Arguments.of(clientKind, S3Object.RANDOM_16MB, "100"));
-    }
+    // Test single stream behavior when metadata expires, different object sizes
+    testCases.add(Arguments.of(S3ClientKind.SDK_V2_JAVA_ASYNC, S3Object.RANDOM_4MB, "100"));
+    testCases.add(Arguments.of(S3ClientKind.SDK_V2_JAVA_ASYNC, S3Object.RANDOM_16MB, "100"));
     return testCases.stream();
   }
 
   static Stream<Arguments> singleStreamValidMetadataTests() {
     List<Arguments> testCases = new ArrayList<>();
-    for (S3ClientKind clientKind : getS3ClientKinds()) {
-      testCases.add(Arguments.of(clientKind, S3Object.RANDOM_4MB, "5000"));
-      testCases.add(Arguments.of(clientKind, S3Object.RANDOM_16MB, "5000"));
-    }
+    testCases.add(Arguments.of(S3ClientKind.SDK_V2_JAVA_ASYNC, S3Object.RANDOM_4MB, "5000"));
+    testCases.add(Arguments.of(S3ClientKind.SDK_V2_JAVA_ASYNC, S3Object.RANDOM_16MB, "5000"));
     return testCases.stream();
   }
 
   static Stream<Arguments> crossStreamTests() {
     List<Arguments> testCases = new ArrayList<>();
-    for (S3ClientKind clientKind : getS3ClientKinds()) {
-      testCases.add(Arguments.of(clientKind, S3Object.RANDOM_1MB, "50"));
-      testCases.add(Arguments.of(clientKind, S3Object.RANDOM_16MB, "50"));
-    }
+    // Only test with ASYNC client - no need to test both CRT and ASYNC for TTL behavior
+    testCases.add(Arguments.of(S3ClientKind.SDK_V2_JAVA_ASYNC, S3Object.RANDOM_1MB, "5000"));
+    testCases.add(Arguments.of(S3ClientKind.SDK_V2_JAVA_ASYNC, S3Object.RANDOM_16MB, "5000"));
     return testCases.stream();
   }
 }

@@ -598,4 +598,51 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
             new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT)),
         TestTelemetry.DEFAULT);
   }
+
+  @Test
+  public void testStreamMetadataConsistencyAfterTtlExpiry()
+      throws IOException, InterruptedException {
+    // Test that stream's metadata calls return consistent etag even after TTL expires
+    PhysicalIOConfiguration config =
+        PhysicalIOConfiguration.builder().metadataCacheTtlMilliseconds(5).build();
+
+    FakeObjectClient fakeObjectClient = new FakeObjectClient("test-data");
+    MetadataStore metadataStore =
+        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
+    BlobStore blobStore =
+        new BlobStore(
+            fakeObjectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class), threadPool);
+
+    LogicalIO logicalIO =
+        new ParquetLogicalIOImpl(
+            TEST_URI,
+            new PhysicalIOImpl(
+                TEST_URI,
+                metadataStore,
+                blobStore,
+                TestTelemetry.DEFAULT,
+                OpenStreamInformation.DEFAULT,
+                executorService),
+            TestTelemetry.DEFAULT,
+            LogicalIOConfiguration.DEFAULT,
+            new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT));
+
+    try (S3SeekableInputStream stream =
+        new S3SeekableInputStream(TEST_URI, logicalIO, TestTelemetry.DEFAULT)) {
+      // Verify stream is created
+      assertNotNull(stream);
+
+      // First call to get etag
+      String firstEtag = logicalIO.metadata().getEtag();
+
+      Thread.sleep(10); // Wait for TTL expiry
+
+      // Second call should return same etag (stream-level consistency)
+      String secondEtag = logicalIO.metadata().getEtag();
+      assertEquals(
+          firstEtag,
+          secondEtag,
+          "Stream should maintain consistent etag even after metadata TTL expires");
+    }
+  }
 }

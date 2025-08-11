@@ -177,32 +177,6 @@ public class MetadataStoreTest {
   }
 
   @Test
-  public void testEtagConsistencyWithinStream() throws IOException, InterruptedException {
-    // Test that same stream always gets same etag even if metadata TTL expires
-    PhysicalIOConfiguration config =
-        PhysicalIOConfiguration.builder().metadataCacheTtlMilliseconds(5).build();
-
-    ObjectClient objectClient = mock(ObjectClient.class);
-    ObjectMetadata metadata1 = ObjectMetadata.builder().etag("etag-v1").contentLength(100).build();
-
-    when(objectClient.headObject(any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(metadata1));
-
-    MetadataStore metadataStore =
-        new MetadataStore(objectClient, TestTelemetry.DEFAULT, config, mock(Metrics.class));
-    S3URI key = S3URI.of("bucket", "key");
-
-    ObjectMetadata firstStreamMetadata = metadataStore.get(key, OpenStreamInformation.DEFAULT);
-    assertEquals("etag-v1", firstStreamMetadata.getEtag());
-
-    Thread.sleep(10); // Wait for TTL expiry
-
-    assertEquals("etag-v1", firstStreamMetadata.getEtag());
-
-    verify(objectClient, times(1)).headObject(any(), any());
-  }
-
-  @Test
   public void testMetadataTtlProvidesNewVersionAfterExpiry()
       throws IOException, InterruptedException {
     // Test that TTL expiry allows getting updated object versions
@@ -299,6 +273,48 @@ public class MetadataStoreTest {
 
     // Should not trigger new HEAD request, still cached due to TTL refresh
     assertEquals("test-etag", retrieved.getEtag());
+    verify(objectClient, times(1)).headObject(any(), any());
+  }
+
+  @Test
+  public void testConcurrentAccessOnlyMakesOneHeadRequest() throws InterruptedException {
+    // Test that concurrent access to same key only makes one HEAD request due to Caffeine thread
+    // safety
+    ObjectClient objectClient = mock(ObjectClient.class);
+    ObjectMetadata metadata = ObjectMetadata.builder().etag("concurrent-etag").build();
+    when(objectClient.headObject(any(), any()))
+        .thenReturn(CompletableFuture.completedFuture(metadata));
+
+    MetadataStore metadataStore =
+        new MetadataStore(
+            objectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            mock(Metrics.class));
+    S3URI key = S3URI.of("bucket", "concurrent-key");
+
+    int threadCount = 10;
+    Thread[] threads = new Thread[threadCount];
+
+    // Start multiple threads concurrently accessing same key
+    for (int i = 0; i < threadCount; i++) {
+      threads[i] =
+          new Thread(
+              () -> {
+                try {
+                  ObjectMetadata result = metadataStore.get(key, OpenStreamInformation.DEFAULT);
+                  assertEquals("concurrent-etag", result.getEtag());
+                } catch (IOException e) {
+                  throw new RuntimeException(e);
+                }
+              });
+      threads[i].start();
+    }
+
+    for (Thread thread : threads) {
+      thread.join();
+    }
+
     verify(objectClient, times(1)).headObject(any(), any());
   }
 }
