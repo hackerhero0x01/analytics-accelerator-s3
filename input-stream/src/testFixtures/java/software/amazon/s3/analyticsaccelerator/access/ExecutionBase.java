@@ -43,7 +43,7 @@ public abstract class ExecutionBase {
   protected S3AsyncClientStreamReader createS3AsyncClientStreamReader(
       @NonNull S3ClientKind s3ClientKind) {
     return new S3AsyncClientStreamReader(
-        s3ClientKind.getS3Client(this.getS3ExecutionContext()),
+        this.getS3ExecutionContext().getS3AsyncClient(),
         this.getS3ExecutionContext().getConfiguration().getBaseUri(),
         this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
   }
@@ -61,6 +61,24 @@ public abstract class ExecutionBase {
     return new S3AALClientStreamReader(
         s3ClientKind.getS3Client(this.getS3ExecutionContext()),
         AALInputStreamConfigurationKind.getValue(),
+        this.getS3ExecutionContext().getConfiguration().getBaseUri(),
+        this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
+  }
+
+  protected S3AALClientStreamReader createS3AALClientStreamReader(
+      @NonNull AALInputStreamConfigurationKind AALInputStreamConfigurationKind) {
+    return new S3AALClientStreamReader(
+        this.getS3ExecutionContext().getS3Client(),
+        AALInputStreamConfigurationKind.getValue(),
+        this.getS3ExecutionContext().getConfiguration().getBaseUri(),
+        this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
+  }
+
+  protected S3AALClientStreamReader createS3AALClientStreamReader(
+      @NonNull S3SeekableInputStreamConfiguration s3SeekableInputStreamConfiguration) {
+    return new S3AALClientStreamReader(
+        this.getS3ExecutionContext().getS3Client(),
+        s3SeekableInputStreamConfiguration,
         this.getS3ExecutionContext().getConfiguration().getBaseUri(),
         this.getS3ExecutionContext().getConfiguration().getBufferSizeBytes());
   }

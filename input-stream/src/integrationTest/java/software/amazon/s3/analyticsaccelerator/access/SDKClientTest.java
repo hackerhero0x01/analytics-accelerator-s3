@@ -29,6 +29,8 @@ import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
+import software.amazon.s3.analyticsaccelerator.S3SyncSdkObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
@@ -39,11 +41,9 @@ public class SDKClientTest extends IntegrationTestBase {
   void testUserAgentWithDefaultConfiguration(S3ClientKind clientKind) {
     ObjectClientConfiguration objectClientConfiguration =
         ObjectClientConfiguration.builder().build();
-    S3SdkObjectClient client =
-        new S3SdkObjectClient(
-            clientKind.getS3Client(getS3ExecutionContext()), objectClientConfiguration);
-    assertNotNull(client);
-    assertDoesNotThrow(() -> readWithCustomClient(client));
+    ObjectClient objectClient = getObjectClient(clientKind, objectClientConfiguration);
+    assertNotNull(objectClient);
+    assertDoesNotThrow(() -> readWithCustomClient(objectClient));
   }
 
   @ParameterizedTest
@@ -51,11 +51,25 @@ public class SDKClientTest extends IntegrationTestBase {
   void testSettingUserAgent(S3ClientKind clientKind, String userAgent) {
     ObjectClientConfiguration objectClientConfiguration =
         ObjectClientConfiguration.builder().userAgentPrefix(userAgent).build();
-    S3SdkObjectClient client =
-        new S3SdkObjectClient(
-            clientKind.getS3Client(getS3ExecutionContext()), objectClientConfiguration);
-    assertNotNull(client);
-    assertDoesNotThrow(() -> readWithCustomClient(client));
+    ObjectClient objectClient = getObjectClient(clientKind, objectClientConfiguration);
+    assertNotNull(objectClient);
+    assertDoesNotThrow(() -> readWithCustomClient(objectClient));
+  }
+
+  private ObjectClient getObjectClient(
+      S3ClientKind clientKind, ObjectClientConfiguration objectClientConfiguration) {
+    ObjectClient objectClient;
+    if (clientKind == S3ClientKind.SDK_V2_JAVA_SYNC) {
+      objectClient =
+          new S3SyncSdkObjectClient(
+              getS3ExecutionContext().getS3Client(), objectClientConfiguration);
+    } else {
+      objectClient =
+          new S3SdkObjectClient(
+              clientKind.getS3Client(getS3ExecutionContext()), objectClientConfiguration);
+    }
+
+    return objectClient;
   }
 
   /**
@@ -64,7 +78,7 @@ public class SDKClientTest extends IntegrationTestBase {
    * @param client
    * @throws IOException
    */
-  private void readWithCustomClient(S3SdkObjectClient client) throws IOException {
+  private void readWithCustomClient(ObjectClient client) throws IOException {
     S3Object object = S3Object.RANDOM_16MB;
     S3URI s3URI = object.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());
     S3SeekableInputStreamFactory factory =

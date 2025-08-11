@@ -29,8 +29,7 @@ public class ReadCorrectnessTest extends IntegrationTestBase {
   void testSequentialReads(S3ClientKind s3ClientKind) throws IOException {
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(
-            s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS)) {
+        getStreamReader(s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS)) {
 
       testAndCompareStreamReadPattern(
           s3ClientKind,
@@ -53,8 +52,7 @@ public class ReadCorrectnessTest extends IntegrationTestBase {
   void testForwardSkippingReads(S3ClientKind s3ClientKind) throws IOException {
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(
-            s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS)) {
+        getStreamReader(s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS)) {
 
       testAndCompareStreamReadPattern(
           s3ClientKind,
@@ -83,8 +81,7 @@ public class ReadCorrectnessTest extends IntegrationTestBase {
   void testQuasiParquetReads(S3ClientKind s3ClientKind) throws IOException {
 
     try (S3AALClientStreamReader s3AALClientStreamReader =
-        this.createS3AALClientStreamReader(
-            s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS)) {
+        getStreamReader(s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS)) {
 
       testAndCompareStreamReadPattern(
           s3ClientKind,

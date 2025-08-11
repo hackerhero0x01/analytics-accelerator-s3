@@ -27,6 +27,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 @Getter
 public enum S3ClientKind {
   SDK_V2_JAVA_ASYNC("ASYNC_JAVA"),
+  SDK_V2_JAVA_SYNC("SYNC_JAVA"),
   SDK_V2_CRT_ASYNC("ASYNC_CRT"),
   FAULTY_S3_CLIENT("FAULTY_S3");
 
@@ -41,7 +42,7 @@ public enum S3ClientKind {
   public S3AsyncClient getS3Client(@NonNull S3ExecutionContext s3ExecutionContext) {
     switch (this) {
       case SDK_V2_JAVA_ASYNC:
-        return s3ExecutionContext.getS3Client();
+        return s3ExecutionContext.getS3AsyncClient();
       case SDK_V2_CRT_ASYNC:
         return s3ExecutionContext.getS3CrtClient();
       case FAULTY_S3_CLIENT:
@@ -57,7 +58,7 @@ public enum S3ClientKind {
    * @return small objects
    */
   public static List<S3ClientKind> trustedClients() {
-    return Arrays.asList(SDK_V2_JAVA_ASYNC, SDK_V2_CRT_ASYNC);
+    return Arrays.asList(SDK_V2_JAVA_ASYNC, SDK_V2_CRT_ASYNC, SDK_V2_JAVA_SYNC);
   }
 
   /**

@@ -31,6 +31,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
+import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 
 /** Base class for the integration tests */
@@ -104,6 +105,35 @@ public abstract class IntegrationTestBase extends ExecutionBase {
 
     // Assert checksums
     assertChecksums(directChecksum, aalChecksum);
+  }
+
+  /**
+   * @param s3ClientKind Creates a stream reader for a given client.
+   * @param aalInputStreamConfigurationKind client configuration.
+   * @return S3AALClientStreamReader
+   */
+  public S3AALClientStreamReader getStreamReader(
+      S3ClientKind s3ClientKind, AALInputStreamConfigurationKind aalInputStreamConfigurationKind) {
+    if (s3ClientKind.equals(S3ClientKind.SDK_V2_JAVA_SYNC)) {
+      return this.createS3AALClientStreamReader(aalInputStreamConfigurationKind);
+    } else {
+      return this.createS3AALClientStreamReader(s3ClientKind, aalInputStreamConfigurationKind);
+    }
+  }
+
+  /**
+   * @param s3ClientKind Creates a stream reader for a given client.
+   * @param seekableInputStreamConfiguration client configuration.
+   * @return S3AALClientStreamReader
+   */
+  public S3AALClientStreamReader getStreamReader(
+      S3ClientKind s3ClientKind,
+      S3SeekableInputStreamConfiguration seekableInputStreamConfiguration) {
+    if (s3ClientKind.equals(S3ClientKind.SDK_V2_JAVA_SYNC)) {
+      return this.createS3AALClientStreamReader(seekableInputStreamConfiguration);
+    } else {
+      return this.createS3AALClientStreamReader(s3ClientKind, seekableInputStreamConfiguration);
+    }
   }
 
   /**

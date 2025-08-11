@@ -141,18 +141,20 @@ public class SSECEncryptionTest extends IntegrationTestBase {
         Optional.of(directChecksum),
         openStreamInformation);
 
-    // Read using the AAL S3
-    Crc32CChecksum aalChecksum = new Crc32CChecksum();
-    executeReadPatternOnAAL(
-        s3ClientKind,
-        s3Object,
-        streamReadPattern,
-        AALInputStreamConfigurationKind,
-        Optional.of(aalChecksum),
-        openStreamInformation);
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        this.getStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+      // Read using the AAL S3
+      Crc32CChecksum aalChecksum = new Crc32CChecksum();
+      executeReadPatternOnAAL(
+          s3Object,
+          s3AALClientStreamReader,
+          streamReadPattern,
+          Optional.of(aalChecksum),
+          openStreamInformation);
 
-    // Assert checksums
-    assertChecksums(directChecksum, aalChecksum);
+      // Assert checksums
+      assertChecksums(directChecksum, aalChecksum);
+    }
   }
 
   protected void testReadPatternUsingWrongKeyOrEmptyKey(
@@ -171,16 +173,17 @@ public class SSECEncryptionTest extends IntegrationTestBase {
                 .encryptionSecrets(
                     EncryptionSecrets.builder().sseCustomerKey(Optional.of(customerKey)).build())
                 .build();
-
-    // Read using the AAL S3
-    Crc32CChecksum aalChecksum = new Crc32CChecksum();
-    executeReadPatternOnAAL(
-        s3ClientKind,
-        s3Object,
-        streamReadPattern,
-        AALInputStreamConfigurationKind,
-        Optional.of(aalChecksum),
-        openStreamInformation);
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        this.getStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+      // Read using the AAL S3
+      Crc32CChecksum aalChecksum = new Crc32CChecksum();
+      executeReadPatternOnAAL(
+          s3Object,
+          s3AALClientStreamReader,
+          streamReadPattern,
+          Optional.of(aalChecksum),
+          openStreamInformation);
+    }
   }
 
   static Stream<Arguments> encryptedSequentialReads() {

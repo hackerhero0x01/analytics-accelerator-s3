@@ -87,13 +87,7 @@ public class MetadataStore implements Closeable {
    */
   public ObjectMetadata get(S3URI s3URI, OpenStreamInformation openStreamInformation)
       throws IOException {
-    return telemetry.measureJoinCritical(
-        () ->
-            Operation.builder()
-                .name(OPERATION_METADATA_HEAD_JOIN)
-                .attribute(StreamAttributes.uri(s3URI))
-                .build(),
-        this.asyncGet(s3URI, openStreamInformation));
+    return this.asyncGet(s3URI, openStreamInformation);
   }
 
   /**
@@ -115,6 +109,7 @@ public class MetadataStore implements Closeable {
    * @param openStreamInformation contains the open stream information
    * @return returns the {@link CompletableFuture} that holds object's metadata.
    */
+
   public CompletableFuture<ObjectMetadata> asyncGet(
       S3URI s3URI, OpenStreamInformation openStreamInformation) {
     return this.cache.get(
@@ -127,12 +122,12 @@ public class MetadataStore implements Closeable {
                         .attribute(StreamAttributes.uri(s3URI))
                         .build(),
                 () -> {
-                  CompletableFuture<ObjectMetadata> result =
+                  ObjectMetadata objectMetadata =
                       objectClient.headObject(
                           HeadRequest.builder().s3Uri(s3URI).build(), openStreamInformation);
                   openStreamInformation.getRequestCallback().onHeadRequest();
                   this.aggregatingMetrics.add(MetricKey.HEAD_REQUEST_COUNT, 1);
-                  return result;
+                  return objectMetadata;
                 }));
   }
 
@@ -145,22 +140,7 @@ public class MetadataStore implements Closeable {
    */
   public void storeObjectMetadata(S3URI s3URI, ObjectMetadata objectMetadata) {
     if (objectMetadata != null) {
-      this.cache.put(s3URI, CompletableFuture.completedFuture(objectMetadata));
-    }
-  }
-
-  /**
-   * Utility method that cancels a {@link CompletableFuture} ignoring any exceptions.
-   *
-   * @param future an instance of {@link CompletableFuture} to cancel
-   */
-  private void safeCancel(CompletableFuture<ObjectMetadata> future) {
-    if (!future.isDone()) {
-      try {
-        future.cancel(false);
-      } catch (Exception e) {
-        LOG.error("Error cancelling ObjectMetadata future", e);
-      }
+      this.cache.put(s3URI, objectMetadata);
     }
   }
 
@@ -169,5 +149,6 @@ public class MetadataStore implements Closeable {
   public void close() {
     this.cache.asMap().values().forEach(this::safeCancel);
     this.cache.invalidateAll();
+
   }
 }

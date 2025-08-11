@@ -20,16 +20,19 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
+import software.amazon.s3.analyticsaccelerator.S3SyncSdkObjectClient;
+import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.util.OpenStreamInformation;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Client stream reader based on AAL */
 public class S3AALClientStreamReader extends S3StreamReaderBase {
-  @NonNull @Getter private final S3SdkObjectClient sdkObjectClient;
+  @NonNull @Getter private final ObjectClient sdkObjectClient;
   @NonNull @Getter private final S3SeekableInputStreamFactory s3SeekableInputStreamFactory;
 
   /**
@@ -48,6 +51,24 @@ public class S3AALClientStreamReader extends S3StreamReaderBase {
     super(baseUri, bufferSize);
     // Create the SDK client, ensure it doesn't close the underlying client
     this.sdkObjectClient = new S3SdkObjectClient(s3AsyncClient, false);
+    s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(sdkObjectClient, configuration);
+  }
+
+  /**
+   * Creates an instance of {@link S3AALClientStreamReader}
+   *
+   * @param s3Client an instance of {@link S3Client}
+   * @param configuration {@link S3SeekableInputStreamConfiguration}
+   * @param baseUri base URI for all objects
+   * @param bufferSize buffer size
+   */
+  public S3AALClientStreamReader(
+      @NonNull S3Client s3Client,
+      @NonNull S3SeekableInputStreamConfiguration configuration,
+      @NonNull S3URI baseUri,
+      int bufferSize) {
+    super(baseUri, bufferSize);
+    this.sdkObjectClient = new S3SyncSdkObjectClient(s3Client);
     s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(sdkObjectClient, configuration);
   }
 
