@@ -22,7 +22,6 @@ import lombok.NonNull;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 
 /** This carries the state of the benchmark execution */
 @Getter

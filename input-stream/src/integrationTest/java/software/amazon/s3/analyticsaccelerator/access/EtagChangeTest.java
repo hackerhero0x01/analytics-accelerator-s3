@@ -81,7 +81,8 @@ public class EtagChangeTest extends IntegrationTestBase {
     int bufferSize = (int) s3Object.getSize();
     byte[] buffer = new byte[bufferSize];
 
-    try (S3AALClientStreamReader s3AALClientStreamReader = getStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        getStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       S3URI s3URI =
           s3Object.getObjectUri(this.getS3ExecutionContext().getConfiguration().getBaseUri());

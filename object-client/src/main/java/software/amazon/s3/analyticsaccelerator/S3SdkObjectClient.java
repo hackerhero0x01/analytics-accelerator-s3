@@ -131,8 +131,7 @@ public class S3SdkObjectClient implements ObjectClient {
                 .build(),
         () -> {
           try {
-            HeadObjectResponse headObjectResponse =
-                s3AsyncClient.headObject(builder.build()).join();
+            HeadObjectResponse headObjectResponse = s3AsyncClient.headObject(builder.build()).get();
             return ObjectMetadata.builder()
                 .contentLength(headObjectResponse.contentLength())
                 .etag(headObjectResponse.eTag())
@@ -163,7 +162,7 @@ public class S3SdkObjectClient implements ObjectClient {
             ResponseInputStream<GetObjectResponse> inputStream =
                 s3AsyncClient
                     .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
-                    .join();
+                    .get();
             return ObjectContent.builder().stream(inputStream).build();
           } catch (Throwable t) {
             // TODO: Exception handling needs to be moved here as this is where the join happens.

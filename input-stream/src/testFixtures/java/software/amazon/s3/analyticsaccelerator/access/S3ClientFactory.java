@@ -38,12 +38,9 @@ public class S3ClientFactory {
    * @param configuration configuration
    * @return an instance of {@link S3AsyncClient}
    */
-  public static S3Client createS3Client(
-          @NonNull S3AsyncClientFactoryConfiguration configuration) {
+  public static S3Client createS3Client(@NonNull S3AsyncClientFactoryConfiguration configuration) {
     return S3Client.builder().region(configuration.getRegion()).build();
   }
-
-
 
   /**
    * Builds a regular async Java client

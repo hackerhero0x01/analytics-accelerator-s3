@@ -334,7 +334,8 @@ public class ReadVectoredTest extends IntegrationTestBase {
       @NonNull IntFunction<ByteBuffer> allocate)
       throws IOException {
 
-    try (S3AALClientStreamReader s3AALClientStreamReader = getStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
+    try (S3AALClientStreamReader s3AALClientStreamReader =
+        getStreamReader(s3ClientKind, AALInputStreamConfigurationKind)) {
 
       S3SeekableInputStream s3SeekableInputStream =
           s3AALClientStreamReader.createReadStream(s3Object, OpenStreamInformation.ofDefaults());

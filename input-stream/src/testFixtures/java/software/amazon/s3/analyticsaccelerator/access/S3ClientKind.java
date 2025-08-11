@@ -21,7 +21,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Client;
 
 /** Kind of S3 Client used */
 @AllArgsConstructor
@@ -31,7 +30,6 @@ public enum S3ClientKind {
   SDK_V2_JAVA_SYNC("SYNC_JAVA"),
   SDK_V2_CRT_ASYNC("ASYNC_CRT"),
   FAULTY_S3_CLIENT("FAULTY_S3");
-
 
   private final String value;
   /**
@@ -52,10 +50,6 @@ public enum S3ClientKind {
       default:
         throw new IllegalArgumentException("Unsupported client kind: " + this);
     }
-  }
-
-  public S3Client getS3SyncClient(@NonNull S3ExecutionContext s3ExecutionContext) {
-    return s3ExecutionContext.getS3Client();
   }
 
   /**

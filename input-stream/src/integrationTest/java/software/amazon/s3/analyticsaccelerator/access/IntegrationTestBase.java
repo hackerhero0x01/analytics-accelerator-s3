@@ -106,12 +106,18 @@ public abstract class IntegrationTestBase extends ExecutionBase {
     assertChecksums(directChecksum, aalChecksum);
   }
 
-  public S3AALClientStreamReader getStreamReader(S3ClientKind s3ClientKind, AALInputStreamConfigurationKind aalInputStreamConfigurationKind) throws IOException {
+  /**
+   * @param s3ClientKind Creates a stream reader for a given client.
+   * @param aalInputStreamConfigurationKind client configuration.
+   * @return S3AALClientStreamReader
+   */
+  public S3AALClientStreamReader getStreamReader(
+      S3ClientKind s3ClientKind, AALInputStreamConfigurationKind aalInputStreamConfigurationKind) {
     if (s3ClientKind.equals(S3ClientKind.SDK_V2_JAVA_SYNC)) {
       return this.createS3AALClientStreamReader(aalInputStreamConfigurationKind);
     } else {
       return this.createS3AALClientStreamReader(
-              s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS);
+          s3ClientKind, AALInputStreamConfigurationKind.READ_CORRECTNESS);
     }
   }
 

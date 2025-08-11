@@ -63,10 +63,10 @@ public class S3AALClientStreamReader extends S3StreamReaderBase {
    * @param bufferSize buffer size
    */
   public S3AALClientStreamReader(
-          @NonNull S3Client s3Client,
-          @NonNull S3SeekableInputStreamConfiguration configuration,
-          @NonNull S3URI baseUri,
-          int bufferSize) {
+      @NonNull S3Client s3Client,
+      @NonNull S3SeekableInputStreamConfiguration configuration,
+      @NonNull S3URI baseUri,
+      int bufferSize) {
     super(baseUri, bufferSize);
     this.sdkObjectClient = new S3SyncSdkObjectClient(s3Client);
     s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(sdkObjectClient, configuration);

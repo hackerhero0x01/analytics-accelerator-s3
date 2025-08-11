@@ -46,7 +46,6 @@ public class MetadataStore implements Closeable {
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
   private final Map<S3URI, ObjectMetadata> cache;
-  private final PhysicalIOConfiguration configuration;
   private final Metrics aggregatingMetrics;
 
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStore.class);
@@ -92,7 +91,6 @@ public class MetadataStore implements Closeable {
       throws IOException {
     return this.asyncGet(s3URI, openStreamInformation);
   }
-
 
   /**
    * Evicts the specified key from the cache
