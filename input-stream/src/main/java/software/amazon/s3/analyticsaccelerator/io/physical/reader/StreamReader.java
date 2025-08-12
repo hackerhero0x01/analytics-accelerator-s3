@@ -169,41 +169,48 @@ public class StreamReader implements Closeable {
               try {
                 retryStrategy.execute(
                     () -> {
-                      // Calculate the byte range needed to cover all blocks
-                      List<Block> nonFilledBlocks =
-                          blocks.stream()
-                              .filter(block -> !block.isDataReady())
-                              .collect(Collectors.toList());
+                      InputStream inputStream = null;
+                      try {
+                        // Calculate the byte range needed to cover all blocks
+                        List<Block> nonFilledBlocks =
+                            blocks.stream()
+                                .filter(block -> !block.isDataReady())
+                                .collect(Collectors.toList());
 
-                      Range requestRange = computeRange(nonFilledBlocks);
+                        Range requestRange = computeRange(nonFilledBlocks);
 
-                      // Build S3 GET request with range, ETag validation, and referrer info
-                      GetRequest getRequest =
-                          GetRequest.builder()
-                              .s3Uri(objectKey.getS3URI())
-                              .range(requestRange)
-                              .etag(objectKey.getEtag())
-                              .referrer(new Referrer(requestRange.toHttpString(), readMode))
-                              .build();
+                        // Build S3 GET request with range, ETag validation, and referrer info
+                        GetRequest getRequest =
+                            GetRequest.builder()
+                                .s3Uri(objectKey.getS3URI())
+                                .range(requestRange)
+                                .etag(objectKey.getEtag())
+                                .referrer(new Referrer(requestRange.toHttpString(), readMode))
+                                .build();
 
-                      // Fetch the object content from S3
-                      ObjectContent objectContent;
-                      objectContent = fetchObjectContent(getRequest);
+                        // Fetch the object content from S3
+                        ObjectContent objectContent;
+                        objectContent = fetchObjectContent(getRequest);
 
-                      openStreamInformation.getRequestCallback().onGetRequest();
+                        openStreamInformation.getRequestCallback().onGetRequest();
 
-                      if (objectContent == null) {
-                        // Couldn't successfully get the response from S3.
-                        // Remove blocks from store and complete async operation
-                        removeNonFilledBlocksFromStore(nonFilledBlocks);
-                        return;
-                      }
-                      InputStream inputStream = objectContent.getStream();
-                      boolean success =
-                          readBlocksFromStream(
-                              inputStream, nonFilledBlocks, requestRange.getStart());
-                      if (!success) {
-                        removeNonFilledBlocksFromStore(nonFilledBlocks);
+                        if (objectContent == null) {
+                          // Couldn't successfully get the response from S3.
+                          // Remove blocks from store and complete async operation
+                          removeNonFilledBlocksFromStore(nonFilledBlocks);
+                          return;
+                        }
+                        inputStream = objectContent.getStream();
+                        boolean success =
+                            readBlocksFromStream(
+                                inputStream, nonFilledBlocks, requestRange.getStart());
+                        if (!success) {
+                          removeNonFilledBlocksFromStore(nonFilledBlocks);
+                        }
+                      } finally {
+                        if (inputStream != null) {
+                          inputStream.close();
+                        }
                       }
                     });
               } catch (Exception e) {
