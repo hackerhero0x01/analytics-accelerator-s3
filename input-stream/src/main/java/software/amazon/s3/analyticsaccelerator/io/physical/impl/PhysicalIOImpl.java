@@ -118,7 +118,6 @@ public class PhysicalIOImpl implements PhysicalIO {
                   .name(OPERATION_READ)
                   .attribute(StreamAttributes.variant(FLAVOR_BYTE))
                   .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
-                  .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
                   .attribute(StreamAttributes.range(pos, pos))
                   .attribute(
                       StreamAttributes.physicalIORelativeTimestamp(
@@ -155,7 +154,6 @@ public class PhysicalIOImpl implements PhysicalIO {
               Operation.builder()
                   .name(OPERATION_READ)
                   .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
-                  .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
                   .attribute(StreamAttributes.range(pos, pos + len - 1))
                   .attribute(
                       StreamAttributes.physicalIORelativeTimestamp(
@@ -192,7 +190,6 @@ public class PhysicalIOImpl implements PhysicalIO {
                   .name(OPERATION_READ)
                   .attribute(StreamAttributes.variant(FLAVOR_TAIL))
                   .attribute(StreamAttributes.uri(objectKey.getS3URI()))
-                  .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
                   .attribute(StreamAttributes.range(contentLength - len, contentLength - 1))
                   .attribute(
                       StreamAttributes.physicalIORelativeTimestamp(

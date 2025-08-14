@@ -26,7 +26,7 @@ import lombok.NonNull;
 @Builder
 public class ObjectKey {
   @NonNull S3URI s3URI;
-  @NonNull String etag;
+  String etag;
 
   @Override
   public final boolean equals(Object o) {
@@ -34,11 +34,11 @@ public class ObjectKey {
     if (o == null || getClass() != o.getClass()) return false;
 
     ObjectKey objectKey = (ObjectKey) o;
-    return s3URI.equals(objectKey.s3URI) && etag.equals(objectKey.etag);
+    return s3URI.equals(objectKey.s3URI);
   }
 
   @Override
   public int hashCode() {
-    return s3URI.hashCode() + etag.hashCode();
+    return s3URI.hashCode();
   }
 }

@@ -32,5 +32,5 @@ public class GetRequest {
   @NonNull S3URI s3Uri;
   @NonNull Range range;
   @NonNull Referrer referrer;
-  @NonNull String etag;
+  String etag;
 }

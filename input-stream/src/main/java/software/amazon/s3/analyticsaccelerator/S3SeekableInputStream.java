@@ -153,7 +153,6 @@ public class S3SeekableInputStream extends SeekableInputStream {
             Operation.builder()
                 .name(OPERATION_READ)
                 .attribute(StreamAttributes.uri(this.s3URI))
-                .attribute(StreamAttributes.etag(this.logicalIO.metadata().getEtag()))
                 .attribute(StreamAttributes.range(position, position + length - 1))
                 .build(),
         () -> {
@@ -218,7 +217,6 @@ public class S3SeekableInputStream extends SeekableInputStream {
                 .name(OPERATION_READ)
                 .attribute(StreamAttributes.variant(FLAVOR_TAIL))
                 .attribute(StreamAttributes.uri(this.s3URI))
-                .attribute(StreamAttributes.etag(this.logicalIO.metadata().getEtag()))
                 .attribute(
                     StreamAttributes.range(getContentLength() - length, getContentLength() - 1))
                 .build(),

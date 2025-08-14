@@ -107,7 +107,9 @@ public class BlockManager implements Closeable {
     }
   }
 
-  /** @return true if blockstore is empty */
+  /**
+   * @return true if blockstore is empty
+   */
   public boolean isBlockStoreEmpty() {
     return blockStore.isBlockStoreEmpty();
   }
@@ -196,7 +198,6 @@ public class BlockManager implements Closeable {
             Operation.builder()
                 .name(OPERATION_MAKE_RANGE_AVAILABLE)
                 .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
-                .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
                 .attribute(StreamAttributes.range(pos, pos + len - 1))
                 .attribute(StreamAttributes.effectiveRange(pos, effectiveEndFinal))
                 .attribute(StreamAttributes.generation(generation))

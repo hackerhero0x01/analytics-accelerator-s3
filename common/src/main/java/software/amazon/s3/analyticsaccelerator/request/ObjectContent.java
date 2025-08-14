@@ -24,4 +24,5 @@ import lombok.Data;
 @Builder
 public class ObjectContent {
   InputStream stream;
+  String etag;
 }

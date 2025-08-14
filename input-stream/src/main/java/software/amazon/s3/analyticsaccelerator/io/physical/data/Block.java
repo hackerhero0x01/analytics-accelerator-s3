@@ -123,7 +123,6 @@ public class Block implements Closeable {
             GetRequest.builder()
                 .s3Uri(this.blockKey.getObjectKey().getS3URI())
                 .range(this.blockKey.getRange())
-                .etag(this.blockKey.getObjectKey().getEtag())
                 .referrer(referrer)
                 .build();
 
@@ -133,7 +132,6 @@ public class Block implements Closeable {
                     Operation.builder()
                         .name(OPERATION_BLOCK_GET_ASYNC)
                         .attribute(StreamAttributes.uri(this.blockKey.getObjectKey().getS3URI()))
-                        .attribute(StreamAttributes.etag(this.blockKey.getObjectKey().getEtag()))
                         .attribute(StreamAttributes.range(this.blockKey.getRange()))
                         .attribute(StreamAttributes.generation(generation))
                         .build(),
@@ -180,7 +178,9 @@ public class Block implements Closeable {
     }
   }
 
-  /** @return if data is loaded */
+  /**
+   * @return if data is loaded
+   */
   public boolean isDataLoaded() {
     return data.isDone();
   }
@@ -291,7 +291,6 @@ public class Block implements Closeable {
             Operation.builder()
                 .name(OPERATION_BLOCK_GET_JOIN)
                 .attribute(StreamAttributes.uri(this.blockKey.getObjectKey().getS3URI()))
-                .attribute(StreamAttributes.etag(this.blockKey.getObjectKey().getEtag()))
                 .attribute(StreamAttributes.range(this.blockKey.getRange()))
                 .attribute(StreamAttributes.rangeLength(this.blockKey.getRange().getLength()))
                 .build(),

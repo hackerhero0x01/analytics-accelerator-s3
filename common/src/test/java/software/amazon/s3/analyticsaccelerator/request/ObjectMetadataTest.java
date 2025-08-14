@@ -42,14 +42,6 @@ class ObjectMetadataTest {
     assertEquals(0, metadata.getContentLength());
   }
 
-  @Test
-  @SuppressWarnings("ConstantConditions")
-  void testNullEtagThrowsException() {
-    assertThrows(
-        NullPointerException.class,
-        () -> ObjectMetadata.builder().contentLength(100).etag(null).build());
-  }
-
   @ParameterizedTest
   @ValueSource(longs = {-1L, -100L, Long.MIN_VALUE})
   void testNegativeContentLengthThrowsException(long negativeLength) {

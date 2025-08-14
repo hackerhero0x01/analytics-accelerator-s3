@@ -168,9 +168,11 @@ public class S3SdkObjectClient implements ObjectClient {
     GetObjectRequest.Builder builder =
         GetObjectRequest.builder()
             .bucket(getRequest.getS3Uri().getBucket())
-            .ifMatch(getRequest.getEtag())
             .key(getRequest.getS3Uri().getKey());
 
+    if (getRequest.getEtag() != null) {
+      builder.ifMatch(getRequest.getEtag());
+    }
     final String range = getRequest.getRange().toHttpString();
     builder.range(range);
 
@@ -207,7 +209,16 @@ public class S3SdkObjectClient implements ObjectClient {
         s3AsyncClient
             .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
             .thenApply(
-                responseInputStream -> ObjectContent.builder().stream(responseInputStream).build())
+                responseInputStream -> {
+                  if (openStreamInformation.getObjectMetadata().getEtag() == null) {
+                    String etag = responseInputStream.response().eTag();
+                    if (openStreamInformation.getObjectMetadata().getEtag() == null
+                        && etag != null) {
+                      openStreamInformation.getObjectMetadata().setEtag(etag);
+                    }
+                  }
+                  return ObjectContent.builder().stream(responseInputStream).build();
+                })
             .exceptionally(handleException(getRequest.getS3Uri())));
   }
 
