@@ -41,11 +41,30 @@ public class SequentialReadProgression {
     Preconditions.checkArgument(0 <= generation, "`generation` must be non-negative");
 
     // 2, 8, 32, 64
-    return 2
-        * ONE_MB
-        * (long)
-            Math.pow(
-                configuration.getSequentialPrefetchBase(),
-                Math.floor(configuration.getSequentialPrefetchSpeed() * generation));
+    return Math.min(
+        2
+            * ONE_MB
+            * (long)
+                Math.pow(
+                    configuration.getSequentialPrefetchBase(),
+                    Math.floor(configuration.getSequentialPrefetchSpeed() * generation)),
+        configuration.getSequentialPrefetchMaxSize());
+  }
+
+  /**
+   * Returns the maximum generation where the geometric progression reaches the configured maximum
+   * size.
+   *
+   * @return the highest generation number before the size would exceed the maximum prefetch size
+   */
+  public int getMaximumGeneration() {
+    // Add 1 because getSizeForGeneration caps at max size, so the next generation
+    // is still useful for prefetching (e.g., for 127MB max: gen 5 = 64MB, gen 6 = 127MB capped)
+    return (int)
+            Math.floor(
+                Math.log(configuration.getSequentialPrefetchMaxSize() / (2.0 * ONE_MB))
+                    / Math.log(configuration.getSequentialPrefetchBase())
+                    / configuration.getSequentialPrefetchSpeed())
+        + 1;
   }
 }
