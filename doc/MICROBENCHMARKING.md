@@ -62,7 +62,7 @@ export S3_DATASET_BUCKET=<BUCKET>
 export S3_OBJECT_KEY=<OBJECT_KEY>
 
 // Run the benchmark
-java -Xmx8g -Xms4g  -jar input-stream/build/libs/input-stream-jmh.jar "SequentialStreamPerformanceBenchmark" -prof gc
+java -Xmx8g -Xms4g  -jar input-stream/build/libs/input-stream-jmh.jar "SequentialStreamPerformanceBenchmark"
 ```
 
 ## Profiling
