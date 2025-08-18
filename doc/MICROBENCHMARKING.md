@@ -1,12 +1,19 @@
 # Microbenchmarking
 
-Microbenchmarks can be uses to assess the performance of the library. 
+Microbenchmarks can be used to assess the performance of the library. 
 These focus on replicating specific use cases, and comparing performance with 
 reading from the Java SDK clients directly. 
 
 ## Supported Benchmarks
 
-This section details the current micro benchmarks that can be used.
+This section details the current micro benchmarks that can be used. Currently, we have two benchmarks:
+* ConcurrentStreamPerformanceBenchmark: This benchmark replicates concurrency and read patterns when executing a Spark
+query. It will run concurrent streams, each of which will make 5 ranged GETS, to represent Parquet footer and column
+reads. This can be run on any dataset (it doesn't have to be Parquet), the microbenchmark will just do parquet like 
+reads.
+* SequentialStreamPerformanceBenchmark: This benchmark reads through a file sequentially. It is useful to understand 
+the benefits of the library's sequential prefetching, and the performance is compared to just reading through a stream
+with the SDK directly. 
 
 ### ConcurrentStreamPerformanceBenchmark 
 
