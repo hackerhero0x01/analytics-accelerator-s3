@@ -2,6 +2,7 @@ name: Build and upload artifact JARs to S3 treatment bucket
 
 # Controls when the action will run. Invokes the workflow on push events but only for the main branch
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -36,7 +37,7 @@ jobs:
 
       - name: Build with Gradle
         run: |
-          ./gradlew -PsnapshotBuild=true build
+          ./gradlew -PsnapshotBuild=true build publishToMavenLocal
           ./gradlew jmhJar
 
       - uses: actions/upload-artifact@v4
