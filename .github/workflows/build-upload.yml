@@ -45,8 +45,6 @@ jobs:
           path: "input-stream/build/libs/analyticsaccelerator-s3-SNAPSHOT.jar"
           name: "analyticsaccelerator-s3-SNAPSHOT.jar"
 
-          
-
 #  BuildHadoopAndUploadArtifact:
 #    name: Build Hadoop artifacts
 #    runs-on: ubuntu-latest
