@@ -88,6 +88,7 @@ jobs:
 #          name: "hadoop-aws-3.5.0-SNAPSHOT.jar"
 
   BuildIcebergAndUploadArtifact:
+    needs: BuildAnalyticsAcceleratorAndUploadArtifact
     name: Build Iceberg artifacts
     runs-on: ubuntu-latest
     steps:
@@ -96,7 +97,18 @@ jobs:
         with:
           java-version: '11'
           distribution: 'corretto'
+          
+      - uses: actions/download-artifact@v4
+        with:
+          name: "analyticsaccelerator-s3-SNAPSHOT.jar"
+          path: ./aal
 
+      - name: Install aal SNAPSHOT to local Maven
+        run: |
+          mvn install:install-file -Dfile=./aal/analyticsaccelerator-s3-SNAPSHOT.jar \
+            -DgroupId=com.software.amazon -DartifactId=analyticsaccelerator-s3 \
+            -Dversion=SNAPSHOT -Dpackaging=jar
+      
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@417ae3ccd767c252f5661f1ace9f835f9654f2b5 # v3.1.0
 
