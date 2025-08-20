@@ -1,3 +1,16 @@
+## v1.3.0 (August 20, 2025)
+* Introduce max read bytes config for sequential read https://github.com/awslabs/analytics-accelerator-s3/pull/348
+* Add TTL to metadata store cache https://github.com/awslabs/analytics-accelerator-s3/pull/338
+* Update microbenchmarks to better reflect a Spark workload https://github.com/awslabs/analytics-accelerator-s3/pull/334
+* Add support for Java sync client https://github.com/awslabs/analytics-accelerator-s3/pull/341
+* Calls release() method on any failure https://github.com/awslabs/analytics-accelerator-s3/pull/337
+* New PhysicalIO implementation https://github.com/awslabs/analytics-accelerator-s3/pull/325
+* Upgrade SDK version and fix user-agent changes to avoid prepending empty string https://github.com/awslabs/analytics-accelerator-s3/pull/319
+* Upgrade to junit 5.13.4 https://github.com/awslabs/analytics-accelerator-s3/pull/314
+* Upgrade to freefair lombok version 8.14 https://github.com/awslabs/analytics-accelerator-s3/pull/313
+* Append AAL user agent to customer user agent https://github.com/awslabs/analytics-accelerator-s3/pull/311
+* Add Retries and Retry Policy https://github.com/awslabs/analytics-accelerator-s3/pull/307
+
 ## v1.2.1 (July 07, 2025)
 
 * fix: shading dependency on google error prone https://github.com/awslabs/analytics-accelerator-s3/pull/305
